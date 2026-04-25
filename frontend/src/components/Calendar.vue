@@ -1,10 +1,11 @@
+
 <template>
   <div class="calendar">
     <header class="calendar-header">
       <button type="button" @click="prevMonth">‹</button>
-      <div>
-        <strong>{{ monthName }}</strong>
-        <span>{{ displayedYear }}</span>
+      <div class="calendar-title">
+        <div class="calendar-month">{{ monthName }}</div>
+        <div class="calendar-year">{{ displayedYear }}</div>
       </div>
       <button type="button" @click="nextMonth">›</button>
     </header>
@@ -20,7 +21,10 @@
         :class="{
           'calendar-day--muted': !dateObj.currentMonth,
           'calendar-day--today': dateObj.isToday,
+          'calendar-day--disabled': !isDateSelectable(dateObj),
+          'calendar-day--selectable': isDateSelectable(dateObj) && dateObj.currentMonth,
         }"
+        @click="selectDate(dateObj)"
       >
         {{ dateObj.date }}
       </div>
@@ -37,8 +41,15 @@ export default {
       currentYear: today.getFullYear(),
       currentMonth: today.getMonth(),
       today,
-      weekdays: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+      weekdays: ['Dom', 'Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab'],
     };
+  },
+  mounted() {
+    // Always start from today when component mounts
+    const today = new Date();
+    this.currentYear = today.getFullYear();
+    this.currentMonth = today.getMonth();
+    this.today = today;
   },
   computed: {
     displayedYear() {
@@ -51,18 +62,18 @@ export default {
     },
     months() {
       return [
-        'January',
-        'February',
-        'March',
-        'April',
-        'May',
-        'June',
-        'July',
-        'August',
-        'September',
-        'October',
-        'November',
-        'December',
+        'Enero',
+        'Febrero',
+        'Marzo',
+        'Abril',
+        'Mayo',
+        'Junio',
+        'Julio',
+        'Agosto',
+        'Septiembre',
+        'Octubre',
+        'Noviembre',
+        'Diciembre',
       ];
     },
     calendarDays() {
@@ -109,6 +120,12 @@ export default {
 
       return days;
     },
+    selectableDateRange() {
+      const startDate = new Date(this.today);
+      const endDate = new Date(this.today);
+      endDate.setDate(endDate.getDate() + 30);
+      return { startDate, endDate };
+    },
   },
   methods: {
     prevMonth() {
@@ -125,6 +142,20 @@ export default {
         this.currentYear += 1;
       } else {
         this.currentMonth += 1;
+      }
+    },
+    isDateSelectable(dateObj) {
+      if (!dateObj.currentMonth) return false;
+      const dateToCheck = new Date(this.currentYear, this.currentMonth, dateObj.date);
+      return dateToCheck >= this.selectableDateRange.startDate && dateToCheck <= this.selectableDateRange.endDate;
+    },
+    selectDate(dateObj) {
+      if (this.isDateSelectable(dateObj)) {
+        this.$emit('date-selected', {
+          date: dateObj.date,
+          month: this.currentMonth,
+          year: this.currentYear,
+        });
       }
     },
   },
@@ -153,6 +184,26 @@ export default {
   background: transparent;
   font-size: 1.5rem;
   cursor: pointer;
+  color: #111827;
+  opacity: 1;
+}
+
+.calendar-title {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.calendar-month {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+.calendar-year {
+  font-size: 0.9rem;
+  color: #6b7280;
+  margin-top: 2px;
 }
 
 .calendar-grid {
@@ -178,10 +229,30 @@ export default {
 .calendar-day {
   border-radius: 8px;
   font-size: 0.95rem;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.calendar-day:hover:not(.calendar-day--muted) {
+  background: #e5e7eb;
 }
 
 .calendar-day--muted {
   color: #9ca3af;
+  cursor: not-allowed;
+}
+
+.calendar-day--disabled {
+  color: #d1d5db;
+  cursor: not-allowed;
+}
+
+.calendar-day--selectable {
+  cursor: pointer;
+}
+
+.calendar-day--selectable:hover {
+  background: #dbeafe;
 }
 
 .calendar-day--today {
