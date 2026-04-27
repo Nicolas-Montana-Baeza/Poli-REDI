@@ -1,9 +1,11 @@
 <script setup>
 import Calendar from './components/Calendar.vue'
-import DayPicked from './components/DayPicked.vue'
+import SchedulePicker from './components/SchedulePicker.vue'
+import NextReservation from './components/NextReservation.vue';
 </script>
 
 <template>
   <Calendar />
-  <DayPicked />
+  <SchedulePicker />
+  <NextReservation />
 </template>

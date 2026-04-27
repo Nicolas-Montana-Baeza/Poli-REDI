@@ -72,8 +72,6 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
 
-const emit = defineEmits(['reservation-confirmed'])
-
 const props = defineProps({
   day: {
     type: String,
@@ -170,14 +168,6 @@ function closeConfirmation() {
 function confirmSelection() {
   if (currentSelectedSlot.value) {
     confirmedSlots.value.push(currentSelectedSlot.value)
-    
-    // Emit reservation confirmed event with day and time
-    emit('reservation-confirmed', {
-      day: props.day,
-      time: currentSelectedSlot.value,
-      date: props.day,
-    })
-    
     currentSelectedSlot.value = null
     showConfirmation.value = false
   }
@@ -190,7 +180,7 @@ function searchAnother() {
 </script>
 
 <style scoped>
-.day-picked {
+.schedule-picker {
   max-width: 420px;
   margin: 0 auto;
   padding: 1rem;
