@@ -1,7 +1,7 @@
 <template>
   <div class="schedule-picker">
     <header>
-      <h2>Horario del día</h2>
+      <h2>Horario del día {{ isDateFullyBooked.value ? '(Completo)' : '' }}</h2>
       <p class="day-label">{{ formattedDay }}</p>
     </header>
 
@@ -49,7 +49,7 @@
       </div>
     </div>
 
-    <p class="hint">Haz clic en una franja horaria para marcarla como reservada.</p>
+    <p class="hint">{{ isDateFullyBooked.value ? 'Haz clic en una franja horaria para cancelar la reserva.' : 'Haz clic en una franja horaria para marcarla como reservada.' }}</p>
 
     <!-- Confirmation Modal -->
     <div v-if="showConfirmation" class="modal-overlay" @click="closeConfirmation">
@@ -66,6 +66,22 @@
         </div>
       </div>
     </div>
+
+    <!-- Cancel Booking Modal -->
+    <div v-if="showCancelConfirmation" class="modal-overlay" @click="closeCancelConfirmation">
+      <div class="modal-content" @click.stop>
+        <h3 class="modal-title">¿Cancelar esta reserva?</h3>
+        <div class="selected-slots">
+          <p class="slot-item">
+            {{ slotToCancel }}
+          </p>
+        </div>
+        <div class="modal-buttons">
+          <button class="btn-cancel-modal" @click="cancelBooking">Cancelar reserva</button>
+          <button class="btn-keep-modal" @click="closeCancelConfirmation">Mantener</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -73,10 +89,25 @@
 import { ref, computed, watch } from 'vue'
 
 const props = defineProps({
-  day: {
-    type: String,
-    default: ''
+  selectedDate: {
+    type: Object,
+    default: null
   }
+})
+
+const fullyBookedDates = [
+  '2026-04-28',
+  '2026-04-30',
+]
+
+const formattedDate = computed(() => {
+  if (!props.selectedDate) return ''
+  const { date, month, year } = props.selectedDate
+  return `${year}-${String(month + 1).padStart(2, '0')}-${String(date).padStart(2, '0')}`
+})
+
+const isDateFullyBooked = computed(() => {
+  return fullyBookedDates.includes(formattedDate.value)
 })
 
 const startHour = ref(8)
@@ -84,18 +115,18 @@ const endHour = ref(17)
 const confirmedSlots = ref([])
 const currentSelectedSlot = ref(null)
 const showConfirmation = ref(false)
+const showCancelConfirmation = ref(false)
+const slotToCancel = ref(null)
 
 const formattedDay = computed(() => {
-  if (!props.day) {
+  if (!formattedDate.value || !props.selectedDate) {
     return 'Día no seleccionado'
   }
 
-  const parsed = new Date(props.day)
-  if (Number.isNaN(parsed.getTime())) {
-    return props.day
-  }
+  const { date, month, year } = props.selectedDate
+  const dateObj = new Date(year, month, date)
 
-  return parsed.toLocaleDateString(undefined, {
+  return dateObj.toLocaleDateString(undefined, {
     weekday: 'long',
     year: 'numeric',
     month: 'long',
@@ -139,14 +170,42 @@ watch(endHour, value => {
   }
 })
 
+watch(() => formattedDate.value, () => {
+  confirmedSlots.value = []
+  currentSelectedSlot.value = null
+  showConfirmation.value = false
+  // If newly selected day is fully booked, fill all slots
+  if (isDateFullyBooked.value) {
+    confirmedSlots.value = slots.value.map(slot => slot.key)
+  }
+})
+
+watch(isDateFullyBooked, (isFullyBooked) => {
+  if (isFullyBooked) {
+    // Pre-fill all slots as booked for a fully booked day
+    confirmedSlots.value = slots.value.map(slot => slot.key)
+  } else {
+    confirmedSlots.value = []
+  }
+})
+
+watch(slots, () => {
+  // When slots change (hour range changes), update fully booked slots
+  if (isDateFullyBooked.value) {
+    confirmedSlots.value = slots.value.map(slot => slot.key)
+  }
+})
+
 function formatHour(hour) {
   const padded = String(hour).padStart(2, '0')
   return `${padded}:00`
 }
 
 function toggleReservation(key) {
-  // No permitir seleccionar horarios ya confirmados
+  // Si es un horario confirmado, mostrar modal de cancelación
   if (confirmedSlots.value.includes(key)) {
+    slotToCancel.value = key
+    showCancelConfirmation.value = true
     return
   }
   
@@ -176,6 +235,21 @@ function confirmSelection() {
 function searchAnother() {
   currentSelectedSlot.value = null
   closeConfirmation()
+}
+
+function closeCancelConfirmation() {
+  showCancelConfirmation.value = false
+  slotToCancel.value = null
+}
+
+function cancelBooking() {
+  if (slotToCancel.value) {
+    const index = confirmedSlots.value.indexOf(slotToCancel.value)
+    if (index > -1) {
+      confirmedSlots.value.splice(index, 1)
+    }
+    closeCancelConfirmation()
+  }
 }
 </script>
 
@@ -247,8 +321,97 @@ header {
 }
 
 .slot.reserved:hover {
-  background: #ef4444;
+  background: #dc2626;
 }
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: white;
+  border-radius: 12px;
+  padding: 2rem;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+  max-width: 400px;
+  width: 90%;
+}
+
+.modal-title {
+  margin: 0 0 1rem 0;
+  color: #333;
+  font-size: 1.1rem;
+}
+
+.selected-slots {
+  margin-bottom: 1.5rem;
+}
+
+.slot-item {
+  margin: 0;
+  padding: 0.8rem;
+  background: #f3f4f6;
+  border-radius: 6px;
+  color: #333;
+  font-weight: 500;
+}
+
+.modal-buttons {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+}
+
+.btn-confirm-modal,
+.btn-another-modal,
+.btn-cancel-modal,
+.btn-keep-modal {
+  padding: 0.6rem 1.2rem;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background 0.2s ease;
+}
+
+.btn-confirm-modal {
+  background: #10b981;
+  color: white;
+}
+
+.btn-confirm-modal:hover {
+  background: #059669;
+}
+
+.btn-another-modal,
+.btn-keep-modal {
+  background: #d1d5db;
+  color: #333;
+}
+
+.btn-another-modal:hover,
+.btn-keep-modal:hover {
+  background: #9ca3af;
+}
+
+.btn-cancel-modal {
+  background: #ef4444;
+  color: white;
+}
+
+.btn-cancel-modal:hover {
+  background: #dc2626;
+}
+
 
 .slot.selected {
   background: #2563eb;

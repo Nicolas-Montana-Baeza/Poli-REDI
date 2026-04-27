@@ -144,7 +144,9 @@ export default {
     },
     selectableDateRange() {
       const startDate = new Date(this.today);
+      startDate.setHours(0, 0, 0, 0);
       const endDate = new Date(this.today);
+      endDate.setHours(0, 0, 0, 0);
       endDate.setDate(endDate.getDate() + 30);
       return { startDate, endDate };
     },
@@ -188,10 +190,7 @@ export default {
       return this.selectedDate && !this.isDateSelected(dateObj);
     },
     selectDate(dateObj) {
-      if (this.isDateLocked(dateObj)) {
-        return;
-      }
-      if (this.isDateSelectable(dateObj) && !this.isDateFull(dateObj)) {
+      if (this.isDateSelectable(dateObj)) {
         this.$emit('date-selected', {
           date: dateObj.date,
           month: this.currentMonth,
@@ -297,26 +296,25 @@ export default {
 }
 
 .calendar-day--today {
-  background: #2563eb;
+  background: #10b981;
   color: white;
 }
 
 .calendar-day--full {
   background: #ef4444;
   color: white;
-  font-weight: 600;
-  cursor: not-allowed;
+  cursor: pointer;
 }
 
 .calendar-day--full:hover {
-  background: #ef4444;
+  background: #dc2626;
 }
 
 .calendar-day--selected {
-  background: #10b981;
-  color: white;
+  background: transparent !important;
+  color: rgba(255, 255, 255, 0) !important;
+  border: 2px solid #111827;
   font-weight: 600;
-  box-shadow: 0 0 0 2px #111827;
 }
 
 .calendar-day--locked {
