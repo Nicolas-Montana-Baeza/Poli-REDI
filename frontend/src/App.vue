@@ -1,4 +1,5 @@
 <script setup>
+import { ref, computed, onMounted } from 'vue'
 import Calendar from './components/Calendar.vue'
 import SchedulePicker from './components/SchedulePicker.vue'
 import NextReservations from './components/NextReservations.vue'
@@ -6,34 +7,31 @@ import ResourcePicker from './components/ResourcePicker.vue'
 import SportPicker from './components/SportPicker.vue'
 import QuickActions from './components/QuickActions.vue'
 import Sidebar from './components/Sidebar.vue'
-import { ref, computed } from 'vue'
+import { api } from './services/api.js'
 
 const selectedDate = ref(null)
 const selectedResource = ref(null)
 const selectedSport = ref(null)
 const selectedSchedule = ref(null)
 
-const fullyBookedDates = [
-  '2026-04-28',
-  '2026-04-30',
-]
+const fullyBookedDates = ref([])
+const resources = ref([])
+const sports = ref([])
+const reservations = ref([])
+const bookingConfig = ref({})
 
-const reservations = ref([
-  {
-    id: 1,
-    place: 'Cancha 1',
-    date: 'Jue 22 mayo, 17:00 - 18:30',
-    location: 'Fútbol',
-    status: 'Confirmada',
-  },
-  {
-    id: 2,
-    place: 'Piscina',
-    date: 'Vie 23 mayo, 10:00 - 11:00',
-    location: 'Natación',
-    status: 'Confirmada',
+// Fetch initial data from API
+onMounted(async () => {
+  try {
+    fullyBookedDates.value = await api.getFullyBookedDates()
+    resources.value = await api.getResources()
+    sports.value = await api.getSports()
+    reservations.value = await api.getNextReservations()
+    bookingConfig.value = await api.getBookingConfig()
+  } catch (error) {
+    console.error('Error loading data:', error)
   }
-])
+})
 
 const handleDateSelected = (dateObj) => {
   selectedDate.value = dateObj
@@ -72,6 +70,47 @@ const reservationPayload = computed(() => {
 const submitReservation = () => {
   console.log('Payload para API:', reservationPayload.value)
 }
+
+const handleReserve = () => {
+  console.log('Abrir formulario de reserva')
+}
+
+const handleMyReservations = () => {
+  console.log('Ver mis reservaciones')
+}
+
+const handleAvailability = () => {
+  console.log('Ver disponibilidad')
+}
+
+const handleCancel = () => {
+  console.log('Cancelar acción')
+}
+
+const handleHistory = () => {
+  console.log('Ver historial')
+}
+
+const handleContact = () => {
+  console.log('Contactar soporte')
+}
+
+const handleGoStats = () => {
+  console.log('Ver estadísticas')
+}
+
+const handleSettings = () => {
+  console.log('Configuración')
+}
+
+const handleHelp = () => {
+  console.log('Ayuda')
+}
+
+const handleLogout = () => {
+  console.log('Cerrar sesión')
+}
+
 </script>
 
 <template>

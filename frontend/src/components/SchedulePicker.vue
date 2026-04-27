@@ -5,34 +5,6 @@
       <p class="day-label">{{ formattedDay }}</p>
     </header>
 
-    <div class="controls">
-      <label>
-        Hora inicial
-        <select v-model.number="startHour">
-          <option
-            v-for="hour in startOptions"
-            :key="hour"
-            :value="hour"
-          >
-            {{ formatHour(hour) }}
-          </option>
-        </select>
-      </label>
-
-      <label>
-        Hora final
-        <select v-model.number="endHour">
-          <option
-            v-for="hour in endOptions"
-            :key="hour"
-            :value="hour"
-          >
-            {{ formatHour(hour) }}
-          </option>
-        </select>
-      </label>
-    </div>
-
     <div class="schedule">
       <div
         v-for="slot in slots"
@@ -86,7 +58,8 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
+import { api } from '../services/api.js'
 
 const props = defineProps({
   selectedDate: {
@@ -95,10 +68,23 @@ const props = defineProps({
   }
 })
 
-const fullyBookedDates = [
-  '2026-04-28',
-  '2026-04-30',
-]
+const fullyBookedDates = ref([])
+const bookingConfig = ref({ startHour: 8, endHour: 20 })
+const confirmedSlots = ref([])
+const currentSelectedSlot = ref(null)
+const showConfirmation = ref(false)
+const showCancelConfirmation = ref(false)
+const slotToCancel = ref(null)
+
+// Fetch booking config and booked dates from API
+onMounted(async () => {
+  try {
+    bookingConfig.value = await api.getBookingConfig()
+    fullyBookedDates.value = await api.getFullyBookedDates()
+  } catch (error) {
+    console.error('Error loading schedule config:', error)
+  }
+})
 
 const formattedDate = computed(() => {
   if (!props.selectedDate) return ''
@@ -107,16 +93,8 @@ const formattedDate = computed(() => {
 })
 
 const isDateFullyBooked = computed(() => {
-  return fullyBookedDates.includes(formattedDate.value)
+  return fullyBookedDates.value.includes(formattedDate.value)
 })
-
-const startHour = ref(8)
-const endHour = ref(17)
-const confirmedSlots = ref([])
-const currentSelectedSlot = ref(null)
-const showConfirmation = ref(false)
-const showCancelConfirmation = ref(false)
-const slotToCancel = ref(null)
 
 const formattedDay = computed(() => {
   if (!formattedDate.value || !props.selectedDate) {
@@ -134,21 +112,10 @@ const formattedDay = computed(() => {
   })
 })
 
-const startOptions = computed(() => {
-  return Array.from({ length: 24 }, (_, index) => index).filter(
-    hour => hour < endHour.value
-  )
-})
-
-const endOptions = computed(() => {
-  return Array.from({ length: 25 }, (_, index) => index).filter(
-    hour => hour > startHour.value
-  )
-})
 
 const slots = computed(() => {
   const result = []
-  for (let hour = startHour.value; hour < endHour.value; hour += 1) {
+  for (let hour = bookingConfig.value.startHour; hour < bookingConfig.value.endHour; hour += 1) {
     const key = `${hour}-${hour + 1}`
     result.push({
       key,
@@ -156,18 +123,6 @@ const slots = computed(() => {
     })
   }
   return result
-})
-
-watch(startHour, value => {
-  if (value >= endHour.value) {
-    endHour.value = Math.min(24, value + 1)
-  }
-})
-
-watch(endHour, value => {
-  if (value <= startHour.value) {
-    startHour.value = Math.max(0, value - 1)
-  }
 })
 
 watch(() => formattedDate.value, () => {
@@ -272,28 +227,6 @@ header {
   color: #555;
 }
 
-.controls {
-  display: flex;
-  gap: 1rem;
-  flex-wrap: wrap;
-  margin-bottom: 1rem;
-}
-
-.controls label {
-  display: flex;
-  flex-direction: column;
-  font-size: 0.95rem;
-  color: #333;
-}
-
-.controls select {
-  margin-top: 0.4rem;
-  padding: 0.4rem;
-  border: 1px solid #bbb;
-  border-radius: 6px;
-  background: #fff;
-}
-
 .schedule {
   display: grid;
   gap: 0.5rem;
@@ -317,7 +250,7 @@ header {
   background: #ef4444;
   color: #fff;
   font-weight: 600;
-  cursor: default;
+  cursor: pointer;
 }
 
 .slot.reserved:hover {
@@ -419,9 +352,6 @@ header {
   font-weight: 600;
 }
 
-.slot.disabled {
-  cursor: not-allowed;
-}
 
 .hint {
   margin-top: 1rem;

@@ -36,6 +36,8 @@
 </template>
 
 <script>
+import { api } from '../services/api.js'
+
 export default {
   name: 'Calendar',
   props: {
@@ -55,14 +57,22 @@ export default {
       currentMonth: today.getMonth(),
       today,
       weekdays: ['Dom', 'Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab'],
+      bookingConfig: { selectableDaysRange: 30 },
     };
   },
-  mounted() {
+  async mounted() {
     // Always start from today when component mounts
     const today = new Date();
     this.currentYear = today.getFullYear();
     this.currentMonth = today.getMonth();
     this.today = today;
+    
+    // Fetch booking config from API
+    try {
+      this.bookingConfig = await api.getBookingConfig()
+    } catch (error) {
+      console.error('Error loading booking config:', error)
+    }
     
     // Set current day as default selection
     if (!this.selectedDate) {
@@ -147,7 +157,7 @@ export default {
       startDate.setHours(0, 0, 0, 0);
       const endDate = new Date(this.today);
       endDate.setHours(0, 0, 0, 0);
-      endDate.setDate(endDate.getDate() + 30);
+      endDate.setDate(endDate.getDate() + this.bookingConfig.selectableDaysRange);
       return { startDate, endDate };
     },
   },
@@ -223,9 +233,9 @@ export default {
   border: none;
   background: transparent;
   font-size: 1.5rem;
-  cursor: pointer;
   color: #111827;
   opacity: 1;
+  cursor: pointer;
 }
 
 .calendar-title {
@@ -279,20 +289,19 @@ export default {
 
 .calendar-day--muted {
   color: #9ca3af;
-  cursor: not-allowed;
 }
 
 .calendar-day--disabled {
   color: #d1d5db;
-  cursor: not-allowed;
 }
 
 .calendar-day--selectable {
-  cursor: pointer;
+  background: #10b981;
+  color: white;
 }
 
 .calendar-day--selectable:hover {
-  background: #dbeafe;
+  background: #059669;
 }
 
 .calendar-day--today {
@@ -303,7 +312,6 @@ export default {
 .calendar-day--full {
   background: #ef4444;
   color: white;
-  cursor: pointer;
 }
 
 .calendar-day--full:hover {
@@ -311,15 +319,12 @@ export default {
 }
 
 .calendar-day--selected {
-  background: transparent !important;
-  color: rgba(255, 255, 255, 0) !important;
-  border: 2px solid #111827;
+  border: 3px solid #111827;
   font-weight: 600;
 }
 
 .calendar-day--locked {
   opacity: 0.5;
-  cursor: not-allowed;
 }
 
 .calendar-day--locked:hover {

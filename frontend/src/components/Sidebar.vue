@@ -8,13 +8,12 @@
       <button @click="$emit('my-reservations')">📖 Mis reservas</button>
       <button @click="$emit('availability')">🕒 Disponibilidad</button>
       <button @click="$emit('history')">💬 Historial</button>
-      <button @click="$emit('contact')">📞 Contacto</button>
       <button @click="$emit('go-stats')">📊 Estadísticas</button>
       <button @click="$emit('settings')">⚙️ Configuración</button>
       <button @click="$emit('help')">❓ Ayuda</button>
       <button @click="$emit('logout')">🚪 Cerrar sesión</button>
       <div class="footer">
-        <p>© 2024 Poli-REDI. Todos los derechos reservados.</p>
+        <p>© 2026 Poli-REDI. Todos los derechos reservados.</p>
       </div>
     </nav>
   </aside>
