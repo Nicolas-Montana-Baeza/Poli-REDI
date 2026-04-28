@@ -1,23 +1,7 @@
 -- =========================================
--- STOP ON FIRST ERROR
+-- USERS TABLE
 -- =========================================
-\set ON_ERROR_STOP on
-
-\echo 'Checking database...'
-
-SELECT 'CREATE DATABASE poliredi'
-WHERE NOT EXISTS (
-    SELECT FROM pg_database WHERE datname = 'poliredi'
-)\gexec
-
-\echo 'Connecting to poliredi...'
-
-\c poliredi
-
--- =========================================
--- USERS
--- =========================================
-\echo 'Creating users table...'
+-- Creating users table...
 
 CREATE TABLE IF NOT EXISTS users (
     id SERIAL PRIMARY KEY,
@@ -30,9 +14,9 @@ CREATE TABLE IF NOT EXISTS users (
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 
 -- =========================================
--- RESOURCES
+-- RESOURCES TABLE
 -- =========================================
-\echo 'Creating resources table...'
+-- Creating resources table...
 
 CREATE TABLE IF NOT EXISTS resources (
     id SERIAL PRIMARY KEY,
@@ -45,9 +29,9 @@ CREATE TABLE IF NOT EXISTS resources (
 CREATE INDEX IF NOT EXISTS idx_resources_name ON resources(name);
 
 -- =========================================
--- SPORTS
+-- SPORTS TABLE
 -- =========================================
-\echo 'Creating sports table...'
+-- Creating sports table...
 
 CREATE TABLE IF NOT EXISTS sports (
     id SERIAL PRIMARY KEY,
@@ -55,9 +39,9 @@ CREATE TABLE IF NOT EXISTS sports (
 );
 
 -- =========================================
--- RESERVATIONS
+-- RESERVATIONS TABLE
 -- =========================================
-\echo 'Creating reservations table...'
+-- Creating reservations table...
 
 CREATE TABLE IF NOT EXISTS reservations (
     id SERIAL PRIMARY KEY,
@@ -75,9 +59,9 @@ CREATE INDEX IF NOT EXISTS idx_reservations_resource_id ON reservations(resource
 CREATE INDEX IF NOT EXISTS idx_reservations_start_time ON reservations(start_time);
 
 -- =========================================
--- PARTICIPANTS
+-- PARTICIPANTS TABLE
 -- =========================================
-\echo 'Creating participants table...'
+-- Creating participants table...
 
 CREATE TABLE IF NOT EXISTS participants (
     id SERIAL PRIMARY KEY,
@@ -89,9 +73,9 @@ CREATE TABLE IF NOT EXISTS participants (
 CREATE INDEX IF NOT EXISTS idx_participants_reservation_id ON participants(reservation_id);
 
 -- =========================================
--- VIOLATIONS
+-- VIOLATIONS TABLE
 -- =========================================
-\echo 'Creating violations table...'
+-- Creating violations table...
 
 CREATE TABLE IF NOT EXISTS violations (
     id SERIAL PRIMARY KEY,
@@ -102,9 +86,9 @@ CREATE TABLE IF NOT EXISTS violations (
 );
 
 -- =========================================
--- PRIORITY RESERVATIONS
+-- PRIORITY RESERVATIONS TABLE
 -- =========================================
-\echo 'Creating priority reservations table...'
+-- Creating priority reservations table...
 
 CREATE TABLE IF NOT EXISTS priority_reservations (
     id SERIAL PRIMARY KEY,
@@ -115,9 +99,9 @@ CREATE TABLE IF NOT EXISTS priority_reservations (
 );
 
 -- =========================================
--- AVAILABILITY BLOCKS
+-- AVAILABILITY BLOCKS TABLE
 -- =========================================
-\echo 'Creating availability blocks table...'
+-- Creating availability blocks table...
 
 CREATE TABLE IF NOT EXISTS availability_blocks (
     id SERIAL PRIMARY KEY,
@@ -133,7 +117,7 @@ CREATE INDEX IF NOT EXISTS idx_availability_blocks_resource_id ON availability_b
 -- =========================================
 -- SEED USERS
 -- =========================================
-\echo 'Seeding users...'
+-- Seeding users...
 
 INSERT INTO users (email, full_name, is_blocked) VALUES
 ('nicolas@ucentral.cl', 'Nicolás Montaña', FALSE),
@@ -146,7 +130,7 @@ ON CONFLICT (email) DO NOTHING;
 -- =========================================
 -- SEED RESOURCES
 -- =========================================
-\echo 'Seeding resources...'
+-- Seeding resources...
 
 INSERT INTO resources (name, type, reservation_mode) VALUES
 ('Cancha 1', 'Cancha', 'exclusive'),
@@ -160,7 +144,7 @@ ON CONFLICT (name) DO NOTHING;
 -- =========================================
 -- SEED SPORTS
 -- =========================================
-\echo 'Seeding sports...'
+-- Seeding sports...
 
 INSERT INTO sports (name) VALUES
 ('Fútbol'),
@@ -178,7 +162,7 @@ ON CONFLICT (name) DO NOTHING;
 -- =========================================
 -- REPORT VIEWS
 -- =========================================
-\echo 'Creating views...'
+-- Creating views...
 
 CREATE OR REPLACE VIEW vw_resource_usage AS
 SELECT
@@ -225,4 +209,4 @@ JOIN reservations r ON r.id = p.reservation_id
 JOIN users u ON u.id = r.user_id
 JOIN resources res ON res.id = r.resource_id;
 
-\echo 'Schema completed successfully.'
+-- Schema completed successfully.
