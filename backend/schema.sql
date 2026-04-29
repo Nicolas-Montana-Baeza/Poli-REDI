@@ -8,7 +8,12 @@ CREATE TABLE IF NOT EXISTS users (
     email VARCHAR(255) UNIQUE NOT NULL,
     full_name VARCHAR(255),
     is_blocked BOOLEAN DEFAULT FALSE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CHECK (email ~* '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$'),
+    is_admin BOOLEAN DEFAULT FALSE
+
+
 );
 
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
@@ -29,11 +34,11 @@ CREATE TABLE IF NOT EXISTS resources (
 CREATE INDEX IF NOT EXISTS idx_resources_name ON resources(name);
 
 -- =========================================
--- SPORTS TABLE
+-- ACTIVITIES TABLE
 -- =========================================
--- Creating sports table...
+-- Creating activities table...
 
-CREATE TABLE IF NOT EXISTS sports (
+CREATE TABLE IF NOT EXISTS activities (
     id SERIAL PRIMARY KEY,
     name VARCHAR(100) UNIQUE NOT NULL
 );
@@ -47,11 +52,12 @@ CREATE TABLE IF NOT EXISTS reservations (
     id SERIAL PRIMARY KEY,
     user_id INT NOT NULL REFERENCES users(id),
     resource_id INT NOT NULL REFERENCES resources(id),
-    sport_id INT REFERENCES sports(id),
+    activity_id INT REFERENCES activities(id),
     start_time TIMESTAMP NOT NULL,
     duration_minutes INT NOT NULL CHECK (duration_minutes > 0),
     status VARCHAR(50) DEFAULT 'CONFIRMED',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE INDEX IF NOT EXISTS idx_reservations_user_id ON reservations(user_id);
@@ -112,52 +118,38 @@ CREATE TABLE IF NOT EXISTS availability_blocks (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS notifications (
+    id SERIAL PRIMARY KEY,
+    user_id INT NOT NULL REFERENCES users(id),
+    message TEXT NOT NULL,
+    is_read BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications(user_id);
+
+CREATE TABLE If not EXISTS violation_notifications (
+    id SERIAL PRIMARY KEY,
+    user_id INT NOT NULL REFERENCES users(id),
+    reservation_id INT NOT NULL REFERENCES reservations(id),
+    reason TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_violation_notifications_user_id ON violation_notifications(user_id);
+CREATE INDEX IF NOT EXISTS idx_violation_notifications_reservation_id ON violation_notifications(reservation_id);
+
+CREATE INDEX IF NOT EXISTS idx_availability_blocks_start_time ON availability_blocks(start_time);
+CREATE INDEX IF NOT EXISTS idx_availability_blocks_end_time ON availability_blocks(end_time);   
 CREATE INDEX IF NOT EXISTS idx_availability_blocks_resource_id ON availability_blocks(resource_id);
 
--- =========================================
--- SEED USERS
--- =========================================
--- Seeding users...
-
-INSERT INTO users (email, full_name, is_blocked) VALUES
-('nicolas@ucentral.cl', 'Nicolás Montaña', FALSE),
-('maria@ucentral.cl', 'María González', FALSE),
-('juan@ucentral.cl', 'Juan Pérez', FALSE),
-('camila@ucentral.cl', 'Camila Soto', TRUE),
-('dave@ucentral.cl', 'Dave Coordinador', FALSE)
-ON CONFLICT (email) DO NOTHING;
-
--- =========================================
--- SEED RESOURCES
--- =========================================
--- Seeding resources...
-
-INSERT INTO resources (name, type, reservation_mode) VALUES
-('Cancha 1', 'Cancha', 'exclusive'),
-('Cancha 2', 'Cancha', 'exclusive'),
-('Cancha 3', 'Cancha', 'exclusive'),
-('Gimnasio', 'Free Pass', 'concurrent'),
-('Piscina', 'Free Pass', 'concurrent'),
-('Sala Multiuso', 'Sala', 'exclusive')
-ON CONFLICT (name) DO NOTHING;
-
--- =========================================
--- SEED SPORTS
--- =========================================
--- Seeding sports...
-
-INSERT INTO sports (name) VALUES
-('Fútbol'),
-('Vóley'),
-('Básquet'),
-('Tenis'),
-('Natación'),
-('Cardio'),
-('Musculación'),
-('Libre'),
-('Yoga'),
-('Baile')
-ON CONFLICT (name) DO NOTHING;
+CREATE TABLE IF NOT EXISTS logs (
+    id SERIAL PRIMARY KEY,
+    user_id INT REFERENCES users(id),
+    action VARCHAR(255) NOT NULL,
+    details TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 
 -- =========================================
 -- REPORT VIEWS
@@ -180,13 +172,13 @@ FROM reservations
 GROUP BY hour
 ORDER BY reservations_count DESC;
 
-CREATE OR REPLACE VIEW vw_sport_usage AS
+CREATE OR REPLACE VIEW vw_activity_usage AS
 SELECT
-    s.name AS sport_name,
+    a.name AS activity_name,
     COUNT(*) AS total
 FROM reservations r
-JOIN sports s ON s.id = r.sport_id
-GROUP BY s.name;
+JOIN activities a ON a.id = r.activity_id
+GROUP BY a.name;
 
 CREATE OR REPLACE VIEW vw_user_violations AS
 SELECT
