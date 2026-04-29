@@ -1,204 +1,307 @@
 -- =========================================
--- USERS TABLE
+-- EXTENSIONS
 -- =========================================
--- Creating users table...
+-- Se habilita btree_gist para poder usar EXCLUDE con igualdad (=) y rangos (&&)
+CREATE EXTENSION IF NOT EXISTS btree_gist;
 
-CREATE TABLE IF NOT EXISTS users (
+-- =========================================
+-- FUNCTIONS
+-- =========================================
+
+-- Función para actualizar automáticamente updated_at en cada UPDATE
+CREATE OR REPLACE FUNCTION update_timestamp()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = CURRENT_TIMESTAMP;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Función genérica de auditoría
+-- Registra INSERT, UPDATE y DELETE en tabla logs
+CREATE OR REPLACE FUNCTION audit_trigger_function()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF TG_OP = 'INSERT' THEN
+        INSERT INTO logs(user_id, action, table_name, record_id, new_data)
+        VALUES (NEW.user_id, 'INSERT', TG_TABLE_NAME, NEW.id, to_jsonb(NEW));
+        RETURN NEW;
+
+    ELSIF TG_OP = 'UPDATE' THEN
+        INSERT INTO logs(user_id, action, table_name, record_id, old_data, new_data)
+        VALUES (NEW.user_id, 'UPDATE', TG_TABLE_NAME, NEW.id, to_jsonb(OLD), to_jsonb(NEW));
+        RETURN NEW;
+
+    ELSIF TG_OP = 'DELETE' THEN
+        INSERT INTO logs(user_id, action, table_name, record_id, old_data)
+        VALUES (OLD.user_id, 'DELETE', TG_TABLE_NAME, OLD.id, to_jsonb(OLD));
+        RETURN OLD;
+    END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Función específica para detectar bloqueos/desbloqueos de usuarios
+CREATE OR REPLACE FUNCTION log_user_changes()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF OLD.is_blocked IS DISTINCT FROM NEW.is_blocked THEN
+        INSERT INTO logs(user_id, action, table_name, record_id, details, old_data, new_data)
+        VALUES (
+            NEW.id,
+            CASE WHEN NEW.is_blocked THEN 'USER_BLOCKED' ELSE 'USER_UNBLOCKED' END,
+            'users',
+            NEW.id,
+            'Cambio en estado de bloqueo',
+            to_jsonb(OLD),
+            to_jsonb(NEW)
+        );
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Función para registrar creación de infracciones
+CREATE OR REPLACE FUNCTION log_violations()
+RETURNS TRIGGER AS $$
+BEGIN
+    INSERT INTO logs(user_id, action, table_name, record_id, details, new_data)
+    VALUES (
+        NEW.user_id,
+        'CREATE_VIOLATION',
+        'violations',
+        NEW.id,
+        NEW.reason,
+        to_jsonb(NEW)
+    );
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Función para generar notificación automática al crear infracción
+CREATE OR REPLACE FUNCTION notify_violation()
+RETURNS TRIGGER AS $$
+BEGIN
+    INSERT INTO notifications(user_id, message, notification_type)
+    VALUES (
+        NEW.user_id,
+        'Has recibido una infracción: ' || NEW.reason,
+        'VIOLATION'
+    );
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- =========================================
+-- USERS
+-- =========================================
+-- Almacena usuarios del sistema (admins y usuarios normales)
+CREATE TABLE users (
     id SERIAL PRIMARY KEY,
-    email VARCHAR(255) UNIQUE NOT NULL,
+    email VARCHAR(255) UNIQUE NOT NULL, -- Identificador único
     full_name VARCHAR(255),
-    is_blocked BOOLEAN DEFAULT FALSE,
+    is_blocked BOOLEAN DEFAULT FALSE, -- Control de acceso
+    is_admin BOOLEAN DEFAULT FALSE, -- Rol administrativo
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    CHECK (email ~* '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$'),
-    is_admin BOOLEAN DEFAULT FALSE
-
-
+    CHECK (email ~* '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$') -- Validación de email
 );
 
-CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+CREATE INDEX idx_users_email ON users(email);
 
 -- =========================================
--- RESOURCES TABLE
+-- RESOURCES
 -- =========================================
--- Creating resources table...
-
-CREATE TABLE IF NOT EXISTS resources (
+-- Recursos reservables (canchas, gimnasio, etc.)
+CREATE TABLE resources (
     id SERIAL PRIMARY KEY,
     name VARCHAR(100) UNIQUE NOT NULL,
     type VARCHAR(100),
-    reservation_mode VARCHAR(50) DEFAULT 'exclusive',
+    reservation_mode VARCHAR(50) DEFAULT 'exclusive', -- exclusive o shared
     is_active BOOLEAN DEFAULT TRUE
 );
 
-CREATE INDEX IF NOT EXISTS idx_resources_name ON resources(name);
-
 -- =========================================
--- ACTIVITIES TABLE
+-- ACTIVITIES
 -- =========================================
--- Creating activities table...
-
-CREATE TABLE IF NOT EXISTS activities (
+-- Actividades asociadas a reservas
+CREATE TABLE activities (
     id SERIAL PRIMARY KEY,
     name VARCHAR(100) UNIQUE NOT NULL
 );
 
 -- =========================================
--- RESERVATIONS TABLE
+-- RESERVATIONS
 -- =========================================
--- Creating reservations table...
-
-CREATE TABLE IF NOT EXISTS reservations (
+-- Tabla principal del sistema
+CREATE TABLE reservations (
     id SERIAL PRIMARY KEY,
-    user_id INT NOT NULL REFERENCES users(id),
-    resource_id INT NOT NULL REFERENCES resources(id),
+    user_id INT NOT NULL REFERENCES users(id), -- Usuario que reserva
+    resource_id INT NOT NULL REFERENCES resources(id), -- Recurso reservado
     activity_id INT REFERENCES activities(id),
     start_time TIMESTAMP NOT NULL,
     duration_minutes INT NOT NULL CHECK (duration_minutes > 0),
-    status VARCHAR(50) DEFAULT 'CONFIRMED',
+    status VARCHAR(50) DEFAULT 'CONFIRMED'
+        CHECK (status IN ('CONFIRMED', 'CANCELLED', 'PENDING')),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX IF NOT EXISTS idx_reservations_user_id ON reservations(user_id);
-CREATE INDEX IF NOT EXISTS idx_reservations_resource_id ON reservations(resource_id);
-CREATE INDEX IF NOT EXISTS idx_reservations_start_time ON reservations(start_time);
+-- Índice para optimizar consultas por recurso y tiempo
+CREATE INDEX idx_reservations_resource_time 
+ON reservations(resource_id, start_time);
+
+-- Restricción crítica: evita solapamiento de reservas por recurso
+ALTER TABLE reservations
+ADD CONSTRAINT no_overlap_resource
+EXCLUDE USING gist (
+    resource_id WITH =,
+    tsrange(start_time, start_time + (duration_minutes || ' minutes')::interval) WITH &&
+)
+WHERE (status = 'CONFIRMED');
+
+-- Restricción: evita que un usuario tenga dos reservas simultáneas
+ALTER TABLE reservations
+ADD CONSTRAINT no_overlap_user
+EXCLUDE USING gist (
+    user_id WITH =,
+    tsrange(start_time, start_time + (duration_minutes || ' minutes')::interval) WITH &&
+)
+WHERE (status = 'CONFIRMED');
 
 -- =========================================
--- PARTICIPANTS TABLE
+-- PARTICIPANTS
 -- =========================================
--- Creating participants table...
-
-CREATE TABLE IF NOT EXISTS participants (
+-- Usuarios adicionales en una reserva
+CREATE TABLE participants (
     id SERIAL PRIMARY KEY,
-    reservation_id INT NOT NULL REFERENCES reservations(id) ON DELETE CASCADE,
-    email VARCHAR(255) NOT NULL,
+    reservation_id INT REFERENCES reservations(id) ON DELETE CASCADE,
+    user_id INT REFERENCES users(id),
     confirmed BOOLEAN DEFAULT FALSE
 );
 
-CREATE INDEX IF NOT EXISTS idx_participants_reservation_id ON participants(reservation_id);
-
 -- =========================================
--- VIOLATIONS TABLE
+-- VIOLATIONS
 -- =========================================
--- Creating violations table...
-
-CREATE TABLE IF NOT EXISTS violations (
+-- Registro de infracciones (ej: no asistir)
+CREATE TABLE violations (
     id SERIAL PRIMARY KEY,
-    user_id INT NOT NULL REFERENCES users(id),
+    user_id INT REFERENCES users(id),
     reservation_id INT REFERENCES reservations(id),
     reason TEXT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- =========================================
--- PRIORITY RESERVATIONS TABLE
+-- PRIORITY RESERVATIONS
 -- =========================================
--- Creating priority reservations table...
-
-CREATE TABLE IF NOT EXISTS priority_reservations (
+-- Reservas con prioridad (eventos, torneos)
+CREATE TABLE priority_reservations (
     id SERIAL PRIMARY KEY,
-    reservation_id INT NOT NULL REFERENCES reservations(id) ON DELETE CASCADE,
+    reservation_id INT REFERENCES reservations(id) ON DELETE CASCADE,
     reason VARCHAR(255),
-    created_by VARCHAR(255),
+    created_by INT REFERENCES users(id),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- =========================================
--- AVAILABILITY BLOCKS TABLE
+-- AVAILABILITY BLOCKS
 -- =========================================
--- Creating availability blocks table...
-
-CREATE TABLE IF NOT EXISTS availability_blocks (
+-- Bloqueos de disponibilidad (mantención, limpieza)
+CREATE TABLE availability_blocks (
     id SERIAL PRIMARY KEY,
-    resource_id INT NOT NULL REFERENCES resources(id),
+    resource_id INT REFERENCES resources(id),
     start_time TIMESTAMP NOT NULL,
     end_time TIMESTAMP NOT NULL,
     reason VARCHAR(255),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CHECK (end_time > start_time)
 );
 
-CREATE TABLE IF NOT EXISTS notifications (
+-- =========================================
+-- NOTIFICATIONS
+-- =========================================
+-- Notificaciones para usuarios
+CREATE TABLE notifications (
     id SERIAL PRIMARY KEY,
-    user_id INT NOT NULL REFERENCES users(id),
+    user_id INT REFERENCES users(id),
     message TEXT NOT NULL,
+    notification_type VARCHAR(50),
     is_read BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications(user_id);
-
-CREATE TABLE If not EXISTS violation_notifications (
+-- =========================================
+-- LOGS (AUDITORÍA)
+-- =========================================
+-- Registro completo de cambios del sistema
+CREATE TABLE logs (
     id SERIAL PRIMARY KEY,
-    user_id INT NOT NULL REFERENCES users(id),
-    reservation_id INT NOT NULL REFERENCES reservations(id),
-    reason TEXT NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE INDEX IF NOT EXISTS idx_violation_notifications_user_id ON violation_notifications(user_id);
-CREATE INDEX IF NOT EXISTS idx_violation_notifications_reservation_id ON violation_notifications(reservation_id);
-
-CREATE INDEX IF NOT EXISTS idx_availability_blocks_start_time ON availability_blocks(start_time);
-CREATE INDEX IF NOT EXISTS idx_availability_blocks_end_time ON availability_blocks(end_time);   
-CREATE INDEX IF NOT EXISTS idx_availability_blocks_resource_id ON availability_blocks(resource_id);
-
-CREATE TABLE IF NOT EXISTS logs (
-    id SERIAL PRIMARY KEY,
-    user_id INT REFERENCES users(id),
-    action VARCHAR(255) NOT NULL,
+    user_id INT, -- usuario asociado a la acción
+    action VARCHAR(100), -- tipo de acción
+    table_name VARCHAR(50), -- tabla afectada
+    record_id INT, -- id del registro afectado
+    old_data JSONB, -- estado anterior
+    new_data JSONB, -- estado nuevo
     details TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- =========================================
--- REPORT VIEWS
+-- TRIGGERS
 -- =========================================
--- Creating views...
 
-CREATE OR REPLACE VIEW vw_resource_usage AS
-SELECT
-    r.name AS resource_name,
-    COUNT(res.id) AS total_reservations
+-- Actualización automática de timestamps
+CREATE TRIGGER trg_users_updated_at
+BEFORE UPDATE ON users
+FOR EACH ROW EXECUTE FUNCTION update_timestamp();
+
+CREATE TRIGGER trg_reservations_updated_at
+BEFORE UPDATE ON reservations
+FOR EACH ROW EXECUTE FUNCTION update_timestamp();
+
+-- Auditoría automática de reservas
+CREATE TRIGGER trg_audit_reservations
+AFTER INSERT OR UPDATE OR DELETE ON reservations
+FOR EACH ROW EXECUTE FUNCTION audit_trigger_function();
+
+-- Logs de bloqueo/desbloqueo de usuarios
+CREATE TRIGGER trg_users_block_log
+AFTER UPDATE ON users
+FOR EACH ROW EXECUTE FUNCTION log_user_changes();
+
+-- Logs de infracciones
+CREATE TRIGGER trg_log_violations
+AFTER INSERT ON violations
+FOR EACH ROW EXECUTE FUNCTION log_violations();
+
+-- Notificación automática por infracción
+CREATE TRIGGER trg_notify_violation
+AFTER INSERT ON violations
+FOR EACH ROW EXECUTE FUNCTION notify_violation();
+
+-- =========================================
+-- VIEWS (REPORTES)
+-- =========================================
+
+-- Uso de recursos
+CREATE VIEW vw_resource_usage AS
+SELECT r.name, COUNT(*) total
 FROM reservations res
 JOIN resources r ON r.id = res.resource_id
+WHERE res.status = 'CONFIRMED'
 GROUP BY r.name;
 
-CREATE OR REPLACE VIEW vw_peak_hours AS
-SELECT
-    EXTRACT(HOUR FROM start_time) AS hour,
-    COUNT(*) AS reservations_count
+-- Horas punta
+CREATE VIEW vw_peak_hours AS
+SELECT EXTRACT(HOUR FROM start_time) hour, COUNT(*) total
 FROM reservations
+WHERE status = 'CONFIRMED'
 GROUP BY hour
-ORDER BY reservations_count DESC;
+ORDER BY total DESC;
 
-CREATE OR REPLACE VIEW vw_activity_usage AS
-SELECT
-    a.name AS activity_name,
-    COUNT(*) AS total
-FROM reservations r
-JOIN activities a ON a.id = r.activity_id
-GROUP BY a.name;
-
-CREATE OR REPLACE VIEW vw_user_violations AS
-SELECT
-    u.full_name,
-    u.email,
-    COUNT(v.id) AS total_violations
+-- Infracciones por usuario
+CREATE VIEW vw_user_violations AS
+SELECT u.email, COUNT(v.id) total
 FROM users u
 LEFT JOIN violations v ON v.user_id = u.id
-GROUP BY u.id;
-
-CREATE OR REPLACE VIEW vw_priority_reservations AS
-SELECT
-    r.id,
-    u.full_name,
-    res.name AS resource_name,
-    r.start_time,
-    p.reason
-FROM priority_reservations p
-JOIN reservations r ON r.id = p.reservation_id
-JOIN users u ON u.id = r.user_id
-JOIN resources res ON res.id = r.resource_id;
-
--- Schema completed successfully.
+GROUP BY u.email;
