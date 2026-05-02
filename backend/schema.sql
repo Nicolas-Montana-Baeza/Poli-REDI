@@ -95,7 +95,7 @@ $$ LANGUAGE plpgsql;
 -- USERS
 -- =========================================
 -- Almacena usuarios del sistema (admins y usuarios normales)
-CREATE TABLE users (
+CREATE TABLE if NOT EXISTS users (
     id SERIAL PRIMARY KEY,
     email VARCHAR(255) UNIQUE NOT NULL, -- Identificador único
     full_name VARCHAR(255),
@@ -106,13 +106,13 @@ CREATE TABLE users (
     CHECK (email ~* '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$') -- Validación de email
 );
 
-CREATE INDEX idx_users_email ON users(email);
+CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 
 -- =========================================
 -- RESOURCES
 -- =========================================
 -- Recursos reservables (canchas, gimnasio, etc.)
-CREATE TABLE resources (
+CREATE TABLE if NOT EXISTS resources (
     id SERIAL PRIMARY KEY,
     name VARCHAR(100) UNIQUE NOT NULL,
     type VARCHAR(100),
@@ -124,7 +124,7 @@ CREATE TABLE resources (
 -- ACTIVITIES
 -- =========================================
 -- Actividades asociadas a reservas
-CREATE TABLE activities (
+CREATE TABLE if NOT EXISTS activities (
     id SERIAL PRIMARY KEY,
     name VARCHAR(100) UNIQUE NOT NULL
 );
@@ -133,7 +133,7 @@ CREATE TABLE activities (
 -- RESERVATIONS
 -- =========================================
 -- Tabla principal del sistema
-CREATE TABLE reservations (
+CREATE TABLE if NOT EXISTS reservations (
     id SERIAL PRIMARY KEY,
     user_id INT NOT NULL REFERENCES users(id), -- Usuario que reserva
     resource_id INT NOT NULL REFERENCES resources(id), -- Recurso reservado
@@ -147,24 +147,34 @@ CREATE TABLE reservations (
 );
 
 -- Índice para optimizar consultas por recurso y tiempo
-CREATE INDEX idx_reservations_resource_time 
+CREATE INDEX IF NOT EXISTS idx_reservations_resource_time 
 ON reservations(resource_id, start_time);
 
 -- Restricción crítica: evita solapamiento de reservas por recurso
 ALTER TABLE reservations
+DROP CONSTRAINT IF EXISTS no_overlap_resource;
+ALTER TABLE reservations
 ADD CONSTRAINT no_overlap_resource
 EXCLUDE USING gist (
     resource_id WITH =,
-    tsrange(start_time, start_time + (duration_minutes || ' minutes')::interval) WITH &&
+        tsrange(
+        start_time,
+        start_time + (duration_minutes * INTERVAL '1 minute')
+    ) WITH &&
 )
 WHERE (status = 'CONFIRMED');
 
 -- Restricción: evita que un usuario tenga dos reservas simultáneas
 ALTER TABLE reservations
+DROP CONSTRAINT IF EXISTS no_overlap_user;
+ALTER TABLE reservations
 ADD CONSTRAINT no_overlap_user
 EXCLUDE USING gist (
     user_id WITH =,
-    tsrange(start_time, start_time + (duration_minutes || ' minutes')::interval) WITH &&
+        tsrange(
+        start_time,
+        start_time + (duration_minutes * INTERVAL '1 minute')
+    ) WITH &&
 )
 WHERE (status = 'CONFIRMED');
 
@@ -172,7 +182,7 @@ WHERE (status = 'CONFIRMED');
 -- PARTICIPANTS
 -- =========================================
 -- Usuarios adicionales en una reserva
-CREATE TABLE participants (
+CREATE TABLE if NOT EXISTS participants (
     id SERIAL PRIMARY KEY,
     reservation_id INT REFERENCES reservations(id) ON DELETE CASCADE,
     user_id INT REFERENCES users(id),
@@ -183,7 +193,7 @@ CREATE TABLE participants (
 -- VIOLATIONS
 -- =========================================
 -- Registro de infracciones (ej: no asistir)
-CREATE TABLE violations (
+CREATE TABLE  if NOT EXISTS violations (
     id SERIAL PRIMARY KEY,
     user_id INT REFERENCES users(id),
     reservation_id INT REFERENCES reservations(id),
@@ -195,7 +205,7 @@ CREATE TABLE violations (
 -- PRIORITY RESERVATIONS
 -- =========================================
 -- Reservas con prioridad (eventos, torneos)
-CREATE TABLE priority_reservations (
+CREATE TABLE if NOT EXISTS priority_reservations (
     id SERIAL PRIMARY KEY,
     reservation_id INT REFERENCES reservations(id) ON DELETE CASCADE,
     reason VARCHAR(255),
@@ -207,7 +217,7 @@ CREATE TABLE priority_reservations (
 -- AVAILABILITY BLOCKS
 -- =========================================
 -- Bloqueos de disponibilidad (mantención, limpieza)
-CREATE TABLE availability_blocks (
+CREATE TABLE if NOT EXISTS availability_blocks (
     id SERIAL PRIMARY KEY,
     resource_id INT REFERENCES resources(id),
     start_time TIMESTAMP NOT NULL,
@@ -221,7 +231,7 @@ CREATE TABLE availability_blocks (
 -- NOTIFICATIONS
 -- =========================================
 -- Notificaciones para usuarios
-CREATE TABLE notifications (
+CREATE TABLE if NOT EXISTS notifications (
     id SERIAL PRIMARY KEY,
     user_id INT REFERENCES users(id),
     message TEXT NOT NULL,
@@ -234,7 +244,7 @@ CREATE TABLE notifications (
 -- LOGS (AUDITORÍA)
 -- =========================================
 -- Registro completo de cambios del sistema
-CREATE TABLE logs (
+CREATE TABLE if NOT EXISTS logs (
     id SERIAL PRIMARY KEY,
     user_id INT, -- usuario asociado a la acción
     action VARCHAR(100), -- tipo de acción
@@ -251,31 +261,37 @@ CREATE TABLE logs (
 -- =========================================
 
 -- Actualización automática de timestamps
+DROP TRIGGER IF EXISTS trg_users_updated_at ON users;
 CREATE TRIGGER trg_users_updated_at
 BEFORE UPDATE ON users
 FOR EACH ROW EXECUTE FUNCTION update_timestamp();
 
+DROP TRIGGER IF EXISTS trg_reservations_updated_at ON reservations;
 CREATE TRIGGER trg_reservations_updated_at
 BEFORE UPDATE ON reservations
 FOR EACH ROW EXECUTE FUNCTION update_timestamp();
 
 -- Auditoría automática de reservas
+DROP TRIGGER IF EXISTS trg_audit_reservations ON reservations;
 CREATE TRIGGER trg_audit_reservations
 AFTER INSERT OR UPDATE OR DELETE ON reservations
 FOR EACH ROW EXECUTE FUNCTION audit_trigger_function();
 
 -- Logs de bloqueo/desbloqueo de usuarios
+DROP TRIGGER IF EXISTS trg_users_block_log ON users;
 CREATE TRIGGER trg_users_block_log
 AFTER UPDATE ON users
 FOR EACH ROW EXECUTE FUNCTION log_user_changes();
 
 -- Logs de infracciones
+DROP TRIGGER IF EXISTS trg_log_violations ON violations;
 CREATE TRIGGER trg_log_violations
 AFTER INSERT ON violations
 FOR EACH ROW EXECUTE FUNCTION log_violations();
 
 -- Notificación automática por infracción
-CREATE TRIGGER trg_notify_violation
+DROP TRIGGER IF EXISTS trg_notify_violation ON violations;
+CREATE TRIGGER  trg_notify_violation
 AFTER INSERT ON violations
 FOR EACH ROW EXECUTE FUNCTION notify_violation();
 
@@ -284,6 +300,7 @@ FOR EACH ROW EXECUTE FUNCTION notify_violation();
 -- =========================================
 
 -- Uso de recursos
+DROP VIEW IF EXISTS vw_resource_usage;
 CREATE VIEW vw_resource_usage AS
 SELECT r.name, COUNT(*) total
 FROM reservations res
@@ -292,14 +309,16 @@ WHERE res.status = 'CONFIRMED'
 GROUP BY r.name;
 
 -- Horas punta
+DROP VIEW IF EXISTS vw_peak_hours;
 CREATE VIEW vw_peak_hours AS
-SELECT EXTRACT(HOUR FROM start_time) hour, COUNT(*) total
+SELECT EXTRACT(HOUR FROM start_time) _hour, COUNT(*) total
 FROM reservations
 WHERE status = 'CONFIRMED'
-GROUP BY hour
+GROUP BY _hour
 ORDER BY total DESC;
 
 -- Infracciones por usuario
+DROP VIEW IF EXISTS vw_user_violations;
 CREATE VIEW vw_user_violations AS
 SELECT u.email, COUNT(v.id) total
 FROM users u
