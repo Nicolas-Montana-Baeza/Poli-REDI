@@ -2,6 +2,7 @@
 import Sidebar from './Sidebar.vue'
 import HeaderBar from './HeaderBar.vue'
 import DashboardView from '../../views/DashboardView.vue'
+import AvailabilityView from '../../views/AvailabilityView.vue'
 </script>
 
 <template>
@@ -14,6 +15,9 @@ import DashboardView from '../../views/DashboardView.vue'
 
       <div class="content">
         <DashboardView />
+      <div class = layout>
+        <AvailabilityView/>
+      </div>  
       </div>
     </div>
 
