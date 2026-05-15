@@ -1,0 +1,40 @@
+components
+├── admin
+│   ├── AdminPanelLinks.vue
+│   ├── AdminSummary.vue
+│   ├── AlertItem.vue
+│   ├── AlertsPanel.vue
+│   └── MetricCard.vue
+├── availability
+│   ├── AvailabilitySection.vue
+│   ├── CalendarMini.vue
+│   ├── CalendarToolbar.vue
+│   ├── ResourceColumn.vue
+│   ├── ScheduleGrid.vue
+│   └── TimeSlot.vue
+├── dashboard
+│   ├── FacilityCard.vue
+│   ├── FacilityCarousel.vue
+│   ├── QuickActions.vue
+│   ├── ReservationCard.vue
+│   └── ReservationsPanel.vue
+├── forms
+│   ├── DateTimePicker.vue
+│   ├── ReservationForm.vue
+│   └── ResourcePicker.vue
+├── layout
+│   ├── AppLayout.vue
+│   ├── HeaderBar.vue
+│   ├── NotificationBell.vue
+│   ├── Sidebar.vue
+│   ├── SidebarItem.vue
+│   └── UserMenu.vue
+└── ui
+    ├── store
+    │   ├── index.js
+    │   ├── reservationStore.js
+    │   └── userStore.js
+    ├── InfoBanner.vue
+    ├── ParticipantsProgress.vue
+    ├── PrimaryButton.vue
+    └── StatusBadge.vue

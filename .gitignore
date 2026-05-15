@@ -1,0 +1,24 @@
+# Node
+node_modules
+dist
+
+# Env
+.env
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode
+
+# Go
+backend/bin
+backend/tmp
+
+# Build
+*.exe
+*.out
