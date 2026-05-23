@@ -1,112 +1,138 @@
 ﻿<script setup>
-import { ref } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 
 import CalendarToolbar from './CalendarToolbar.vue'
 import CalendarMini from './CalendarMini.vue'
 import ScheduleGrid from './ScheduleGrid.vue'
-import { useReservationsStore } from '@/stores/reservations'
 import ReservationForm from '../forms/ReservationForm.vue'
+
 import { useResourcesStore } from '@/stores/resources'
-import { onMounted } from 'vue'
+import { useReservationsStore } from '@/stores/reservations'
 
-import { resourcesService } from '@/services/resources.service'
-import { reservationsService } from '@/services/reservations.service'
+const resourcesStore = useResourcesStore()
+const reservationsStore = useReservationsStore()
 
-onMounted(async () => {
-  const resources = await resourcesService.getAll()
-  const reservations = await reservationsService.getAll()
-
-  console.log('Resources API:', resources)
-  console.log('Reservations API:', reservations)
-})
-/*RESOURCES*/
-const resourcesStore =
-  useResourcesStore()
-
-/* CURRENT DATE */
-const currentDate = ref(
-  'Lunes 12 Mayo'
+/* DATE */
+const selectedDate = ref(
+  new Date().toISOString().slice(0, 10)
 )
-/* RESERVATIONS */
-const reservationsStore =
-  useReservationsStore()
+
+const currentDateLabel = computed(() => {
+  const date = new Date(`${selectedDate.value}T00:00:00`)
+
+  return date.toLocaleDateString('es-CL', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long'
+  })
+})
+
 /* SELECTED SLOT */
 const selectedSlot = ref(null)
 
 /* MODAL */
 const showReservationForm = ref(false)
 
-/* SLOT SELECT */
-const handleSlotSelected = (
-  slot
-) => {
+/* LOAD DATA */
+onMounted(async () => {
+  await resourcesStore.fetchResources()
+  await reservationsStore.fetchReservations()
+})
 
-  selectedSlot.value = slot
+/* SLOT SELECT */
+const handleSlotSelected = (slot) => {
+  selectedSlot.value = {
+    resource: slot.resource,
+    hour: slot.hour,
+    date: selectedDate.value
+  }
 
   showReservationForm.value = true
 
-  console.log(
-    'Slot seleccionado:',
-    slot
-  )
+  console.log('Slot seleccionado:', selectedSlot.value)
 }
 
 /* CLOSE */
 const closeReservationForm = () => {
-
   showReservationForm.value = false
 }
 
 /* SUBMIT */
-const submitReservation = (
-  reservation
-) => {
+const submitReservation = async (reservation) => {
+  try {
+    const payload = {
+      userId: 2,
 
-  console.log(
-    'Reserva creada:',
-    reservation
-  )
+      resourceId:
+        reservation.resource.id,
 
-  reservationsStore.addReservation({
-    resourceId:
-      reservation.resource.id,
+      activityId:
+        1,
 
-    hour:
-      reservation.hour,
+      startTime:
+        buildStartTime(
+          reservation.date,
+          reservation.hour
+        ),
 
-    title:
-      reservation.sport ||
-      'Reserva',
+      durationMinutes:
+        Number(reservation.duration) * 60
+    }
 
-    type:
-      'normal'
-  })
+    await reservationsStore.createReservation(payload)
 
-  showReservationForm.value = false
+    showReservationForm.value = false
+    selectedSlot.value = null
+
+    await reservationsStore.fetchReservations()
+  } catch (error) {
+    alert(error.message)
+  }
+}
+
+/* BUILD DATETIME */
+const buildStartTime = (date, hour) => {
+  return new Date(
+    `${date}T${hour}:00`
+  ).toISOString()
 }
 
 /* CALENDAR */
-const handleDateSelect = (
-  date
-) => {
+const handleDateSelect = (date) => {
+  const month =
+    String(date.month + 1).padStart(2, '0')
 
-  console.log(
-    'Fecha seleccionada:',
-    date
-  )
+  const day =
+    String(date.day).padStart(2, '0')
+
+  selectedDate.value =
+    `${date.year}-${month}-${day}`
 }
 
 /* TOOLBAR */
 const previousDay = () => {
-  console.log('Prev day')
+  const date =
+    new Date(`${selectedDate.value}T00:00:00`)
+
+  date.setDate(date.getDate() - 1)
+
+  selectedDate.value =
+    date.toISOString().slice(0, 10)
 }
 
 const nextDay = () => {
-  console.log('Next day')
+  const date =
+    new Date(`${selectedDate.value}T00:00:00`)
+
+  date.setDate(date.getDate() + 1)
+
+  selectedDate.value =
+    date.toISOString().slice(0, 10)
 }
 
 const goToday = () => {
-  console.log('Today')
+  selectedDate.value =
+    new Date().toISOString().slice(0, 10)
 }
 </script>
 
@@ -123,113 +149,103 @@ const goToday = () => {
         </h2>
 
         <p>
-          Revisa horarios y
-          selecciona un bloque
-          disponible.
+          Revisa horarios y selecciona cualquier punto de la línea de tiempo.
         </p>
 
       </div>
 
     </div>
 
-    <!-- TOOLBAR -->
-    <CalendarToolbar
-      :current-date="
-        currentDate
-      "
+    <!-- LOADING -->
+    <div
+      v-if="resourcesStore.loading || reservationsStore.loading"
+      class="state-card"
+    >
+      Cargando disponibilidad...
+    </div>
 
-      @prev-day="
-        previousDay
-      "
+    <!-- ERROR -->
+    <div
+      v-else-if="resourcesStore.error || reservationsStore.error"
+      class="state-card error"
+    >
+      {{
+        resourcesStore.error ||
+        reservationsStore.error
+      }}
+    </div>
 
-      @next-day="
-        nextDay
-      "
+    <template v-else>
 
-      @today="
-        goToday
-      "
-    />
+      <!-- TOOLBAR -->
+      <CalendarToolbar
+        :current-date="currentDateLabel"
+        @prev-day="previousDay"
+        @next-day="nextDay"
+        @today="goToday"
+      />
 
-    <!-- CONTENT -->
-    <div class="content">
+      <!-- CONTENT -->
+      <div class="content">
 
-      <!-- LEFT -->
-      <div
-        class="calendar-container"
-      >
+        <!-- LEFT -->
+        <div class="calendar-container">
 
-        <CalendarMini
-          @select-date="
-            handleDateSelect
-          "
-        />
+          <CalendarMini
+            @select-date="handleDateSelect"
+          />
 
-        <!-- SLOT INFO -->
-        <div
-          v-if="selectedSlot"
-          class="selection-card"
-        >
+          <!-- SLOT INFO -->
+          <div
+            v-if="selectedSlot"
+            class="selection-card"
+          >
 
-          <h3>
-            Selección actual
-          </h3>
+            <h3>
+              Selección actual
+            </h3>
 
-          <p>
+            <p>
+              <strong>
+                {{ selectedSlot.resource.name }}
+              </strong>
+            </p>
 
-            <strong>
-              {{
-                selectedSlot
-                  .resource.name
-              }}
-            </strong>
+            <span>
+              {{ selectedDate }} · {{ selectedSlot.hour }}
+            </span>
 
-          </p>
+          </div>
 
-          <span>
-            {{
-              selectedSlot.hour
-            }}
-          </span>
+        </div>
+
+        <!-- RIGHT -->
+        <div class="grid-container">
+
+          <ScheduleGrid
+            :resources="resourcesStore.resources"
+            :reservations="reservationsStore.reservations"
+            :selected-date="selectedDate"
+            :start-hour="8"
+            :end-hour="22"
+            :pixels-per-minute="1"
+            @slot-selected="handleSlotSelected"
+          />
 
         </div>
 
       </div>
 
-      <!-- RIGHT -->
-      <div
-        class="grid-container"
-      >
+    </template>
 
-        <ScheduleGrid
-          :resources="
-            resourcesStore.resources
-          "
-
-          :reservations="
-            reservationsStore.reservations
-          "
-
-          @slot-selected="
-            handleSlotSelected
-          "
-        />
-
-      </div>
-
-    </div>
-
-<ReservationForm
-  :visible="showReservationForm"
-
-  :slot="selectedSlot"
-
-  :resources="resources"
-
-  @close="closeReservationForm"
-
-  @submit="submitReservation"
-/>
+    <!-- FORM -->
+    <ReservationForm
+      :visible="showReservationForm"
+      :slot="selectedSlot"
+      :resources="resourcesStore.resources"
+      @close="closeReservationForm"
+      @submit="submitReservation"
+    />
 
   </section>
 </template>
@@ -260,12 +276,34 @@ const goToday = () => {
   color: #64748b;
 }
 
+/* STATE */
+.state-card {
+  background: white;
+
+  border-radius: 22px;
+
+  padding: 24px;
+
+  border: 1px solid #e2e8f0;
+
+  color: #334155;
+
+  font-weight: 600;
+}
+
+.state-card.error {
+  background: #fee2e2;
+
+  color: #b91c1c;
+
+  border-color: #fecaca;
+}
+
 /* CONTENT */
 .content {
   display: grid;
 
-  grid-template-columns:
-    340px 1fr;
+  grid-template-columns: 340px 1fr;
 
   gap: 24px;
 
@@ -328,8 +366,7 @@ const goToday = () => {
 /* TABLET */
 @media (max-width: 1024px) {
   .content {
-    grid-template-columns:
-      1fr;
+    grid-template-columns: 1fr;
   }
 
   .calendar-container {

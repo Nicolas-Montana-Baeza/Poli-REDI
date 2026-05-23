@@ -1,83 +1,60 @@
-import { defineStore }
-from 'pinia'
+import { defineStore } from 'pinia'
 
-export const useReservationsStore =
-  defineStore('reservations', {
+import { reservationsService } from '../services/reservations.service'
 
-    state: () => ({
+export const useReservationsStore = defineStore('reservations', {
+  state: () => ({
+    reservations: [],
+    loading: false,
+    error: null
+  }),
 
-      reservations: [
-        {
-          id: 1,
+  actions: {
+    async fetchReservations() {
+      this.loading = true
+      this.error = null
 
-          resourceId: 1,
+      try {
+        this.reservations = await reservationsService.getAll()
+      } catch (error) {
+        this.error = 'No se pudieron cargar las reservas'
 
-          hour: '18:00',
-
-          title: 'Entrenamiento',
-
-          type: 'normal'
-        },
-
-        {
-          id: 2,
-
-          resourceId: 2,
-
-          hour: '20:00',
-
-          title: 'Campeonato',
-
-          type: 'priority'
-        },
-
-        {
-          id: 3,
-
-          resourceId: 4,
-
-          hour: '17:00',
-
-          title: 'Mantención',
-
-          type: 'normal'
-        }
-      ]
-    }),
-
-    getters: {
-
-      getByResource:
-        (state) =>
-        (resourceId) => {
-
-          return state.reservations.filter(
-            r =>
-              r.resourceId ===
-              resourceId
-          )
-        }
+        console.error(
+          'Error cargando reservas:',
+          error
+        )
+      } finally {
+        this.loading = false
+      }
     },
 
-    actions: {
+    async createReservation(reservation) {
+      this.loading = true
+      this.error = null
 
-      addReservation(
-        reservation
-      ) {
+      try {
+        const createdReservation =
+          await reservationsService.create(reservation)
 
-        this.reservations.push({
-          id: Date.now(),
+        this.reservations.push(createdReservation)
 
-          ...reservation
-        })
-      },
+        return createdReservation
+      } catch (error) {
+        const message =
+          error.response?.data?.error ||
+          'No se pudo crear la reserva'
 
-      removeReservation(id) {
+        this.error = message
 
-        this.reservations =
-          this.reservations.filter(
-            r => r.id !== id
-          )
+        console.error(
+          'Error creando reserva:',
+          error
+        )
+
+        throw new Error(message)
+      } finally {
+        this.loading = false
       }
     }
-  })
+  }
+})

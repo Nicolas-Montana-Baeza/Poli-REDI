@@ -8,7 +8,14 @@ import (
 )
 
 func GetReservations(c *fiber.Ctx) error {
-	reservations := services.GetReservations()
+	reservations, err := services.GetReservations()
+
+	if err != nil {
+		return c.Status(500).JSON(fiber.Map{
+			"error":  "Error obteniendo reservas",
+			"detail": err.Error(),
+		})
+	}
 
 	return c.JSON(reservations)
 }
@@ -22,7 +29,8 @@ func CreateReservation(c *fiber.Ctx) error {
 		})
 	}
 
-	createdReservation, err := services.CreateReservation(reservation)
+	createdReservation, err :=
+		services.CreateReservation(reservation)
 
 	if err != nil {
 		return c.Status(400).JSON(fiber.Map{

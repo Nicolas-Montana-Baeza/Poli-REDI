@@ -7,7 +7,14 @@ import (
 )
 
 func GetResources(c *fiber.Ctx) error {
-	resources := repositories.GetAllResources()
+	resources, err := repositories.GetAllResources()
+
+	if err != nil {
+		return c.Status(500).JSON(fiber.Map{
+			"error":  "Error obteniendo recursos",
+			"detail": err.Error(),
+		})
+	}
 
 	return c.JSON(resources)
 }

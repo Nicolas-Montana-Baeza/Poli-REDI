@@ -1,7 +1,5 @@
 ﻿<script setup>
-import { computed, ref } from 'vue'
-
-import ResourceColumn from './ResourceColumn.vue'
+import ResourceTimeline from './ResourceTimeline.vue'
 
 const props = defineProps({
   resources: {
@@ -14,6 +12,11 @@ const props = defineProps({
     default: () => []
   },
 
+  selectedDate: {
+    type: String,
+    default: ''
+  },
+
   startHour: {
     type: Number,
     default: 8
@@ -22,93 +25,46 @@ const props = defineProps({
   endHour: {
     type: Number,
     default: 22
+  },
+
+  pixelsPerMinute: {
+    type: Number,
+    default: 1
   }
 })
 
 const emit = defineEmits([
-  'slot-selected',
-  'reservation-created'
+  'slot-selected'
 ])
 
-
-/* HOURS */
-const hours = computed(() => {
-  const arr = []
-
-  for (
-    let i = props.startHour;
-    i < props.endHour;
-    i++
-  ) {
-
-    arr.push(
-      `${String(i).padStart(2, '0')}:00`
-    )
+/* DATE FILTER */
+const getDateFromReservation = (reservation) => {
+  if (!reservation.startTime) {
+    return ''
   }
 
-  return arr
-})
+  return reservation.startTime.slice(0, 10)
+}
 
-/* BUILD SLOTS */
-const buildSlots = (resourceId) => {
-  return hours.value.map((hour) => {
+const filteredReservations = (resourceId) => {
+  return props.reservations.filter((reservation) => {
+    const sameResource =
+      reservation.resourceId === resourceId
 
-    const reservation =
-      props.reservations.find(
-        r =>
-          r.resourceId === resourceId &&
-          r.hour === hour
-      )
+    const notCancelled =
+      reservation.status !== 'CANCELLED'
 
-    return {
-      time: hour,
+    const sameDate =
+      !props.selectedDate ||
+      getDateFromReservation(reservation) === props.selectedDate
 
-      available: !reservation,
-
-      reserved: !!reservation,
-
-      title:
-        reservation?.title || null,
-
-      type:
-        reservation?.type || null
-    }
+    return sameResource && notCancelled && sameDate
   })
 }
 
 /* SLOT SELECT */
-const handleSlotSelect = (
-  resource,
-  time
-) => {
-
-  emit('slot-selected', {
-    resource,
-    hour: time
-  })
-}
-
-/* CLOSE */
-const closeReservationForm = () => {
-  showReservationForm.value = false
-}
-
-/* SUBMIT */
-const submitReservation = (
-  reservation
-) => {
-
-  emit(
-    'reservation-created',
-    reservation
-  )
-
-  console.log(
-    'Reserva creada:',
-    reservation
-  )
-
-  showReservationForm.value = false
+const handleSlotSelected = (slot) => {
+  emit('slot-selected', slot)
 }
 </script>
 
@@ -125,39 +81,49 @@ const submitReservation = (
         </h2>
 
         <p>
-          Selecciona un horario disponible.
+          Selecciona cualquier punto de la línea de tiempo para crear una reserva.
         </p>
 
       </div>
 
     </div>
 
-    <!-- COLUMNS -->
-    <div class="columns-wrapper">
+    <!-- EMPTY -->
+    <div
+      v-if="resources.length === 0"
+      class="empty"
+    >
+      No hay recursos disponibles.
+    </div>
 
-      <ResourceColumn
+    <!-- TIMELINES -->
+    <div
+      v-else
+      class="timelines-wrapper"
+    >
+
+      <ResourceTimeline
         v-for="resource in resources"
         :key="resource.id"
 
         :resource="resource"
 
-        :slots="
-          buildSlots(resource.id)
+        :reservations="
+          filteredReservations(resource.id)
         "
 
+        :start-hour="startHour"
+
+        :end-hour="endHour"
+
+        :pixels-per-minute="pixelsPerMinute"
+
         @slot-selected="
-          (time) =>
-            handleSlotSelect(
-              resource,
-              time
-            )
+          handleSlotSelected
         "
       />
 
     </div>
-
-      "
-    />
 
   </section>
 </template>
@@ -188,25 +154,40 @@ const submitReservation = (
   color: #64748b;
 }
 
+/* EMPTY */
+.empty {
+  background: white;
+
+  border-radius: 22px;
+
+  padding: 24px;
+
+  border: 1px dashed #cbd5e1;
+
+  color: #64748b;
+
+  font-weight: 600;
+}
+
 /* WRAPPER */
-.columns-wrapper {
+.timelines-wrapper {
   display: flex;
 
   gap: 20px;
 
   overflow-x: auto;
 
-  padding-bottom: 10px;
+  padding-bottom: 12px;
 
   scroll-behavior: smooth;
 }
 
 /* SCROLLBAR */
-.columns-wrapper::-webkit-scrollbar {
+.timelines-wrapper::-webkit-scrollbar {
   height: 8px;
 }
 
-.columns-wrapper::-webkit-scrollbar-thumb {
+.timelines-wrapper::-webkit-scrollbar-thumb {
   background: #cbd5e1;
 
   border-radius: 999px;
@@ -214,7 +195,7 @@ const submitReservation = (
 
 /* MOBILE */
 @media (max-width: 768px) {
-  .columns-wrapper {
+  .timelines-wrapper {
     gap: 16px;
   }
 }
