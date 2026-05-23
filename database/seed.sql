@@ -4,7 +4,6 @@
 -- Se crea 1 administrador para gestionar recursos, bloqueos y reservas prioritarias.
 -- Se crean 10 usuarios normales para simular uso real del sistema.
 -- Se crea 1 usuario bloqueado para probar restricciones de acceso.
-
 INSERT INTO users (email, full_name, is_admin, is_blocked)
 VALUES
 ('admin@universidad.cl', 'Administrador General', TRUE, FALSE), -- Admin principal
