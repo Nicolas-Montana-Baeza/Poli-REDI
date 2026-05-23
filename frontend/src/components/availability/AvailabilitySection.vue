@@ -7,7 +7,18 @@ import ScheduleGrid from './ScheduleGrid.vue'
 import { useReservationsStore } from '@/stores/reservations'
 import ReservationForm from '../forms/ReservationForm.vue'
 import { useResourcesStore } from '@/stores/resources'
+import { onMounted } from 'vue'
 
+import { resourcesService } from '@/services/resources.service'
+import { reservationsService } from '@/services/reservations.service'
+
+onMounted(async () => {
+  const resources = await resourcesService.getAll()
+  const reservations = await reservationsService.getAll()
+
+  console.log('Resources API:', resources)
+  console.log('Reservations API:', reservations)
+})
 /*RESOURCES*/
 const resourcesStore =
   useResourcesStore()
