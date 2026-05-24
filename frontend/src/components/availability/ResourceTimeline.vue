@@ -76,6 +76,55 @@ const resourceReservations = computed(() => {
   )
 })
 
+/* HELPERS */
+const getReservationStartMinutes = (reservation) => {
+  if (!reservation.startTime) {
+    return null
+  }
+
+  const date =
+    new Date(reservation.startTime)
+
+  return (
+    date.getHours() * 60 +
+    date.getMinutes()
+  )
+}
+
+const isMinuteReserved = (minuteOfDay) => {
+  return resourceReservations.value.some(
+    (reservation) => {
+      const start =
+        getReservationStartMinutes(reservation)
+
+      if (start === null) {
+        return false
+      }
+
+      const duration =
+        reservation.durationMinutes || 60
+
+      const end =
+        start + duration
+
+      return (
+        minuteOfDay >= start &&
+        minuteOfDay < end
+      )
+    }
+  )
+}
+
+const formatMinuteToHour = (minuteOfDay) => {
+  const hour =
+    Math.floor(minuteOfDay / 60)
+
+  const minutes =
+    minuteOfDay % 60
+
+  return `${String(hour).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`
+}
+
 /* CLICK TO SELECT TIME */
 const handleTimelineClick = (event) => {
   const rect =
@@ -87,22 +136,25 @@ const handleTimelineClick = (event) => {
   const minutesFromStart =
     Math.round(y / props.pixelsPerMinute)
 
-  const total =
+  const minuteOfDay =
     props.startHour * 60 +
     minutesFromStart
 
-  const hour =
-    Math.floor(total / 60)
+  const isOutsideRange =
+    minuteOfDay < props.startHour * 60 ||
+    minuteOfDay >= props.endHour * 60
 
-  const minutes =
-    total % 60
+  if (isOutsideRange) {
+    return
+  }
 
-  const formattedHour =
-    `${String(hour).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`
+  if (isMinuteReserved(minuteOfDay)) {
+    return
+  }
 
   emit('slot-selected', {
     resource: props.resource,
-    hour: formattedHour
+    hour: formatMinuteToHour(minuteOfDay)
   })
 }
 

@@ -1,5 +1,5 @@
 ﻿<script setup>
-const props = defineProps({
+defineProps({
   resources: {
     type: Array,
     default: () => []
@@ -36,20 +36,12 @@ const handleSelect = (resource) => {
 
     </div>
 
-    <!-- DEBUG -->
-    <pre class="debug">
-{{ resources }}
-    </pre>
-
     <!-- EMPTY -->
     <div
-      v-if="
-        !resources ||
-        resources.length === 0
-      "
+      v-if="!resources || resources.length === 0"
       class="empty"
     >
-      No hay instalaciones.
+      No hay instalaciones disponibles.
     </div>
 
     <!-- LIST -->
@@ -62,40 +54,33 @@ const handleSelect = (resource) => {
         v-for="resource in resources"
         :key="resource.id"
 
-        class="resource"
+        class="resource-card"
 
         :class="{
           selected:
             selectedId === resource.id
         }"
 
-        @click="
-          handleSelect(resource)
-        "
+        @click="handleSelect(resource)"
       >
 
         <!-- LEFT -->
         <div class="left">
 
-          <!-- STATUS -->
           <div
-            class="status"
-            :class="
-              resource.status ||
-              'available'
-            "
+            class="status-dot"
+            :class="resource.status"
           />
 
-          <!-- INFO -->
           <div class="info">
 
-            <div class="name">
+            <strong>
               {{ resource.name }}
-            </div>
+            </strong>
 
-            <div class="type">
+            <span>
               {{ resource.type }}
-            </div>
+            </span>
 
           </div>
 
@@ -103,9 +88,7 @@ const handleSelect = (resource) => {
 
         <!-- RIGHT -->
         <div
-          v-if="
-            selectedId === resource.id
-          "
+          v-if="selectedId === resource.id"
           class="badge"
         >
           Seleccionado
@@ -119,10 +102,7 @@ const handleSelect = (resource) => {
 </template>
 
 <style scoped>
-/* ROOT */
 .picker {
-  width: 100%;
-
   display: flex;
   flex-direction: column;
 
@@ -130,62 +110,40 @@ const handleSelect = (resource) => {
 }
 
 /* HEADER */
-.header {
-  display: flex;
-  flex-direction: column;
-
-  gap: 4px;
-}
-
 .header h3 {
   margin: 0;
 
   font-size: 18px;
-  font-weight: 700;
+  font-weight: 800;
 
-  color: #111827;
+  color: #0f172a;
 }
 
 .header p {
-  margin: 0;
+  margin-top: 4px;
 
   font-size: 14px;
 
-  color: #6b7280;
-}
-
-/* DEBUG */
-.debug {
-  padding: 12px;
-
-  background: #f3f4f6;
-
-  border-radius: 12px;
-
-  font-size: 12px;
-
-  overflow-x: auto;
+  color: #64748b;
 }
 
 /* EMPTY */
 .empty {
   padding: 18px;
 
-  border-radius: 16px;
+  border-radius: 18px;
 
-  border: 1px dashed #d1d5db;
+  background: #f8fafc;
 
-  background: #f9fafb;
+  border: 1px dashed #cbd5e1;
 
-  color: #6b7280;
+  color: #64748b;
 
   font-size: 14px;
 }
 
 /* LIST */
 .resources {
-  width: 100%;
-
   display: flex;
   flex-direction: column;
 
@@ -193,59 +151,51 @@ const handleSelect = (resource) => {
 }
 
 /* CARD */
-.resource {
+.resource-card {
   width: 100%;
 
   min-height: 72px;
 
-  background: white;
-
-  border: 2px solid #e5e7eb;
+  padding: 16px;
 
   border-radius: 18px;
 
-  padding: 16px;
+  border: 1px solid #e2e8f0;
 
-  box-sizing: border-box;
+  background: white;
 
-  display: flex !important;
+  display: flex;
   align-items: center;
   justify-content: space-between;
 
-  gap: 16px;
+  gap: 14px;
 
   cursor: pointer;
 
   transition: 0.2s;
 
-  user-select: none;
-}
-
-/* FORCE */
-.resource * {
   box-sizing: border-box;
 }
 
-/* HOVER */
-.resource:hover {
-  border-color: #93c5fd;
-
+.resource-card:hover {
   background: #eff6ff;
+
+  border-color: #bfdbfe;
 }
 
 /* SELECTED */
-.selected {
-  border-color: #2563eb !important;
+.resource-card.selected {
+  background: #dbeafe;
 
-  background: #dbeafe !important;
+  border-color: #2563eb;
 
   box-shadow:
-    0 0 0 4px rgba(37,99,235,0.1);
+    0 0 0 4px rgba(37,99,235,0.08);
 }
 
 /* LEFT */
 .left {
-  display: flex !important;
+  display: flex;
   align-items: center;
 
   gap: 14px;
@@ -254,25 +204,24 @@ const handleSelect = (resource) => {
 }
 
 /* STATUS */
-.status {
-  width: 14px;
-  height: 14px;
+.status-dot {
+  width: 12px;
+  height: 12px;
 
   border-radius: 999px;
 
   flex-shrink: 0;
 }
 
-/* STATUS COLORS */
-.available {
+.status-dot.available {
   background: #22c55e;
 }
 
-.busy {
+.status-dot.busy {
   background: #ef4444;
 }
 
-.maintenance {
+.status-dot.maintenance {
   background: #f59e0b;
 }
 
@@ -284,25 +233,23 @@ const handleSelect = (resource) => {
   min-width: 0;
 }
 
-.name {
+.info strong {
   font-size: 15px;
-  font-weight: 700;
+  font-weight: 800;
 
-  color: #111827;
+  color: #0f172a;
 }
 
-.type {
+.info span {
   margin-top: 2px;
 
   font-size: 13px;
 
-  color: #6b7280;
+  color: #64748b;
 }
 
 /* BADGE */
 .badge {
-  flex-shrink: 0;
-
   padding: 6px 12px;
 
   border-radius: 999px;
@@ -313,16 +260,18 @@ const handleSelect = (resource) => {
 
   font-size: 12px;
   font-weight: 700;
+
+  white-space: nowrap;
 }
 
 /* MOBILE */
 @media (max-width: 768px) {
-  .resource {
+  .resource-card {
     padding: 14px;
   }
 
-  .name {
-    font-size: 14px;
+  .badge {
+    display: none;
   }
 }
 </style>

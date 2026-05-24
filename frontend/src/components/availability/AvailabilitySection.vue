@@ -41,6 +41,8 @@ onMounted(async () => {
 
 /* SLOT SELECT */
 const handleSlotSelected = (slot) => {
+  reservationsStore.clearActionError?.()
+
   selectedSlot.value = {
     resource: slot.resource,
     hour: slot.hour,
@@ -49,12 +51,18 @@ const handleSlotSelected = (slot) => {
 
   showReservationForm.value = true
 
-  console.log('Slot seleccionado:', selectedSlot.value)
+  console.log(
+    'Slot seleccionado:',
+    selectedSlot.value
+  )
 }
 
 /* CLOSE */
 const closeReservationForm = () => {
   showReservationForm.value = false
+  selectedSlot.value = null
+
+  reservationsStore.clearActionError?.()
 }
 
 /* SUBMIT */
@@ -76,7 +84,7 @@ const submitReservation = async (reservation) => {
         ),
 
       durationMinutes:
-        Number(reservation.duration) * 60
+        Number(reservation.durationMinutes)
     }
 
     await reservationsStore.createReservation(payload)
@@ -84,17 +92,20 @@ const submitReservation = async (reservation) => {
     showReservationForm.value = false
     selectedSlot.value = null
 
+    reservationsStore.clearActionError?.()
+
     await reservationsStore.fetchReservations()
   } catch (error) {
-    alert(error.message)
+    console.warn(
+      'No se pudo crear la reserva:',
+      error.message
+    )
   }
 }
 
 /* BUILD DATETIME */
 const buildStartTime = (date, hour) => {
-  return new Date(
-    `${date}T${hour}:00`
-  ).toISOString()
+  return `${date}T${hour}:00`
 }
 
 /* CALENDAR */
@@ -107,6 +118,8 @@ const handleDateSelect = (date) => {
 
   selectedDate.value =
     `${date.year}-${month}-${day}`
+
+  reservationsStore.clearActionError?.()
 }
 
 /* TOOLBAR */
@@ -118,6 +131,8 @@ const previousDay = () => {
 
   selectedDate.value =
     date.toISOString().slice(0, 10)
+
+  reservationsStore.clearActionError?.()
 }
 
 const nextDay = () => {
@@ -128,11 +143,15 @@ const nextDay = () => {
 
   selectedDate.value =
     date.toISOString().slice(0, 10)
+
+  reservationsStore.clearActionError?.()
 }
 
 const goToday = () => {
   selectedDate.value =
     new Date().toISOString().slice(0, 10)
+
+  reservationsStore.clearActionError?.()
 }
 </script>
 
@@ -164,14 +183,14 @@ const goToday = () => {
       Cargando disponibilidad...
     </div>
 
-    <!-- ERROR -->
+    <!-- LOAD ERROR -->
     <div
-      v-else-if="resourcesStore.error || reservationsStore.error"
+      v-else-if="resourcesStore.error || reservationsStore.loadingError"
       class="state-card error"
     >
       {{
         resourcesStore.error ||
-        reservationsStore.error
+        reservationsStore.loadingError
       }}
     </div>
 
@@ -212,7 +231,7 @@ const goToday = () => {
             </p>
 
             <span>
-              {{ selectedDate }} · {{ selectedSlot.hour }}
+              {{ selectedSlot.date }} · {{ selectedSlot.hour }}
             </span>
 
           </div>
@@ -243,6 +262,7 @@ const goToday = () => {
       :visible="showReservationForm"
       :slot="selectedSlot"
       :resources="resourcesStore.resources"
+      :error-message="reservationsStore.actionError"
       @close="closeReservationForm"
       @submit="submitReservation"
     />

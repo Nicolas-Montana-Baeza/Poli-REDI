@@ -40,3 +40,32 @@ func CreateReservation(c *fiber.Ctx) error {
 
 	return c.Status(201).JSON(createdReservation)
 }
+func CancelReservation(c *fiber.Ctx) error {
+	var request models.CancelReservationRequest
+
+	if err := c.BodyParser(&request); err != nil {
+		return c.Status(400).JSON(fiber.Map{
+			"error": "Datos inválidos",
+		})
+	}
+
+	cancelledReservation, err :=
+		services.CancelReservation(
+			request.ReservationID,
+			request.RequestedByUserID,
+		)
+
+	if err != nil {
+		status := 400
+
+		if err.Error() == "no tienes permisos para cancelar esta reserva" {
+			status = 403
+		}
+
+		return c.Status(status).JSON(fiber.Map{
+			"error": err.Error(),
+		})
+	}
+
+	return c.JSON(cancelledReservation)
+}

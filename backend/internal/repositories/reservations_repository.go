@@ -140,3 +140,75 @@ func mapReservationType(status string) string {
 		return "normal"
 	}
 }
+
+func CancelReservation(id int) (models.Reservation, error) {
+	var reservation models.Reservation
+
+	err := database.DB.QueryRow(
+		context.Background(),
+		`
+		UPDATE reservations
+		SET
+			status = 'CANCELLED',
+			updated_at = NOW()
+		WHERE id = $1
+		  AND status <> 'CANCELLED'
+		RETURNING
+			id,
+			user_id,
+			resource_id,
+			activity_id,
+			start_time,
+			duration_minutes,
+			status,
+			created_at,
+			updated_at;
+		`,
+		id,
+	).Scan(
+		&reservation.ID,
+		&reservation.UserID,
+		&reservation.ResourceID,
+		&reservation.ActivityID,
+		&reservation.StartTime,
+		&reservation.DurationMinutes,
+		&reservation.Status,
+		&reservation.CreatedAt,
+		&reservation.UpdatedAt,
+	)
+
+	if err != nil {
+		return models.Reservation{}, err
+	}
+
+	reservation.Hour =
+		reservation.StartTime.Format("15:04")
+
+	reservation.Title =
+		"Reserva cancelada"
+
+	reservation.Type =
+		mapReservationType(reservation.Status)
+
+	return reservation, nil
+}
+func IsUserAdmin(userID int) (bool, error) {
+	var isAdmin bool
+
+	err := database.DB.QueryRow(
+		context.Background(),
+		`
+		SELECT is_admin
+		FROM users
+		WHERE id = $1
+		  AND is_blocked = FALSE;
+		`,
+		userID,
+	).Scan(&isAdmin)
+
+	if err != nil {
+		return false, err
+	}
+
+	return isAdmin, nil
+}

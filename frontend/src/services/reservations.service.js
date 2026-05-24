@@ -11,5 +11,14 @@ export const reservationsService = {
     const response = await api.post('/reservations', reservation)
 
     return response.data
+  },
+
+  async cancel(reservationId) {
+    const response = await api.patch('/reservations/cancel', {
+      reservationId,
+      requestedByUserId: 1
+    })
+
+    return response.data
   }
 }

@@ -16,4 +16,6 @@ func RegisterRoutes(app *fiber.App) {
 	api.Get("/reservations", handlers.GetReservations)
 
 	api.Post("/reservations", handlers.CreateReservation)
+
+	api.Patch("/reservations/cancel", handlers.CancelReservation)
 }

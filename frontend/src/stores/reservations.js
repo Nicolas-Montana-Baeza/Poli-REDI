@@ -1,60 +1,112 @@
 import { defineStore } from 'pinia'
 
-import { reservationsService } from '../services/reservations.service'
+import { reservationsService } from '@/services/reservations.service'
 
-export const useReservationsStore = defineStore('reservations', {
-  state: () => ({
-    reservations: [],
-    loading: false,
-    error: null
-  }),
+export const useReservationsStore =
+  defineStore('reservations', {
+    state: () => ({
+      reservations: [],
 
-  actions: {
-    async fetchReservations() {
-      this.loading = true
-      this.error = null
+      loading: false,
 
-      try {
-        this.reservations = await reservationsService.getAll()
-      } catch (error) {
-        this.error = 'No se pudieron cargar las reservas'
+      loadingError: null,
 
-        console.error(
-          'Error cargando reservas:',
-          error
-        )
-      } finally {
-        this.loading = false
-      }
-    },
+      actionError: null
+    }),
 
-    async createReservation(reservation) {
-      this.loading = true
-      this.error = null
+    actions: {
+      async fetchReservations() {
+        this.loading = true
+        this.loadingError = null
 
-      try {
-        const createdReservation =
-          await reservationsService.create(reservation)
+        try {
+          this.reservations =
+            await reservationsService.getAll()
+        } catch (error) {
+          this.loadingError =
+            'No se pudieron cargar las reservas'
 
-        this.reservations.push(createdReservation)
+          console.error(
+            'Error cargando reservas:',
+            error
+          )
+        } finally {
+          this.loading = false
+        }
+      },
 
-        return createdReservation
-      } catch (error) {
-        const message =
-          error.response?.data?.error ||
-          'No se pudo crear la reserva'
+      async createReservation(reservation) {
+        this.loading = true
+        this.actionError = null
 
-        this.error = message
+        try {
+          const createdReservation =
+            await reservationsService.create(
+              reservation
+            )
 
-        console.error(
-          'Error creando reserva:',
-          error
-        )
+          this.reservations.push(
+            createdReservation
+          )
 
-        throw new Error(message)
-      } finally {
-        this.loading = false
-      }
-    }
+          return createdReservation
+        } catch (error) {
+          const message =
+            error.response?.data?.error ||
+            'No se pudo crear la reserva'
+
+          this.actionError = message
+
+          console.error(
+            'Error creando reserva:',
+            error
+          )
+
+          throw new Error(message)
+        } finally {
+          this.loading = false
+        }
+      },
+
+      clearActionError() {
+        this.actionError = null
+      },
+
+      clearLoadingError() {
+        this.loadingError = null
+      },
+      async cancelReservation(id) {
+  this.loading = true
+  this.actionError = null
+
+  try {
+    const cancelledReservation =
+      await reservationsService.cancel(id)
+
+    this.reservations =
+      this.reservations.map((reservation) =>
+        reservation.id === id
+          ? cancelledReservation
+          : reservation
+      )
+
+    return cancelledReservation
+  } catch (error) {
+    const message =
+      error.response?.data?.error ||
+      'No se pudo cancelar la reserva'
+
+    this.actionError = message
+
+    console.error(
+      'Error cancelando reserva:',
+      error
+    )
+
+    throw new Error(message)
+  } finally {
+    this.loading = false
   }
-})
+}
+    }
+  })

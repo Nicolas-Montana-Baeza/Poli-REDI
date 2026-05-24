@@ -10,6 +10,11 @@ const props = defineProps({
   initialHour: {
     type: String,
     default: ''
+  },
+
+  initialDuration: {
+    type: Number,
+    default: 60
   }
 })
 
@@ -17,61 +22,66 @@ const emit = defineEmits([
   'update'
 ])
 
-/* STATE */
 const selectedDate = ref('')
 const selectedHour = ref('')
-const duration = ref(1)
+const durationMinutes = ref(60)
 
-/* HOURS */
-const hours = [
-  '08:00',
-  '09:00',
-  '10:00',
-  '11:00',
-  '12:00',
-  '13:00',
-  '14:00',
-  '15:00',
-  '16:00',
-  '17:00',
-  '18:00',
-  '19:00',
-  '20:00',
-  '21:00'
+const durationOptions = [
+  {
+    label: '30 minutos',
+    value: 30
+  },
+  {
+    label: '45 minutos',
+    value: 45
+  },
+  {
+    label: '1 hora',
+    value: 60
+  },
+  {
+    label: '1 hora 30 min',
+    value: 90
+  },
+  {
+    label: '2 horas',
+    value: 120
+  },
+  {
+    label: '3 horas',
+    value: 180
+  }
 ]
 
-/* INITIAL VALUES */
 watch(
   () => [
     props.initialDate,
-    props.initialHour
+    props.initialHour,
+    props.initialDuration
   ],
   () => {
-
     selectedDate.value =
       props.initialDate || ''
 
     selectedHour.value =
       props.initialHour || ''
+
+    durationMinutes.value =
+      props.initialDuration || 60
   },
   {
     immediate: true
   }
 )
 
-/* UPDATE */
 const updateValues = () => {
-
   emit('update', {
     date: selectedDate.value,
-
     hour: selectedHour.value,
-
-    duration: duration.value
+    durationMinutes: Number(durationMinutes.value)
   })
 }
 </script>
-
 
 <template>
   <div class="picker">
@@ -84,7 +94,7 @@ const updateValues = () => {
       </h3>
 
       <p>
-        Define cuándo deseas reservar.
+        Ajusta la fecha, hora exacta y duración.
       </p>
 
     </div>
@@ -108,30 +118,19 @@ const updateValues = () => {
     <div class="field">
 
       <label>
-        Hora
+        Hora de inicio
       </label>
 
-      <select
+      <input
         v-model="selectedHour"
+        type="time"
+        step="60"
         @change="updateValues"
-      >
+      />
 
-        <option
-          disabled
-          value=""
-        >
-          Selecciona horario
-        </option>
-
-        <option
-          v-for="hour in hours"
-          :key="hour"
-          :value="hour"
-        >
-          {{ hour }}
-        </option>
-
-      </select>
+      <small>
+        Puedes ajustar por minuto si es necesario.
+      </small>
 
     </div>
 
@@ -143,20 +142,16 @@ const updateValues = () => {
       </label>
 
       <select
-        v-model="duration"
+        v-model="durationMinutes"
         @change="updateValues"
       >
 
-        <option :value="1">
-          1 hora
-        </option>
-
-        <option :value="2">
-          2 horas
-        </option>
-
-        <option :value="3">
-          3 horas
+        <option
+          v-for="option in durationOptions"
+          :key="option.value"
+          :value="option.value"
+        >
+          {{ option.label }}
         </option>
 
       </select>
@@ -202,9 +197,15 @@ const updateValues = () => {
 
 .field label {
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 700;
 
   color: #334155;
+}
+
+.field small {
+  font-size: 12px;
+
+  color: #64748b;
 }
 
 /* INPUTS */
@@ -212,13 +213,13 @@ const updateValues = () => {
 .field select {
   width: 100%;
 
-  height: 48px;
+  height: 50px;
 
   border: 1px solid #dbe2ea;
 
-  border-radius: 14px;
+  border-radius: 16px;
 
-  padding: 0 14px;
+  padding: 0 16px;
 
   font-size: 14px;
 
@@ -227,6 +228,8 @@ const updateValues = () => {
   transition: 0.2s;
 
   outline: none;
+
+  box-sizing: border-box;
 }
 
 .field input:focus,

@@ -66,3 +66,35 @@ func mapDatabaseReservationError(err error) error {
 
 	return err
 }
+func CancelReservation(
+	reservationID int,
+	requestedByUserID int,
+) (models.Reservation, error) {
+	if reservationID <= 0 {
+		return models.Reservation{}, errors.New("reservationId es obligatorio")
+	}
+
+	if requestedByUserID <= 0 {
+		return models.Reservation{}, errors.New("requestedByUserId es obligatorio")
+	}
+
+	isAdmin, err :=
+		repositories.IsUserAdmin(requestedByUserID)
+
+	if err != nil {
+		return models.Reservation{}, errors.New("usuario no encontrado o bloqueado")
+	}
+
+	if !isAdmin {
+		return models.Reservation{}, errors.New("no tienes permisos para cancelar esta reserva")
+	}
+
+	cancelledReservation, err :=
+		repositories.CancelReservation(reservationID)
+
+	if err != nil {
+		return models.Reservation{}, err
+	}
+
+	return cancelledReservation, nil
+}

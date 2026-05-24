@@ -97,6 +97,7 @@ const statusClass = computed(() => {
     class="reservation-block"
     :class="statusClass"
     :style="blockStyle"
+    @click.stop
   >
     <strong>
       {{ reservationTitle }}

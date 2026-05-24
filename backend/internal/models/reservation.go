@@ -18,3 +18,7 @@ type Reservation struct {
 	Title string `json:"title"`
 	Type  string `json:"type"`
 }
+type CancelReservationRequest struct {
+	ReservationID     int `json:"reservationId"`
+	RequestedByUserID int `json:"requestedByUserId"`
+}
