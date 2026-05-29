@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"os"
+	"poli-redi-api/internal/models"
+	"poli-redi-api/internal/repositories"
 	"strings"
 
 	"github.com/MicahParks/keyfunc/v3"
@@ -22,10 +24,33 @@ type AuthUser struct {
 type EntraClaims struct {
 	Name              string `json:"name"`
 	PreferredUsername string `json:"preferred_username"`
+	Email             string `json:"email"`
+	UPN               string `json:"upn"`
+	UniqueName        string `json:"unique_name"`
 	OID               string `json:"oid"`
 	TID               string `json:"tid"`
 	Scopes            string `json:"scp"`
 	jwt.RegisteredClaims
+}
+
+func resolveEmail(claims *EntraClaims) string {
+	if claims.PreferredUsername != "" {
+		return claims.PreferredUsername
+	}
+
+	if claims.Email != "" {
+		return claims.Email
+	}
+
+	if claims.UPN != "" {
+		return claims.UPN
+	}
+
+	if claims.UniqueName != "" {
+		return claims.UniqueName
+	}
+
+	return ""
 }
 
 func RequireAuth() fiber.Handler {
@@ -79,16 +104,42 @@ func RequireAuth() fiber.Handler {
 				"detail": detail,
 			})
 		}
-
+		email := resolveEmail(claims)
 		authUser := AuthUser{
 			OID:    claims.OID,
 			Name:   claims.Name,
-			Email:  claims.PreferredUsername,
+			Email:  email,
 			Tenant: claims.TID,
 			RawJWT: tokenString,
 		}
+		if authUser.Email == "" {
+			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+				"error":  "usuario no autorizado",
+				"detail": "El token no contiene email, preferred_username, upn ni unique_name.",
+			})
+		}
+		localUser, err := repositories.GetUserByEmail(authUser.Email)
+
+		if err != nil {
+			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+				"error":  "usuario no autorizado",
+				"detail": err.Error(),
+				"email":  authUser.Email,
+			})
+		}
+
+		if localUser.IsBlocked {
+			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+				"error":  "usuario bloqueado",
+				"detail": "El usuario existe, pero está bloqueado en Poli-REDI.",
+			})
+		}
+
+		localUser.OID = authUser.OID
+		localUser.TenantID = authUser.Tenant
 
 		c.Locals("authUser", authUser)
+		c.Locals("localUser", *localUser)
 
 		return c.Next()
 	}
@@ -117,4 +168,9 @@ func GetAuthUser(c *fiber.Ctx) (AuthUser, bool) {
 
 func ContextWithAuthUser(ctx context.Context, user AuthUser) context.Context {
 	return context.WithValue(ctx, "authUser", user)
+}
+
+func GetLocalUser(c *fiber.Ctx) (models.LocalAuthUser, bool) {
+	user, ok := c.Locals("localUser").(models.LocalAuthUser)
+	return user, ok
 }

@@ -7,18 +7,13 @@ import (
 )
 
 func GetMe(c *fiber.Ctx) error {
-	authUser, ok := middleware.GetAuthUser(c)
+	user, ok := middleware.GetLocalUser(c)
 
 	if !ok {
-		return c.Status(401).JSON(fiber.Map{
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 			"error": "usuario no autenticado",
 		})
 	}
 
-	return c.JSON(fiber.Map{
-		"oid":    authUser.OID,
-		"name":   authUser.Name,
-		"email":  authUser.Email,
-		"tenant": authUser.Tenant,
-	})
+	return c.JSON(user)
 }

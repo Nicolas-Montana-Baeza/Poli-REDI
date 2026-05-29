@@ -14,6 +14,8 @@ func RegisterRoutes(app *fiber.App) {
 
 	protected := api.Group("", middleware.RequireAuth())
 
+	protected.Get("/me", handlers.GetMe)
+
 	protected.Get("/resources", handlers.GetResources)
 
 	protected.Get("/reservations", handlers.GetReservations)
