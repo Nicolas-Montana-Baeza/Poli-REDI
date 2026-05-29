@@ -6,14 +6,19 @@ import { initializeAuth } from '../auth/authService'
 const router = useRouter()
 
 onMounted(async () => {
-  await initializeAuth()
+  try {
+    await initializeAuth()
 
-  const redirectPath =
-    sessionStorage.getItem('redirectAfterLogin') || '/'
+    const redirectPath =
+      sessionStorage.getItem('redirectAfterLogin') || '/'
 
-  sessionStorage.removeItem('redirectAfterLogin')
+    sessionStorage.removeItem('redirectAfterLogin')
 
-  router.replace(redirectPath)
+    router.replace(redirectPath)
+  } catch (error) {
+    console.error('Error en callback:', error)
+    router.replace('/')
+  }
 })
 </script>
 

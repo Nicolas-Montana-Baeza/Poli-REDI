@@ -2,8 +2,16 @@ import api from './api'
 
 export const resourcesService = {
   async getAll() {
-    const response = await api.get('/resources')
+    try {
+      const response = await api.get('/resources')
+      return response.data
+    } catch (error) {
+      console.error(
+        'Error en resources.service:',
+        JSON.stringify(error.response?.data, null, 2)
+      )
 
-    return response.data
+      throw error
+    }
   }
 }

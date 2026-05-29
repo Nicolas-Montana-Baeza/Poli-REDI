@@ -10,13 +10,18 @@ const api = axios.create({
 })
 
 api.interceptors.request.use(async (config) => {
-  const token = await getAccessToken()
+  try {
+    const token = await getAccessToken()
 
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`
+    }
+
+    return config
+  } catch (error) {
+    console.error('No se pudo obtener access token:', error)
+    return config
   }
-
-  return config
 })
 
 export default api

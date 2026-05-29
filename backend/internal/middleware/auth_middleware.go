@@ -32,6 +32,9 @@ func RequireAuth() fiber.Handler {
 	tenantID := os.Getenv("ENTRA_TENANT_ID")
 	apiClientID := os.Getenv("ENTRA_API_CLIENT_ID")
 	issuer := os.Getenv("ENTRA_ISSUER")
+	println("ENTRA_TENANT_ID:", tenantID)
+	println("ENTRA_API_CLIENT_ID:", apiClientID)
+	println("ENTRA_ISSUER:", issuer)
 
 	jwksURL := "https://login.microsoftonline.com/" + tenantID + "/discovery/v2.0/keys"
 
@@ -65,8 +68,15 @@ func RequireAuth() fiber.Handler {
 		)
 
 		if err != nil || !token.Valid {
+			detail := "token no válido"
+
+			if err != nil {
+				detail = err.Error()
+			}
+
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-				"error": "token inválido o expirado",
+				"error":  "token inválido o expirado",
+				"detail": detail,
 			})
 		}
 
