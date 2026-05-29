@@ -2,7 +2,7 @@
   <div class="page">
 
     <h1>
-      Historial de Reservas
+      Historial
     </h1>
 
     <p>
