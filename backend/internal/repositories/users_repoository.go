@@ -2,17 +2,29 @@ package repositories
 
 import (
 	"context"
-	"errors"
 	"poli-redi-api/internal/database"
 	"poli-redi-api/internal/models"
 )
 
-func GetUserByEmail(email string) (*models.LocalAuthUser, error) {
+func GetOrCreateUserByEmail(email string, fullName string) (*models.LocalAuthUser, error) {
 	query := `
-		SELECT id, email, full_name, is_admin, is_blocked
-		FROM users
-		WHERE email = $1
-		LIMIT 1;
+		INSERT INTO users (
+			email,
+			full_name,
+			is_admin,
+			is_blocked
+		)
+		VALUES ($1, $2, false, false)
+		ON CONFLICT (email)
+		DO UPDATE SET
+			full_name = EXCLUDED.full_name,
+			updated_at = CURRENT_TIMESTAMP
+		RETURNING
+			id,
+			email,
+			full_name,
+			is_admin,
+			is_blocked;
 	`
 
 	var user models.LocalAuthUser
@@ -21,6 +33,7 @@ func GetUserByEmail(email string) (*models.LocalAuthUser, error) {
 		context.Background(),
 		query,
 		email,
+		fullName,
 	).Scan(
 		&user.ID,
 		&user.Email,
@@ -30,7 +43,7 @@ func GetUserByEmail(email string) (*models.LocalAuthUser, error) {
 	)
 
 	if err != nil {
-		return nil, errors.New("usuario no registrado en Poli-REDI")
+		return nil, err
 	}
 
 	return &user, nil

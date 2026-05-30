@@ -15,6 +15,7 @@ import UsersView from '../views/UsersView.vue'
 import SettingsView from '../views/SettingsView.vue'
 import ReportsView from '../views/ReportsView.vue'
 import AuthCallbackView from '../views/AuthCallbackView.vue'
+import { useAuthStore } from '../stores/auth'
 
 const routes = [
   {
@@ -45,22 +46,22 @@ const routes = [
   {
     path: '/admin',
     component: AdminView,
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true, requiresAdmin: true }
   },
   {
     path: '/users',
     component: UsersView,
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true, requiresAdmin: true }
   },
   {
     path: '/settings',
     component: SettingsView,
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true, requiresAdmin: true }
   },
   {
     path: '/reports',
     component: ReportsView,
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true, requiresAdmin: true }
   },
   {
     path: '/auth/callback',
@@ -85,6 +86,34 @@ router.beforeEach(async (to) => {
     if (!authenticated) {
       await login(to.fullPath)
       return false
+    }
+  }
+
+  return true
+})
+
+router.beforeEach(async (to) => {
+  if (to.meta.public) {
+    return true
+  }
+
+  if (to.meta.requiresAuth) {
+    const authenticated = await isAuthenticated()
+
+    if (!authenticated) {
+      await login(to.fullPath)
+      return false
+    }
+
+    const authStore = useAuthStore()
+    const user = authStore.user || await authStore.loadAuthUser()
+
+    if (!user) {
+      return '/availability'
+    }
+
+    if (to.meta.requiresAdmin && user.isAdmin !== true) {
+      return '/availability'
     }
   }
 

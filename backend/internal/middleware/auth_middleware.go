@@ -118,11 +118,17 @@ func RequireAuth() fiber.Handler {
 				"detail": "El token no contiene email, preferred_username, upn ni unique_name.",
 			})
 		}
-		localUser, err := repositories.GetUserByEmail(authUser.Email)
+		fullName := authUser.Name
+
+		if fullName == "" {
+			fullName = authUser.Email
+		}
+
+		localUser, err := repositories.GetOrCreateUserByEmail(authUser.Email, fullName)
 
 		if err != nil {
-			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
-				"error":  "usuario no autorizado",
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"error":  "no se pudo crear o consultar el usuario",
 				"detail": err.Error(),
 				"email":  authUser.Email,
 			})
