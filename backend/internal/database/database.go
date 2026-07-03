@@ -2,34 +2,89 @@ package database
 
 import (
 	"context"
+	"database/sql"
+	"fmt"
 	"log"
 	"os"
+	"strconv"
+	"time"
 
-	"github.com/jackc/pgx/v5/pgxpool"
+	_ "github.com/microsoft/go-mssqldb"
 )
 
-var DB *pgxpool.Pool
+var DB *sql.DB
 
 func Connect() {
-	databaseURL := os.Getenv("DATABASE_URL")
+	connString := os.Getenv("AZURE_SQL_CONNECTION_STRING")
 
-	if databaseURL == "" {
-		log.Fatal("DATABASE_URL no está definido en .env")
+	if connString == "" {
+		connString = buildConnectionString()
 	}
 
-	pool, err := pgxpool.New(context.Background(), databaseURL)
-
+	db, err := sql.Open("sqlserver", connString)
 	if err != nil {
-		log.Fatal("Error conectando a PostgreSQL:", err)
+		log.Fatal("Error creando pool de conexion a Azure SQL:", err)
 	}
 
-	if err := pool.Ping(context.Background()); err != nil {
-		log.Fatal("No se pudo hacer ping a PostgreSQL:", err)
+	db.SetMaxOpenConns(10)
+	db.SetMaxIdleConns(5)
+	db.SetConnMaxLifetime(30 * time.Minute)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	if err := db.PingContext(ctx); err != nil {
+		log.Fatal("No se pudo conectar a Azure SQL Database:", err)
 	}
 
-	DB = pool
+	DB = db
 
-	log.Println("Conectado a PostgreSQL correctamente")
+	log.Println("Conectado a Azure SQL Database correctamente")
+}
+
+func buildConnectionString() string {
+	server := requiredEnv("DB_SERVER")
+	user := requiredEnv("DB_USER")
+	password := requiredEnv("DB_PASSWORD")
+	databaseName := requiredEnv("DB_NAME")
+	port := envOrDefault("DB_PORT", "1433")
+	encrypt := envOrDefault("DB_ENCRYPT", "true")
+	trustServerCertificate := envOrDefault("DB_TRUST_SERVER_CERTIFICATE", "false")
+
+	if _, err := strconv.Atoi(port); err != nil {
+		log.Fatal("DB_PORT debe ser numerico")
+	}
+
+	return fmt.Sprintf(
+		"server=%s;user id=%s;password=%s;port=%s;database=%s;encrypt=%s;trustservercertificate=%s;",
+		server,
+		user,
+		password,
+		port,
+		databaseName,
+		encrypt,
+		trustServerCertificate,
+	)
+}
+
+func requiredEnv(name string) string {
+	value := os.Getenv(name)
+
+	if value == "" {
+		log.Fatalf("%s no esta definido en .env", name)
+	}
+
+	return value
+}
+
+func envOrDefault(name string, fallback string) string {
+	value := os.Getenv(name)
+
+	if value == "" {
+		return fallback
+	}
+
+	return value
 }
 
 func Close() {

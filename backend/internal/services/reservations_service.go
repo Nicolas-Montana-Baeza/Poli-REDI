@@ -6,7 +6,7 @@ import (
 	"poli-redi-api/internal/models"
 	"poli-redi-api/internal/repositories"
 
-	"github.com/jackc/pgx/v5/pgconn"
+	mssql "github.com/microsoft/go-mssqldb"
 )
 
 func GetReservations() ([]models.Reservation, error) {
@@ -34,8 +34,7 @@ func CreateReservation(reservation models.Reservation) (models.Reservation, erro
 		reservation.Status = "CONFIRMED"
 	}
 
-	createdReservation, err :=
-		repositories.AddReservation(reservation)
+	createdReservation, err := repositories.AddReservation(reservation)
 
 	if err != nil {
 		return models.Reservation{}, mapDatabaseReservationError(err)
@@ -45,27 +44,38 @@ func CreateReservation(reservation models.Reservation) (models.Reservation, erro
 }
 
 func mapDatabaseReservationError(err error) error {
-	var pgErr *pgconn.PgError
+	var sqlErr mssql.Error
 
-	if errors.As(err, &pgErr) {
-		switch pgErr.Code {
-
-		case "23P01":
-			return errors.New("el recurso ya está reservado en ese horario")
-
-		case "23503":
-			return errors.New("usuario, recurso o actividad no existe")
-
-		case "23514":
-			return errors.New("los datos de la reserva no cumplen las restricciones")
-
+	if errors.As(err, &sqlErr) {
+		switch sqlErr.Number {
+		case 51000:
+			return errors.New("el usuario se encuentra bloqueado y no puede crear reservas")
+		case 51001:
+			return errors.New("el recurso no esta activo")
+		case 51002:
+			return errors.New("el recurso es solo informativo y no permite reservas")
+		case 51003:
+			return errors.New("el recurso solo puede ser reservado por administradores")
+		case 51004:
+			return errors.New("el recurso ya esta reservado en ese horario")
+		case 51005:
+			return errors.New("el usuario ya tiene una reserva en ese horario")
+		case 51006:
+			return errors.New("el recurso esta bloqueado en ese horario")
+		case 51007:
+			return errors.New("el recurso tiene una actividad programada en ese horario")
+		case 547:
+			return errors.New("usuario, recurso o actividad no existe, o los datos no cumplen restricciones")
+		case 2601, 2627:
+			return errors.New("ya existe un registro con esos datos")
 		default:
-			return errors.New(pgErr.Message)
+			return errors.New(sqlErr.Message)
 		}
 	}
 
 	return err
 }
+
 func CancelReservation(
 	reservationID int,
 	requestedByUserID int,
@@ -78,8 +88,7 @@ func CancelReservation(
 		return models.Reservation{}, errors.New("requestedByUserId es obligatorio")
 	}
 
-	isAdmin, err :=
-		repositories.IsUserAdmin(requestedByUserID)
+	isAdmin, err := repositories.IsUserAdmin(requestedByUserID)
 
 	if err != nil {
 		return models.Reservation{}, errors.New("usuario no encontrado o bloqueado")
@@ -89,8 +98,7 @@ func CancelReservation(
 		return models.Reservation{}, errors.New("no tienes permisos para cancelar esta reserva")
 	}
 
-	cancelledReservation, err :=
-		repositories.CancelReservation(reservationID)
+	cancelledReservation, err := repositories.CancelReservation(reservationID)
 
 	if err != nil {
 		return models.Reservation{}, err

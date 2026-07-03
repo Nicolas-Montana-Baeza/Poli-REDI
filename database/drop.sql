@@ -1,32 +1,43 @@
--- =========================================
--- DROP VIEWS
--- =========================================
-DROP VIEW IF EXISTS vw_priority_reservations CASCADE;
-DROP VIEW IF EXISTS vw_user_violations CASCADE;
-DROP VIEW IF EXISTS vw_activity_usage CASCADE;
-DROP VIEW IF EXISTS vw_peak_hours CASCADE;
-DROP VIEW IF EXISTS vw_resource_usage CASCADE;
+-- ============================================================
+-- POLI-REDI - LIMPIEZA BASE DE DATOS
+-- Azure SQL Database / SQL Server T-SQL
+-- ============================================================
 
--- =========================================
--- DROP TABLES
--- =========================================
-DROP TABLE IF EXISTS logs CASCADE;
-DROP TABLE IF EXISTS notifications CASCADE;
-DROP TABLE IF EXISTS availability_blocks CASCADE;
-DROP TABLE IF EXISTS priority_reservations CASCADE;
-DROP TABLE IF EXISTS violations CASCADE;
-DROP TABLE IF EXISTS participants CASCADE;
-DROP TABLE IF EXISTS reservations CASCADE;
-DROP TABLE IF EXISTS activities CASCADE;
-DROP TABLE IF EXISTS resources CASCADE;
-DROP TABLE IF EXISTS users CASCADE;
+-- VIEWS
+IF OBJECT_ID('dbo.vw_resource_calendar', 'V') IS NOT NULL DROP VIEW dbo.vw_resource_calendar;
+IF OBJECT_ID('dbo.vw_user_violations', 'V') IS NOT NULL DROP VIEW dbo.vw_user_violations;
+IF OBJECT_ID('dbo.vw_peak_hours', 'V') IS NOT NULL DROP VIEW dbo.vw_peak_hours;
+IF OBJECT_ID('dbo.vw_resource_usage', 'V') IS NOT NULL DROP VIEW dbo.vw_resource_usage;
+IF OBJECT_ID('dbo.vw_priority_reservations', 'V') IS NOT NULL DROP VIEW dbo.vw_priority_reservations;
+IF OBJECT_ID('dbo.vw_activity_usage', 'V') IS NOT NULL DROP VIEW dbo.vw_activity_usage;
+GO
 
--- =========================================
--- DROP FUNCTION
--- =========================================
-DROP FUNCTION IF EXISTS update_timestamp() CASCADE;
+-- TRIGGERS
+IF OBJECT_ID('dbo.trg_reservations_audit', 'TR') IS NOT NULL DROP TRIGGER dbo.trg_reservations_audit;
+IF OBJECT_ID('dbo.trg_violations_notify', 'TR') IS NOT NULL DROP TRIGGER dbo.trg_violations_notify;
+IF OBJECT_ID('dbo.trg_scheduled_activities_validate_conflicts', 'TR') IS NOT NULL DROP TRIGGER dbo.trg_scheduled_activities_validate_conflicts;
+IF OBJECT_ID('dbo.trg_blocks_validate_conflicts', 'TR') IS NOT NULL DROP TRIGGER dbo.trg_blocks_validate_conflicts;
+IF OBJECT_ID('dbo.trg_reservations_validate_conflicts', 'TR') IS NOT NULL DROP TRIGGER dbo.trg_reservations_validate_conflicts;
+IF OBJECT_ID('dbo.trg_scheduled_activities_updated_at', 'TR') IS NOT NULL DROP TRIGGER dbo.trg_scheduled_activities_updated_at;
+IF OBJECT_ID('dbo.trg_reservations_updated_at', 'TR') IS NOT NULL DROP TRIGGER dbo.trg_reservations_updated_at;
+IF OBJECT_ID('dbo.trg_activities_updated_at', 'TR') IS NOT NULL DROP TRIGGER dbo.trg_activities_updated_at;
+IF OBJECT_ID('dbo.trg_resources_updated_at', 'TR') IS NOT NULL DROP TRIGGER dbo.trg_resources_updated_at;
+IF OBJECT_ID('dbo.trg_users_updated_at', 'TR') IS NOT NULL DROP TRIGGER dbo.trg_users_updated_at;
+IF OBJECT_ID('dbo.trg_venues_updated_at', 'TR') IS NOT NULL DROP TRIGGER dbo.trg_venues_updated_at;
+GO
 
--- =========================================
--- DROP EXTENSION (OPTIONAL)
--- =========================================
-DROP EXTENSION IF EXISTS btree_gist CASCADE;
+-- TABLES
+IF OBJECT_ID('dbo.audit_logs', 'U') IS NOT NULL DROP TABLE dbo.audit_logs;
+IF OBJECT_ID('dbo.logs', 'U') IS NOT NULL DROP TABLE dbo.logs;
+IF OBJECT_ID('dbo.notifications', 'U') IS NOT NULL DROP TABLE dbo.notifications;
+IF OBJECT_ID('dbo.violations', 'U') IS NOT NULL DROP TABLE dbo.violations;
+IF OBJECT_ID('dbo.priority_reservations', 'U') IS NOT NULL DROP TABLE dbo.priority_reservations;
+IF OBJECT_ID('dbo.scheduled_activities', 'U') IS NOT NULL DROP TABLE dbo.scheduled_activities;
+IF OBJECT_ID('dbo.availability_blocks', 'U') IS NOT NULL DROP TABLE dbo.availability_blocks;
+IF OBJECT_ID('dbo.participants', 'U') IS NOT NULL DROP TABLE dbo.participants;
+IF OBJECT_ID('dbo.reservations', 'U') IS NOT NULL DROP TABLE dbo.reservations;
+IF OBJECT_ID('dbo.activities', 'U') IS NOT NULL DROP TABLE dbo.activities;
+IF OBJECT_ID('dbo.resources', 'U') IS NOT NULL DROP TABLE dbo.resources;
+IF OBJECT_ID('dbo.users', 'U') IS NOT NULL DROP TABLE dbo.users;
+IF OBJECT_ID('dbo.venues', 'U') IS NOT NULL DROP TABLE dbo.venues;
+GO

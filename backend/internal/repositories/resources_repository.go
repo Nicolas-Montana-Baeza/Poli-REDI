@@ -8,7 +8,7 @@ import (
 )
 
 func GetAllResources() ([]models.Resource, error) {
-	rows, err := database.DB.Query(
+	rows, err := database.DB.QueryContext(
 		context.Background(),
 		`
 		SELECT
@@ -17,7 +17,7 @@ func GetAllResources() ([]models.Resource, error) {
 			type,
 			reservation_mode,
 			is_active
-		FROM resources
+		FROM dbo.resources
 		ORDER BY id;
 		`,
 	)

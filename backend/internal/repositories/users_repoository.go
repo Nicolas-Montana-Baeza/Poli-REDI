@@ -2,34 +2,48 @@ package repositories
 
 import (
 	"context"
+
 	"poli-redi-api/internal/database"
 	"poli-redi-api/internal/models"
 )
 
 func GetOrCreateUserByEmail(email string, fullName string) (*models.LocalAuthUser, error) {
 	query := `
-		INSERT INTO users (
-			email,
-			full_name,
-			is_admin,
-			is_blocked
-		)
-		VALUES ($1, $2, false, false)
-		ON CONFLICT (email)
-		DO UPDATE SET
-			full_name = EXCLUDED.full_name,
-			updated_at = CURRENT_TIMESTAMP
-		RETURNING
-			id,
-			email,
-			full_name,
-			is_admin,
-			is_blocked;
+		MERGE dbo.users WITH (HOLDLOCK) AS target
+		USING (
+			SELECT
+				@p1 AS email,
+				@p2 AS full_name
+		) AS source
+		ON target.email = source.email
+		WHEN MATCHED THEN
+			UPDATE SET
+				full_name = source.full_name,
+				updated_at = SYSUTCDATETIME()
+		WHEN NOT MATCHED THEN
+			INSERT (
+				email,
+				full_name,
+				is_admin,
+				is_blocked
+			)
+			VALUES (
+				source.email,
+				source.full_name,
+				0,
+				0
+			)
+		OUTPUT
+			inserted.id,
+			inserted.email,
+			inserted.full_name,
+			inserted.is_admin,
+			inserted.is_blocked;
 	`
 
 	var user models.LocalAuthUser
 
-	err := database.DB.QueryRow(
+	err := database.DB.QueryRowContext(
 		context.Background(),
 		query,
 		email,

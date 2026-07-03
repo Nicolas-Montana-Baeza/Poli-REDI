@@ -8,7 +8,7 @@ import (
 )
 
 func GetAllReservations() ([]models.Reservation, error) {
-	rows, err := database.DB.Query(
+	rows, err := database.DB.QueryContext(
 		context.Background(),
 		`
 		SELECT
@@ -22,8 +22,8 @@ func GetAllReservations() ([]models.Reservation, error) {
 			r.created_at,
 			r.updated_at,
 			COALESCE(a.name, 'Reserva') AS activity_name
-		FROM reservations r
-		LEFT JOIN activities a
+		FROM dbo.reservations r
+		LEFT JOIN dbo.activities a
 			ON a.id = r.activity_id
 		ORDER BY r.start_time ASC;
 		`,
@@ -73,10 +73,10 @@ func GetAllReservations() ([]models.Reservation, error) {
 }
 
 func AddReservation(reservation models.Reservation) (models.Reservation, error) {
-	err := database.DB.QueryRow(
+	err := database.DB.QueryRowContext(
 		context.Background(),
 		`
-		INSERT INTO reservations (
+		INSERT INTO dbo.reservations (
 			user_id,
 			resource_id,
 			activity_id,
@@ -84,17 +84,17 @@ func AddReservation(reservation models.Reservation) (models.Reservation, error) 
 			duration_minutes,
 			status
 		)
-		VALUES ($1, $2, $3, $4, $5, $6)
-		RETURNING
-			id,
-			user_id,
-			resource_id,
-			activity_id,
-			start_time,
-			duration_minutes,
-			status,
-			created_at,
-			updated_at;
+		OUTPUT
+			INSERTED.id,
+			INSERTED.user_id,
+			INSERTED.resource_id,
+			INSERTED.activity_id,
+			INSERTED.start_time,
+			INSERTED.duration_minutes,
+			INSERTED.status,
+			INSERTED.created_at,
+			INSERTED.updated_at
+		VALUES (@p1, @p2, @p3, @p4, @p5, @p6);
 		`,
 		reservation.UserID,
 		reservation.ResourceID,
@@ -144,25 +144,25 @@ func mapReservationType(status string) string {
 func CancelReservation(id int) (models.Reservation, error) {
 	var reservation models.Reservation
 
-	err := database.DB.QueryRow(
+	err := database.DB.QueryRowContext(
 		context.Background(),
 		`
-		UPDATE reservations
+		UPDATE dbo.reservations
 		SET
 			status = 'CANCELLED',
-			updated_at = NOW()
-		WHERE id = $1
-		  AND status <> 'CANCELLED'
-		RETURNING
-			id,
-			user_id,
-			resource_id,
-			activity_id,
-			start_time,
-			duration_minutes,
-			status,
-			created_at,
-			updated_at;
+			updated_at = SYSUTCDATETIME()
+		OUTPUT
+			INSERTED.id,
+			INSERTED.user_id,
+			INSERTED.resource_id,
+			INSERTED.activity_id,
+			INSERTED.start_time,
+			INSERTED.duration_minutes,
+			INSERTED.status,
+			INSERTED.created_at,
+			INSERTED.updated_at
+		WHERE id = @p1
+		  AND status <> 'CANCELLED';
 		`,
 		id,
 	).Scan(
@@ -181,27 +181,23 @@ func CancelReservation(id int) (models.Reservation, error) {
 		return models.Reservation{}, err
 	}
 
-	reservation.Hour =
-		reservation.StartTime.Format("15:04")
-
-	reservation.Title =
-		"Reserva cancelada"
-
-	reservation.Type =
-		mapReservationType(reservation.Status)
+	reservation.Hour = reservation.StartTime.Format("15:04")
+	reservation.Title = "Reserva cancelada"
+	reservation.Type = mapReservationType(reservation.Status)
 
 	return reservation, nil
 }
+
 func IsUserAdmin(userID int) (bool, error) {
 	var isAdmin bool
 
-	err := database.DB.QueryRow(
+	err := database.DB.QueryRowContext(
 		context.Background(),
 		`
 		SELECT is_admin
-		FROM users
-		WHERE id = $1
-		  AND is_blocked = FALSE;
+		FROM dbo.users
+		WHERE id = @p1
+		  AND is_blocked = 0;
 		`,
 		userID,
 	).Scan(&isAdmin)

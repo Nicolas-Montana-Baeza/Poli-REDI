@@ -23,12 +23,12 @@ Poli-REDI es un sistema web para la gestion de reservas deportivas. El proyecto 
 
 - Go
 - Fiber
-- PostgreSQL mediante pgx
+- Capa de base de datos actualmente implementada con pgx, pendiente de migracion
 
 ### Base de datos
 
-- PostgreSQL
-- Esquema SQL versionado en la carpeta `database/`
+- Azure SQL Database
+- Implementacion heredada basada en scripts SQL en la carpeta `database/`
 - Restricciones para evitar solapamiento de reservas
 - Triggers para auditoria, timestamps, infracciones y notificaciones
 
@@ -73,7 +73,7 @@ Contiene la aplicacion web desarrollada con Vue 3 y Vite. Se observa una organiz
 
 ### `database/`
 
-Contiene scripts SQL para construir y limpiar la base de datos:
+Contiene scripts SQL de la implementacion anterior. Estos archivos sirven como referencia del modelo de datos, pero deben revisarse si el proyecto deja de usar PostgreSQL:
 
 - `schema.sql`
 - `schema_0.1.sql`
@@ -167,7 +167,7 @@ Componentes relevantes:
 ## Observaciones iniciales
 
 - El proyecto ya tiene una base tecnica importante; no parece estar en etapa cero de codigo.
-- La base de datos esta bastante definida y contiene reglas relevantes para reservas.
+- La base de datos actual esta modelada en scripts PostgreSQL, pero existe una decision de cambiar la tecnologia de base de datos.
 - El backend ya expone rutas centrales para recursos y reservas.
 - El frontend ya tiene varias vistas y componentes creados.
 - Antes de implementar nuevas funcionalidades conviene revisar si las pantallas estan conectadas realmente con la API.
@@ -175,7 +175,7 @@ Componentes relevantes:
 
 ## Riesgos o puntos a revisar
 
-- Confirmar que el backend levanta correctamente con la configuracion actual.
+- Migrar la implementacion de base de datos desde PostgreSQL/pgx hacia Azure SQL Database.
 - Confirmar que el frontend compila correctamente.
 - Confirmar que la autenticacion funciona en entorno local.
 - Verificar si las rutas protegidas pueden probarse sin credenciales reales.
@@ -200,3 +200,30 @@ El proyecto deberia avanzar primero por revision y documentacion, no por nuevas 
 `docs/01-instalacion-y-ejecucion.md`
 
 Este documento deberia explicar como ejecutar el backend, el frontend y la base de datos en ambiente local.
+
+## Decision posterior sobre base de datos
+
+Se definio que Poli-REDI ya no usara PostgreSQL. La base de datos objetivo sera Azure SQL Database. Por ahora, el codigo y la documentacion anterior todavia muestran rastros de PostgreSQL, `pgx`, `DATABASE_URL` y scripts SQL. Eso debe considerarse estado heredado.
+
+Trabajo pendiente:
+
+- Usar Azure SQL Database como nueva tecnologia de base de datos.
+- Revisar si se mantiene Go/Fiber como backend.
+- Migrar la capa `internal/database/`.
+- Migrar los repositorios en `internal/repositories/`.
+- Adaptar o reemplazar los scripts de `database/`.
+- Actualizar variables de entorno y guia de instalacion.
+- Actualizar el backlog tecnico con tareas de migracion.
+
+
+## Decision de base de datos objetivo
+
+La base de datos objetivo para Poli-REDI sera Azure SQL Database. Esto implica migrar la implementacion actual, que fue construida con PostgreSQL y `pgx`, hacia una conexion compatible con SQL Server/Azure SQL.
+
+Impacto esperado:
+
+- Cambiar driver de base de datos en el backend.
+- Revisar sintaxis SQL de repositorios.
+- Migrar scripts de `database/` desde PostgreSQL a T-SQL.
+- Reemplazar restricciones o funciones propias de PostgreSQL, como `EXCLUDE USING gist`, `tsrange`, `JSONB` y triggers PL/pgSQL.
+- Actualizar variables de entorno y documentacion de instalacion.

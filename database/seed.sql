@@ -1,134 +1,134 @@
--- =========================================
+-- ============================================================
+-- POLI-REDI - DATOS INICIALES
+-- Azure SQL Database / SQL Server T-SQL
+-- ============================================================
+
+-- VENUES
+SET IDENTITY_INSERT dbo.venues ON;
+INSERT INTO dbo.venues (id, name, address_line, commune, city, region, country, latitude, longitude, is_active)
+VALUES
+(1, 'Campus Principal', 'Av. Santa Isabel 1186', 'Santiago', 'Santiago', 'Region Metropolitana', 'Chile', -33.4551000, -70.6415000, 1),
+(2, 'Campo Deportivo', 'Av. Ejemplo 1234', 'Santiago', 'Santiago', 'Region Metropolitana', 'Chile', -33.4372000, -70.6506000, 1);
+SET IDENTITY_INSERT dbo.venues OFF;
+GO
+
 -- USERS
--- =========================================
--- Se crea 1 administrador para gestionar recursos, bloqueos y reservas prioritarias.
--- Se crean 10 usuarios normales para simular uso real del sistema.
--- Se crea 1 usuario bloqueado para probar restricciones de acceso.
-INSERT INTO users (email, full_name, is_admin, is_blocked)
+SET IDENTITY_INSERT dbo.users ON;
+INSERT INTO dbo.users (id, email, full_name, is_admin, is_blocked, entra_oid, tenant_id)
 VALUES
-('admin@universidad.cl', 'Administrador General', TRUE, FALSE), -- Admin principal
-('nicolas@universidad.cl', 'Nicolás Montaña', FALSE, FALSE), -- Usuario normal
-('maria@universidad.cl', 'María González', FALSE, FALSE),
-('juan@universidad.cl', 'Juan Pérez', FALSE, FALSE),
-('camila@universidad.cl', 'Camila Soto', FALSE, FALSE),
-('pedro@universidad.cl', 'Pedro Ramírez', FALSE, FALSE),
-('valentina@universidad.cl', 'Valentina Fuentes', FALSE, FALSE),
-('sebastian@universidad.cl', 'Sebastián Morales', FALSE, FALSE),
-('fernanda@universidad.cl', 'Fernanda Rojas', FALSE, FALSE),
-('diego@universidad.cl', 'Diego Herrera', FALSE, FALSE),
-('sofia@universidad.cl', 'Sofía Castillo', FALSE, FALSE),
-('bloqueado@universidad.cl', 'Usuario Bloqueado', FALSE, TRUE); -- Usuario bloqueado
+(1, 'admin@universidad.cl', 'Administrador General', 1, 0, NULL, NULL),
+(2, 'nicolas@universidad.cl', 'Nicolas Montana', 0, 0, NULL, NULL),
+(3, 'maria@universidad.cl', 'Maria Gonzalez', 0, 0, NULL, NULL),
+(4, 'juan@universidad.cl', 'Juan Perez', 0, 0, NULL, NULL),
+(5, 'camila@universidad.cl', 'Camila Soto', 0, 0, NULL, NULL),
+(6, 'pedro@universidad.cl', 'Pedro Ramirez', 0, 0, NULL, NULL),
+(7, 'valentina@universidad.cl', 'Valentina Fuentes', 0, 0, NULL, NULL),
+(8, 'sebastian@universidad.cl', 'Sebastian Morales', 0, 0, NULL, NULL),
+(9, 'fernanda@universidad.cl', 'Fernanda Rojas', 0, 0, NULL, NULL),
+(10, 'diego@universidad.cl', 'Diego Herrera', 0, 0, NULL, NULL),
+(11, 'sofia@universidad.cl', 'Sofia Castillo', 0, 0, NULL, NULL),
+(12, 'bloqueado@universidad.cl', 'Usuario Bloqueado', 0, 1, NULL, NULL);
+SET IDENTITY_INSERT dbo.users OFF;
+GO
 
--- =========================================
 -- RESOURCES
--- =========================================
--- Recursos deportivos disponibles para reservas.
-
-INSERT INTO resources (name, type, reservation_mode)
+SET IDENTITY_INSERT dbo.resources ON;
+INSERT INTO dbo.resources (id, venue_id, name, type, reservation_mode, capacity, is_active)
 VALUES
-('Cancha de Fútbol', 'Cancha', 'exclusive'), -- Solo una reserva a la vez
-('Cancha de Básquetbol', 'Cancha', 'exclusive'),
-('Piscina', 'Piscina', 'exclusive'),
-('Gimnasio', 'Gimnasio', 'shared'), -- Permite múltiples usuarios
-('Sala Multiuso', 'Sala', 'shared');
+(1, 2, 'Cancha de Futbol 1', 'Cancha', 'RESERVABLE', 22, 1),
+(2, 2, 'Cancha de Basquetbol', 'Cancha', 'RESERVABLE', 10, 1),
+(3, 1, 'Piscina', 'Piscina', 'RESERVABLE', 20, 1),
+(4, 1, 'Gimnasio', 'Gimnasio', 'RESERVABLE', 40, 1),
+(5, 1, 'Sala Multiuso', 'Sala', 'ADMIN_ONLY', 25, 1),
+(6, 1, 'Muro Informativo Deportivo', 'Informativo', 'INFORMATIVE', NULL, 1);
+SET IDENTITY_INSERT dbo.resources OFF;
+GO
 
--- =========================================
 -- ACTIVITIES
--- =========================================
--- Actividades asociables a las reservas.
-
-INSERT INTO activities (name)
+SET IDENTITY_INSERT dbo.activities ON;
+INSERT INTO dbo.activities (id, name, description, is_active)
 VALUES
-('Fútbol'),
-('Básquetbol'),
-('Natación'),
-('Entrenamiento Libre'),
-('Yoga');
+(1, 'Futbol', 'Partidos o entrenamientos de futbol.', 1),
+(2, 'Basquetbol', 'Partidos o entrenamientos de basquetbol.', 1),
+(3, 'Natacion', 'Uso deportivo de piscina.', 1),
+(4, 'Entrenamiento Libre', 'Uso general de gimnasio.', 1),
+(5, 'Yoga', 'Actividad grupal guiada.', 1),
+(6, 'Campeonato', 'Competencia institucional.', 1);
+SET IDENTITY_INSERT dbo.activities OFF;
+GO
 
--- =========================================
 -- RESERVATIONS
--- =========================================
--- Reservas de ejemplo en distintos horarios para probar:
--- - reservas confirmadas
--- - reservas pendientes
--- - reportes de uso
--- - horas punta
-
-INSERT INTO reservations (user_id, resource_id, activity_id, start_time, duration_minutes, status)
+SET IDENTITY_INSERT dbo.reservations ON;
+INSERT INTO dbo.reservations (id, user_id, resource_id, activity_id, start_time, duration_minutes, status, cancellation_reason)
 VALUES
-(2, 1, 1, '2026-04-30 10:00:00', 60, 'CONFIRMED'), -- Nicolás reserva cancha fútbol
-(3, 2, 2, '2026-04-30 11:30:00', 90, 'CONFIRMED'), -- María reserva básquet
-(4, 3, 3, '2026-04-30 13:30:00', 60, 'CONFIRMED'), -- Juan piscina
-(5, 4, 4, '2026-04-30 15:00:00', 120, 'CONFIRMED'), -- Camila gimnasio
-(6, 5, 5, '2026-04-30 18:00:00', 60, 'PENDING'), -- Pedro pendiente aprobación
-(7, 1, 1, '2026-05-01 09:00:00', 60, 'CONFIRMED'), -- Valentina otro día
-(8, 2, 2, '2026-05-01 11:00:00', 60, 'CONFIRMED'),
-(9, 3, 3, '2026-05-01 14:00:00', 60, 'CONFIRMED');
+(1, 2, 1, 1, '2026-04-30T10:00:00', 60, 'CONFIRMED', NULL),
+(2, 3, 2, 2, '2026-04-30T11:30:00', 90, 'CONFIRMED', NULL),
+(3, 4, 3, 3, '2026-04-30T13:30:00', 60, 'CONFIRMED', NULL),
+(4, 5, 4, 4, '2026-04-30T15:00:00', 120, 'CONFIRMED', NULL),
+(5, 1, 5, 5, '2026-04-30T18:00:00', 60, 'PENDING', NULL),
+(6, 7, 1, 1, '2026-05-01T09:00:00', 60, 'CONFIRMED', NULL),
+(7, 8, 2, 2, '2026-05-01T11:00:00', 60, 'CONFIRMED', NULL),
+(8, 9, 3, 3, '2026-05-01T14:00:00', 60, 'CONFIRMED', NULL);
+SET IDENTITY_INSERT dbo.reservations OFF;
+GO
 
--- =========================================
 -- PARTICIPANTS
--- =========================================
--- Participantes invitados o asociados a reservas grupales.
-
-INSERT INTO participants (reservation_id, user_id, confirmed)
+SET IDENTITY_INSERT dbo.participants ON;
+INSERT INTO dbo.participants (id, reservation_id, user_id, status, confirmed_at)
 VALUES
-(1, 3, TRUE), -- María participa con Nicolás
-(1, 4, TRUE), -- Juan participa con Nicolás
-(2, 2, TRUE), -- Nicolás participa con María
-(4, 5, FALSE), -- Camila invitó a Pedro pero no confirmó
-(6, 8, TRUE),
-(7, 9, TRUE);
+(1, 1, 3, 'CONFIRMED', '2026-04-29T09:00:00'),
+(2, 1, 4, 'CONFIRMED', '2026-04-29T09:05:00'),
+(3, 2, 2, 'CONFIRMED', '2026-04-29T10:00:00'),
+(4, 4, 6, 'PENDING', NULL),
+(5, 6, 8, 'CONFIRMED', '2026-04-30T12:00:00'),
+(6, 7, 9, 'CONFIRMED', '2026-04-30T12:30:00');
+SET IDENTITY_INSERT dbo.participants OFF;
+GO
 
--- =========================================
--- VIOLATIONS
--- =========================================
--- Infracciones para probar sanciones y reportes.
-
-INSERT INTO violations (user_id, reservation_id, reason)
-VALUES
-(4, 3, 'No asistió a la reserva'), -- Juan no-show
-(12, NULL, 'Intentó reservar estando bloqueado'); -- Usuario bloqueado
-
--- =========================================
--- PRIORITY RESERVATIONS
--- =========================================
--- Reservas especiales creadas por administrador.
-
-INSERT INTO priority_reservations (reservation_id, reason, created_by)
-VALUES
-(1, 'Torneo universitario', 1),
-(3, 'Evento institucional', 1);
-
--- =========================================
 -- AVAILABILITY BLOCKS
--- =========================================
--- Bloqueos por mantención o limpieza.
-
-INSERT INTO availability_blocks (resource_id, start_time, end_time, reason)
+SET IDENTITY_INSERT dbo.availability_blocks ON;
+INSERT INTO dbo.availability_blocks (id, resource_id, created_by_user_id, block_type, reason, start_time, end_time, is_active)
 VALUES
-(1, '2026-05-02 08:00:00', '2026-05-02 12:00:00', 'Mantención'),
-(3, '2026-05-03 14:00:00', '2026-05-03 18:00:00', 'Limpieza');
+(1, 1, 1, 'MAINTENANCE', 'Mantencion programada de cancha.', '2026-05-02T08:00:00', '2026-05-02T12:00:00', 1),
+(2, 3, 1, 'CLOSED', 'Limpieza profunda de piscina.', '2026-05-03T14:00:00', '2026-05-03T18:00:00', 1);
+SET IDENTITY_INSERT dbo.availability_blocks OFF;
+GO
 
--- =========================================
+-- SCHEDULED ACTIVITIES
+SET IDENTITY_INSERT dbo.scheduled_activities ON;
+INSERT INTO dbo.scheduled_activities (id, resource_id, activity_id, created_by_user_id, title, description, activity_type, start_time, end_time, recurrence_rule, is_active)
+VALUES
+(1, 4, 4, 1, 'Entrenamiento funcional', 'Clase guiada para estudiantes.', 'TRAINING', '2026-05-02T16:00:00', '2026-05-02T17:00:00', NULL, 1),
+(2, 5, 5, 1, 'Taller de yoga', 'Actividad institucional en sala multiuso.', 'WORKSHOP', '2026-05-03T10:00:00', '2026-05-03T11:00:00', NULL, 1),
+(3, 2, 6, 1, 'Campeonato interno', 'Evento deportivo universitario.', 'CHAMPIONSHIP', '2026-05-04T09:00:00', '2026-05-04T13:00:00', NULL, 1);
+SET IDENTITY_INSERT dbo.scheduled_activities OFF;
+GO
+
+-- VIOLATIONS
+SET IDENTITY_INSERT dbo.violations ON;
+INSERT INTO dbo.violations (id, user_id, reservation_id, created_by_user_id, violation_type, description)
+VALUES
+(1, 4, 3, 1, 'NO_SHOW', 'No asistio a la reserva confirmada.'),
+(2, 12, NULL, 1, 'MISUSE', 'Intento reservar estando bloqueado.');
+SET IDENTITY_INSERT dbo.violations OFF;
+GO
+
 -- NOTIFICATIONS
--- =========================================
--- Notificaciones para probar lectura y tipos.
-
-INSERT INTO notifications (user_id, message, notification_type)
+SET IDENTITY_INSERT dbo.notifications ON;
+INSERT INTO dbo.notifications (id, user_id, reservation_id, title, message, type, is_read)
 VALUES
-(2, 'Tu reserva ha sido confirmada.', 'GENERAL'),
-(4, 'Has recibido una infracción.', 'VIOLATION'),
-(6, 'Tu reserva está pendiente.', 'GENERAL'),
-(12, 'Tu cuenta está bloqueada.', 'VIOLATION');
+(101, 2, 1, 'Reserva confirmada', 'Tu reserva ha sido confirmada.', 'RESERVATION_CONFIRMED', 0),
+(102, 4, 3, 'Infraccion registrada', 'Se registro una infraccion asociada a tu reserva.', 'SYSTEM', 0),
+(103, 6, 5, 'Reserva pendiente', 'Tu reserva esta pendiente de confirmacion.', 'RESERVATION_CREATED', 0);
+SET IDENTITY_INSERT dbo.notifications OFF;
+GO
 
--- =========================================
--- LOGS
--- =========================================
--- Registro de auditoría para trazabilidad.
-
-INSERT INTO logs (user_id, action, details)
+-- AUDIT LOGS
+SET IDENTITY_INSERT dbo.audit_logs ON;
+INSERT INTO dbo.audit_logs (id, user_id, action, entity_type, entity_id, description)
 VALUES
-(1, 'CREATE_RESOURCE', 'Se creó Cancha de Fútbol'),
-(2, 'CREATE_RESERVATION', 'Reserva creada para Cancha de Fútbol'),
-(4, 'NO_SHOW', 'Usuario no asistió a reserva'),
-(12, 'BLOCKED_ATTEMPT', 'Intento de reserva bloqueado');
+(101, 1, 'SEED_CREATED', 'database', NULL, 'Datos iniciales cargados para ambiente de desarrollo.');
+SET IDENTITY_INSERT dbo.audit_logs OFF;
+GO
+
+
