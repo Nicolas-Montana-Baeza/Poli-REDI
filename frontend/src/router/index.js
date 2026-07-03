@@ -87,33 +87,16 @@ router.beforeEach(async (to) => {
       await login(to.fullPath)
       return false
     }
-  }
-
-  return true
-})
-
-router.beforeEach(async (to) => {
-  if (to.meta.public) {
-    return true
-  }
-
-  if (to.meta.requiresAuth) {
-    const authenticated = await isAuthenticated()
-
-    if (!authenticated) {
-      await login(to.fullPath)
-      return false
-    }
 
     const authStore = useAuthStore()
     const user = authStore.user || await authStore.loadAuthUser()
 
-    if (!user) {
-      return '/availability'
-    }
-
     if (to.meta.requiresAdmin && user.isAdmin !== true) {
-      return '/availability'
+      if (to.path === '/availability') {
+        return true
+      }
+
+      return { path: '/availability' }
     }
   }
 
