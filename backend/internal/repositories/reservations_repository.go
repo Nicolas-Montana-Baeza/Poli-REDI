@@ -76,6 +76,8 @@ func AddReservation(reservation models.Reservation) (models.Reservation, error) 
 	err := database.DB.QueryRowContext(
 		context.Background(),
 		`
+		DECLARE @created TABLE (id INT);
+
 		INSERT INTO dbo.reservations (
 			user_id,
 			resource_id,
@@ -84,17 +86,22 @@ func AddReservation(reservation models.Reservation) (models.Reservation, error) 
 			duration_minutes,
 			status
 		)
-		OUTPUT
-			INSERTED.id,
-			INSERTED.user_id,
-			INSERTED.resource_id,
-			INSERTED.activity_id,
-			INSERTED.start_time,
-			INSERTED.duration_minutes,
-			INSERTED.status,
-			INSERTED.created_at,
-			INSERTED.updated_at
+		OUTPUT INSERTED.id INTO @created
 		VALUES (@p1, @p2, @p3, @p4, @p5, @p6);
+
+		SELECT
+			r.id,
+			r.user_id,
+			r.resource_id,
+			r.activity_id,
+			r.start_time,
+			r.duration_minutes,
+			r.status,
+			r.created_at,
+			r.updated_at
+		FROM dbo.reservations r
+		INNER JOIN @created c
+			ON c.id = r.id;
 		`,
 		reservation.UserID,
 		reservation.ResourceID,
@@ -129,13 +136,10 @@ func mapReservationType(status string) string {
 	switch status {
 	case "CONFIRMED":
 		return "normal"
-
 	case "PENDING":
 		return "pending"
-
 	case "CANCELLED":
 		return "cancelled"
-
 	default:
 		return "normal"
 	}
@@ -147,22 +151,29 @@ func CancelReservation(id int) (models.Reservation, error) {
 	err := database.DB.QueryRowContext(
 		context.Background(),
 		`
+		DECLARE @updated TABLE (id INT);
+
 		UPDATE dbo.reservations
 		SET
 			status = 'CANCELLED',
 			updated_at = SYSUTCDATETIME()
-		OUTPUT
-			INSERTED.id,
-			INSERTED.user_id,
-			INSERTED.resource_id,
-			INSERTED.activity_id,
-			INSERTED.start_time,
-			INSERTED.duration_minutes,
-			INSERTED.status,
-			INSERTED.created_at,
-			INSERTED.updated_at
+		OUTPUT INSERTED.id INTO @updated
 		WHERE id = @p1
 		  AND status <> 'CANCELLED';
+
+		SELECT
+			r.id,
+			r.user_id,
+			r.resource_id,
+			r.activity_id,
+			r.start_time,
+			r.duration_minutes,
+			r.status,
+			r.created_at,
+			r.updated_at
+		FROM dbo.reservations r
+		INNER JOIN @updated u
+			ON u.id = r.id;
 		`,
 		id,
 	).Scan(

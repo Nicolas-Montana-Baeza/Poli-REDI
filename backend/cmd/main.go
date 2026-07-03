@@ -64,7 +64,6 @@ func loadEnv() {
 			log.Println("Variables de entorno cargadas desde", path)
 			return
 		} else {
-			log.Println("No se pudo cargar", path+":", err)
 			lastErr = err
 		}
 	}

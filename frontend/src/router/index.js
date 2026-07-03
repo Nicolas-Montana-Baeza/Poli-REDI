@@ -91,7 +91,7 @@ router.beforeEach(async (to) => {
     const authStore = useAuthStore()
     const user = authStore.user || await authStore.loadAuthUser()
 
-    if (to.meta.requiresAdmin && user.isAdmin !== true) {
+    if (to.meta.requiresAdmin && user?.isAdmin !== true) {
       if (to.path === '/availability') {
         return true
       }
