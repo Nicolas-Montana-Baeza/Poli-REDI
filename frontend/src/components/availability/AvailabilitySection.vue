@@ -84,9 +84,6 @@ const submitReservation = async (reservation) => {
       resourceId:
         reservation.resource.id,
 
-      activityId:
-        1,
-
       startTime:
         buildStartTime(
           reservation.date,

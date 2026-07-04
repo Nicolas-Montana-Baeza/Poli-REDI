@@ -10,64 +10,46 @@ import (
 
 func GetOrCreateUserByEmail(email string, fullName string) (*models.LocalAuthUser, error) {
 	ctx := context.Background()
+	user, err := getUserByEmail(ctx, email)
 
-	tx, err := database.DB.BeginTx(ctx, &sql.TxOptions{
-		Isolation: sql.LevelSerializable,
-	})
+	if err == nil {
+		return user, nil
+	}
 
-	if err != nil {
+	if err != sql.ErrNoRows {
 		return nil, err
 	}
 
-	defer tx.Rollback()
-
-	result, err := tx.ExecContext(
+	_, err = database.DB.ExecContext(
 		ctx,
 		`
-		UPDATE dbo.users
-		SET
-			full_name = @p2,
-			updated_at = SYSUTCDATETIME()
-		WHERE email = @p1;
+		INSERT INTO dbo.users (
+			email,
+			full_name,
+			is_admin,
+			is_blocked
+		)
+		VALUES (@p1, @p2, 0, 0);
 		`,
 		email,
 		fullName,
 	)
 
 	if err != nil {
-		return nil, err
-	}
-
-	rowsAffected, err := result.RowsAffected()
-
-	if err != nil {
-		return nil, err
-	}
-
-	if rowsAffected == 0 {
-		_, err = tx.ExecContext(
-			ctx,
-			`
-			INSERT INTO dbo.users (
-				email,
-				full_name,
-				is_admin,
-				is_blocked
-			)
-			VALUES (@p1, @p2, 0, 0);
-			`,
-			email,
-			fullName,
-		)
-
-		if err != nil {
-			return nil, err
+		if existingUser, selectErr := getUserByEmail(ctx, email); selectErr == nil {
+			return existingUser, nil
 		}
+
+		return nil, err
 	}
 
+	return getUserByEmail(ctx, email)
+}
+
+func getUserByEmail(ctx context.Context, email string) (*models.LocalAuthUser, error) {
 	var user models.LocalAuthUser
 
-	err = tx.QueryRowContext(
+	err := database.DB.QueryRowContext(
 		ctx,
 		`
 		SELECT
@@ -89,10 +71,6 @@ func GetOrCreateUserByEmail(email string, fullName string) (*models.LocalAuthUse
 	)
 
 	if err != nil {
-		return nil, err
-	}
-
-	if err := tx.Commit(); err != nil {
 		return nil, err
 	}
 

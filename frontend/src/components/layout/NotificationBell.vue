@@ -72,6 +72,10 @@ onBeforeUnmount(() => {
     <!-- Trigger -->
     <button
       class="notification-btn"
+      type="button"
+      aria-label="Abrir notificaciones"
+      aria-haspopup="menu"
+      :aria-expanded="open"
       @click.stop="toggle"
     >
 
@@ -152,7 +156,10 @@ onBeforeUnmount(() => {
         </div>
 
         <!-- Footer -->
-        <button class="view-all">
+        <button
+          class="view-all"
+          type="button"
+        >
           Ver todas
         </button>
 

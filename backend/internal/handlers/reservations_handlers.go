@@ -1,9 +1,12 @@
 package handlers
 
 import (
+	"errors"
 	"poli-redi-api/internal/middleware"
 	"poli-redi-api/internal/models"
 	"poli-redi-api/internal/services"
+	"strings"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -22,7 +25,7 @@ func GetReservations(c *fiber.Ctx) error {
 }
 
 func CreateReservation(c *fiber.Ctx) error {
-	var reservation models.Reservation
+	var request models.CreateReservationRequest
 
 	user, ok := middleware.GetLocalUser(c)
 
@@ -32,13 +35,28 @@ func CreateReservation(c *fiber.Ctx) error {
 		})
 	}
 
-	if err := c.BodyParser(&reservation); err != nil {
+	if err := c.BodyParser(&request); err != nil {
 		return c.Status(400).JSON(fiber.Map{
 			"error": "Datos invalidos",
 		})
 	}
 
-	reservation.UserID = user.ID
+	startTime, err := parseReservationStartTime(request.StartTime)
+
+	if err != nil {
+		return c.Status(400).JSON(fiber.Map{
+			"error": "Fecha de inicio invalida",
+		})
+	}
+
+	reservation := models.Reservation{
+		UserID:          user.ID,
+		ResourceID:      request.ResourceID,
+		ActivityID:      request.ActivityID,
+		StartTime:       startTime,
+		DurationMinutes: request.DurationMinutes,
+		Status:          request.Status,
+	}
 
 	createdReservation, err := services.CreateReservation(reservation)
 
@@ -49,6 +67,31 @@ func CreateReservation(c *fiber.Ctx) error {
 	}
 
 	return c.Status(201).JSON(createdReservation)
+}
+
+func parseReservationStartTime(value string) (time.Time, error) {
+	value = strings.TrimSpace(value)
+
+	if value == "" {
+		return time.Time{}, errors.New("startTime es obligatorio")
+	}
+
+	if parsed, err := time.Parse(time.RFC3339Nano, value); err == nil {
+		return parsed.In(time.Local), nil
+	}
+
+	layouts := []string{
+		"2006-01-02T15:04:05",
+		"2006-01-02T15:04",
+	}
+
+	for _, layout := range layouts {
+		if parsed, err := time.ParseInLocation(layout, value, time.Local); err == nil {
+			return parsed, nil
+		}
+	}
+
+	return time.Time{}, errors.New("startTime tiene formato invalido")
 }
 
 func CancelReservation(c *fiber.Ctx) error {

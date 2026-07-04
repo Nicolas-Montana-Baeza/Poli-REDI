@@ -5,11 +5,6 @@ const clientId = import.meta.env.VITE_ENTRA_CLIENT_ID
 const redirectUri = import.meta.env.VITE_ENTRA_REDIRECT_URI
 const apiScope = import.meta.env.VITE_ENTRA_API_SCOPE
 
-console.log('MSAL tenantId:', tenantId)
-console.log('MSAL clientId:', clientId)
-console.log('MSAL redirectUri:', redirectUri)
-console.log('MSAL apiScope:', apiScope)
-
 export const msalConfig = {
   auth: {
     clientId,
