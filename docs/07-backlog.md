@@ -999,6 +999,8 @@ Revision realizada durante la conexion de actividades reales.
 
 ## Datos duros resueltos
 
+- `frontend/src/components/layout/HeaderBar.vue`: el saludo usa el nombre del usuario autenticado.
+- `frontend/src/components/layout/UserMenu.vue`: nombre, correo, rol y avatar iniciales vienen del usuario autenticado o de la cuenta Microsoft.
 - `frontend/src/views/DashboardView.vue`: instalaciones y proximas reservas ahora vienen de stores/API.
 - `frontend/src/components/dashboard/ReservationsPanel.vue`: ya no contiene reservas locales.
 - `frontend/src/components/layout/NotificationBell.vue`: ya no contiene notificaciones locales.

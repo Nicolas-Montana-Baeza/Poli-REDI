@@ -19,6 +19,7 @@ const displayName = computed(() => {
     authStore.user?.fullName ||
     authStore.account?.name ||
     authStore.user?.email ||
+    authStore.account?.username ||
     'Usuario'
   )
 })
