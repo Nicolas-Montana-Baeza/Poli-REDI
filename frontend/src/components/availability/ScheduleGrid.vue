@@ -1,5 +1,6 @@
 ﻿<script setup>
 import ResourceTimeline from './ResourceTimeline.vue'
+import { getReservationDateKey } from '@/utils/reservationTime'
 
 const props = defineProps({
   resources: {
@@ -39,11 +40,7 @@ const emit = defineEmits([
 
 /* DATE FILTER */
 const getDateFromReservation = (reservation) => {
-  if (!reservation.startTime) {
-    return ''
-  }
-
-  return reservation.startTime.slice(0, 10)
+  return getReservationDateKey(reservation.startTime)
 }
 
 const filteredReservations = (resourceId) => {

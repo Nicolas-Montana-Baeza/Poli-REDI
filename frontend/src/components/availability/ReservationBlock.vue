@@ -1,5 +1,9 @@
 <script setup>
 import { computed } from 'vue'
+import {
+  formatReservationTimeRange,
+  getReservationStartMinutes
+} from '@/utils/reservationTime'
 
 const props = defineProps({
   reservation: {
@@ -18,24 +22,15 @@ const props = defineProps({
   }
 })
 
-const getStartDate = () => {
-  if (!props.reservation.startTime) {
-    return null
-  }
-
-  return new Date(props.reservation.startTime)
-}
-
 const startMinutes = computed(() => {
-  const date = getStartDate()
+  const minutesFromMidnight =
+    getReservationStartMinutes(
+      props.reservation.startTime
+    )
 
-  if (!date) {
+  if (minutesFromMidnight === null) {
     return 0
   }
-
-  const minutesFromMidnight =
-    date.getHours() * 60 +
-    date.getMinutes()
 
   return minutesFromMidnight -
     props.startHour * 60
@@ -57,22 +52,10 @@ const reservationTitle = computed(() => {
 })
 
 const reservationTime = computed(() => {
-  const date = getStartDate()
-
-  if (!date) {
-    return ''
-  }
-
-  const start =
-    date.toTimeString().slice(0, 5)
-
-  const endDate =
-    new Date(date.getTime() + duration.value * 60000)
-
-  const end =
-    endDate.toTimeString().slice(0, 5)
-
-  return `${start} - ${end}`
+  return formatReservationTimeRange(
+    props.reservation.startTime,
+    duration.value
+  )
 })
 
 const statusClass = computed(() => {

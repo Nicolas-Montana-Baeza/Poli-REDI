@@ -2,6 +2,9 @@
 import { computed } from 'vue'
 
 import ReservationBlock from './ReservationBlock.vue'
+import {
+  getReservationStartMinutes as getReservationStartMinutesFromTime
+} from '@/utils/reservationTime'
 
 const props = defineProps({
   resource: {
@@ -78,16 +81,8 @@ const resourceReservations = computed(() => {
 
 /* HELPERS */
 const getReservationStartMinutes = (reservation) => {
-  if (!reservation.startTime) {
-    return null
-  }
-
-  const date =
-    new Date(reservation.startTime)
-
-  return (
-    date.getHours() * 60 +
-    date.getMinutes()
+  return getReservationStartMinutesFromTime(
+    reservation.startTime
   )
 }
 

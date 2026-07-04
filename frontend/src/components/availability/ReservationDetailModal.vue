@@ -1,5 +1,9 @@
 <script setup>
 import { computed } from 'vue'
+import {
+  formatReservationDate,
+  formatReservationTimeRange
+} from '@/utils/reservationTime'
 
 const props = defineProps({
   visible: {
@@ -24,36 +28,19 @@ const emit = defineEmits([
 ])
 
 const reservationDate = computed(() => {
-  if (!props.reservation?.startTime) return ''
-
-  const date = new Date(props.reservation.startTime)
-
-  return date.toLocaleDateString('es-CL', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric'
-  })
+  return formatReservationDate(
+    props.reservation?.startTime
+  )
 })
 
 const reservationTime = computed(() => {
-  if (!props.reservation?.startTime) return ''
-
-  const startDate = new Date(props.reservation.startTime)
-
   const duration =
-    props.reservation.durationMinutes || 60
+    props.reservation?.durationMinutes || 60
 
-  const endDate =
-    new Date(startDate.getTime() + duration * 60000)
-
-  const start =
-    startDate.toTimeString().slice(0, 5)
-
-  const end =
-    endDate.toTimeString().slice(0, 5)
-
-  return `${start} - ${end}`
+  return formatReservationTimeRange(
+    props.reservation?.startTime,
+    duration
+  )
 })
 
 const statusLabel = computed(() => {
