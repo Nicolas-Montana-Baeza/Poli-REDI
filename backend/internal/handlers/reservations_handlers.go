@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"poli-redi-api/internal/middleware"
 	"poli-redi-api/internal/models"
 	"poli-redi-api/internal/services"
 
@@ -23,14 +24,23 @@ func GetReservations(c *fiber.Ctx) error {
 func CreateReservation(c *fiber.Ctx) error {
 	var reservation models.Reservation
 
-	if err := c.BodyParser(&reservation); err != nil {
-		return c.Status(400).JSON(fiber.Map{
-			"error": "Datos inválidos",
+	user, ok := middleware.GetLocalUser(c)
+
+	if !ok {
+		return c.Status(401).JSON(fiber.Map{
+			"error": "usuario no autenticado",
 		})
 	}
 
-	createdReservation, err :=
-		services.CreateReservation(reservation)
+	if err := c.BodyParser(&reservation); err != nil {
+		return c.Status(400).JSON(fiber.Map{
+			"error": "Datos invalidos",
+		})
+	}
+
+	reservation.UserID = user.ID
+
+	createdReservation, err := services.CreateReservation(reservation)
 
 	if err != nil {
 		return c.Status(400).JSON(fiber.Map{
@@ -40,20 +50,20 @@ func CreateReservation(c *fiber.Ctx) error {
 
 	return c.Status(201).JSON(createdReservation)
 }
+
 func CancelReservation(c *fiber.Ctx) error {
 	var request models.CancelReservationRequest
 
 	if err := c.BodyParser(&request); err != nil {
 		return c.Status(400).JSON(fiber.Map{
-			"error": "Datos inválidos",
+			"error": "Datos invalidos",
 		})
 	}
 
-	cancelledReservation, err :=
-		services.CancelReservation(
-			request.ReservationID,
-			request.RequestedByUserID,
-		)
+	cancelledReservation, err := services.CancelReservation(
+		request.ReservationID,
+		request.RequestedByUserID,
+	)
 
 	if err != nil {
 		status := 400

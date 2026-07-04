@@ -52,7 +52,7 @@ El backend actual todavia requiere una variable de entorno llamada `DATABASE_URL
 Ejemplo de formato:
 
 ```env
-DATABASE_URL=postgres://usuario:password@localhost:5432/poli_redi?sslmode=disable
+# DATABASE_URL=postgres://USUARIO:<PASSWORD>@localhost:5432/poli_redi?sslmode=disable
 ```
 
 La conexion se configura en:
@@ -104,7 +104,7 @@ Variables identificadas:
 
 ```env
 PORT=3000
-DATABASE_URL=postgres://usuario:password@localhost:5432/poli_redi?sslmode=disable
+# DATABASE_URL=postgres://USUARIO:<PASSWORD>@localhost:5432/poli_redi?sslmode=disable
 ENTRA_TENANT_ID=...
 ENTRA_API_CLIENT_ID=...
 ENTRA_ISSUER=...
@@ -292,7 +292,7 @@ No se deben guardar credenciales reales dentro del repositorio. La URL de conexi
 Formato recomendado:
 
 ```env
-DATABASE_URL=postgres://USUARIO:PASSWORD@HOST:5432/NOMBRE_DB?sslmode=require
+# DATABASE_URL=postgres://USUARIO:<PASSWORD>@HOST:5432/NOMBRE_DB?sslmode=require
 ```
 
 En Azure normalmente es importante usar SSL, por eso se recomienda:
@@ -304,7 +304,7 @@ sslmode=require
 Ejemplo con placeholders:
 
 ```env
-DATABASE_URL=postgres://poli_redi_user:password_seguro@poli-redi.postgres.database.azure.com:5432/poli_redi?sslmode=require
+# DATABASE_URL=postgres://USUARIO:<PASSWORD>@HOST:5432/NOMBRE_DB?sslmode=require
 ```
 
 Checklist para validar la conexion:
@@ -328,7 +328,7 @@ Ejemplo:
 
 ```env
 PORT=3000
-DATABASE_URL=postgres://USUARIO:PASSWORD@HOST:5432/NOMBRE_DB?sslmode=require
+# DATABASE_URL=postgres://USUARIO:<PASSWORD>@HOST:5432/NOMBRE_DB?sslmode=require
 ENTRA_TENANT_ID=
 ENTRA_API_CLIENT_ID=
 ENTRA_ISSUER=
@@ -369,14 +369,14 @@ DB_SERVER=servidor.database.windows.net
 DB_PORT=1433
 DB_NAME=poli_redi
 DB_USER=usuario
-DB_PASSWORD=password_seguro
+DB_PASSWORD=
 DB_ENCRYPT=true
 ```
 
 Tambien se puede usar una cadena de conexion unica, si se decide simplificar la configuracion:
 
 ```env
-DATABASE_URL=sqlserver://USUARIO:PASSWORD@SERVIDOR.database.windows.net:1433?database=poli_redi&encrypt=true
+# DATABASE_URL=sqlserver://USUARIO:<PASSWORD>@SERVIDOR.database.windows.net:1433?database=poli_redi&encrypt=true
 ```
 
 Checklist para Azure SQL Database:
@@ -416,7 +416,7 @@ DB_TRUST_SERVER_CERTIFICATE=false
 El backend tambien acepta una cadena completa opcional:
 
 ```env
-AZURE_SQL_CONNECTION_STRING=server=poli-redi-server.database.windows.net;user id=poli-redi-admin;password=;port=1433;database=poli-redi-database;encrypt=true;trustservercertificate=false;
+# AZURE_SQL_CONNECTION_STRING=server=poli-redi-server.database.windows.net;user id=poli-redi-admin;password=;port=1433;database=poli-redi-database;encrypt=true;trustservercertificate=false;
 ```
 
 Archivos relevantes:

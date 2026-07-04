@@ -72,6 +72,10 @@ export const useReservationsStore =
         this.actionError = null
       },
 
+      setActionError(message) {
+        this.actionError = message
+      },
+
       clearLoadingError() {
         this.loadingError = null
       },

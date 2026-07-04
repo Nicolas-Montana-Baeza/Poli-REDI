@@ -8,9 +8,11 @@ import ReservationForm from '../forms/ReservationForm.vue'
 
 import { useResourcesStore } from '@/stores/resources'
 import { useReservationsStore } from '@/stores/reservations'
+import { useAuthStore } from '@/stores/auth'
 
 const resourcesStore = useResourcesStore()
 const reservationsStore = useReservationsStore()
+const authStore = useAuthStore()
 
 /* DATE */
 const selectedDate = ref(
@@ -35,8 +37,11 @@ const showReservationForm = ref(false)
 
 /* LOAD DATA */
 onMounted(async () => {
-  await resourcesStore.fetchResources()
-  await reservationsStore.fetchReservations()
+  await Promise.all([
+    authStore.loadAuthUser(),
+    resourcesStore.fetchResources(),
+    reservationsStore.fetchReservations()
+  ])
 })
 
 /* SLOT SELECT */
@@ -50,11 +55,6 @@ const handleSlotSelected = (slot) => {
   }
 
   showReservationForm.value = true
-
-  console.log(
-    'Slot seleccionado:',
-    selectedSlot.value
-  )
 }
 
 /* CLOSE */
@@ -68,9 +68,19 @@ const closeReservationForm = () => {
 /* SUBMIT */
 const submitReservation = async (reservation) => {
   try {
-    const payload = {
-      userId: 2,
+    if (!authStore.user) {
+      await authStore.loadAuthUser()
+    }
 
+    if (!authStore.user) {
+      reservationsStore.setActionError(
+        'No se pudo identificar al usuario autenticado'
+      )
+
+      return
+    }
+
+    const payload = {
       resourceId:
         reservation.resource.id,
 
@@ -177,7 +187,7 @@ const goToday = () => {
 
     <!-- LOADING -->
     <div
-      v-if="resourcesStore.loading || reservationsStore.loading"
+      v-if="authStore.loading || resourcesStore.loading || reservationsStore.loading"
       class="state-card"
     >
       Cargando disponibilidad...
