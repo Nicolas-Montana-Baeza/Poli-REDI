@@ -391,7 +391,7 @@ Estado sugerido: Ready for Codex
 
 ### Contexto
 
-`ReservationsView.vue` todavia muestra `Proximamente...`.
+`ReservationsView.vue` ya lista reservas reales del usuario autenticado; falta conectar detalle.
 
 ### Objetivo
 
@@ -399,12 +399,19 @@ Crear una vista donde el usuario vea sus reservas.
 
 ### Criterios de aceptacion
 
-- [ ] Muestra reservas del usuario autenticado.
-- [ ] Muestra recurso, actividad, fecha, hora, duracion y estado.
-- [ ] Tiene estados de carga, error y vacio.
-- [ ] Permite ir al detalle de una reserva.
-- [ ] Usa datos reales del backend.
-- [ ] `npm run build` pasa.
+- [x] Muestra reservas del usuario autenticado.
+- [x] Muestra recurso, actividad, fecha, hora, duracion y estado.
+- [x] Tiene estados de carga, error y vacio.
+- [x] Permite ir al detalle de una reserva.
+- [x] Usa datos reales del backend.
+- [x] `npm run build` pasa.
+
+### Resultado parcial
+
+- `GET /api/reservations/mine` lista reservas del usuario autenticado.
+- `ReservationsView.vue` ya no muestra `Proximamente...`.
+- La vista permite cancelar reservas propias disponibles.
+- `ReservationDetailView.vue` permite revisar una reserva desde `/reservations/:id`.
 
 ### Archivos relevantes
 
@@ -479,11 +486,11 @@ Mostrar catalogo de recursos deportivos con datos reales.
 
 Prioridad: P2
 Labels: `frontend`, `reservas`, `feature`
-Estado sugerido: Backlog
+Estado sugerido: Ready for Codex
 
 ### Contexto
 
-`ReservationDetailView.vue` muestra `Proximamente...`.
+`ReservationDetailView.vue` ya muestra datos reales de una reserva del usuario autenticado.
 
 ### Objetivo
 
@@ -491,10 +498,17 @@ Mostrar informacion detallada de una reserva.
 
 ### Criterios de aceptacion
 
-- [ ] Muestra recurso, actividad, usuario, fecha, hora, duracion y estado.
+- [x] Muestra recurso, actividad, usuario, fecha, hora, duracion y estado.
 - [ ] Muestra participantes si existen.
-- [ ] Permite volver a Mis Reservas o Disponibilidad.
-- [ ] Maneja reserva no encontrada.
+- [x] Permite volver a Mis Reservas o Disponibilidad.
+- [x] Maneja reserva no encontrada.
+
+### Resultado parcial
+
+- Existe ruta `/reservations/:id`.
+- La vista carga reservas reales desde `/api/reservations/mine`.
+- Permite cancelar desde el detalle si la reserva corresponde.
+- Participantes queda pendiente porque el campo no esta persistido en el modelo actual.
 
 ## UI-003 - Implementar Historial
 
@@ -504,7 +518,7 @@ Estado sugerido: Backlog
 
 ### Contexto
 
-`HistoryView.vue` muestra `Proximamente...`.
+`HistoryView.vue` ya lista reservas historicas reales; falta agregar filtros.
 
 ### Objetivo
 
@@ -512,10 +526,15 @@ Mostrar historial de reservas pasadas, canceladas o rechazadas.
 
 ### Criterios de aceptacion
 
-- [ ] Lista reservas historicas del usuario.
+- [x] Lista reservas historicas del usuario.
 - [ ] Permite filtrar por estado.
 - [ ] Permite filtrar por fecha.
-- [ ] Tiene estados de carga, error y vacio.
+- [x] Tiene estados de carga, error y vacio.
+
+### Resultado parcial
+
+- `HistoryView.vue` muestra reservas pasadas o canceladas desde `/api/reservations/mine`.
+- Quedan pendientes filtros por estado y fecha.
 
 ## UI-004 - Conectar Dashboard a datos reales
 
@@ -581,11 +600,11 @@ Crear una vista inicial de configuracion de cuenta/sistema.
 
 Prioridad: P1
 Labels: `frontend`, `backend`, `admin`, `feature`
-Estado sugerido: Backlog
+Estado sugerido: Done
 
 ### Contexto
 
-`AdminView.vue` muestra `Proximamente...`. El modelo contempla usuarios admin, recursos, bloqueos, actividades e infracciones.
+`AdminView.vue` ya muestra un resumen base. El modelo contempla usuarios admin, recursos, bloqueos, actividades e infracciones para siguientes iteraciones.
 
 ### Objetivo
 
@@ -593,10 +612,17 @@ Crear un panel administrador inicial con accesos a gestion de recursos, usuarios
 
 ### Criterios de aceptacion
 
-- [ ] Solo usuarios admin pueden acceder.
-- [ ] Muestra tarjetas/resumen de recursos, reservas, usuarios e infracciones.
-- [ ] Tiene enlaces a secciones administrativas.
-- [ ] Maneja usuario sin permisos.
+- [x] Solo usuarios admin pueden acceder.
+- [x] Muestra tarjetas/resumen de recursos y reservas.
+- [x] Tiene enlaces a secciones administrativas.
+- [x] Maneja usuario sin permisos.
+
+### Resultado de implementacion
+
+- `AdminView.vue` ya no muestra `Proximamente...`.
+- El panel carga recursos y reservas desde la API.
+- Muestra recursos activos, reservas confirmadas, reservas del dia y proximas reservas.
+- Usuarios, reportes e infracciones quedan como tareas especificas posteriores.
 
 ## ADMIN-002 - Implementar gestion de usuarios
 
@@ -610,11 +636,18 @@ Permitir que un admin vea usuarios y pueda bloquear/desbloquear cuentas.
 
 ### Criterios de aceptacion
 
-- [ ] Existe endpoint para listar usuarios.
+- [x] Existe endpoint para listar usuarios.
 - [ ] Existe endpoint para bloquear/desbloquear usuario.
-- [ ] La UI muestra email, nombre, rol y estado.
+- [x] La UI muestra email, nombre, rol y estado.
 - [ ] No permite bloquearse a si mismo accidentalmente.
 - [ ] Registra auditoria.
+
+### Resultado parcial
+
+- `GET /api/users` lista usuarios desde Azure SQL solo para administradores.
+- `UsersView.vue` ya no muestra `Proximamente...`.
+- La vista muestra totales, administradores, usuarios activos y bloqueados.
+- Queda pendiente bloquear/desbloquear con auditoria.
 
 ## ADMIN-003 - Implementar gestion de recursos
 
@@ -682,7 +715,7 @@ Estado sugerido: Backlog
 
 ### Contexto
 
-`ReportsView.vue` muestra `Proximamente...`. La base incluye vistas de uso de recursos, horas punta e infracciones.
+`ReportsView.vue` ya muestra indicadores iniciales calculados desde reservas y recursos. La base incluye vistas adicionales de uso de recursos, horas punta e infracciones que pueden integrarse despues.
 
 ### Objetivo
 
@@ -690,11 +723,17 @@ Mostrar reportes iniciales desde vistas SQL.
 
 ### Criterios de aceptacion
 
-- [ ] Reporte uso de recursos.
-- [ ] Reporte horas punta.
+- [x] Reporte uso de recursos.
+- [x] Reporte horas punta.
 - [ ] Reporte infracciones por usuario.
-- [ ] Estados de carga/error.
-- [ ] Acceso restringido a admin.
+- [x] Estados de carga/error.
+- [x] Acceso restringido a admin.
+
+### Resultado parcial
+
+- `ReportsView.vue` ya no muestra `Proximamente...`.
+- Muestra reservas activas, horas reservadas, recursos con uso, uso por recurso, estados y horas punta.
+- Queda pendiente conectar infracciones y, si corresponde, vistas SQL analiticas dedicadas.
 
 ## REP-002 - Implementar infracciones
 
@@ -772,10 +811,15 @@ Evitar que el frontend reciba todas las reservas cuando solo necesita un subconj
 ### Criterios de aceptacion
 
 - [ ] `GET /api/reservations` acepta filtro por fecha/rango.
-- [ ] Permite filtrar por usuario autenticado.
+- [x] Permite filtrar por usuario autenticado.
 - [ ] Permite filtrar por estado.
 - [ ] Disponibilidad usa rango de fecha.
-- [ ] Mis Reservas usa usuario autenticado.
+- [x] Mis Reservas usa usuario autenticado.
+
+### Resultado parcial
+
+- Se agrego `GET /api/reservations/mine` para reservas del usuario autenticado.
+- Falta agregar filtros por rango de fecha y estado.
 
 ## API-003 - Usar usuario autenticado en operaciones protegidas
 
@@ -1001,13 +1045,19 @@ Revision realizada durante la conexion de actividades reales.
 ## Datos que ya pueden reemplazarse por Azure SQL
 
 - `frontend/src/components/layout/NotificationBell.vue`: falta marcar notificaciones como leidas; relacionado con `NOTIF-001`.
-- Vistas `ReservationsView.vue`, `ReservationDetailView.vue`, `HistoryView.vue`, `ReportsView.vue`, `AdminView.vue` y `UsersView.vue`: pantallas `Proximamente...` que deben conectarse a endpoints reales o nuevas tareas.
+- No quedan pantallas principales con `Proximamente...` en `frontend/src/views`.
 
 ## Datos duros resueltos
 
 - `frontend/src/components/layout/HeaderBar.vue`: el saludo usa el nombre del usuario autenticado.
 - `frontend/src/components/layout/UserMenu.vue`: nombre, correo, rol y avatar iniciales vienen del usuario autenticado o de la cuenta Microsoft.
 - `frontend/src/views/SettingsView.vue`: muestra datos reales de la cuenta autenticada.
+- `frontend/src/views/ReservationsView.vue`: lista reservas reales del usuario autenticado.
+- `frontend/src/views/ReservationDetailView.vue`: muestra detalle real de reservas del usuario autenticado.
+- `frontend/src/views/HistoryView.vue`: lista reservas historicas reales del usuario autenticado.
+- `frontend/src/views/AdminView.vue`: muestra resumen administrativo con recursos y reservas reales.
+- `frontend/src/views/ReportsView.vue`: muestra indicadores calculados desde reservas y recursos reales.
+- `frontend/src/views/UsersView.vue`: lista usuarios reales desde Azure SQL para administradores.
 - `frontend/src/views/DashboardView.vue`: instalaciones y proximas reservas ahora vienen de stores/API.
 - `frontend/src/components/dashboard/ReservationsPanel.vue`: ya no contiene reservas locales.
 - `frontend/src/components/layout/NotificationBell.vue`: ya no contiene notificaciones locales.

@@ -199,16 +199,27 @@ const cancelReservation = async (reservation) => {
 
             </div>
 
-            <button
-              v-if="canCancel(reservation)"
-              class="cancel-button"
-              type="button"
-              :disabled="cancellingId === reservation.id"
-              @click="cancelReservation(reservation)"
-            >
-              <XCircle :size="18" />
-              Cancelar
-            </button>
+            <div class="card-actions">
+
+              <RouterLink
+                class="detail-link"
+                :to="`/reservations/${reservation.id}`"
+              >
+                Detalle
+              </RouterLink>
+
+              <button
+                v-if="canCancel(reservation)"
+                class="cancel-button"
+                type="button"
+                :disabled="cancellingId === reservation.id"
+                @click="cancelReservation(reservation)"
+              >
+                <XCircle :size="18" />
+                Cancelar
+              </button>
+
+            </div>
 
           </div>
 
@@ -371,6 +382,16 @@ const cancelReservation = async (reservation) => {
   color: #64748b;
 }
 
+.card-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+
+  gap: 10px;
+}
+
+.detail-link,
 .cancel-button {
   background: #fee2e2;
   border: 1px solid #fecaca;
@@ -392,6 +413,20 @@ const cancelReservation = async (reservation) => {
   white-space: nowrap;
 
   transition: 0.2s;
+}
+
+.detail-link {
+  background: #eff6ff;
+
+  border-color: #bfdbfe;
+
+  color: #1d4ed8;
+
+  text-decoration: none;
+}
+
+.detail-link:hover {
+  background: #dbeafe;
 }
 
 .cancel-button:hover:not(:disabled) {
@@ -437,6 +472,8 @@ const cancelReservation = async (reservation) => {
     flex-direction: column;
   }
 
+  .card-actions,
+  .detail-link,
   .cancel-button {
     width: 100%;
   }

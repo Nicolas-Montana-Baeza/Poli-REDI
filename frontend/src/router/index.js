@@ -8,6 +8,7 @@ import { isAuthenticated, login } from '../auth/authService'
 import DashboardView from '../views/DashboardView.vue'
 import AvailabilityView from '../views/AvailabilityView.vue'
 import ReservationsView from '../views/ReservationsView.vue'
+import ReservationDetailView from '../views/ReservationDetailView.vue'
 import HistoryView from '../views/HistoryView.vue'
 import ResourcesView from '../views/ResourcesView.vue'
 import AdminView from '../views/AdminView.vue'
@@ -31,6 +32,11 @@ const routes = [
   {
     path: '/reservations',
     component: ReservationsView,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/reservations/:id',
+    component: ReservationDetailView,
     meta: { requiresAuth: true }
   },
   {

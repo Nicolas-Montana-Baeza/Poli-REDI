@@ -76,3 +76,55 @@ func getUserByEmail(ctx context.Context, email string) (*models.LocalAuthUser, e
 
 	return &user, nil
 }
+
+func GetAllUsers() ([]models.LocalAuthUser, error) {
+	rows, err := database.DB.QueryContext(
+		context.Background(),
+		`
+		SELECT
+			id,
+			email,
+			full_name,
+			is_admin,
+			is_blocked,
+			COALESCE(entra_oid, '') AS entra_oid,
+			COALESCE(tenant_id, '') AS tenant_id
+		FROM dbo.users
+		ORDER BY full_name ASC, email ASC;
+		`,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	users := []models.LocalAuthUser{}
+
+	for rows.Next() {
+		var user models.LocalAuthUser
+
+		err := rows.Scan(
+			&user.ID,
+			&user.Email,
+			&user.FullName,
+			&user.IsAdmin,
+			&user.IsBlocked,
+			&user.OID,
+			&user.TenantID,
+		)
+
+		if err != nil {
+			return nil, err
+		}
+
+		users = append(users, user)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return users, nil
+}
