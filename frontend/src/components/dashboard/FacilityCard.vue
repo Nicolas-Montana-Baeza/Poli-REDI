@@ -28,10 +28,20 @@ const statusLabel = computed(() => {
 </script>
 
 <template>
-  <div class="card" @click="handleClick">
+  <button
+    class="card"
+    type="button"
+    @click="handleClick"
+  >
 
     <div class="image" v-if="image">
       <img :src="image" :alt="name" />
+    </div>
+
+    <div class="image fallback" v-else>
+      <span>
+        {{ name?.slice(0, 1) || 'R' }}
+      </span>
     </div>
 
     <div class="content">
@@ -43,18 +53,23 @@ const statusLabel = computed(() => {
       </span>
     </div>
 
-  </div>
+  </button>
 </template>
 
 <style scoped>
 /* (mismo CSS que arriba) */
 .card {
+  width: 100%;
+
   background: white;
   border-radius: 14px;
   overflow: hidden;
   cursor: pointer;
   box-shadow: 0 4px 10px rgba(0,0,0,0.08);
   transition: all 0.2s ease;
+  border: none;
+  padding: 0;
+  text-align: left;
 }
 
 .card:hover {
@@ -65,6 +80,38 @@ const statusLabel = computed(() => {
   width: 100%;
   height: 140px;
   object-fit: cover;
+}
+
+.image.fallback {
+  height: 140px;
+
+  background:
+    linear-gradient(
+      135deg,
+      #dbeafe,
+      #f8fafc
+    );
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.image.fallback span {
+  width: 56px;
+  height: 56px;
+
+  border-radius: 18px;
+
+  background: white;
+  color: #1e3a8a;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  font-size: 24px;
+  font-weight: 800;
 }
 
 .content {

@@ -1,38 +1,12 @@
-﻿<script setup>
+<script setup>
 import ReservationCard from './ReservationCard.vue'
 
-const reservations = [
-  {
-    id: 1,
-    title: 'Cancha 1',
-    sport: 'Fútbol',
-    date: 'Lunes 12 Mayo',
-    time: '18:00 - 19:00',
-    status: 'confirmed',
-    participants: 10,
-    maxParticipants: 10
-  },
-  {
-    id: 2,
-    title: 'Cancha 2',
-    sport: 'Básquetbol',
-    date: 'Martes 13 Mayo',
-    time: '20:00 - 21:00',
-    status: 'pending',
-    participants: 7,
-    maxParticipants: 10
-  },
-  {
-    id: 3,
-    title: 'Gimnasio',
-    sport: 'Vóleibol',
-    date: 'Miércoles 14 Mayo',
-    time: '17:00 - 18:30',
-    status: 'cancelled',
-    participants: 4,
-    maxParticipants: 10
+defineProps({
+  reservations: {
+    type: Array,
+    default: () => []
   }
-]
+})
 </script>
 
 <template>
@@ -70,7 +44,7 @@ const reservations = [
       </h3>
 
       <p>
-        Cuando reserves una instalación aparecerá aquí.
+        Cuando reserves una instalacion aparecera aqui.
       </p>
 
     </div>
@@ -84,14 +58,11 @@ const reservations = [
       <ReservationCard
         v-for="reservation in reservations"
         :key="reservation.id"
-
         :title="reservation.title"
         :sport="reservation.sport"
         :date="reservation.date"
         :time="reservation.time"
         :status="reservation.status"
-        :participants="reservation.participants"
-        :maxParticipants="reservation.maxParticipants"
       />
 
     </div>

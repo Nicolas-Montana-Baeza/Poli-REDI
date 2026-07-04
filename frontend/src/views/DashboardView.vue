@@ -1,102 +1,93 @@
-﻿<script setup>
-import QuickActions from
-'../components/dashboard/QuickActions.vue'
+<script setup>
+import { computed, onMounted } from 'vue'
 
-import FacilityCarousel from
-'../components/dashboard/FacilityCarousel.vue'
+import QuickActions from '../components/dashboard/QuickActions.vue'
+import FacilityCarousel from '../components/dashboard/FacilityCarousel.vue'
+import ReservationsPanel from '../components/dashboard/ReservationsPanel.vue'
 
-import ReservationsPanel from
-'../components/dashboard/ReservationsPanel.vue'
+import { useResourcesStore } from '@/stores/resources'
+import { useReservationsStore } from '@/stores/reservations'
+import {
+  formatReservationDate,
+  formatReservationTimeRange,
+  parseReservationDateTime
+} from '@/utils/reservationTime'
 
-/* FACILITIES */
-const facilities = [
-  {
-    id: 1,
-    name: 'Cancha 1',
-    type: 'Fútbol',
-    status: 'Disponible',
-    image:
-      'https://images.unsplash.com/photo-1574629810360-7efbbe195018?q=80&w=1200&auto=format&fit=crop'
-  },
+const resourcesStore = useResourcesStore()
+const reservationsStore = useReservationsStore()
 
-  {
-    id: 2,
-    name: 'Cancha 2',
-    type: 'Básquetbol',
-    status: 'Ocupada',
-    image:
-      'https://images.unsplash.com/photo-1546519638-68e109498ffc?q=80&w=1200&auto=format&fit=crop'
-  },
+onMounted(async () => {
+  await Promise.all([
+    resourcesStore.fetchResources(),
+    reservationsStore.fetchReservations()
+  ])
+})
 
-  {
-    id: 3,
-    name: 'Piscina',
-    type: 'Natación',
-    status: 'Disponible',
-    image:
-      'https://images.unsplash.com/photo-1519315901367-f34ff9154487?q=80&w=1200&auto=format&fit=crop'
-  },
+const facilities = computed(() => {
+  return resourcesStore.resources.map((resource) => ({
+    ...resource,
+    image: ''
+  }))
+})
 
-  {
-    id: 4,
-    name: 'Gimnasio',
-    type: 'Entrenamiento',
-    status: 'Mantenimiento',
-    image:
-      'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?q=80&w=1200&auto=format&fit=crop'
-  }
-]
-
-/* RESERVATIONS */
-const reservations = [
-  {
-    id: 1,
-    title: 'Entrenamiento Fútbol',
-    facility: 'Cancha 1',
-    date: '12 Mayo',
-    hour: '18:00',
-    status: 'Confirmada'
-  },
-
-  {
-    id: 2,
-    title: 'Partido Básquetbol',
-    facility: 'Cancha 2',
-    date: '13 Mayo',
-    hour: '20:00',
-    status: 'Pendiente'
-  },
-
-  {
-    id: 3,
-    title: 'Natación Libre',
-    facility: 'Piscina',
-    date: '14 Mayo',
-    hour: '16:00',
-    status: 'Confirmada'
-  }
-]
-
-/* ACTIONS */
-const handleFacilitySelect = (
-  facility
-) => {
-
-  console.log(
-    'Facility selected:',
-    facility
+const resourcesById = computed(() => {
+  return new Map(
+    resourcesStore.resources.map((resource) => [
+      resource.id,
+      resource
+    ])
   )
+})
+
+const mapReservationStatus = (status) => {
+  switch (status) {
+    case 'CONFIRMED':
+      return 'confirmed'
+
+    case 'CANCELLED':
+      return 'cancelled'
+
+    default:
+      return 'pending'
+  }
 }
 
-const handleReservationClick = (
-  reservation
-) => {
+const reservations = computed(() => {
+  return reservationsStore.reservations
+    .filter((reservation) =>
+      reservation.status !== 'CANCELLED'
+    )
+    .slice()
+    .sort((first, second) => {
+      const firstDate =
+        parseReservationDateTime(first.startTime)
 
-  console.log(
-    'Reservation:',
-    reservation
-  )
-}
+      const secondDate =
+        parseReservationDateTime(second.startTime)
+
+      return (
+        (firstDate?.getTime() || 0) -
+        (secondDate?.getTime() || 0)
+      )
+    })
+    .slice(0, 3)
+    .map((reservation) => {
+      const resource =
+        resourcesById.value.get(reservation.resourceId)
+
+      return {
+        id: reservation.id,
+        title: resource?.name || 'Recurso',
+        sport: reservation.title || 'Reserva',
+        date: formatReservationDate(reservation.startTime),
+        time: formatReservationTimeRange(
+          reservation.startTime,
+          reservation.durationMinutes
+        ),
+        status: mapReservationStatus(reservation.status)
+      }
+    })
+})
 </script>
 
 <template>
@@ -144,14 +135,23 @@ const handleReservationClick = (
 
       </div>
 
-      <FacilityCarousel
-        :facilities="
-          facilities
-        "
+      <div
+        v-if="resourcesStore.loading"
+        class="state-card"
+      >
+        Cargando instalaciones...
+      </div>
 
-        @select="
-          handleFacilitySelect
-        "
+      <div
+        v-else-if="resourcesStore.error"
+        class="state-card error"
+      >
+        {{ resourcesStore.error }}
+      </div>
+
+      <FacilityCarousel
+        v-else
+        :facilities="facilities"
       />
 
     </section>
@@ -164,7 +164,7 @@ const handleReservationClick = (
         <div>
 
           <h2>
-            Próximas Reservas
+            Proximas Reservas
           </h2>
 
           <p>
@@ -176,14 +176,23 @@ const handleReservationClick = (
 
       </div>
 
-      <ReservationsPanel
-        :reservations="
-          reservations
-        "
+      <div
+        v-if="reservationsStore.loading"
+        class="state-card"
+      >
+        Cargando reservas...
+      </div>
 
-        @select="
-          handleReservationClick
-        "
+      <div
+        v-else-if="reservationsStore.loadingError"
+        class="state-card error"
+      >
+        {{ reservationsStore.loadingError }}
+      </div>
+
+      <ReservationsPanel
+        v-else
+        :reservations="reservations"
       />
 
     </section>
@@ -262,6 +271,28 @@ const handleReservationClick = (
   color: #64748b;
 
   font-size: 14px;
+}
+
+.state-card {
+  background: white;
+
+  border-radius: 18px;
+
+  padding: 20px;
+
+  border: 1px solid #e2e8f0;
+
+  color: #334155;
+
+  font-weight: 700;
+}
+
+.state-card.error {
+  background: #fee2e2;
+
+  color: #b91c1c;
+
+  border-color: #fecaca;
 }
 
 /* TABLET */

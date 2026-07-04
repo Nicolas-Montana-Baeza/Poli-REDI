@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"database/sql"
 
 	"poli-redi-api/internal/database"
 	"poli-redi-api/internal/models"
@@ -16,6 +17,7 @@ func GetAllResources() ([]models.Resource, error) {
 			name,
 			type,
 			reservation_mode,
+			capacity,
 			is_active
 		FROM dbo.resources
 		ORDER BY id;
@@ -32,17 +34,24 @@ func GetAllResources() ([]models.Resource, error) {
 
 	for rows.Next() {
 		var resource models.Resource
+		var capacity sql.NullInt64
 
 		err := rows.Scan(
 			&resource.ID,
 			&resource.Name,
 			&resource.Type,
 			&resource.ReservationMode,
+			&capacity,
 			&resource.IsActive,
 		)
 
 		if err != nil {
 			return nil, err
+		}
+
+		if capacity.Valid {
+			value := int(capacity.Int64)
+			resource.Capacity = &value
 		}
 
 		if resource.IsActive {

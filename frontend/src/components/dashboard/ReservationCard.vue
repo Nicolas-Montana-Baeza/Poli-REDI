@@ -13,22 +13,22 @@ import {
 const props = defineProps({
   title: {
     type: String,
-    default: 'Cancha 1'
+    default: 'Reserva'
   },
 
   sport: {
     type: String,
-    default: 'Fútbol'
+    default: 'Actividad'
   },
 
   date: {
     type: String,
-    default: 'Lunes 12 Mayo'
+    default: ''
   },
 
   time: {
     type: String,
-    default: '18:00 - 19:00'
+    default: ''
   },
 
   status: {
@@ -38,17 +38,28 @@ const props = defineProps({
 
   participants: {
     type: Number,
-    default: 7
+    default: null
   },
 
   maxParticipants: {
     type: Number,
-    default: 10
+    default: null
   }
 })
 
 const progress = computed(() => {
+  if (!props.participants || !props.maxParticipants) {
+    return 0
+  }
+
   return (props.participants / props.maxParticipants) * 100
+})
+
+const showParticipants = computed(() => {
+  return (
+    props.participants !== null &&
+    props.maxParticipants !== null
+  )
 })
 
 const statusLabel = computed(() => {
@@ -140,7 +151,10 @@ const statusClass = computed(() => {
     </div>
 
     <!-- PARTICIPANTS -->
-    <div class="participants">
+    <div
+      v-if="showParticipants"
+      class="participants"
+    >
 
       <div class="participants-header">
 

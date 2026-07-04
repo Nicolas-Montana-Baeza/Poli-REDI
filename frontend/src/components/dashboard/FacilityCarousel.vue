@@ -32,8 +32,8 @@ const handleSelect = (facility) => {
     >
 
       <div
-        v-for="(facility, index) in facilities"
-        :key="index"
+        v-for="facility in facilities"
+        :key="facility.id"
         class="item"
       >
         <FacilityCard

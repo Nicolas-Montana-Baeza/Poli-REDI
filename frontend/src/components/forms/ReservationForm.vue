@@ -46,9 +46,7 @@ const form = ref({
 
   durationMinutes: 60,
 
-  activityId: null,
-
-  participants: 10
+  activityId: null
 })
 
 const getDefaultActivityId = () => {
@@ -248,21 +246,6 @@ const handleClose = () => {
             </option>
 
           </select>
-
-        </div>
-
-        <!-- PARTICIPANTS -->
-        <div class="field">
-
-          <label>
-            Participantes estimados
-          </label>
-
-          <input
-            v-model="form.participants"
-            type="number"
-            min="1"
-          />
 
         </div>
 

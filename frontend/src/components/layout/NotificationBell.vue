@@ -1,5 +1,5 @@
-﻿<script setup>
-import { ref, onMounted, onBeforeUnmount } from 'vue'
+<script setup>
+import { computed, ref, onMounted, onBeforeUnmount } from 'vue'
 
 import {
   Bell,
@@ -8,31 +8,18 @@ import {
   CheckCircle2
 } from 'lucide-vue-next'
 
+import { useNotificationsStore } from '@/stores/notifications'
+
+const notificationsStore = useNotificationsStore()
 const open = ref(false)
 
-const notifications = ref([
-  {
-    id: 1,
-    type: 'reservation',
-    title: 'Reserva confirmada',
-    message: 'Cancha de Fútbol • Hoy 18:00',
-    time: 'Hace 5 min'
-  },
-  {
-    id: 2,
-    type: 'warning',
-    title: 'Faltan participantes',
-    message: 'Tu reserva necesita 3 participantes más',
-    time: 'Hace 20 min'
-  },
-  {
-    id: 3,
-    type: 'success',
-    title: 'Participación confirmada',
-    message: 'Has confirmado asistencia',
-    time: 'Hace 1 hora'
-  }
-])
+const notifications = computed(() => {
+  return notificationsStore.notifications
+})
+
+const unreadCount = computed(() => {
+  return notificationsStore.unreadCount
+})
 
 const toggle = () => {
   open.value = !open.value
@@ -46,10 +33,11 @@ const close = (event) => {
 
 const iconFor = (type) => {
   switch (type) {
-    case 'warning':
+    case 'SYSTEM':
       return AlertTriangle
 
-    case 'success':
+    case 'RESERVATION_CONFIRMED':
+    case 'RESERVATION_CREATED':
       return CheckCircle2
 
     default:
@@ -57,8 +45,22 @@ const iconFor = (type) => {
   }
 }
 
+const formatNotificationTime = (createdAt) => {
+  if (!createdAt) {
+    return ''
+  }
+
+  return new Date(createdAt).toLocaleString('es-CL', {
+    day: '2-digit',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+}
+
 onMounted(() => {
   window.addEventListener('click', close)
+  notificationsStore.fetchNotifications()
 })
 
 onBeforeUnmount(() => {
@@ -82,10 +84,10 @@ onBeforeUnmount(() => {
       <Bell :size="18" />
 
       <span
-        v-if="notifications.length"
+        v-if="unreadCount"
         class="badge"
       >
-        {{ notifications.length }}
+        {{ unreadCount }}
       </span>
 
     </button>
@@ -106,54 +108,74 @@ onBeforeUnmount(() => {
           </h3>
 
           <span>
-            {{ notifications.length }} nuevas
+            {{ unreadCount }} nuevas
           </span>
 
         </div>
 
+        <!-- Loading -->
+        <div
+          v-if="notificationsStore.loading"
+          class="empty"
+        >
+          Cargando notificaciones...
+        </div>
+
+        <!-- Error -->
+        <div
+          v-else-if="notificationsStore.error"
+          class="empty"
+        >
+          {{ notificationsStore.error }}
+        </div>
+
         <!-- Empty -->
         <div
-          v-if="!notifications.length"
+          v-else-if="!notifications.length"
           class="empty"
         >
           No hay notificaciones
         </div>
 
         <!-- Items -->
-        <div
-          v-for="notification in notifications"
-          :key="notification.id"
-          class="notification-item"
-        >
+        <template v-else>
 
-          <!-- Icon -->
-          <div class="icon">
+          <div
+            v-for="notification in notifications"
+            :key="notification.id"
+            class="notification-item"
+          >
 
-            <component
-              :is="iconFor(notification.type)"
-              :size="18"
-            />
+            <!-- Icon -->
+            <div class="icon">
+
+              <component
+                :is="iconFor(notification.type)"
+                :size="18"
+              />
+
+            </div>
+
+            <!-- Content -->
+            <div class="content">
+
+              <strong>
+                {{ notification.title }}
+              </strong>
+
+              <p>
+                {{ notification.message }}
+              </p>
+
+              <span>
+                {{ formatNotificationTime(notification.createdAt) }}
+              </span>
+
+            </div>
 
           </div>
 
-          <!-- Content -->
-          <div class="content">
-
-            <strong>
-              {{ notification.title }}
-            </strong>
-
-            <p>
-              {{ notification.message }}
-            </p>
-
-            <span>
-              {{ notification.time }}
-            </span>
-
-          </div>
-
-        </div>
+        </template>
 
         <!-- Footer -->
         <button

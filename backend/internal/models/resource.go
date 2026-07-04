@@ -5,6 +5,7 @@ type Resource struct {
 	Name            string `json:"name"`
 	Type            string `json:"type"`
 	ReservationMode string `json:"reservationMode"`
+	Capacity        *int   `json:"capacity"`
 	IsActive        bool   `json:"isActive"`
 	Status          string `json:"status"`
 }

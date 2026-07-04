@@ -455,7 +455,7 @@ Estado sugerido: Ready for Codex
 
 ### Contexto
 
-`ResourcesView.vue` muestra `Proximamente...`, pero ya existe endpoint de recursos.
+`ResourcesView.vue` ya lista recursos reales desde `/api/resources`; falta agregar filtros.
 
 ### Objetivo
 
@@ -463,11 +463,17 @@ Mostrar catalogo de recursos deportivos con datos reales.
 
 ### Criterios de aceptacion
 
-- [ ] Lista recursos desde `/api/resources`.
-- [ ] Muestra nombre, tipo, modo de reserva, capacidad y estado.
+- [x] Lista recursos desde `/api/resources`.
+- [x] Muestra nombre, tipo, modo de reserva, capacidad y estado.
 - [ ] Permite filtrar por tipo o sede si los datos estan disponibles.
-- [ ] Tiene estados de carga, error y vacio.
-- [ ] Mantiene estilo visual actual.
+- [x] Tiene estados de carga, error y vacio.
+- [x] Mantiene estilo visual actual.
+
+### Resultado parcial
+
+- `ResourcesView.vue` ya no muestra `Proximamente...`.
+- `GET /api/resources` ahora incluye `capacity` desde Azure SQL.
+- Queda pendiente agregar filtros.
 
 ## UI-002 - Implementar detalle de reserva
 
@@ -515,7 +521,7 @@ Mostrar historial de reservas pasadas, canceladas o rechazadas.
 
 Prioridad: P1
 Labels: `frontend`, `dashboard`, `feature`
-Estado sugerido: Ready for Codex
+Estado sugerido: Done
 
 ### Contexto
 
@@ -527,11 +533,18 @@ Reemplazar datos mock del dashboard por datos reales.
 
 ### Criterios de aceptacion
 
-- [ ] Instalaciones provienen de `/api/resources`.
-- [ ] Proximas reservas provienen del backend.
-- [ ] Se eliminan logs de seleccion.
-- [ ] Se muestran estados de carga/error.
-- [ ] El dashboard no depende de imagenes externas si no son necesarias.
+- [x] Instalaciones provienen de `/api/resources`.
+- [x] Proximas reservas provienen del backend.
+- [x] Se eliminan logs de seleccion.
+- [x] Se muestran estados de carga/error.
+- [x] El dashboard no depende de imagenes externas si no son necesarias.
+
+### Resultado de implementacion
+
+- `DashboardView.vue` ya no tiene arreglos locales de instalaciones ni reservas.
+- `FacilityCarousel.vue` consume recursos reales.
+- `ReservationsPanel.vue` consume reservas recibidas por props.
+- `FacilityCard.vue` usa una imagen generada por CSS cuando el recurso no tiene imagen en base de datos.
 
 ## UI-005 - Implementar Configuracion
 
@@ -707,11 +720,17 @@ Mostrar notificaciones reales al usuario desde Azure SQL.
 
 ### Criterios de aceptacion
 
-- [ ] Endpoint para listar notificaciones del usuario.
+- [x] Endpoint para listar notificaciones del usuario.
 - [ ] Endpoint para marcar como leida.
-- [ ] Campana muestra contador real.
+- [x] Campana muestra contador real.
 - [ ] UI diferencia leidas/no leidas.
-- [ ] Maneja estado vacio.
+- [x] Maneja estado vacio.
+
+### Resultado parcial
+
+- `GET /api/notifications` lista notificaciones del usuario autenticado desde Azure SQL.
+- `NotificationBell.vue` ya no usa notificaciones locales.
+- Queda pendiente marcar como leida y diferenciar visualmente leidas/no leidas.
 
 ---
 
@@ -975,11 +994,16 @@ Revision realizada durante la conexion de actividades reales.
 
 ## Datos que ya pueden reemplazarse por Azure SQL
 
-- `frontend/src/views/DashboardView.vue`: arreglos locales de instalaciones y proximas reservas; relacionado con `UI-004`.
-- `frontend/src/components/dashboard/ReservationsPanel.vue`: reservas locales duplicadas; relacionado con `UI-004` y `RES-006`.
-- `frontend/src/components/layout/NotificationBell.vue`: notificaciones locales; relacionado con `NOTIF-001`.
-- `frontend/src/services/reservations.service.js`: cancelacion ya no envia usuario fijo; falta conectar flujo visual completo, relacionado con `RES-007`.
-- Vistas `ResourcesView.vue`, `ReservationsView.vue`, `ReservationDetailView.vue`, `HistoryView.vue`, `ReportsView.vue`, `AdminView.vue`, `UsersView.vue` y `SettingsView.vue`: pantallas `Proximamente...` que deben conectarse a endpoints reales o nuevas tareas.
+- `frontend/src/components/layout/NotificationBell.vue`: falta marcar notificaciones como leidas; relacionado con `NOTIF-001`.
+- Vistas `ReservationsView.vue`, `ReservationDetailView.vue`, `HistoryView.vue`, `ReportsView.vue`, `AdminView.vue`, `UsersView.vue` y `SettingsView.vue`: pantallas `Proximamente...` que deben conectarse a endpoints reales o nuevas tareas.
+
+## Datos duros resueltos
+
+- `frontend/src/views/DashboardView.vue`: instalaciones y proximas reservas ahora vienen de stores/API.
+- `frontend/src/components/dashboard/ReservationsPanel.vue`: ya no contiene reservas locales.
+- `frontend/src/components/layout/NotificationBell.vue`: ya no contiene notificaciones locales.
+- `frontend/src/components/forms/ReservationForm.vue`: se quito `participants: 10` porque aun no se persiste en base de datos.
+- `frontend/src/views/ResourcesView.vue`: ya carga recursos reales desde Azure SQL.
 
 ## Datos estaticos que pueden mantenerse por ahora
 
