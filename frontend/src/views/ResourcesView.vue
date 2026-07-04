@@ -1,6 +1,7 @@
 <script setup>
 import { onMounted } from 'vue'
 
+import SkeletonLoader from '@/components/ui/SkeletonLoader.vue'
 import { useResourcesStore } from '@/stores/resources'
 
 const resourcesStore = useResourcesStore()
@@ -48,9 +49,12 @@ const modeLabel = (mode) => {
 
     <div
       v-if="resourcesStore.loading"
-      class="state-card"
+      aria-label="Cargando instalaciones"
     >
-      Cargando instalaciones...
+      <SkeletonLoader
+        variant="resources"
+        :items="6"
+      />
     </div>
 
     <div

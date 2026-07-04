@@ -7,6 +7,7 @@ import {
   Timer
 } from 'lucide-vue-next'
 
+import SkeletonLoader from '@/components/ui/SkeletonLoader.vue'
 import { useReservationsStore } from '@/stores/reservations'
 import {
   formatReservationDate,
@@ -98,9 +99,12 @@ const statusClass = (status) => {
 
     <div
       v-if="reservationsStore.myLoading"
-      class="state-card"
+      aria-label="Cargando historial"
     >
-      Cargando historial...
+      <SkeletonLoader
+        variant="reservations"
+        :items="4"
+      />
     </div>
 
     <div

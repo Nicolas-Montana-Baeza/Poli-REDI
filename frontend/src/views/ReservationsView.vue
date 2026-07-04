@@ -8,6 +8,7 @@ import {
   XCircle
 } from 'lucide-vue-next'
 
+import SkeletonLoader from '@/components/ui/SkeletonLoader.vue'
 import { useReservationsStore } from '@/stores/reservations'
 import {
   formatReservationDate,
@@ -129,9 +130,12 @@ const cancelReservation = async (reservation) => {
 
     <div
       v-if="reservationsStore.myLoading"
-      class="state-card"
+      aria-label="Cargando reservas"
     >
-      Cargando reservas...
+      <SkeletonLoader
+        variant="reservations"
+        :items="4"
+      />
     </div>
 
     <div

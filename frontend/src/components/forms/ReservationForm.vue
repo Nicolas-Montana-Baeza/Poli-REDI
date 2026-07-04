@@ -28,6 +28,11 @@ const props = defineProps({
   errorMessage: {
     type: String,
     default: ''
+  },
+
+  submitting: {
+    type: Boolean,
+    default: false
   }
 })
 
@@ -46,12 +51,25 @@ const form = ref({
 
   durationMinutes: 60,
 
+  participantsCount: 1,
+
   activityId: null
 })
+
+const fieldErrors = ref({})
 
 const getDefaultActivityId = () => {
   return props.activities[0]?.id || null
 }
+
+watch(
+  () => props.visible,
+  (visible) => {
+    if (visible) {
+      fieldErrors.value = {}
+    }
+  }
+)
 
 /* AUTOFILL FROM SLOT */
 watch(
@@ -70,6 +88,8 @@ watch(
       new Date().toISOString().slice(0, 10)
 
     form.value.durationMinutes = 60
+
+    form.value.participantsCount = 1
 
     form.value.activityId =
       form.value.activityId ||
@@ -96,6 +116,7 @@ watch(
 /* RESOURCE */
 const handleResourceSelect = (resource) => {
   form.value.resource = resource
+  fieldErrors.value.resource = ''
 }
 
 /* DATETIME */
@@ -108,19 +129,47 @@ const handleDateTimeUpdate = (data) => {
 
   form.value.durationMinutes =
     data.durationMinutes
+
+  fieldErrors.value.date = ''
+  fieldErrors.value.hour = ''
+  fieldErrors.value.durationMinutes = ''
+}
+
+const handleParticipantsUpdate = () => {
+  fieldErrors.value.participantsCount = ''
+}
+
+const validateForm = () => {
+  const errors = {}
+
+  if (!form.value.resource?.id) {
+    errors.resource = 'Selecciona una instalación.'
+  }
+
+  if (!form.value.date) {
+    errors.date = 'Selecciona una fecha.'
+  }
+
+  if (!form.value.hour) {
+    errors.hour = 'Selecciona una hora de inicio.'
+  }
+
+  if (Number(form.value.durationMinutes) <= 0) {
+    errors.durationMinutes = 'La duración debe ser mayor a 0.'
+  }
+
+  if (Number(form.value.participantsCount) <= 0) {
+    errors.participantsCount = 'La cantidad de participantes debe ser mayor a 0.'
+  }
+
+  fieldErrors.value = errors
+
+  return Object.keys(errors).length === 0
 }
 
 /* SUBMIT */
 const handleSubmit = () => {
-  if (!form.value.resource) {
-    return
-  }
-
-  if (!form.value.date) {
-    return
-  }
-
-  if (!form.value.hour) {
+  if (props.submitting || !validateForm()) {
     return
   }
 
@@ -131,6 +180,10 @@ const handleSubmit = () => {
 
 /* CLOSE */
 const handleClose = () => {
+  if (props.submitting) {
+    return
+  }
+
   emit('close')
 }
 </script>
@@ -163,6 +216,7 @@ const handleClose = () => {
 
           <button
             class="close-btn"
+            :disabled="submitting"
             @click="handleClose"
           >
             ✕
@@ -209,6 +263,13 @@ const handleClose = () => {
           @select="handleResourceSelect"
         />
 
+        <p
+          v-if="fieldErrors.resource"
+          class="field-error"
+        >
+          {{ fieldErrors.resource }}
+        </p>
+
         <!-- DATE TIME -->
         <DateTimePicker
           :initial-date="form.date"
@@ -216,6 +277,23 @@ const handleClose = () => {
           :initial-duration="form.durationMinutes"
           @update="handleDateTimeUpdate"
         />
+
+        <div
+          v-if="fieldErrors.date || fieldErrors.hour || fieldErrors.durationMinutes"
+          class="field-errors"
+        >
+          <p v-if="fieldErrors.date">
+            {{ fieldErrors.date }}
+          </p>
+
+          <p v-if="fieldErrors.hour">
+            {{ fieldErrors.hour }}
+          </p>
+
+          <p v-if="fieldErrors.durationMinutes">
+            {{ fieldErrors.durationMinutes }}
+          </p>
+        </div>
 
         <!-- ACTIVITY -->
         <div class="field">
@@ -249,6 +327,33 @@ const handleClose = () => {
 
         </div>
 
+        <!-- PARTICIPANTS -->
+        <div class="field">
+
+          <label for="participantsCount">
+            Participantes
+          </label>
+
+          <input
+            id="participantsCount"
+            v-model.number="form.participantsCount"
+            type="number"
+            min="1"
+            step="1"
+            inputmode="numeric"
+            :disabled="submitting"
+            @input="handleParticipantsUpdate"
+          />
+
+          <p
+            v-if="fieldErrors.participantsCount"
+            class="field-error"
+          >
+            {{ fieldErrors.participantsCount }}
+          </p>
+
+        </div>
+
         <!-- FORM ERROR -->
         <div
           v-if="errorMessage"
@@ -262,6 +367,7 @@ const handleClose = () => {
 
           <button
             class="cancel-btn"
+            :disabled="submitting"
             @click="handleClose"
           >
             Cancelar
@@ -269,9 +375,10 @@ const handleClose = () => {
 
           <button
             class="submit-btn"
+            :disabled="submitting"
             @click="handleSubmit"
           >
-            Confirmar Reserva
+            {{ submitting ? 'Creando reserva...' : 'Confirmar Reserva' }}
           </button>
 
         </div>
@@ -375,6 +482,12 @@ const handleClose = () => {
   background: #e2e8f0;
 }
 
+.close-btn:disabled {
+  cursor: not-allowed;
+
+  opacity: 0.55;
+}
+
 /* SUMMARY */
 .summary {
   display: grid;
@@ -466,6 +579,32 @@ const handleClose = () => {
   background: #f8fafc;
 }
 
+/* FIELD ERRORS */
+.field-error,
+.field-errors p {
+  margin: 0;
+
+  color: #b91c1c;
+
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.field-errors {
+  display: flex;
+  flex-direction: column;
+
+  gap: 6px;
+
+  padding: 12px 14px;
+
+  border-radius: 14px;
+
+  background: #fef2f2;
+
+  border: 1px solid #fecaca;
+}
+
 /* ERROR */
 .form-error {
   padding: 14px 16px;
@@ -509,6 +648,12 @@ const handleClose = () => {
   transition: 0.2s;
 }
 
+.actions button:disabled {
+  cursor: not-allowed;
+
+  opacity: 0.65;
+}
+
 .cancel-btn {
   background: #f1f5f9;
 
@@ -534,6 +679,12 @@ const handleClose = () => {
 
   box-shadow:
     0 10px 20px rgba(37,99,235,0.25);
+}
+
+.submit-btn:disabled:hover {
+  transform: none;
+
+  box-shadow: none;
 }
 
 /* MOBILE */

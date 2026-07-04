@@ -6,6 +6,7 @@ import CalendarMini from './CalendarMini.vue'
 import ScheduleGrid from './ScheduleGrid.vue'
 import ReservationDetailModal from './ReservationDetailModal.vue'
 import ReservationForm from '../forms/ReservationForm.vue'
+import SkeletonLoader from '@/components/ui/SkeletonLoader.vue'
 
 import { useResourcesStore } from '@/stores/resources'
 import { useReservationsStore } from '@/stores/reservations'
@@ -80,6 +81,7 @@ const canCancelSelectedReservation = computed(() => {
 
 /* MODAL */
 const showReservationForm = ref(false)
+const isCreatingReservation = ref(false)
 
 /* LOAD DATA */
 onMounted(async () => {
@@ -141,6 +143,12 @@ const closeReservationDetail = () => {
 
 /* SUBMIT */
 const submitReservation = async (reservation) => {
+  if (isCreatingReservation.value) {
+    return
+  }
+
+  isCreatingReservation.value = true
+
   try {
     reservationsStore.clearActionSuccess?.()
 
@@ -207,6 +215,8 @@ const submitReservation = async (reservation) => {
     )
   } catch {
     // El store mantiene el error visible dentro del formulario.
+  } finally {
+    isCreatingReservation.value = false
   }
 }
 
@@ -325,9 +335,9 @@ const goToday = () => {
     <!-- LOADING -->
     <div
       v-if="isLoadingAvailability"
-      class="state-card"
+      aria-label="Cargando disponibilidad"
     >
-      Cargando disponibilidad...
+      <SkeletonLoader variant="availability" />
     </div>
 
     <template v-else>
@@ -429,6 +439,7 @@ const goToday = () => {
       :resources="resourcesStore.resources"
       :activities="activitiesStore.activities"
       :error-message="reservationsStore.actionError"
+      :submitting="isCreatingReservation"
       @close="closeReservationForm"
       @submit="submitReservation"
     />

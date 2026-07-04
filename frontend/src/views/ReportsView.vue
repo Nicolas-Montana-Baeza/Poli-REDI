@@ -7,6 +7,7 @@ import {
   LayoutGrid
 } from 'lucide-vue-next'
 
+import SkeletonLoader from '@/components/ui/SkeletonLoader.vue'
 import { useResourcesStore } from '@/stores/resources'
 import { useReservationsStore } from '@/stores/reservations'
 import { parseReservationDateTime } from '@/utils/reservationTime'
@@ -148,9 +149,12 @@ const stats = computed(() => [
 
     <div
       v-if="resourcesStore.loading || reservationsStore.loading"
-      class="state-card"
+      aria-label="Cargando reportes"
     >
-      Cargando reportes...
+      <SkeletonLoader
+        variant="resources"
+        :items="6"
+      />
     </div>
 
     <section

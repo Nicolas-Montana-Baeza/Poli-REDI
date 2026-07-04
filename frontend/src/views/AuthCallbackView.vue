@@ -15,8 +15,7 @@ onMounted(async () => {
     sessionStorage.removeItem('redirectAfterLogin')
 
     router.replace(redirectPath)
-  } catch (error) {
-    console.error('Error en callback:', error)
+  } catch {
     router.replace('/')
   }
 })

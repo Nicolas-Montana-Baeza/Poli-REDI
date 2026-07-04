@@ -7,6 +7,7 @@ import {
   Users
 } from 'lucide-vue-next'
 
+import SkeletonLoader from '@/components/ui/SkeletonLoader.vue'
 import { useUsersStore } from '@/stores/userStore'
 
 const usersStore = useUsersStore()
@@ -73,9 +74,12 @@ const initials = (user) => {
 
     <div
       v-if="usersStore.loading"
-      class="state-card"
+      aria-label="Cargando usuarios"
     >
-      Cargando usuarios...
+      <SkeletonLoader
+        variant="reservations"
+        :items="5"
+      />
     </div>
 
     <div

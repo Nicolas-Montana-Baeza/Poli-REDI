@@ -4,6 +4,7 @@ import { computed, onMounted } from 'vue'
 import QuickActions from '../components/dashboard/QuickActions.vue'
 import FacilityCarousel from '../components/dashboard/FacilityCarousel.vue'
 import ReservationsPanel from '../components/dashboard/ReservationsPanel.vue'
+import SkeletonLoader from '@/components/ui/SkeletonLoader.vue'
 
 import { useResourcesStore } from '@/stores/resources'
 import { useReservationsStore } from '@/stores/reservations'
@@ -137,9 +138,12 @@ const reservations = computed(() => {
 
       <div
         v-if="resourcesStore.loading"
-        class="state-card"
+        aria-label="Cargando instalaciones"
       >
-        Cargando instalaciones...
+        <SkeletonLoader
+          variant="dashboard"
+          :items="3"
+        />
       </div>
 
       <div
@@ -178,9 +182,12 @@ const reservations = computed(() => {
 
       <div
         v-if="reservationsStore.myLoading"
-        class="state-card"
+        aria-label="Cargando reservas"
       >
-        Cargando reservas...
+        <SkeletonLoader
+          variant="reservations"
+          :items="2"
+        />
       </div>
 
       <div

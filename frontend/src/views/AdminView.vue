@@ -9,6 +9,7 @@ import {
   Users
 } from 'lucide-vue-next'
 
+import SkeletonLoader from '@/components/ui/SkeletonLoader.vue'
 import { useResourcesStore } from '@/stores/resources'
 import { useReservationsStore } from '@/stores/reservations'
 import {
@@ -165,9 +166,12 @@ const statusLabel = (status) => {
 
     <div
       v-if="resourcesStore.loading || reservationsStore.loading"
-      class="state-card"
+      aria-label="Cargando panel administrativo"
     >
-      Cargando panel administrativo...
+      <SkeletonLoader
+        variant="resources"
+        :items="5"
+      />
     </div>
 
     <section

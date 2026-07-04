@@ -8,6 +8,7 @@ import {
   UserRound
 } from 'lucide-vue-next'
 
+import SkeletonLoader from '@/components/ui/SkeletonLoader.vue'
 import { useAuthStore } from '@/stores/auth'
 
 const authStore = useAuthStore()
@@ -84,9 +85,12 @@ onMounted(() => {
 
     <div
       v-if="authStore.loading"
-      class="state-card"
+      aria-label="Cargando usuario"
     >
-      Cargando usuario...
+      <SkeletonLoader
+        variant="resources"
+        :items="3"
+      />
     </div>
 
     <div

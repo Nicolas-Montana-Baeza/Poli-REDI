@@ -8,6 +8,7 @@ import {
   CheckCircle2
 } from 'lucide-vue-next'
 
+import SkeletonLoader from '@/components/ui/SkeletonLoader.vue'
 import { useNotificationsStore } from '@/stores/notifications'
 
 const notificationsStore = useNotificationsStore()
@@ -116,9 +117,13 @@ onBeforeUnmount(() => {
         <!-- Loading -->
         <div
           v-if="notificationsStore.loading"
-          class="empty"
+          class="notification-skeleton"
+          aria-label="Cargando notificaciones"
         >
-          Cargando notificaciones...
+          <SkeletonLoader
+            variant="card"
+            :items="2"
+          />
         </div>
 
         <!-- Error -->
@@ -364,6 +369,10 @@ onBeforeUnmount(() => {
   text-align: center;
 
   color: #94a3b8;
+}
+
+.notification-skeleton {
+  padding: 14px;
 }
 
 /* Footer */

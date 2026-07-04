@@ -11,6 +11,7 @@ import {
   XCircle
 } from 'lucide-vue-next'
 
+import SkeletonLoader from '@/components/ui/SkeletonLoader.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useReservationsStore } from '@/stores/reservations'
 import {
@@ -135,9 +136,12 @@ const goBack = () => {
 
     <div
       v-if="reservationsStore.myLoading"
-      class="state-card"
+      aria-label="Cargando reserva"
     >
-      Cargando reserva...
+      <SkeletonLoader
+        variant="resources"
+        :items="4"
+      />
     </div>
 
     <div
