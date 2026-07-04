@@ -20,6 +20,11 @@ const props = defineProps({
     default: () => []
   },
 
+  activities: {
+    type: Array,
+    default: () => []
+  },
+
   errorMessage: {
     type: String,
     default: ''
@@ -41,10 +46,14 @@ const form = ref({
 
   durationMinutes: 60,
 
-  sport: '',
+  activityId: null,
 
   participants: 10
 })
+
+const getDefaultActivityId = () => {
+  return props.activities[0]?.id || null
+}
 
 /* AUTOFILL FROM SLOT */
 watch(
@@ -63,6 +72,23 @@ watch(
       new Date().toISOString().slice(0, 10)
 
     form.value.durationMinutes = 60
+
+    form.value.activityId =
+      form.value.activityId ||
+      getDefaultActivityId()
+  },
+  {
+    immediate: true
+  }
+)
+
+watch(
+  () => props.activities,
+  () => {
+    if (!props.visible || form.value.activityId) return
+
+    form.value.activityId =
+      getDefaultActivityId()
   },
   {
     immediate: true
@@ -193,18 +219,35 @@ const handleClose = () => {
           @update="handleDateTimeUpdate"
         />
 
-        <!-- SPORT -->
+        <!-- ACTIVITY -->
         <div class="field">
 
           <label>
-            Actividad / deporte
+            Actividad
           </label>
 
-          <input
-            v-model="form.sport"
-            type="text"
-            placeholder="Ej: Fútbol, vóleibol, entrenamiento"
-          />
+          <select
+            v-model.number="form.activityId"
+            :disabled="!activities.length"
+          >
+
+            <option
+              v-if="!activities.length"
+              :value="null"
+            >
+              No hay actividades disponibles
+            </option>
+
+            <option
+              v-for="activity in activities"
+              :key="activity.id"
+              :value="activity.id"
+              :title="activity.description"
+            >
+              {{ activity.name }}
+            </option>
+
+          </select>
 
         </div>
 
@@ -405,7 +448,8 @@ const handleClose = () => {
   color: #334155;
 }
 
-.field input {
+.field input,
+.field select {
   width: 100%;
 
   height: 50px;
@@ -425,11 +469,18 @@ const handleClose = () => {
   transition: 0.2s;
 }
 
-.field input:focus {
+.field input:focus,
+.field select:focus {
   border-color: #2563eb;
 
   box-shadow:
     0 0 0 4px rgba(37,99,235,0.08);
+}
+
+.field select:disabled {
+  color: #94a3b8;
+
+  background: #f8fafc;
 }
 
 /* ERROR */

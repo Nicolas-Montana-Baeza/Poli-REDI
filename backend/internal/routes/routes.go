@@ -17,6 +17,7 @@ func RegisterRoutes(app *fiber.App) {
 	protected.Get("/me", handlers.GetMe)
 
 	protected.Get("/resources", handlers.GetResources)
+	protected.Get("/activities", handlers.GetActivities)
 
 	protected.Get("/reservations", handlers.GetReservations)
 	protected.Post("/reservations", handlers.CreateReservation)

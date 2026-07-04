@@ -11,7 +11,9 @@ export const useReservationsStore =
 
       loadingError: null,
 
-      actionError: null
+      actionError: null,
+
+      actionSuccess: null
     }),
 
     actions: {
@@ -25,11 +27,6 @@ export const useReservationsStore =
         } catch (error) {
           this.loadingError =
             'No se pudieron cargar las reservas'
-
-          console.error(
-            'Error cargando reservas:',
-            error
-          )
         } finally {
           this.loading = false
         }
@@ -38,6 +35,7 @@ export const useReservationsStore =
       async createReservation(reservation) {
         this.loading = true
         this.actionError = null
+        this.actionSuccess = null
 
         try {
           const createdReservation =
@@ -57,11 +55,6 @@ export const useReservationsStore =
 
           this.actionError = message
 
-          console.error(
-            'Error creando reserva:',
-            error
-          )
-
           throw new Error(message)
         } finally {
           this.loading = false
@@ -72,45 +65,52 @@ export const useReservationsStore =
         this.actionError = null
       },
 
+      clearActionSuccess() {
+        this.actionSuccess = null
+      },
+
       setActionError(message) {
         this.actionError = message
+        this.actionSuccess = null
+      },
+
+      setActionSuccess(message) {
+        this.actionError = null
+        this.actionSuccess = message
       },
 
       clearLoadingError() {
         this.loadingError = null
       },
+
       async cancelReservation(id) {
-  this.loading = true
-  this.actionError = null
+        this.loading = true
+        this.actionError = null
+        this.actionSuccess = null
 
-  try {
-    const cancelledReservation =
-      await reservationsService.cancel(id)
+        try {
+          const cancelledReservation =
+            await reservationsService.cancel(id)
 
-    this.reservations =
-      this.reservations.map((reservation) =>
-        reservation.id === id
-          ? cancelledReservation
-          : reservation
-      )
+          this.reservations =
+            this.reservations.map((reservation) =>
+              reservation.id === id
+                ? cancelledReservation
+                : reservation
+            )
 
-    return cancelledReservation
-  } catch (error) {
-    const message =
-      error.response?.data?.error ||
-      'No se pudo cancelar la reserva'
+          return cancelledReservation
+        } catch (error) {
+          const message =
+            error.response?.data?.error ||
+            'No se pudo cancelar la reserva'
 
-    this.actionError = message
+          this.actionError = message
 
-    console.error(
-      'Error cancelando reserva:',
-      error
-    )
-
-    throw new Error(message)
-  } finally {
-    this.loading = false
-  }
-}
+          throw new Error(message)
+        } finally {
+          this.loading = false
+        }
+      }
     }
   })

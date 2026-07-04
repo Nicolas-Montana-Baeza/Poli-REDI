@@ -73,6 +73,8 @@ func GetAllReservations() ([]models.Reservation, error) {
 }
 
 func AddReservation(reservation models.Reservation) (models.Reservation, error) {
+	var activityName string
+
 	err := database.DB.QueryRowContext(
 		context.Background(),
 		`
@@ -98,10 +100,13 @@ func AddReservation(reservation models.Reservation) (models.Reservation, error) 
 			r.duration_minutes,
 			r.status,
 			r.created_at,
-			r.updated_at
+			r.updated_at,
+			COALESCE(a.name, 'Reserva') AS activity_name
 		FROM dbo.reservations r
 		INNER JOIN @created c
-			ON c.id = r.id;
+			ON c.id = r.id
+		LEFT JOIN dbo.activities a
+			ON a.id = r.activity_id;
 		`,
 		reservation.UserID,
 		reservation.ResourceID,
@@ -119,6 +124,7 @@ func AddReservation(reservation models.Reservation) (models.Reservation, error) 
 		&reservation.Status,
 		&reservation.CreatedAt,
 		&reservation.UpdatedAt,
+		&activityName,
 	)
 
 	if err != nil {
@@ -126,7 +132,7 @@ func AddReservation(reservation models.Reservation) (models.Reservation, error) 
 	}
 
 	reservation.Hour = reservation.StartTime.Format("15:04")
-	reservation.Title = "Reserva"
+	reservation.Title = activityName
 	reservation.Type = mapReservationType(reservation.Status)
 
 	return reservation, nil

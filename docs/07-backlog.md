@@ -240,11 +240,11 @@ Mostrar una pantalla o mensaje claro cuando un usuario bloqueado intenta usar el
 
 Prioridad: P1
 Labels: `frontend`, `backend`, `reservas`
-Estado sugerido: Ready for Codex
+Estado sugerido: Done
 
 ### Contexto
 
-El formulario permite escribir una actividad/deporte, pero el payload usa `activityId: 1` fijo.
+El formulario permitia escribir una actividad/deporte, pero el payload usaba un valor fijo o no asociaba la actividad de forma real.
 
 ### Objetivo
 
@@ -252,11 +252,18 @@ Permitir seleccionar o resolver la actividad real al crear una reserva.
 
 ### Criterios de aceptacion
 
-- [ ] El backend expone listado de actividades activas o el frontend usa una fuente real.
-- [ ] El formulario permite seleccionar actividad.
-- [ ] No se usa `activityId` fijo.
-- [ ] La reserva creada queda asociada a la actividad correcta.
-- [ ] Se maneja estado sin actividades.
+- [x] El backend expone listado de actividades activas o el frontend usa una fuente real.
+- [x] El formulario permite seleccionar actividad.
+- [x] No se usa `activityId` fijo.
+- [x] La reserva creada queda asociada a la actividad correcta.
+- [x] Se maneja estado sin actividades.
+
+### Resultado de implementacion
+
+- `GET /api/activities` entrega actividades activas desde Azure SQL.
+- `ReservationForm.vue` muestra un selector de actividades reales.
+- `AvailabilitySection.vue` carga actividades junto con recursos/reservas y envia `activityId` seleccionado.
+- Si no existen actividades, el formulario muestra estado deshabilitado y la reserva puede quedar sin actividad asociada.
 
 ### Archivos relevantes
 
@@ -270,11 +277,11 @@ Permitir seleccionar o resolver la actividad real al crear una reserva.
 
 Prioridad: P1
 Labels: `backend`, `database`, `reservas`, `feature`
-Estado sugerido: Ready for Codex
+Estado sugerido: Done
 
 ### Contexto
 
-El modelo Azure SQL incluye `activities`, pero el backend aun no expone rutas para consultarlas.
+El modelo Azure SQL incluye `activities`; el backend necesitaba exponer una ruta para consultarlas desde el formulario de reserva.
 
 ### Objetivo
 
@@ -282,17 +289,23 @@ Crear endpoint protegido para listar actividades activas.
 
 ### Criterios de aceptacion
 
-- [ ] Existe `GET /api/activities`.
-- [ ] Retorna actividades activas ordenadas por nombre.
-- [ ] Maneja errores de base de datos.
-- [ ] Usa estructura handler/service/repository coherente con el backend actual.
-- [ ] `go test ./...` pasa.
+- [x] Existe `GET /api/activities`.
+- [x] Retorna actividades activas ordenadas por nombre.
+- [x] Maneja errores de base de datos.
+- [x] Usa estructura handler/repository coherente con el backend actual.
+- [x] `go test ./...` pasa.
+
+### Resultado de implementacion
+
+- Se agregaron `activity.go`, `activities_repository.go` y `activities_handlers.go`.
+- La ruta quedo protegida igual que recursos y reservas.
+- Las reservas creadas con actividad devuelven el nombre de actividad como titulo.
 
 ## RES-003 - Mostrar reservas solo del dia seleccionado en disponibilidad
 
 Prioridad: P1
 Labels: `frontend`, `disponibilidad`, `reservas`
-Estado sugerido: Ready for Codex
+Estado sugerido: Done
 
 ### Contexto
 
@@ -304,11 +317,18 @@ Asegurar que la disponibilidad muestre solo reservas, bloqueos y actividades del
 
 ### Criterios de aceptacion
 
-- [ ] Al cambiar fecha se actualiza la grilla correctamente.
-- [ ] Reservas de otros dias no aparecen en la fecha actual.
-- [ ] Se consideran hora de inicio y duracion.
-- [ ] Se documenta criterio de zona horaria.
-- [ ] `npm run build` pasa.
+- [x] Al cambiar fecha se actualiza la grilla correctamente.
+- [x] Reservas de otros dias no aparecen en la fecha actual.
+- [x] Se consideran hora de inicio y duracion.
+- [x] Se documenta criterio de zona horaria.
+- [x] `npm run build` pasa.
+
+### Resultado de implementacion
+
+- `ScheduleGrid.vue` filtra reservas por la fecha seleccionada.
+- `ReservationBlock.vue`, `ResourceTimeline.vue` y `ReservationDetailModal.vue` usan un helper comun para fecha/hora.
+- Las horas de reserva se interpretan como horario local de agenda para evitar desplazamientos por UTC al leer `DATETIME2` desde Azure SQL.
+- La vista muestra el bloque reservado despues de crear una reserva y mantiene la validacion de solapamiento desde la base de datos.
 
 ### Archivos relevantes
 
@@ -930,6 +950,27 @@ Estado sugerido: Backlog
 - [ ] Logs no exponen secretos.
 - [ ] Variables de Azure SQL definidas en entorno.
 - [ ] Health check disponible.
+
+---
+
+# Inventario actual de datos duros detectados
+
+Revision realizada durante la conexion de actividades reales.
+
+## Datos que ya pueden reemplazarse por Azure SQL
+
+- `frontend/src/views/DashboardView.vue`: arreglos locales de instalaciones y proximas reservas; relacionado con `UI-004`.
+- `frontend/src/components/dashboard/ReservationsPanel.vue`: reservas locales duplicadas; relacionado con `UI-004` y `RES-006`.
+- `frontend/src/components/layout/NotificationBell.vue`: notificaciones locales; relacionado con `NOTIF-001`.
+- `frontend/src/services/reservations.service.js`: `requestedByUserId: 1` fijo en cancelacion; relacionado con `API-003` y `RES-007`.
+- Vistas `ResourcesView.vue`, `ReservationsView.vue`, `ReservationDetailView.vue`, `HistoryView.vue`, `ReportsView.vue`, `AdminView.vue`, `UsersView.vue` y `SettingsView.vue`: pantallas `Proximamente...` que deben conectarse a endpoints reales o nuevas tareas.
+
+## Datos estaticos que pueden mantenerse por ahora
+
+- `frontend/src/components/layout/Sidebar.vue`: menu de navegacion.
+- `frontend/src/components/dashboard/QuickActions.vue`: accesos rapidos de navegacion.
+- `frontend/src/components/availability/CalendarMini.vue`: nombres de meses y dias.
+- `frontend/src/components/forms/DateTimePicker.vue`: opciones de duracion; podrian pasar a configuracion en una tarea futura, pero no bloquean el MVP.
 
 ---
 

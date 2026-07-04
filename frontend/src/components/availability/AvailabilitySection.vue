@@ -9,10 +9,12 @@ import ReservationForm from '../forms/ReservationForm.vue'
 import { useResourcesStore } from '@/stores/resources'
 import { useReservationsStore } from '@/stores/reservations'
 import { useAuthStore } from '@/stores/auth'
+import { useActivitiesStore } from '@/stores/activities'
 
 const resourcesStore = useResourcesStore()
 const reservationsStore = useReservationsStore()
 const authStore = useAuthStore()
+const activitiesStore = useActivitiesStore()
 
 /* DATE */
 const selectedDate = ref(
@@ -40,13 +42,15 @@ onMounted(async () => {
   await Promise.all([
     authStore.loadAuthUser(),
     resourcesStore.fetchResources(),
-    reservationsStore.fetchReservations()
+    reservationsStore.fetchReservations(),
+    activitiesStore.fetchActivities()
   ])
 })
 
 /* SLOT SELECT */
 const handleSlotSelected = (slot) => {
   reservationsStore.clearActionError?.()
+  reservationsStore.clearActionSuccess?.()
 
   selectedSlot.value = {
     resource: slot.resource,
@@ -68,6 +72,8 @@ const closeReservationForm = () => {
 /* SUBMIT */
 const submitReservation = async (reservation) => {
   try {
+    reservationsStore.clearActionSuccess?.()
+
     if (!authStore.user) {
       await authStore.loadAuthUser()
     }
@@ -94,6 +100,13 @@ const submitReservation = async (reservation) => {
         Number(reservation.durationMinutes)
     }
 
+    const activityId =
+      Number(reservation.activityId)
+
+    if (activityId > 0) {
+      payload.activityId = activityId
+    }
+
     await reservationsStore.createReservation(payload)
 
     showReservationForm.value = false
@@ -102,11 +115,12 @@ const submitReservation = async (reservation) => {
     reservationsStore.clearActionError?.()
 
     await reservationsStore.fetchReservations()
-  } catch (error) {
-    console.warn(
-      'No se pudo crear la reserva:',
-      error.message
+
+    reservationsStore.setActionSuccess(
+      'Reserva creada correctamente'
     )
+  } catch {
+    // El store mantiene el error visible dentro del formulario.
   }
 }
 
@@ -127,6 +141,7 @@ const handleDateSelect = (date) => {
     `${date.year}-${month}-${day}`
 
   reservationsStore.clearActionError?.()
+  reservationsStore.clearActionSuccess?.()
 }
 
 /* TOOLBAR */
@@ -140,6 +155,7 @@ const previousDay = () => {
     date.toISOString().slice(0, 10)
 
   reservationsStore.clearActionError?.()
+  reservationsStore.clearActionSuccess?.()
 }
 
 const nextDay = () => {
@@ -152,6 +168,7 @@ const nextDay = () => {
     date.toISOString().slice(0, 10)
 
   reservationsStore.clearActionError?.()
+  reservationsStore.clearActionSuccess?.()
 }
 
 const goToday = () => {
@@ -159,6 +176,7 @@ const goToday = () => {
     new Date().toISOString().slice(0, 10)
 
   reservationsStore.clearActionError?.()
+  reservationsStore.clearActionSuccess?.()
 }
 </script>
 
@@ -184,7 +202,7 @@ const goToday = () => {
 
     <!-- LOADING -->
     <div
-      v-if="authStore.loading || resourcesStore.loading || reservationsStore.loading"
+      v-if="authStore.loading || resourcesStore.loading || reservationsStore.loading || activitiesStore.loading"
       class="state-card"
     >
       Cargando disponibilidad...
@@ -192,16 +210,27 @@ const goToday = () => {
 
     <!-- LOAD ERROR -->
     <div
-      v-else-if="resourcesStore.error || reservationsStore.loadingError"
+      v-else-if="resourcesStore.error || reservationsStore.loadingError || activitiesStore.error"
       class="state-card error"
     >
       {{
         resourcesStore.error ||
-        reservationsStore.loadingError
+        reservationsStore.loadingError ||
+        activitiesStore.error
       }}
     </div>
 
     <template v-else>
+
+      <!-- SUCCESS -->
+      <div
+        v-if="reservationsStore.actionSuccess"
+        class="state-card success"
+        role="status"
+        aria-live="polite"
+      >
+        {{ reservationsStore.actionSuccess }}
+      </div>
 
       <!-- TOOLBAR -->
       <CalendarToolbar
@@ -269,6 +298,7 @@ const goToday = () => {
       :visible="showReservationForm"
       :slot="selectedSlot"
       :resources="resourcesStore.resources"
+      :activities="activitiesStore.activities"
       :error-message="reservationsStore.actionError"
       @close="closeReservationForm"
       @submit="submitReservation"
@@ -324,6 +354,14 @@ const goToday = () => {
   color: #b91c1c;
 
   border-color: #fecaca;
+}
+
+.state-card.success {
+  background: #dcfce7;
+
+  color: #166534;
+
+  border-color: #bbf7d0;
 }
 
 /* CONTENT */
