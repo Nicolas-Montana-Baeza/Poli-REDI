@@ -18,8 +18,6 @@ export async function initializeAuth() {
             return response.account
           }
         } catch (error) {
-          console.warn('MSAL redirect no pudo resolverse:', error)
-
           if (error.errorCode === 'no_token_request_cache_error') {
             clearMsalCache()
             return null
@@ -37,8 +35,7 @@ export async function initializeAuth() {
 
         return null
       })
-      .catch((error) => {
-        console.warn('MSAL no pudo inicializarse:', error)
+      .catch(() => {
         return null
       })
   }

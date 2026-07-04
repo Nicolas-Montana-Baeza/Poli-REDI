@@ -18,8 +18,7 @@ api.interceptors.request.use(async (config) => {
     }
 
     return config
-  } catch (error) {
-    console.error('No se pudo obtener access token:', error)
+  } catch {
     return config
   }
 })

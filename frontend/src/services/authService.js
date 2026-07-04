@@ -2,7 +2,7 @@ import {
   msalInstance,
   loginRequest,
   apiTokenRequest
-} from './msalConfig'
+} from '../auth/msalConfig'
 
 let initPromise = null
 
@@ -19,7 +19,6 @@ export async function initializeAuth() {
           }
         } catch (error) {
           if (error.errorCode === 'no_token_request_cache_error') {
-            console.warn('Redirect anterior inválido. Se limpiará la sesión MSAL.')
             clearMsalCache()
             return null
           }
@@ -36,8 +35,7 @@ export async function initializeAuth() {
 
         return null
       })
-      .catch((error) => {
-        console.error('Error inicializando MSAL:', error)
+      .catch(() => {
         return null
       })
   }

@@ -95,7 +95,7 @@ Verificar que una base nueva pueda crearse desde cero usando los scripts actuale
 
 Prioridad: P1
 Labels: `frontend`, `refactor`
-Estado sugerido: Ready for Codex
+Estado sugerido: Done
 
 ### Contexto
 
@@ -107,10 +107,18 @@ Eliminar logs de depuracion visibles en consola o reemplazarlos por manejo de er
 
 ### Criterios de aceptacion
 
-- [ ] No quedan `console.log` de prueba en vistas y componentes.
-- [ ] Los errores esperados se muestran en UI cuando corresponda.
-- [ ] La consola del navegador no queda saturada durante uso normal.
-- [ ] `npm run build` sigue pasando.
+- [x] No quedan `console.log` de prueba en vistas y componentes.
+- [x] Los errores esperados se muestran en UI cuando corresponda.
+- [x] La consola del navegador no queda saturada durante uso normal.
+- [x] `npm run build` sigue pasando.
+
+### Resultado de implementacion
+
+- Se eliminaron `console.error` y `console.warn` de autenticacion, callback y cliente API.
+- `api.js` deja pasar la solicitud sin token cuando no puede obtenerlo; las rutas protegidas mantienen el error visible desde stores/vistas.
+- `AuthCallbackView.vue` redirige a una pantalla segura si el callback falla, sin saturar la consola.
+- Se limpio el servicio legado `frontend/src/services/authService.js` y se corrigio su import de `msalConfig`.
+- `npm run build` pasa.
 
 ### Archivos relevantes
 
