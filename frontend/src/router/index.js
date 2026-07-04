@@ -56,7 +56,7 @@ const routes = [
   {
     path: '/settings',
     component: SettingsView,
-    meta: { requiresAuth: true, requiresAdmin: true }
+    meta: { requiresAuth: true }
   },
   {
     path: '/reports',

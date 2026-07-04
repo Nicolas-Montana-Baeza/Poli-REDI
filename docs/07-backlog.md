@@ -550,11 +550,11 @@ Reemplazar datos mock del dashboard por datos reales.
 
 Prioridad: P3
 Labels: `frontend`, `settings`, `feature`
-Estado sugerido: Backlog
+Estado sugerido: Done
 
 ### Contexto
 
-`SettingsView.vue` muestra `Proximamente...`.
+`SettingsView.vue` ya muestra una configuracion basica de cuenta con datos reales del usuario autenticado.
 
 ### Objetivo
 
@@ -562,10 +562,16 @@ Crear una vista inicial de configuracion de cuenta/sistema.
 
 ### Criterios de aceptacion
 
-- [ ] Muestra datos del usuario autenticado.
-- [ ] Permite cerrar sesion.
-- [ ] Indica rol actual.
-- [ ] No expone datos sensibles.
+- [x] Muestra datos del usuario autenticado.
+- [x] Permite cerrar sesion.
+- [x] Indica rol actual.
+- [x] No expone datos sensibles.
+
+### Resultado de implementacion
+
+- `SettingsView.vue` muestra nombre, correo, rol y estado desde el store de autenticacion.
+- El menu de usuario navega a `/settings`.
+- `/settings` queda disponible para cualquier usuario autenticado.
 
 ---
 
@@ -995,12 +1001,13 @@ Revision realizada durante la conexion de actividades reales.
 ## Datos que ya pueden reemplazarse por Azure SQL
 
 - `frontend/src/components/layout/NotificationBell.vue`: falta marcar notificaciones como leidas; relacionado con `NOTIF-001`.
-- Vistas `ReservationsView.vue`, `ReservationDetailView.vue`, `HistoryView.vue`, `ReportsView.vue`, `AdminView.vue`, `UsersView.vue` y `SettingsView.vue`: pantallas `Proximamente...` que deben conectarse a endpoints reales o nuevas tareas.
+- Vistas `ReservationsView.vue`, `ReservationDetailView.vue`, `HistoryView.vue`, `ReportsView.vue`, `AdminView.vue` y `UsersView.vue`: pantallas `Proximamente...` que deben conectarse a endpoints reales o nuevas tareas.
 
 ## Datos duros resueltos
 
 - `frontend/src/components/layout/HeaderBar.vue`: el saludo usa el nombre del usuario autenticado.
 - `frontend/src/components/layout/UserMenu.vue`: nombre, correo, rol y avatar iniciales vienen del usuario autenticado o de la cuenta Microsoft.
+- `frontend/src/views/SettingsView.vue`: muestra datos reales de la cuenta autenticada.
 - `frontend/src/views/DashboardView.vue`: instalaciones y proximas reservas ahora vienen de stores/API.
 - `frontend/src/components/dashboard/ReservationsPanel.vue`: ya no contiene reservas locales.
 - `frontend/src/components/layout/NotificationBell.vue`: ya no contiene notificaciones locales.

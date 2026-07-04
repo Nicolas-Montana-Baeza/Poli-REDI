@@ -14,6 +14,14 @@ func GetReservations() ([]models.Reservation, error) {
 	return repositories.GetAllReservations()
 }
 
+func GetMyReservations(userID int) ([]models.Reservation, error) {
+	if userID <= 0 {
+		return nil, errors.New("usuario autenticado es obligatorio")
+	}
+
+	return repositories.GetReservationsByUserID(userID)
+}
+
 func CreateReservation(reservation models.Reservation) (models.Reservation, error) {
 	if reservation.UserID == 0 {
 		return models.Reservation{}, errors.New("userId es obligatorio")

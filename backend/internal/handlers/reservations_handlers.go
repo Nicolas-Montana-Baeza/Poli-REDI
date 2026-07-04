@@ -24,6 +24,27 @@ func GetReservations(c *fiber.Ctx) error {
 	return c.JSON(reservations)
 }
 
+func GetMyReservations(c *fiber.Ctx) error {
+	user, ok := middleware.GetLocalUser(c)
+
+	if !ok {
+		return c.Status(401).JSON(fiber.Map{
+			"error": "usuario no autenticado",
+		})
+	}
+
+	reservations, err := services.GetMyReservations(user.ID)
+
+	if err != nil {
+		return c.Status(500).JSON(fiber.Map{
+			"error":  "Error obteniendo reservas",
+			"detail": err.Error(),
+		})
+	}
+
+	return c.JSON(reservations)
+}
+
 func CreateReservation(c *fiber.Ctx) error {
 	var request models.CreateReservationRequest
 

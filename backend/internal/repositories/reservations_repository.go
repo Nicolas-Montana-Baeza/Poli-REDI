@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"database/sql"
 
 	"poli-redi-api/internal/database"
 	"poli-redi-api/internal/models"
@@ -21,8 +22,11 @@ func GetAllReservations() ([]models.Reservation, error) {
 			r.status,
 			r.created_at,
 			r.updated_at,
-			COALESCE(a.name, 'Reserva') AS activity_name
+			COALESCE(a.name, 'Reserva') AS activity_name,
+			res.name AS resource_name
 		FROM dbo.reservations r
+		INNER JOIN dbo.resources res
+			ON res.id = r.resource_id
 		LEFT JOIN dbo.activities a
 			ON a.id = r.activity_id
 		ORDER BY r.start_time ASC;
@@ -35,11 +39,52 @@ func GetAllReservations() ([]models.Reservation, error) {
 
 	defer rows.Close()
 
+	return scanReservationRows(rows)
+}
+
+func GetReservationsByUserID(userID int) ([]models.Reservation, error) {
+	rows, err := database.DB.QueryContext(
+		context.Background(),
+		`
+		SELECT
+			r.id,
+			r.user_id,
+			r.resource_id,
+			r.activity_id,
+			r.start_time,
+			r.duration_minutes,
+			r.status,
+			r.created_at,
+			r.updated_at,
+			COALESCE(a.name, 'Reserva') AS activity_name,
+			res.name AS resource_name
+		FROM dbo.reservations r
+		INNER JOIN dbo.resources res
+			ON res.id = r.resource_id
+		LEFT JOIN dbo.activities a
+			ON a.id = r.activity_id
+		WHERE r.user_id = @p1
+		ORDER BY r.start_time DESC;
+		`,
+		userID,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	return scanReservationRows(rows)
+}
+
+func scanReservationRows(rows *sql.Rows) ([]models.Reservation, error) {
 	reservations := []models.Reservation{}
 
 	for rows.Next() {
 		var reservation models.Reservation
 		var activityName string
+		var resourceName string
 
 		err := rows.Scan(
 			&reservation.ID,
@@ -52,6 +97,7 @@ func GetAllReservations() ([]models.Reservation, error) {
 			&reservation.CreatedAt,
 			&reservation.UpdatedAt,
 			&activityName,
+			&resourceName,
 		)
 
 		if err != nil {
@@ -61,6 +107,7 @@ func GetAllReservations() ([]models.Reservation, error) {
 		reservation.Hour = reservation.StartTime.Format("15:04")
 		reservation.Title = activityName
 		reservation.Type = mapReservationType(reservation.Status)
+		reservation.ResourceName = resourceName
 
 		reservations = append(reservations, reservation)
 	}
@@ -74,6 +121,7 @@ func GetAllReservations() ([]models.Reservation, error) {
 
 func AddReservation(reservation models.Reservation) (models.Reservation, error) {
 	var activityName string
+	var resourceName string
 
 	err := database.DB.QueryRowContext(
 		context.Background(),
@@ -101,10 +149,13 @@ func AddReservation(reservation models.Reservation) (models.Reservation, error) 
 			r.status,
 			r.created_at,
 			r.updated_at,
-			COALESCE(a.name, 'Reserva') AS activity_name
+			COALESCE(a.name, 'Reserva') AS activity_name,
+			res.name AS resource_name
 		FROM dbo.reservations r
 		INNER JOIN @created c
 			ON c.id = r.id
+		INNER JOIN dbo.resources res
+			ON res.id = r.resource_id
 		LEFT JOIN dbo.activities a
 			ON a.id = r.activity_id;
 		`,
@@ -125,6 +176,7 @@ func AddReservation(reservation models.Reservation) (models.Reservation, error) 
 		&reservation.CreatedAt,
 		&reservation.UpdatedAt,
 		&activityName,
+		&resourceName,
 	)
 
 	if err != nil {
@@ -134,6 +186,7 @@ func AddReservation(reservation models.Reservation) (models.Reservation, error) 
 	reservation.Hour = reservation.StartTime.Format("15:04")
 	reservation.Title = activityName
 	reservation.Type = mapReservationType(reservation.Status)
+	reservation.ResourceName = resourceName
 
 	return reservation, nil
 }
@@ -179,6 +232,8 @@ func GetReservationOwnerAndStatus(id int) (int, string, error) {
 
 func CancelReservation(id int) (models.Reservation, error) {
 	var reservation models.Reservation
+	var activityName string
+	var resourceName string
 
 	err := database.DB.QueryRowContext(
 		context.Background(),
@@ -202,10 +257,16 @@ func CancelReservation(id int) (models.Reservation, error) {
 			r.duration_minutes,
 			r.status,
 			r.created_at,
-			r.updated_at
+			r.updated_at,
+			COALESCE(a.name, 'Reserva') AS activity_name,
+			res.name AS resource_name
 		FROM dbo.reservations r
 		INNER JOIN @updated u
-			ON u.id = r.id;
+			ON u.id = r.id
+		INNER JOIN dbo.resources res
+			ON res.id = r.resource_id
+		LEFT JOIN dbo.activities a
+			ON a.id = r.activity_id;
 		`,
 		id,
 	).Scan(
@@ -218,6 +279,8 @@ func CancelReservation(id int) (models.Reservation, error) {
 		&reservation.Status,
 		&reservation.CreatedAt,
 		&reservation.UpdatedAt,
+		&activityName,
+		&resourceName,
 	)
 
 	if err != nil {
@@ -225,8 +288,9 @@ func CancelReservation(id int) (models.Reservation, error) {
 	}
 
 	reservation.Hour = reservation.StartTime.Format("15:04")
-	reservation.Title = "Reserva cancelada"
+	reservation.Title = activityName
 	reservation.Type = mapReservationType(reservation.Status)
+	reservation.ResourceName = resourceName
 
 	return reservation, nil
 }

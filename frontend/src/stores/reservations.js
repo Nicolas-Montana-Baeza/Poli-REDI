@@ -7,9 +7,15 @@ export const useReservationsStore =
     state: () => ({
       reservations: [],
 
+      myReservations: [],
+
       loading: false,
 
       loadingError: null,
+
+      myLoading: false,
+
+      myLoadingError: null,
 
       actionError: null,
 
@@ -33,6 +39,22 @@ export const useReservationsStore =
         }
       },
 
+      async fetchMyReservations() {
+        this.myLoading = true
+        this.myLoadingError = null
+
+        try {
+          this.myReservations =
+            await reservationsService.getMine()
+        } catch {
+          this.myReservations = []
+          this.myLoadingError =
+            'No se pudieron cargar tus reservas'
+        } finally {
+          this.myLoading = false
+        }
+      },
+
       async createReservation(reservation) {
         this.loading = true
         this.actionError = null
@@ -45,6 +67,10 @@ export const useReservationsStore =
             )
 
           this.reservations.push(
+            createdReservation
+          )
+
+          this.myReservations.push(
             createdReservation
           )
 
@@ -95,6 +121,13 @@ export const useReservationsStore =
 
           this.reservations =
             this.reservations.map((reservation) =>
+              reservation.id === id
+                ? cancelledReservation
+                : reservation
+            )
+
+          this.myReservations =
+            this.myReservations.map((reservation) =>
               reservation.id === id
                 ? cancelledReservation
                 : reservation

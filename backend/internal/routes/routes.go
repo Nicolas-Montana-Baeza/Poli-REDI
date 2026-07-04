@@ -20,6 +20,7 @@ func RegisterRoutes(app *fiber.App) {
 	protected.Get("/activities", handlers.GetActivities)
 	protected.Get("/notifications", handlers.GetNotifications)
 
+	protected.Get("/reservations/mine", handlers.GetMyReservations)
 	protected.Get("/reservations", handlers.GetReservations)
 	protected.Post("/reservations", handlers.CreateReservation)
 	protected.Patch("/reservations/cancel", handlers.CancelReservation)

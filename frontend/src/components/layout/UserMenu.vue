@@ -1,5 +1,6 @@
 <script setup>
 import { computed, ref, onMounted, onBeforeUnmount } from 'vue'
+import { useRouter } from 'vue-router'
 
 import {
   ChevronDown,
@@ -12,6 +13,7 @@ import {
 import { useAuthStore } from '@/stores/auth'
 
 const authStore = useAuthStore()
+const router = useRouter()
 const open = ref(false)
 
 const displayName = computed(() => {
@@ -63,6 +65,11 @@ const close = (event) => {
 const handleLogout = async () => {
   open.value = false
   await authStore.logoutUser()
+}
+
+const goToSettings = async () => {
+  open.value = false
+  await router.push('/settings')
 }
 
 onMounted(() => {
@@ -147,6 +154,7 @@ onBeforeUnmount(() => {
         <button
           class="dropdown-item"
           type="button"
+          @click="goToSettings"
         >
 
           <User :size="16" />
@@ -158,6 +166,7 @@ onBeforeUnmount(() => {
         <button
           class="dropdown-item"
           type="button"
+          @click="goToSettings"
         >
 
           <Settings :size="16" />
@@ -169,6 +178,7 @@ onBeforeUnmount(() => {
         <button
           class="dropdown-item"
           type="button"
+          @click="goToSettings"
         >
 
           <Shield :size="16" />

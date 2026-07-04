@@ -7,6 +7,12 @@ export const reservationsService = {
     return response.data
   },
 
+  async getMine() {
+    const response = await api.get('/reservations/mine')
+
+    return response.data
+  },
+
   async create(reservation) {
     const response = await api.post('/reservations', reservation)
 

@@ -19,7 +19,7 @@ const reservationsStore = useReservationsStore()
 onMounted(async () => {
   await Promise.all([
     resourcesStore.fetchResources(),
-    reservationsStore.fetchReservations()
+    reservationsStore.fetchMyReservations()
   ])
 })
 
@@ -53,7 +53,7 @@ const mapReservationStatus = (status) => {
 }
 
 const reservations = computed(() => {
-  return reservationsStore.reservations
+  return reservationsStore.myReservations
     .filter((reservation) =>
       reservation.status !== 'CANCELLED'
     )
@@ -177,17 +177,17 @@ const reservations = computed(() => {
       </div>
 
       <div
-        v-if="reservationsStore.loading"
+        v-if="reservationsStore.myLoading"
         class="state-card"
       >
         Cargando reservas...
       </div>
 
       <div
-        v-else-if="reservationsStore.loadingError"
+        v-else-if="reservationsStore.myLoadingError"
         class="state-card error"
       >
-        {{ reservationsStore.loadingError }}
+        {{ reservationsStore.myLoadingError }}
       </div>
 
       <ReservationsPanel

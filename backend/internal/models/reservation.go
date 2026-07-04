@@ -14,9 +14,10 @@ type Reservation struct {
 	UpdatedAt       time.Time `json:"updatedAt"`
 
 	// Campos útiles para el frontend actual
-	Hour  string `json:"hour"`
-	Title string `json:"title"`
-	Type  string `json:"type"`
+	Hour         string `json:"hour"`
+	Title        string `json:"title"`
+	Type         string `json:"type"`
+	ResourceName string `json:"resourceName"`
 }
 
 type CreateReservationRequest struct {

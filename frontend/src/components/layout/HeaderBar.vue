@@ -13,9 +13,11 @@ const firstName = computed(() => {
   const fullName =
     authStore.user?.fullName ||
     authStore.account?.name ||
+    authStore.user?.email ||
+    authStore.account?.username ||
     'Usuario'
 
-  return fullName.split(' ')[0]
+  return fullName.split('@')[0].split(' ')[0]
 })
 
 onMounted(() => {
