@@ -35,7 +35,8 @@ const props = defineProps({
 })
 
 const emit = defineEmits([
-  'slot-selected'
+  'slot-selected',
+  'reservation-selected'
 ])
 
 /* DATE FILTER */
@@ -62,6 +63,10 @@ const filteredReservations = (resourceId) => {
 /* SLOT SELECT */
 const handleSlotSelected = (slot) => {
   emit('slot-selected', slot)
+}
+
+const handleReservationSelected = (reservation) => {
+  emit('reservation-selected', reservation)
 }
 </script>
 
@@ -117,6 +122,10 @@ const handleSlotSelected = (slot) => {
 
         @slot-selected="
           handleSlotSelected
+        "
+
+        @reservation-selected="
+          handleReservationSelected
         "
       />
 

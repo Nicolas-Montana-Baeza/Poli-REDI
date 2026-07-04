@@ -151,6 +151,32 @@ func mapReservationType(status string) string {
 	}
 }
 
+func GetReservationOwnerAndStatus(id int) (int, string, error) {
+	var ownerID int
+	var status string
+
+	err := database.DB.QueryRowContext(
+		context.Background(),
+		`
+		SELECT
+			user_id,
+			status
+		FROM dbo.reservations
+		WHERE id = @p1;
+		`,
+		id,
+	).Scan(
+		&ownerID,
+		&status,
+	)
+
+	if err != nil {
+		return 0, "", err
+	}
+
+	return ownerID, status, nil
+}
+
 func CancelReservation(id int) (models.Reservation, error) {
 	var reservation models.Reservation
 

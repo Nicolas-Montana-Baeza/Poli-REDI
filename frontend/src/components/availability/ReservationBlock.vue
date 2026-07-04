@@ -22,6 +22,10 @@ const props = defineProps({
   }
 })
 
+const emit = defineEmits([
+  'select'
+])
+
 const startMinutes = computed(() => {
   const minutesFromMidnight =
     getReservationStartMinutes(
@@ -76,11 +80,13 @@ const statusClass = computed(() => {
 </script>
 
 <template>
-  <div
+  <button
     class="reservation-block"
+    type="button"
     :class="statusClass"
     :style="blockStyle"
-    @click.stop
+    :aria-label="`Ver reserva ${reservationTitle}`"
+    @click.stop="emit('select', reservation)"
   >
     <strong>
       {{ reservationTitle }}
@@ -89,7 +95,7 @@ const statusClass = computed(() => {
     <span>
       {{ reservationTime }}
     </span>
-  </div>
+  </button>
 </template>
 
 <style scoped>
@@ -115,6 +121,14 @@ const statusClass = computed(() => {
     0 8px 18px rgba(0,0,0,0.12);
 
   border: 1px solid transparent;
+
+  text-align: left;
+  cursor: pointer;
+}
+
+.reservation-block:focus-visible {
+  outline: 3px solid rgba(37,99,235,0.35);
+  outline-offset: 2px;
 }
 
 .reservation-block strong {

@@ -34,7 +34,8 @@ const props = defineProps({
 })
 
 const emit = defineEmits([
-  'slot-selected'
+  'slot-selected',
+  'reservation-selected'
 ])
 
 /* HEIGHT */
@@ -118,6 +119,10 @@ const formatMinuteToHour = (minuteOfDay) => {
     minuteOfDay % 60
 
   return `${String(hour).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`
+}
+
+const handleReservationSelected = (reservation) => {
+  emit('reservation-selected', reservation)
 }
 
 /* CLICK TO SELECT TIME */
@@ -234,6 +239,7 @@ const statusLabel = (status) => {
         :reservation="reservation"
         :start-hour="startHour"
         :pixels-per-minute="pixelsPerMinute"
+        @select="handleReservationSelected"
       />
 
     </div>

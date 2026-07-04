@@ -4,6 +4,7 @@ import { ref, computed, onMounted } from 'vue'
 import CalendarToolbar from './CalendarToolbar.vue'
 import CalendarMini from './CalendarMini.vue'
 import ScheduleGrid from './ScheduleGrid.vue'
+import ReservationDetailModal from './ReservationDetailModal.vue'
 import ReservationForm from '../forms/ReservationForm.vue'
 
 import { useResourcesStore } from '@/stores/resources'
@@ -31,8 +32,51 @@ const currentDateLabel = computed(() => {
   })
 })
 
+const isLoadingAvailability = computed(() => {
+  return (
+    authStore.loading ||
+    resourcesStore.loading ||
+    reservationsStore.loading
+  )
+})
+
+const loadWarning = computed(() => {
+  return (
+    resourcesStore.error ||
+    reservationsStore.loadingError ||
+    activitiesStore.error ||
+    ''
+  )
+})
+
+const reservationBlockingError = computed(() => {
+  if (resourcesStore.error) {
+    return 'No se puede crear la reserva porque no se pudieron cargar los recursos.'
+  }
+
+  if (reservationsStore.loadingError) {
+    return 'No se puede crear la reserva porque no se pudo validar la disponibilidad actual.'
+  }
+
+  return ''
+})
+
 /* SELECTED SLOT */
 const selectedSlot = ref(null)
+
+/* SELECTED RESERVATION */
+const selectedReservation = ref(null)
+
+const canCancelSelectedReservation = computed(() => {
+  if (!authStore.user || !selectedReservation.value) {
+    return false
+  }
+
+  return (
+    authStore.user.isAdmin === true ||
+    selectedReservation.value.userId === authStore.user.id
+  )
+})
 
 /* MODAL */
 const showReservationForm = ref(false)
@@ -52,6 +96,16 @@ const handleSlotSelected = (slot) => {
   reservationsStore.clearActionError?.()
   reservationsStore.clearActionSuccess?.()
 
+  if (reservationBlockingError.value) {
+    reservationsStore.setActionError(
+      reservationBlockingError.value
+    )
+
+    return
+  }
+
+  selectedReservation.value = null
+
   selectedSlot.value = {
     resource: slot.resource,
     hour: slot.hour,
@@ -61,10 +115,26 @@ const handleSlotSelected = (slot) => {
   showReservationForm.value = true
 }
 
+/* RESERVATION SELECT */
+const handleReservationSelected = (reservation) => {
+  reservationsStore.clearActionError?.()
+  reservationsStore.clearActionSuccess?.()
+
+  selectedSlot.value = null
+  showReservationForm.value = false
+  selectedReservation.value = reservation
+}
+
 /* CLOSE */
 const closeReservationForm = () => {
   showReservationForm.value = false
   selectedSlot.value = null
+
+  reservationsStore.clearActionError?.()
+}
+
+const closeReservationDetail = () => {
+  selectedReservation.value = null
 
   reservationsStore.clearActionError?.()
 }
@@ -81,6 +151,22 @@ const submitReservation = async (reservation) => {
     if (!authStore.user) {
       reservationsStore.setActionError(
         'No se pudo identificar al usuario autenticado'
+      )
+
+      return
+    }
+
+    if (reservationBlockingError.value) {
+      reservationsStore.setActionError(
+        reservationBlockingError.value
+      )
+
+      return
+    }
+
+    if (!reservation.resource?.id) {
+      reservationsStore.setActionError(
+        'No se pudo identificar el recurso seleccionado'
       )
 
       return
@@ -121,6 +207,42 @@ const submitReservation = async (reservation) => {
     )
   } catch {
     // El store mantiene el error visible dentro del formulario.
+  }
+}
+
+const cancelSelectedReservation = async () => {
+  try {
+    reservationsStore.clearActionSuccess?.()
+
+    if (!selectedReservation.value?.id) {
+      reservationsStore.setActionError(
+        'No se pudo identificar la reserva seleccionada'
+      )
+
+      return
+    }
+
+    if (!canCancelSelectedReservation.value) {
+      reservationsStore.setActionError(
+        'No tienes permisos para cancelar esta reserva'
+      )
+
+      return
+    }
+
+    await reservationsStore.cancelReservation(
+      selectedReservation.value.id
+    )
+
+    selectedReservation.value = null
+
+    await reservationsStore.fetchReservations()
+
+    reservationsStore.setActionSuccess(
+      'Reserva cancelada correctamente'
+    )
+  } catch {
+    // El store mantiene el error visible dentro del modal.
   }
 }
 
@@ -202,25 +324,22 @@ const goToday = () => {
 
     <!-- LOADING -->
     <div
-      v-if="authStore.loading || resourcesStore.loading || reservationsStore.loading || activitiesStore.loading"
+      v-if="isLoadingAvailability"
       class="state-card"
     >
       Cargando disponibilidad...
     </div>
 
-    <!-- LOAD ERROR -->
-    <div
-      v-else-if="resourcesStore.error || reservationsStore.loadingError || activitiesStore.error"
-      class="state-card error"
-    >
-      {{
-        resourcesStore.error ||
-        reservationsStore.loadingError ||
-        activitiesStore.error
-      }}
-    </div>
-
     <template v-else>
+
+      <!-- WARNING -->
+      <div
+        v-if="loadWarning"
+        class="state-card warning"
+        role="status"
+      >
+        {{ loadWarning }}
+      </div>
 
       <!-- SUCCESS -->
       <div
@@ -230,6 +349,15 @@ const goToday = () => {
         aria-live="polite"
       >
         {{ reservationsStore.actionSuccess }}
+      </div>
+
+      <!-- ACTION ERROR -->
+      <div
+        v-if="!showReservationForm && reservationsStore.actionError"
+        class="state-card error"
+        role="alert"
+      >
+        {{ reservationsStore.actionError }}
       </div>
 
       <!-- TOOLBAR -->
@@ -285,6 +413,7 @@ const goToday = () => {
             :end-hour="22"
             :pixels-per-minute="1"
             @slot-selected="handleSlotSelected"
+            @reservation-selected="handleReservationSelected"
           />
 
         </div>
@@ -302,6 +431,16 @@ const goToday = () => {
       :error-message="reservationsStore.actionError"
       @close="closeReservationForm"
       @submit="submitReservation"
+    />
+
+    <!-- DETAIL -->
+    <ReservationDetailModal
+      :visible="Boolean(selectedReservation)"
+      :reservation="selectedReservation"
+      :can-cancel="canCancelSelectedReservation"
+      :error-message="reservationsStore.actionError"
+      @close="closeReservationDetail"
+      @cancel="cancelSelectedReservation"
     />
 
   </section>
@@ -362,6 +501,14 @@ const goToday = () => {
   color: #166534;
 
   border-color: #bbf7d0;
+}
+
+.state-card.warning {
+  background: #fef3c7;
+
+  color: #92400e;
+
+  border-color: #fde68a;
 }
 
 /* CONTENT */

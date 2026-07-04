@@ -24,13 +24,9 @@ export const useResourcesStore = defineStore('resources', {
 
       try {
         this.resources = await resourcesService.getAll()
-      } catch (error) {
+      } catch {
+        this.resources = []
         this.error = 'No se pudieron cargar los recursos'
-
-        console.error(
-          'Error cargando recursos:',
-          error
-        )
       } finally {
         this.loading = false
       }

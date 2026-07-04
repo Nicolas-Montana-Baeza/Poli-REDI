@@ -17,6 +17,7 @@ export const useActivitiesStore = defineStore('activities', {
       try {
         this.activities = await activitiesService.getAll()
       } catch {
+        this.activities = []
         this.error = 'No se pudieron cargar las actividades'
       } finally {
         this.loading = false

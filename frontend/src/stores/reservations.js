@@ -24,7 +24,8 @@ export const useReservationsStore =
         try {
           this.reservations =
             await reservationsService.getAll()
-        } catch (error) {
+        } catch {
+          this.reservations = []
           this.loadingError =
             'No se pudieron cargar las reservas'
         } finally {

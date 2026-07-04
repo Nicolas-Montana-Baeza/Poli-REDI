@@ -15,8 +15,7 @@ export const reservationsService = {
 
   async cancel(reservationId) {
     const response = await api.patch('/reservations/cancel', {
-      reservationId,
-      requestedByUserId: 1
+      reservationId
     })
 
     return response.data

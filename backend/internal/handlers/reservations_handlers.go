@@ -97,6 +97,14 @@ func parseReservationStartTime(value string) (time.Time, error) {
 func CancelReservation(c *fiber.Ctx) error {
 	var request models.CancelReservationRequest
 
+	user, ok := middleware.GetLocalUser(c)
+
+	if !ok {
+		return c.Status(401).JSON(fiber.Map{
+			"error": "usuario no autenticado",
+		})
+	}
+
 	if err := c.BodyParser(&request); err != nil {
 		return c.Status(400).JSON(fiber.Map{
 			"error": "Datos invalidos",
@@ -105,14 +113,17 @@ func CancelReservation(c *fiber.Ctx) error {
 
 	cancelledReservation, err := services.CancelReservation(
 		request.ReservationID,
-		request.RequestedByUserID,
+		user,
 	)
 
 	if err != nil {
 		status := 400
 
-		if err.Error() == "no tienes permisos para cancelar esta reserva" {
+		switch err.Error() {
+		case "no tienes permisos para cancelar esta reserva":
 			status = 403
+		case "reserva no encontrada":
+			status = 404
 		}
 
 		return c.Status(status).JSON(fiber.Map{

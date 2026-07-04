@@ -1,6 +1,7 @@
 package services
 
 import (
+	"database/sql"
 	"errors"
 
 	"poli-redi-api/internal/models"
@@ -78,24 +79,32 @@ func mapDatabaseReservationError(err error) error {
 
 func CancelReservation(
 	reservationID int,
-	requestedByUserID int,
+	requestedByUser models.LocalAuthUser,
 ) (models.Reservation, error) {
 	if reservationID <= 0 {
 		return models.Reservation{}, errors.New("reservationId es obligatorio")
 	}
 
-	if requestedByUserID <= 0 {
-		return models.Reservation{}, errors.New("requestedByUserId es obligatorio")
+	if requestedByUser.ID <= 0 {
+		return models.Reservation{}, errors.New("usuario autenticado es obligatorio")
 	}
 
-	isAdmin, err := repositories.IsUserAdmin(requestedByUserID)
+	ownerID, status, err := repositories.GetReservationOwnerAndStatus(reservationID)
+
+	if errors.Is(err, sql.ErrNoRows) {
+		return models.Reservation{}, errors.New("reserva no encontrada")
+	}
 
 	if err != nil {
-		return models.Reservation{}, errors.New("usuario no encontrado o bloqueado")
+		return models.Reservation{}, err
 	}
 
-	if !isAdmin {
+	if !requestedByUser.IsAdmin && ownerID != requestedByUser.ID {
 		return models.Reservation{}, errors.New("no tienes permisos para cancelar esta reserva")
+	}
+
+	if status == "CANCELLED" {
+		return models.Reservation{}, errors.New("la reserva ya esta cancelada")
 	}
 
 	cancelledReservation, err := repositories.CancelReservation(reservationID)

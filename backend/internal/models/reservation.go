@@ -28,6 +28,5 @@ type CreateReservationRequest struct {
 }
 
 type CancelReservationRequest struct {
-	ReservationID     int `json:"reservationId"`
-	RequestedByUserID int `json:"requestedByUserId"`
+	ReservationID int `json:"reservationId"`
 }

@@ -19,6 +19,11 @@ const props = defineProps({
   errorMessage: {
     type: String,
     default: ''
+  },
+
+  canCancel: {
+    type: Boolean,
+    default: true
   }
 })
 
@@ -57,6 +62,13 @@ const statusLabel = computed(() => {
     default:
       return 'Sin estado'
   }
+})
+
+const showCancelAction = computed(() => {
+  return (
+    props.canCancel &&
+    props.reservation?.status !== 'CANCELLED'
+  )
 })
 
 const handleCancel = () => {
@@ -173,7 +185,13 @@ const handleCancel = () => {
         </div>
 
         <div class="warning">
-          Esta acción cambiará la reserva a estado cancelada.
+          <template v-if="showCancelAction">
+            Esta accion cambiara la reserva a estado cancelada.
+          </template>
+
+          <template v-else>
+            Solo el administrador o quien creo la reserva puede cancelarla.
+          </template>
         </div>
 
         <div class="actions">
@@ -186,6 +204,7 @@ const handleCancel = () => {
           </button>
 
           <button
+            v-if="showCancelAction"
             class="danger-btn"
             @click="handleCancel"
           >

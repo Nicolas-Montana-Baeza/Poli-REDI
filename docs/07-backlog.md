@@ -173,7 +173,7 @@ Crear reservas con el ID real del usuario autenticado.
 - `POST /api/reservations` toma el usuario desde el middleware de autenticacion y sobrescribe cualquier `userId` enviado por el cliente.
 - `AvailabilitySection.vue` ya no envia `userId: 2`.
 - El frontend carga el usuario autenticado antes de crear reservas.
-- Queda pendiente en `API-003/RES-007` eliminar `requestedByUserId: 1` del flujo de cancelacion.
+- `PATCH /api/reservations/cancel` usa el usuario autenticado desde middleware; admin puede cancelar cualquier reserva y un usuario normal solo las propias.
 
 ### Archivos relevantes
 
@@ -416,11 +416,11 @@ Crear una vista donde el usuario vea sus reservas.
 
 Prioridad: P1
 Labels: `frontend`, `backend`, `reservas`
-Estado sugerido: Ready for Codex
+Estado sugerido: Done
 
 ### Contexto
 
-Existe `PATCH /api/reservations/cancel`, pero el frontend usa `requestedByUserId: 1` fijo y no hay flujo visual completo.
+Existe `PATCH /api/reservations/cancel`; ya usa usuario autenticado en backend, pero falta conectar un flujo visual completo desde la interfaz.
 
 ### Objetivo
 
@@ -428,12 +428,20 @@ Permitir cancelar reservas desde la interfaz usando el usuario autenticado.
 
 ### Criterios de aceptacion
 
-- [ ] No se usa `requestedByUserId` fijo.
-- [ ] El backend determina usuario desde token o valida contra usuario autenticado.
-- [ ] La UI pide confirmacion antes de cancelar.
-- [ ] La reserva cambia a estado `CANCELLED`.
-- [ ] Se muestra mensaje de exito o error.
-- [ ] La lista se actualiza sin recargar toda la app.
+- [x] No se usa `requestedByUserId` fijo.
+- [x] El backend determina usuario desde token o valida contra usuario autenticado.
+- [x] La UI pide confirmacion antes de cancelar.
+- [x] La reserva cambia a estado `CANCELLED`.
+- [x] Se muestra mensaje de exito o error.
+- [x] La lista se actualiza sin recargar toda la app.
+
+### Resultado de implementacion
+
+- Los bloques de reserva en disponibilidad son seleccionables.
+- Al seleccionar una reserva se abre `ReservationDetailModal`.
+- Admin puede cancelar cualquier reserva; usuario normal solo ve accion de cancelacion para reservas propias.
+- El modal muestra errores del backend si la cancelacion falla.
+- Al cancelar, la grilla se refresca y el bloque desaparece de la disponibilidad activa.
 
 ---
 
@@ -748,7 +756,7 @@ Evitar que el frontend reciba todas las reservas cuando solo necesita un subconj
 
 Prioridad: P0
 Labels: `backend`, `auth`, `reservas`, `security`
-Estado sugerido: Ready for Codex
+Estado sugerido: Done
 
 ### Contexto
 
@@ -760,10 +768,18 @@ Evitar confiar en IDs enviados por cliente cuando el usuario ya viene en el toke
 
 ### Criterios de aceptacion
 
-- [ ] Crear reserva usa usuario autenticado si corresponde.
-- [ ] Cancelar reserva usa usuario autenticado/admin desde middleware.
-- [ ] El frontend no envia `requestedByUserId` fijo.
-- [ ] Usuarios no pueden operar reservas ajenas salvo admin.
+- [x] Crear reserva usa usuario autenticado si corresponde.
+- [x] Cancelar reserva usa usuario autenticado/admin desde middleware.
+- [x] El frontend no envia `requestedByUserId` fijo.
+- [x] Usuarios no pueden operar reservas ajenas salvo admin.
+
+### Resultado de implementacion
+
+- `CreateReservation` toma el usuario desde `middleware.GetLocalUser`.
+- `CancelReservation` toma el usuario desde `middleware.GetLocalUser`.
+- Admin puede cancelar cualquier reserva.
+- Usuario normal solo puede cancelar reservas donde `reservations.user_id` coincide con su usuario local.
+- El frontend envia solo `reservationId` al endpoint de cancelacion.
 
 ---
 
@@ -962,7 +978,7 @@ Revision realizada durante la conexion de actividades reales.
 - `frontend/src/views/DashboardView.vue`: arreglos locales de instalaciones y proximas reservas; relacionado con `UI-004`.
 - `frontend/src/components/dashboard/ReservationsPanel.vue`: reservas locales duplicadas; relacionado con `UI-004` y `RES-006`.
 - `frontend/src/components/layout/NotificationBell.vue`: notificaciones locales; relacionado con `NOTIF-001`.
-- `frontend/src/services/reservations.service.js`: `requestedByUserId: 1` fijo en cancelacion; relacionado con `API-003` y `RES-007`.
+- `frontend/src/services/reservations.service.js`: cancelacion ya no envia usuario fijo; falta conectar flujo visual completo, relacionado con `RES-007`.
 - Vistas `ResourcesView.vue`, `ReservationsView.vue`, `ReservationDetailView.vue`, `HistoryView.vue`, `ReportsView.vue`, `AdminView.vue`, `UsersView.vue` y `SettingsView.vue`: pantallas `Proximamente...` que deben conectarse a endpoints reales o nuevas tareas.
 
 ## Datos estaticos que pueden mantenerse por ahora
