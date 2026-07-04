@@ -1,7 +1,28 @@
-﻿<script setup>
+<script setup>
+import { computed, onMounted } from 'vue'
+
 import Sidebar from './Sidebar.vue'
 import NotificationBell from './NotificationBell.vue'
 import UserMenu from './UserMenu.vue'
+
+import { useAuthStore } from '@/stores/auth'
+
+const authStore = useAuthStore()
+
+const firstName = computed(() => {
+  const fullName =
+    authStore.user?.fullName ||
+    authStore.account?.name ||
+    'Usuario'
+
+  return fullName.split(' ')[0]
+})
+
+onMounted(() => {
+  if (!authStore.user) {
+    authStore.loadAuthUser()
+  }
+})
 </script>
 
 <template>
@@ -19,11 +40,11 @@ import UserMenu from './UserMenu.vue'
       <div class="greeting">
 
         <h1>
-          ¡Hola, Nicolás! 👋
+          Hola, {{ firstName }}
         </h1>
 
         <p>
-          ¿Qué instalación deseas reservar hoy?
+          Que instalacion deseas reservar hoy?
         </p>
 
       </div>
@@ -76,7 +97,7 @@ import UserMenu from './UserMenu.vue'
 
 /* Sidebar wrapper */
 .sidebar-container {
-  display: fixed;
+  display: flex;
   align-items: center;
 
   flex-shrink: 0;

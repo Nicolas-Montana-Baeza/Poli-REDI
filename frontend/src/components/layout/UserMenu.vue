@@ -1,5 +1,5 @@
-﻿<script setup>
-import { ref, onMounted, onBeforeUnmount } from 'vue'
+<script setup>
+import { computed, ref, onMounted, onBeforeUnmount } from 'vue'
 
 import {
   ChevronDown,
@@ -9,7 +9,45 @@ import {
   LogOut
 } from 'lucide-vue-next'
 
+import { useAuthStore } from '@/stores/auth'
+
+const authStore = useAuthStore()
 const open = ref(false)
+
+const displayName = computed(() => {
+  return (
+    authStore.user?.fullName ||
+    authStore.account?.name ||
+    authStore.user?.email ||
+    'Usuario'
+  )
+})
+
+const displayEmail = computed(() => {
+  return (
+    authStore.user?.email ||
+    authStore.account?.username ||
+    ''
+  )
+})
+
+const roleLabel = computed(() => {
+  if (authStore.user?.isAdmin) {
+    return 'Administrador'
+  }
+
+  return 'Usuario'
+})
+
+const initials = computed(() => {
+  return displayName.value
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map(part => part[0])
+    .join('')
+    .toUpperCase() || 'U'
+})
 
 const toggle = () => {
   open.value = !open.value
@@ -21,8 +59,17 @@ const close = (event) => {
   }
 }
 
+const handleLogout = async () => {
+  open.value = false
+  await authStore.logoutUser()
+}
+
 onMounted(() => {
   window.addEventListener('click', close)
+
+  if (!authStore.user) {
+    authStore.loadAuthUser()
+  }
 })
 
 onBeforeUnmount(() => {
@@ -36,22 +83,22 @@ onBeforeUnmount(() => {
     <!-- Trigger -->
     <button
       class="user-trigger"
+      type="button"
       @click.stop="toggle"
     >
 
-      <img
-        src="https://i.pravatar.cc/100"
-        alt="user"
-      />
+      <span class="avatar">
+        {{ initials }}
+      </span>
 
       <div class="user-info">
 
         <strong>
-          Nicolás Montaña
+          {{ displayName }}
         </strong>
 
         <span>
-          Estudiante
+          {{ roleLabel }}
         </span>
 
       </div>
@@ -75,19 +122,18 @@ onBeforeUnmount(() => {
         <!-- Top User -->
         <div class="profile-card">
 
-          <img
-            src="https://i.pravatar.cc/100"
-            alt="profile"
-          />
+          <span class="avatar large">
+            {{ initials }}
+          </span>
 
           <div>
 
             <strong>
-              Nicolás Montaña
+              {{ displayName }}
             </strong>
 
             <p>
-              nicolas@ucen.cl
+              {{ displayEmail }}
             </p>
 
           </div>
@@ -97,7 +143,10 @@ onBeforeUnmount(() => {
         <div class="divider"></div>
 
         <!-- Menu Items -->
-        <button class="dropdown-item">
+        <button
+          class="dropdown-item"
+          type="button"
+        >
 
           <User :size="16" />
 
@@ -105,15 +154,21 @@ onBeforeUnmount(() => {
 
         </button>
 
-        <button class="dropdown-item">
+        <button
+          class="dropdown-item"
+          type="button"
+        >
 
           <Settings :size="16" />
 
-          Configuración
+          Configuracion
 
         </button>
 
-        <button class="dropdown-item">
+        <button
+          class="dropdown-item"
+          type="button"
+        >
 
           <Shield :size="16" />
 
@@ -123,11 +178,15 @@ onBeforeUnmount(() => {
 
         <div class="divider"></div>
 
-        <button class="dropdown-item logout">
+        <button
+          class="dropdown-item logout"
+          type="button"
+          @click="handleLogout"
+        >
 
           <LogOut :size="16" />
 
-          Cerrar sesión
+          Cerrar sesion
 
         </button>
 
@@ -165,13 +224,36 @@ onBeforeUnmount(() => {
   background: #f8fafc;
 }
 
-.user-trigger img {
+.avatar {
   width: 42px;
   height: 42px;
 
   border-radius: 999px;
 
-  object-fit: cover;
+  background:
+    linear-gradient(
+      135deg,
+      #1e3a8a,
+      #2563eb
+    );
+
+  color: white;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  font-size: 14px;
+  font-weight: 800;
+
+  flex-shrink: 0;
+}
+
+.avatar.large {
+  width: 54px;
+  height: 54px;
+
+  font-size: 18px;
 }
 
 /* Info */
@@ -229,15 +311,6 @@ onBeforeUnmount(() => {
   gap: 14px;
 
   padding: 18px;
-}
-
-.profile-card img {
-  width: 54px;
-  height: 54px;
-
-  border-radius: 999px;
-
-  object-fit: cover;
 }
 
 .profile-card strong {
