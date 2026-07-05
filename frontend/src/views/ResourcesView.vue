@@ -1,10 +1,14 @@
 <script setup>
-import { onMounted } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 
 import SkeletonLoader from '@/components/ui/SkeletonLoader.vue'
 import { useResourcesStore } from '@/stores/resources'
 
 const resourcesStore = useResourcesStore()
+const search = ref('')
+const typeFilter = ref('ALL')
+const modeFilter = ref('ALL')
+const statusFilter = ref('ALL')
 
 onMounted(() => {
   resourcesStore.fetchResources()
@@ -30,6 +34,51 @@ const modeLabel = (mode) => {
       return 'Reservable'
   }
 }
+
+const typeOptions = computed(() => {
+  return [...new Set(
+    resourcesStore.resources
+      .map((resource) => resource.type)
+      .filter(Boolean)
+  )].sort((a, b) => a.localeCompare(b))
+})
+
+const filteredResources = computed(() => {
+  const query = search.value.trim().toLowerCase()
+
+  return resourcesStore.resources.filter((resource) => {
+    if (
+      query &&
+      !`${resource.name} ${resource.type}`.toLowerCase().includes(query)
+    ) {
+      return false
+    }
+
+    if (
+      typeFilter.value !== 'ALL' &&
+      resource.type !== typeFilter.value
+    ) {
+      return false
+    }
+
+    if (
+      modeFilter.value !== 'ALL' &&
+      resource.reservationMode !== modeFilter.value
+    ) {
+      return false
+    }
+
+    if (statusFilter.value === 'ACTIVE' && !resource.isActive) {
+      return false
+    }
+
+    if (statusFilter.value === 'INACTIVE' && resource.isActive) {
+      return false
+    }
+
+    return true
+  })
+})
 </script>
 
 <template>
@@ -46,6 +95,68 @@ const modeLabel = (mode) => {
       </p>
 
     </header>
+
+    <section class="filters">
+
+      <label class="search-field">
+        Buscar
+        <input
+          v-model="search"
+          type="search"
+          placeholder="Nombre o tipo"
+        />
+      </label>
+
+      <label>
+        Tipo
+        <select v-model="typeFilter">
+          <option value="ALL">
+            Todos
+          </option>
+          <option
+            v-for="type in typeOptions"
+            :key="type"
+            :value="type"
+          >
+            {{ type }}
+          </option>
+        </select>
+      </label>
+
+      <label>
+        Modo
+        <select v-model="modeFilter">
+          <option value="ALL">
+            Todos
+          </option>
+          <option value="RESERVABLE">
+            Reservable
+          </option>
+          <option value="ADMIN_ONLY">
+            Solo admin
+          </option>
+          <option value="INFORMATIVE">
+            Informativo
+          </option>
+        </select>
+      </label>
+
+      <label>
+        Estado
+        <select v-model="statusFilter">
+          <option value="ALL">
+            Todos
+          </option>
+          <option value="ACTIVE">
+            Activos
+          </option>
+          <option value="INACTIVE">
+            Inactivos
+          </option>
+        </select>
+      </label>
+
+    </section>
 
     <div
       v-if="resourcesStore.loading"
@@ -71,13 +182,20 @@ const modeLabel = (mode) => {
       No hay instalaciones registradas.
     </div>
 
+    <div
+      v-else-if="!filteredResources.length"
+      class="state-card"
+    >
+      No hay instalaciones que coincidan con los filtros.
+    </div>
+
     <section
       v-else
       class="resources-grid"
     >
 
       <article
-        v-for="resource in resourcesStore.resources"
+        v-for="resource in filteredResources"
         :key="resource.id"
         class="resource-card"
       >
@@ -164,6 +282,56 @@ const modeLabel = (mode) => {
   border-color: #fecaca;
 }
 
+.filters {
+  background: white;
+
+  border: 1px solid #e2e8f0;
+  border-radius: 18px;
+
+  padding: 18px;
+
+  display: grid;
+  grid-template-columns:
+    minmax(220px, 1.4fr)
+    repeat(3, minmax(150px, 1fr));
+
+  gap: 14px;
+}
+
+.filters label {
+  color: #334155;
+
+  display: flex;
+  flex-direction: column;
+
+  gap: 7px;
+
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.filters input,
+.filters select {
+  width: 100%;
+  height: 42px;
+
+  border: 1px solid #dbe2ea;
+  border-radius: 12px;
+
+  padding: 0 12px;
+
+  box-sizing: border-box;
+  outline: none;
+}
+
+.filters input:focus,
+.filters select:focus {
+  border-color: #2563eb;
+
+  box-shadow:
+    0 0 0 4px rgba(37,99,235,0.08);
+}
+
 .resources-grid {
   display: grid;
 
@@ -222,5 +390,25 @@ const modeLabel = (mode) => {
 
   font-size: 12px;
   font-weight: 800;
+}
+
+@media (max-width: 900px) {
+  .filters {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .search-field {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 600px) {
+  .filters {
+    grid-template-columns: 1fr;
+  }
+
+  .search-field {
+    grid-column: auto;
+  }
 }
 </style>

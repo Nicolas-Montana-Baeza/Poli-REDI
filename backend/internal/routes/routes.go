@@ -15,9 +15,11 @@ func RegisterRoutes(app *fiber.App) {
 	protected := api.Group("", middleware.RequireAuth())
 
 	protected.Get("/me", handlers.GetMe)
+	protected.Patch("/me/rut", handlers.UpdateMeRUT)
 
 	protected.Get("/resources", handlers.GetResources)
 	protected.Get("/activities", handlers.GetActivities)
+	protected.Post("/activities", handlers.CreateActivity)
 	protected.Get("/notifications", handlers.GetNotifications)
 	protected.Get("/users", handlers.GetUsers)
 

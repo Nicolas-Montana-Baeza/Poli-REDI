@@ -27,9 +27,12 @@ defineProps({
 
       </div>
 
-      <button class="view-all">
+      <RouterLink
+        class="view-all"
+        to="/reservations"
+      >
         Ver todas
-      </button>
+      </RouterLink>
 
     </div>
 
@@ -58,6 +61,7 @@ defineProps({
       <ReservationCard
         v-for="reservation in reservations"
         :key="reservation.id"
+        :id="reservation.id"
         :title="reservation.title"
         :sport="reservation.sport"
         :date="reservation.date"
@@ -120,6 +124,8 @@ defineProps({
   font-weight: 600;
 
   cursor: pointer;
+
+  text-decoration: none;
 
   transition: 0.2s;
 }

@@ -46,6 +46,7 @@ BEGIN
         id INT IDENTITY(1,1) NOT NULL CONSTRAINT pk_users PRIMARY KEY,
         email NVARCHAR(150) NOT NULL,
         full_name NVARCHAR(150) NOT NULL,
+        rut NVARCHAR(12) NULL,
         is_admin BIT NOT NULL CONSTRAINT df_users_is_admin DEFAULT (0),
         is_blocked BIT NOT NULL CONSTRAINT df_users_is_blocked DEFAULT (0),
         entra_oid NVARCHAR(100) NULL,
@@ -53,7 +54,32 @@ BEGIN
         created_at DATETIME2(0) NOT NULL CONSTRAINT df_users_created_at DEFAULT (SYSUTCDATETIME()),
         updated_at DATETIME2(0) NOT NULL CONSTRAINT df_users_updated_at DEFAULT (SYSUTCDATETIME()),
         CONSTRAINT uq_users_email UNIQUE (email),
-        CONSTRAINT ck_users_email_format CHECK (email LIKE '%_@_%._%')
+        CONSTRAINT ck_users_email_format CHECK (email LIKE '%_@_%._%'),
+        CONSTRAINT ck_users_rut_basic_format CHECK (
+            rut IS NULL OR (
+                LEN(rut) BETWEEN 9 AND 10
+                AND rut LIKE '%-[0-9K]'
+                AND rut NOT LIKE '%[^0-9K-]%'
+            )
+        )
+    );
+END;
+GO
+
+IF COL_LENGTH('dbo.users', 'rut') IS NULL
+BEGIN
+    ALTER TABLE dbo.users ADD rut NVARCHAR(12) NULL;
+END;
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.check_constraints WHERE name = 'ck_users_rut_basic_format' AND parent_object_id = OBJECT_ID('dbo.users'))
+BEGIN
+    ALTER TABLE dbo.users ADD CONSTRAINT ck_users_rut_basic_format CHECK (
+        rut IS NULL OR (
+            LEN(rut) BETWEEN 9 AND 10
+            AND rut LIKE '%-[0-9K]'
+            AND rut NOT LIKE '%[^0-9K-]%'
+        )
     );
 END;
 GO
@@ -279,6 +305,8 @@ GO
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'idx_venues_name' AND object_id = OBJECT_ID('dbo.venues')) CREATE INDEX idx_venues_name ON dbo.venues(name);
 GO
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'idx_users_email' AND object_id = OBJECT_ID('dbo.users')) CREATE INDEX idx_users_email ON dbo.users(email);
+GO
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'ux_users_rut' AND object_id = OBJECT_ID('dbo.users')) CREATE UNIQUE INDEX ux_users_rut ON dbo.users(rut) WHERE rut IS NOT NULL;
 GO
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'idx_users_entra_oid' AND object_id = OBJECT_ID('dbo.users')) CREATE INDEX idx_users_entra_oid ON dbo.users(entra_oid);
 GO

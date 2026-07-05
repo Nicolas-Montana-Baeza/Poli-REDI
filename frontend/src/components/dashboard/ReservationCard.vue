@@ -6,11 +6,16 @@ import {
   Clock3,
   Users,
   MapPin,
-  Trash2,
+  ListChecks,
   Eye
 } from 'lucide-vue-next'
 
 const props = defineProps({
+  id: {
+    type: Number,
+    default: null
+  },
+
   title: {
     type: String,
     default: 'Reserva'
@@ -189,21 +194,27 @@ const statusClass = computed(() => {
     <!-- ACTIONS -->
     <div class="actions">
 
-      <button class="secondary">
+      <RouterLink
+        class="secondary"
+        :to="id ? `/reservations/${id}` : '/reservations'"
+      >
 
         <Eye :size="16" />
 
         Ver
 
-      </button>
+      </RouterLink>
 
-      <button class="danger">
+      <RouterLink
+        class="danger"
+        to="/reservations"
+      >
 
-        <Trash2 :size="16" />
+        <ListChecks :size="16" />
 
-        Cancelar
+        Gestionar
 
-      </button>
+      </RouterLink>
 
     </div>
 
@@ -380,7 +391,7 @@ const statusClass = computed(() => {
   gap: 12px;
 }
 
-.actions button {
+.actions a {
   flex: 1;
 
   border: none;
@@ -398,6 +409,8 @@ const statusClass = computed(() => {
   font-weight: 600;
 
   cursor: pointer;
+
+  text-decoration: none;
 
   transition: 0.2s;
 }

@@ -51,6 +51,14 @@ const loadWarning = computed(() => {
 })
 
 const reservationBlockingError = computed(() => {
+  if (
+    authStore.user &&
+    authStore.user.isAdmin !== true &&
+    !authStore.user.rut
+  ) {
+    return 'Debes registrar tu RUT en Cuenta antes de crear reservas.'
+  }
+
   if (resourcesStore.error) {
     return 'No se puede crear la reserva porque no se pudieron cargar los recursos.'
   }
@@ -180,6 +188,20 @@ const submitReservation = async (reservation) => {
       return
     }
 
+    let activityId =
+      Number(reservation.activityId)
+
+    if (
+      activityId === 0 &&
+      String(reservation.newActivityName || '').trim()
+    ) {
+      const activity = await activitiesStore.createActivity({
+        name: reservation.newActivityName
+      })
+
+      activityId = activity.id
+    }
+
     const payload = {
       resourceId:
         reservation.resource.id,
@@ -193,9 +215,6 @@ const submitReservation = async (reservation) => {
       durationMinutes:
         Number(reservation.durationMinutes)
     }
-
-    const activityId =
-      Number(reservation.activityId)
 
     if (activityId > 0) {
       payload.activityId = activityId

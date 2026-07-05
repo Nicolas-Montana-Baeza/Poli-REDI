@@ -5,5 +5,11 @@ export const activitiesService = {
     const response = await api.get('/activities')
 
     return response.data
+  },
+
+  async create(activity) {
+    const response = await api.post('/activities', activity)
+
+    return response.data
   }
 }

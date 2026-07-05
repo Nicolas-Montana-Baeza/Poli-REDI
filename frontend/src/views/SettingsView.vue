@@ -1,7 +1,9 @@
 <script setup>
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 
 import {
+  IdCard,
   Mail,
   Power,
   ShieldCheck,
@@ -10,8 +12,17 @@ import {
 
 import SkeletonLoader from '@/components/ui/SkeletonLoader.vue'
 import { useAuthStore } from '@/stores/auth'
+import { useNotificationsStore } from '@/stores/notifications'
+import { isValidRut, normalizeRut } from '@/utils/validators'
 
 const authStore = useAuthStore()
+const notificationsStore = useNotificationsStore()
+const route = useRoute()
+const router = useRouter()
+const rutValue = ref('')
+const rutError = ref('')
+const rutSuccess = ref('')
+const rutSaving = ref(false)
 
 const displayName = computed(() => {
   return (
@@ -47,6 +58,18 @@ const statusLabel = computed(() => {
   return 'Activo'
 })
 
+const rutRequired = computed(() => {
+  return authStore.user?.isAdmin !== true
+})
+
+const rutStatusLabel = computed(() => {
+  if (authStore.user?.rut) {
+    return authStore.user.rut
+  }
+
+  return rutRequired.value ? 'Pendiente' : 'No requerido'
+})
+
 const initials = computed(() => {
   return displayName.value
     .split(' ')
@@ -59,6 +82,42 @@ const initials = computed(() => {
 
 const handleLogout = async () => {
   await authStore.logoutUser()
+  notificationsStore.clearNotifications()
+  await router.replace('/login')
+}
+
+const handleRutSubmit = async () => {
+  rutError.value = ''
+  rutSuccess.value = ''
+
+  const normalized = normalizeRut(rutValue.value)
+
+  if (rutRequired.value && !normalized) {
+    rutError.value = 'Ingresa tu RUT para continuar.'
+    return
+  }
+
+  if (normalized && !isValidRut(normalized)) {
+    rutError.value = 'El RUT ingresado no es valido.'
+    return
+  }
+
+  rutSaving.value = true
+
+  try {
+    await authStore.updateRut(normalized)
+
+    rutValue.value = authStore.user?.rut || normalized
+    rutSuccess.value = 'RUT actualizado correctamente.'
+
+    if (route.query.redirect) {
+      router.replace(String(route.query.redirect))
+    }
+  } catch (error) {
+    rutError.value = error.message
+  } finally {
+    rutSaving.value = false
+  }
 }
 
 onMounted(() => {
@@ -66,6 +125,16 @@ onMounted(() => {
     authStore.loadAuthUser()
   }
 })
+
+watch(
+  () => authStore.user?.rut,
+  (rut) => {
+    rutValue.value = rut || ''
+  },
+  {
+    immediate: true
+  }
+)
 </script>
 
 <template>
@@ -161,6 +230,63 @@ onMounted(() => {
           <strong>
             {{ displayEmail }}
           </strong>
+
+        </article>
+
+        <article class="detail-card">
+
+          <IdCard :size="22" />
+
+          <span>
+            RUT
+          </span>
+
+          <strong>
+            {{ rutStatusLabel }}
+          </strong>
+
+          <form
+            class="rut-form"
+            @submit.prevent="handleRutSubmit"
+          >
+
+            <input
+              v-model="rutValue"
+              type="text"
+              inputmode="text"
+              placeholder="12345678-5"
+              :disabled="rutSaving"
+            />
+
+            <button
+              type="submit"
+              :disabled="rutSaving"
+            >
+              {{ rutSaving ? 'Guardando...' : 'Guardar RUT' }}
+            </button>
+
+          </form>
+
+          <p
+            v-if="rutRequired && !authStore.user?.rut"
+            class="hint warning"
+          >
+            Debes registrar tu RUT antes de crear reservas.
+          </p>
+
+          <p
+            v-if="rutError"
+            class="hint error"
+          >
+            {{ rutError }}
+          </p>
+
+          <p
+            v-if="rutSuccess"
+            class="hint success"
+          >
+            {{ rutSuccess }}
+          </p>
 
         </article>
 
@@ -373,6 +499,78 @@ onMounted(() => {
 
   font-size: 16px;
   overflow-wrap: anywhere;
+}
+
+.rut-form {
+  display: flex;
+  flex-direction: column;
+
+  gap: 10px;
+}
+
+.rut-form input,
+.rut-form button {
+  width: 100%;
+
+  min-height: 44px;
+
+  border-radius: 14px;
+
+  box-sizing: border-box;
+
+  font: inherit;
+}
+
+.rut-form input {
+  border: 1px solid #dbe2ea;
+
+  padding: 0 14px;
+
+  outline: none;
+}
+
+.rut-form input:focus {
+  border-color: #2563eb;
+
+  box-shadow:
+    0 0 0 4px rgba(37,99,235,0.08);
+}
+
+.rut-form button {
+  border: none;
+
+  background: #1d4ed8;
+  color: white;
+
+  cursor: pointer;
+
+  font-weight: 800;
+}
+
+.rut-form button:disabled,
+.rut-form input:disabled {
+  cursor: not-allowed;
+
+  opacity: 0.65;
+}
+
+.hint {
+  margin: 0;
+
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.hint.warning {
+  color: #92400e;
+}
+
+.hint.error {
+  color: #b91c1c;
+}
+
+.hint.success {
+  color: #166534;
 }
 
 @media (max-width: 768px) {

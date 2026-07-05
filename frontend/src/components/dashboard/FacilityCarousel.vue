@@ -9,13 +9,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['select'])
-
 const scrollRef = ref(null)
-
-const handleSelect = (facility) => {
-  emit('select', facility)
-}
 </script>
 
 <template>
@@ -41,7 +35,6 @@ const handleSelect = (facility) => {
           :type="facility.type"
           :status="facility.status"
           :image="facility.image"
-          @select="handleSelect(facility)"
         />
       </div>
 

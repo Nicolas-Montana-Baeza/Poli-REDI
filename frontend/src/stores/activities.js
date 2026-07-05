@@ -22,6 +22,35 @@ export const useActivitiesStore = defineStore('activities', {
       } finally {
         this.loading = false
       }
+    },
+
+    async createActivity(activity) {
+      this.loading = true
+      this.error = null
+
+      try {
+        const createdActivity = await activitiesService.create(activity)
+        const exists = this.activities.some(
+          (item) => item.id === createdActivity.id
+        )
+
+        if (!exists) {
+          this.activities.push(createdActivity)
+          this.activities.sort((a, b) => a.name.localeCompare(b.name))
+        }
+
+        return createdActivity
+      } catch (error) {
+        const message =
+          error.response?.data?.error ||
+          error.response?.data?.detail ||
+          'No se pudo crear la actividad'
+
+        this.error = message
+        throw new Error(message)
+      } finally {
+        this.loading = false
+      }
     }
   }
 })

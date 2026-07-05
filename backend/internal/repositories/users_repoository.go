@@ -56,8 +56,11 @@ func getUserByEmail(ctx context.Context, email string) (*models.LocalAuthUser, e
 			id,
 			email,
 			full_name,
+			COALESCE(rut, '') AS rut,
 			is_admin,
-			is_blocked
+			is_blocked,
+			COALESCE(entra_oid, '') AS entra_oid,
+			COALESCE(tenant_id, '') AS tenant_id
 		FROM dbo.users
 		WHERE email = @p1;
 		`,
@@ -66,8 +69,11 @@ func getUserByEmail(ctx context.Context, email string) (*models.LocalAuthUser, e
 		&user.ID,
 		&user.Email,
 		&user.FullName,
+		&user.RUT,
 		&user.IsAdmin,
 		&user.IsBlocked,
+		&user.OID,
+		&user.TenantID,
 	)
 
 	if err != nil {
@@ -75,6 +81,31 @@ func getUserByEmail(ctx context.Context, email string) (*models.LocalAuthUser, e
 	}
 
 	return &user, nil
+}
+
+func UpdateUserEntraIdentity(userID int, oid string, tenantID string) (*models.LocalAuthUser, error) {
+	ctx := context.Background()
+
+	_, err := database.DB.ExecContext(
+		ctx,
+		`
+		UPDATE dbo.users
+		SET
+			entra_oid = NULLIF(@p1, ''),
+			tenant_id = NULLIF(@p2, ''),
+			updated_at = SYSUTCDATETIME()
+		WHERE id = @p3;
+		`,
+		oid,
+		tenantID,
+		userID,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return getUserByID(ctx, userID)
 }
 
 func GetAllUsers() ([]models.LocalAuthUser, error) {
@@ -85,6 +116,7 @@ func GetAllUsers() ([]models.LocalAuthUser, error) {
 			id,
 			email,
 			full_name,
+			COALESCE(rut, '') AS rut,
 			is_admin,
 			is_blocked,
 			COALESCE(entra_oid, '') AS entra_oid,
@@ -109,6 +141,7 @@ func GetAllUsers() ([]models.LocalAuthUser, error) {
 			&user.ID,
 			&user.Email,
 			&user.FullName,
+			&user.RUT,
 			&user.IsAdmin,
 			&user.IsBlocked,
 			&user.OID,
@@ -127,4 +160,69 @@ func GetAllUsers() ([]models.LocalAuthUser, error) {
 	}
 
 	return users, nil
+}
+
+func UpdateUserRUT(userID int, rut string) (*models.LocalAuthUser, error) {
+	ctx := context.Background()
+	var rutValue any = rut
+
+	if rut == "" {
+		rutValue = nil
+	}
+
+	_, err := database.DB.ExecContext(
+		ctx,
+		`
+		UPDATE dbo.users
+		SET
+			rut = @p1,
+			updated_at = SYSUTCDATETIME()
+		WHERE id = @p2;
+		`,
+		rutValue,
+		userID,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return getUserByID(ctx, userID)
+}
+
+func getUserByID(ctx context.Context, userID int) (*models.LocalAuthUser, error) {
+	var user models.LocalAuthUser
+
+	err := database.DB.QueryRowContext(
+		ctx,
+		`
+		SELECT
+			id,
+			email,
+			full_name,
+			COALESCE(rut, '') AS rut,
+			is_admin,
+			is_blocked,
+			COALESCE(entra_oid, '') AS entra_oid,
+			COALESCE(tenant_id, '') AS tenant_id
+		FROM dbo.users
+		WHERE id = @p1;
+		`,
+		userID,
+	).Scan(
+		&user.ID,
+		&user.Email,
+		&user.FullName,
+		&user.RUT,
+		&user.IsAdmin,
+		&user.IsBlocked,
+		&user.OID,
+		&user.TenantID,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &user, nil
 }

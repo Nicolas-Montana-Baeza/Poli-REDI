@@ -3,7 +3,7 @@ import {
   createWebHistory
 } from 'vue-router'
 
-import { isAuthenticated, login } from '../auth/authService'
+import { isAuthenticated } from '../auth/authService'
 
 import DashboardView from '../views/DashboardView.vue'
 import AvailabilityView from '../views/AvailabilityView.vue'
@@ -16,6 +16,8 @@ import UsersView from '../views/UsersView.vue'
 import SettingsView from '../views/SettingsView.vue'
 import ReportsView from '../views/ReportsView.vue'
 import AuthCallbackView from '../views/AuthCallbackView.vue'
+import LoginView from '../views/LoginView.vue'
+import BlockedView from '../views/BlockedView.vue'
 import { useAuthStore } from '../stores/auth'
 
 const routes = [
@@ -73,6 +75,16 @@ const routes = [
     path: '/auth/callback',
     component: AuthCallbackView,
     meta: { public: true }
+  },
+  {
+    path: '/login',
+    component: LoginView,
+    meta: { public: true }
+  },
+  {
+    path: '/blocked',
+    component: BlockedView,
+    meta: { public: true }
   }
 ]
 
@@ -90,12 +102,34 @@ router.beforeEach(async (to) => {
     const authenticated = await isAuthenticated()
 
     if (!authenticated) {
-      await login(to.fullPath)
-      return false
+      return {
+        path: '/login',
+        query: {
+          redirect: to.fullPath
+        }
+      }
     }
 
     const authStore = useAuthStore()
     const user = authStore.user || await authStore.loadAuthUser()
+
+    if (!user && authStore.errorStatus === 403) {
+      return { path: '/blocked' }
+    }
+
+    if (
+      user &&
+      user.isAdmin !== true &&
+      !user.rut &&
+      to.path !== '/settings'
+    ) {
+      return {
+        path: '/settings',
+        query: {
+          redirect: to.fullPath
+        }
+      }
+    }
 
     if (to.meta.requiresAdmin && user?.isAdmin !== true) {
       if (to.path === '/availability') {

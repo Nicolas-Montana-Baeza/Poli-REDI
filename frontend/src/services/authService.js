@@ -56,7 +56,7 @@ export async function logout() {
   clearMsalCache()
 
   return msalInstance.logoutRedirect({
-    postLogoutRedirectUri: 'http://localhost:5173'
+    postLogoutRedirectUri: 'http://localhost:5173/login'
   })
 }
 

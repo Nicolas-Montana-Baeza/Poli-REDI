@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref, onMounted, onBeforeUnmount } from 'vue'
+import { computed, ref, onMounted, onBeforeUnmount, watch } from 'vue'
 
 import {
   Bell,
@@ -9,8 +9,10 @@ import {
 } from 'lucide-vue-next'
 
 import SkeletonLoader from '@/components/ui/SkeletonLoader.vue'
+import { useAuthStore } from '@/stores/auth'
 import { useNotificationsStore } from '@/stores/notifications'
 
+const authStore = useAuthStore()
 const notificationsStore = useNotificationsStore()
 const open = ref(false)
 
@@ -20,6 +22,10 @@ const notifications = computed(() => {
 
 const unreadCount = computed(() => {
   return notificationsStore.unreadCount
+})
+
+const isAuthenticated = computed(() => {
+  return !!authStore.account
 })
 
 const toggle = () => {
@@ -61,8 +67,21 @@ const formatNotificationTime = (createdAt) => {
 
 onMounted(() => {
   window.addEventListener('click', close)
-  notificationsStore.fetchNotifications()
 })
+
+watch(
+  isAuthenticated,
+  (authenticated) => {
+    if (authenticated) {
+      notificationsStore.fetchNotifications()
+    } else {
+      notificationsStore.clearNotifications()
+    }
+  },
+  {
+    immediate: true
+  }
+)
 
 onBeforeUnmount(() => {
   window.removeEventListener('click', close)

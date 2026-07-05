@@ -14,20 +14,20 @@ GO
 
 -- USERS
 SET IDENTITY_INSERT dbo.users ON;
-INSERT INTO dbo.users (id, email, full_name, is_admin, is_blocked, entra_oid, tenant_id)
+INSERT INTO dbo.users (id, email, full_name, rut, is_admin, is_blocked, entra_oid, tenant_id)
 VALUES
-(1, 'admin@universidad.cl', 'Administrador General', 1, 0, NULL, NULL),
-(2, 'nicolas@universidad.cl', 'Nicolas Montana', 0, 0, NULL, NULL),
-(3, 'maria@universidad.cl', 'Maria Gonzalez', 0, 0, NULL, NULL),
-(4, 'juan@universidad.cl', 'Juan Perez', 0, 0, NULL, NULL),
-(5, 'camila@universidad.cl', 'Camila Soto', 0, 0, NULL, NULL),
-(6, 'pedro@universidad.cl', 'Pedro Ramirez', 0, 0, NULL, NULL),
-(7, 'valentina@universidad.cl', 'Valentina Fuentes', 0, 0, NULL, NULL),
-(8, 'sebastian@universidad.cl', 'Sebastian Morales', 0, 0, NULL, NULL),
-(9, 'fernanda@universidad.cl', 'Fernanda Rojas', 0, 0, NULL, NULL),
-(10, 'diego@universidad.cl', 'Diego Herrera', 0, 0, NULL, NULL),
-(11, 'sofia@universidad.cl', 'Sofia Castillo', 0, 0, NULL, NULL),
-(12, 'bloqueado@universidad.cl', 'Usuario Bloqueado', 0, 1, NULL, NULL);
+(1, 'admin@universidad.cl', 'Administrador General', NULL, 1, 0, NULL, NULL),
+(2, 'nicolas@universidad.cl', 'Nicolas Montana', '12345678-5', 0, 0, NULL, NULL),
+(3, 'maria@universidad.cl', 'Maria Gonzalez', '10000000-8', 0, 0, NULL, NULL),
+(4, 'juan@universidad.cl', 'Juan Perez', '10000001-6', 0, 0, NULL, NULL),
+(5, 'camila@universidad.cl', 'Camila Soto', '10000002-4', 0, 0, NULL, NULL),
+(6, 'pedro@universidad.cl', 'Pedro Ramirez', '10000003-2', 0, 0, NULL, NULL),
+(7, 'valentina@universidad.cl', 'Valentina Fuentes', '10000004-0', 0, 0, NULL, NULL),
+(8, 'sebastian@universidad.cl', 'Sebastian Morales', '10000005-9', 0, 0, NULL, NULL),
+(9, 'fernanda@universidad.cl', 'Fernanda Rojas', '10000006-7', 0, 0, NULL, NULL),
+(10, 'diego@universidad.cl', 'Diego Herrera', '10000007-5', 0, 0, NULL, NULL),
+(11, 'sofia@universidad.cl', 'Sofia Castillo', '10000008-3', 0, 0, NULL, NULL),
+(12, 'bloqueado@universidad.cl', 'Usuario Bloqueado', '10000009-1', 0, 1, NULL, NULL);
 SET IDENTITY_INSERT dbo.users OFF;
 GO
 

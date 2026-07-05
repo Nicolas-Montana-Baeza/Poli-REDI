@@ -11,8 +11,10 @@ import {
 } from 'lucide-vue-next'
 
 import { useAuthStore } from '@/stores/auth'
+import { useNotificationsStore } from '@/stores/notifications'
 
 const authStore = useAuthStore()
+const notificationsStore = useNotificationsStore()
 const router = useRouter()
 const open = ref(false)
 
@@ -65,6 +67,8 @@ const close = (event) => {
 const handleLogout = async () => {
   open.value = false
   await authStore.logoutUser()
+  notificationsStore.clearNotifications()
+  await router.replace('/login')
 }
 
 const goToSettings = async () => {

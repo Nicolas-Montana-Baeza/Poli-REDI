@@ -1,5 +1,8 @@
 import axios from 'axios'
-import { getAccessToken } from '../auth/authService'
+import {
+  getAccessToken,
+  getDevAuthHeaders
+} from '../auth/authService'
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api',
@@ -10,6 +13,8 @@ const api = axios.create({
 })
 
 api.interceptors.request.use(async (config) => {
+  Object.assign(config.headers, getDevAuthHeaders())
+
   try {
     const token = await getAccessToken()
 

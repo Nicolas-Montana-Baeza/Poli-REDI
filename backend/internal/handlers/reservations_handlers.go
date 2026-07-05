@@ -56,6 +56,12 @@ func CreateReservation(c *fiber.Ctx) error {
 		})
 	}
 
+	if !user.IsAdmin && user.RUT == "" {
+		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+			"error": "Debes registrar tu RUT antes de crear reservas",
+		})
+	}
+
 	if err := c.BodyParser(&request); err != nil {
 		return c.Status(400).JSON(fiber.Map{
 			"error": "Datos invalidos",

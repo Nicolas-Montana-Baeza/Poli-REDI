@@ -66,7 +66,7 @@ blocked
 
 Prioridad: P0
 Labels: `database`, `testing`, `needs-review`
-Estado sugerido: Ready for Codex
+Estado sugerido: Done
 
 ### Contexto
 
@@ -78,11 +78,17 @@ Verificar que una base nueva pueda crearse desde cero usando los scripts actuale
 
 ### Criterios de aceptacion
 
-- [ ] `database/drop.sql` puede ejecutarse sin fallar aunque no existan objetos.
-- [ ] `database/schema.sql` crea todas las tablas, indices, triggers y vistas.
-- [ ] `database/seed.sql` carga datos iniciales sin errores.
-- [ ] El backend conecta correctamente despues de la carga.
-- [ ] El frontend muestra recursos y reservas.
+- [x] `database/drop.sql` puede ejecutarse sin fallar aunque no existan objetos.
+- [x] `database/schema.sql` crea todas las tablas, indices, triggers y vistas.
+- [x] `database/seed.sql` carga datos iniciales sin errores.
+- [x] El backend conecta correctamente despues de la carga.
+- [x] El frontend muestra recursos y reservas.
+
+### Resultado de implementacion
+
+- Se valido el flujo desde una base limpia usando `drop.sql`, `schema.sql` y `seed.sql`.
+- La base queda operativa y el frontend/backend cargan datos reales.
+- Se confirmo que el sistema puede poblar usuarios autenticados por Entra ID que existen en Azure pero aun no existen en Poli-REDI.
 
 ### Archivos relevantes
 
@@ -133,7 +139,7 @@ Eliminar logs de depuracion visibles en consola o reemplazarlos por manejo de er
 
 Prioridad: P1
 Labels: `documentacion`, `database`
-Estado sugerido: Backlog
+Estado sugerido: Done
 
 ### Contexto
 
@@ -194,7 +200,7 @@ Crear reservas con el ID real del usuario autenticado.
 
 Prioridad: P1
 Labels: `backend`, `auth`, `database`
-Estado sugerido: Backlog
+Estado sugerido: Done
 
 ### Contexto
 
@@ -206,11 +212,18 @@ Guardar `entra_oid` y `tenant_id` del token en `users` para trazabilidad y consi
 
 ### Criterios de aceptacion
 
-- [ ] `GetOrCreateUserByEmail` recibe o actualiza `entra_oid` y `tenant_id`.
-- [ ] Usuarios existentes se actualizan sin duplicarse.
-- [ ] Se respeta email como identificador legible.
-- [ ] Se valida indice unico `(tenant_id, entra_oid)` si ambos existen.
-- [ ] `go test ./...` pasa.
+- [x] `GetOrCreateUserByEmail` recibe o actualiza `entra_oid` y `tenant_id`.
+- [x] Usuarios existentes se actualizan sin duplicarse.
+- [x] Se respeta email como identificador legible.
+- [x] Se valida indice unico `(tenant_id, entra_oid)` si ambos existen.
+- [x] `go test ./...` pasa.
+
+### Resultado de implementacion
+
+- `GetOrCreateUserByEmail` ahora retorna tambien `entra_oid` y `tenant_id`.
+- Se agrego `UpdateUserEntraIdentity` para sincronizar identidad Microsoft sin duplicar usuarios.
+- El middleware de Entra actualiza `entra_oid` y `tenant_id` despues de crear/leer el usuario por email.
+- El modo local de desarrollo no persiste `dev-local` para evitar colisiones entre usuarios de prueba.
 
 ### Archivos relevantes
 
@@ -235,10 +248,52 @@ Mostrar una pantalla o mensaje claro cuando un usuario bloqueado intenta usar el
 
 ### Criterios de aceptacion
 
-- [ ] Si `/api/me` responde usuario bloqueado o 403, el frontend muestra mensaje claro.
-- [ ] El usuario no queda atrapado en redirecciones.
-- [ ] Existe opcion de cerrar sesion.
-- [ ] No se muestran pantallas internas a usuarios bloqueados.
+- [x] Si `/api/me` responde usuario bloqueado o 403, el frontend muestra mensaje claro.
+- [x] El usuario no queda atrapado en redirecciones.
+- [x] Existe opcion de cerrar sesion.
+- [x] No se muestran pantallas internas a usuarios bloqueados.
+
+### Resultado de implementacion
+
+- `auth.js` conserva el estado HTTP del error de `/api/me`.
+- El router redirige a `/blocked` cuando el usuario autenticado recibe 403.
+- `BlockedView.vue` muestra un mensaje claro de cuenta bloqueada y permite cerrar sesion.
+- El login local tambien envia a `/blocked` si el backend rechaza la cuenta por bloqueo.
+
+## AUTH-004 - Solicitar y validar RUT de usuario
+
+Prioridad: P1
+Labels: `frontend`, `backend`, `database`, `auth`
+Estado sugerido: Done
+
+### Contexto
+
+El sistema puede crear usuarios locales desde Microsoft Entra ID cuando existen en Azure pero no en Poli-REDI. Los usuarios normales deben registrar o confirmar su RUT para poder operar reservas. Los administradores no requieren RUT.
+
+### Objetivo
+
+Guardar RUT en `users`, validarlo en frontend/backend y bloquear reservas de usuarios normales sin RUT.
+
+### Criterios de aceptacion
+
+- [x] `users` incluye columna `rut`.
+- [x] La base aplica validacion basica de formato si el RUT existe.
+- [x] El backend valida RUT chileno con digito verificador.
+- [x] `/api/me` retorna RUT del usuario autenticado.
+- [x] Existe endpoint protegido para actualizar RUT del usuario autenticado.
+- [x] Usuarios normales sin RUT no pueden crear reservas.
+- [x] Administradores pueden operar sin RUT.
+- [x] El frontend permite ingresar/actualizar RUT y muestra errores.
+
+### Resultado de implementacion
+
+- Se agrego `rut` a `dbo.users` y un indice unico filtrado para RUT no nulo.
+- Se agrego validador backend de RUT con digito verificador.
+- Se agrego `PATCH /api/me/rut`.
+- `CreateReservation` rechaza usuarios normales sin RUT antes de crear la reserva.
+- `SettingsView.vue` permite registrar o actualizar RUT con validacion frontend.
+- El router envia a usuarios normales sin RUT a `SettingsView` antes de permitir el uso interno.
+- En modo desarrollo, el login local no-admin puede resetear RUT para probar el flujo de registro y confirmar cambios en base de datos.
 
 ---
 
@@ -262,6 +317,7 @@ Permitir seleccionar o resolver la actividad real al crear una reserva.
 
 - [x] El backend expone listado de actividades activas o el frontend usa una fuente real.
 - [x] El formulario permite seleccionar actividad.
+- [x] El formulario permite crear una actividad nueva si no existe en la lista.
 - [x] No se usa `activityId` fijo.
 - [x] La reserva creada queda asociada a la actividad correcta.
 - [x] Se maneja estado sin actividades.
@@ -269,9 +325,11 @@ Permitir seleccionar o resolver la actividad real al crear una reserva.
 ### Resultado de implementacion
 
 - `GET /api/activities` entrega actividades activas desde Azure SQL.
+- `POST /api/activities` crea o reutiliza una actividad por nombre para asociarla a la reserva.
 - `ReservationForm.vue` muestra un selector de actividades reales.
-- `AvailabilitySection.vue` carga actividades junto con recursos/reservas y envia `activityId` seleccionado.
-- Si no existen actividades, el formulario muestra estado deshabilitado y la reserva puede quedar sin actividad asociada.
+- `ReservationForm.vue` permite elegir "Otra actividad..." y escribir un nombre nuevo.
+- `AvailabilitySection.vue` carga actividades junto con recursos/reservas, crea la actividad nueva si corresponde y envia el `activityId` seleccionado.
+- Si no existen actividades cargadas, el formulario permite crear una nueva o dejar la reserva sin actividad especifica.
 
 ### Archivos relevantes
 
@@ -371,7 +429,7 @@ Mostrar en disponibilidad reservas, bloqueos y actividades institucionales.
 
 Prioridad: P1
 Labels: `frontend`, `reservas`, `ux`
-Estado sugerido: Ready for Codex
+Estado sugerido: Done
 
 ### Contexto
 
@@ -383,19 +441,26 @@ Agregar validaciones visibles antes de enviar reserva.
 
 ### Criterios de aceptacion
 
-- [ ] Muestra error si falta recurso.
-- [ ] Muestra error si falta fecha.
-- [ ] Muestra error si falta hora.
-- [ ] Valida duracion mayor a 0.
-- [ ] Valida participantes mayor a 0.
-- [ ] Deshabilita boton mientras se crea la reserva.
-- [ ] Muestra error devuelto por backend sin cerrar modal.
+- [x] Muestra error si falta recurso.
+- [x] Muestra error si falta fecha.
+- [x] Muestra error si falta hora.
+- [x] Valida duracion mayor a 0.
+- [x] Valida participantes mayor a 0.
+- [x] Deshabilita boton mientras se crea la reserva.
+- [x] Muestra error devuelto por backend sin cerrar modal.
+
+### Resultado de implementacion
+
+- `ReservationForm.vue` valida recurso, fecha, hora, duracion, participantes y nombre de actividad nueva antes de enviar.
+- Los campos invalidos muestran mensajes visibles y estado visual de error.
+- El boton de confirmacion queda bloqueado mientras se crea la reserva o no hay recursos cargados.
+- Los errores de backend se mantienen visibles dentro del modal sin cerrarlo.
 
 ## RES-006 - Implementar vista Mis Reservas
 
 Prioridad: P1
 Labels: `frontend`, `reservas`, `feature`
-Estado sugerido: Ready for Codex
+Estado sugerido: Done
 
 ### Contexto
 
@@ -480,7 +545,7 @@ Mostrar catalogo de recursos deportivos con datos reales.
 
 - [x] Lista recursos desde `/api/resources`.
 - [x] Muestra nombre, tipo, modo de reserva, capacidad y estado.
-- [ ] Permite filtrar por tipo o sede si los datos estan disponibles.
+- [x] Permite filtrar por tipo o sede si los datos estan disponibles.
 - [x] Tiene estados de carga, error y vacio.
 - [x] Mantiene estilo visual actual.
 
@@ -488,7 +553,7 @@ Mostrar catalogo de recursos deportivos con datos reales.
 
 - `ResourcesView.vue` ya no muestra `Proximamente...`.
 - `GET /api/resources` ahora incluye `capacity` desde Azure SQL.
-- Queda pendiente agregar filtros.
+- `ResourcesView.vue` permite buscar por nombre/tipo y filtrar por tipo, modo de reserva y estado.
 
 ## UI-002 - Implementar detalle de reserva
 
@@ -522,7 +587,7 @@ Mostrar informacion detallada de una reserva.
 
 Prioridad: P2
 Labels: `frontend`, `reservas`, `feature`
-Estado sugerido: Backlog
+Estado sugerido: Done
 
 ### Contexto
 
@@ -535,14 +600,14 @@ Mostrar historial de reservas pasadas, canceladas o rechazadas.
 ### Criterios de aceptacion
 
 - [x] Lista reservas historicas del usuario.
-- [ ] Permite filtrar por estado.
-- [ ] Permite filtrar por fecha.
+- [x] Permite filtrar por estado.
+- [x] Permite filtrar por fecha.
 - [x] Tiene estados de carga, error y vacio.
 
 ### Resultado parcial
 
 - `HistoryView.vue` muestra reservas pasadas o canceladas desde `/api/reservations/mine`.
-- Quedan pendientes filtros por estado y fecha.
+- `HistoryView.vue` permite filtrar por estado y rango de fecha.
 
 ## UI-004 - Conectar Dashboard a datos reales
 
@@ -599,6 +664,7 @@ Crear una vista inicial de configuracion de cuenta/sistema.
 - `SettingsView.vue` muestra nombre, correo, rol y estado desde el store de autenticacion.
 - El menu de usuario navega a `/settings`.
 - `/settings` queda disponible para cualquier usuario autenticado.
+- Al cerrar sesion desde el menu o desde configuracion, la app limpia estado local y redirige a `/login`.
 
 ---
 
@@ -630,6 +696,7 @@ Crear un panel administrador inicial con accesos a gestion de recursos, usuarios
 - `AdminView.vue` ya no muestra `Proximamente...`.
 - El panel carga recursos y reservas desde la API.
 - Muestra recursos activos, reservas confirmadas, reservas del dia y proximas reservas.
+- El menu lateral oculta la seccion de administracion para usuarios normales y deja configuracion fuera de esa seccion.
 - Usuarios, reportes e infracciones quedan como tareas especificas posteriores.
 
 ## ADMIN-002 - Implementar gestion de usuarios
@@ -783,6 +850,7 @@ Mostrar notificaciones reales al usuario desde Azure SQL.
 
 - `GET /api/notifications` lista notificaciones del usuario autenticado desde Azure SQL.
 - `NotificationBell.vue` ya no usa notificaciones locales.
+- La campana no consulta `/api/notifications` si no hay sesion activa y limpia su estado al cerrar sesion.
 - Queda pendiente marcar como leida y diferenciar visualmente leidas/no leidas.
 
 ---
@@ -1003,6 +1071,30 @@ Completar `docs/06-flujo-reservas.md`.
 - [ ] Describe estados de reserva.
 - [ ] Incluye diagrama de secuencia o actividad.
 
+## DOC-004 - Documentar requisitos, historias y casos de uso
+
+Prioridad: P1
+Labels: `documentacion`, `requisitos`
+Estado sugerido: Done
+
+### Objetivo
+
+Consolidar requisitos funcionales, requisitos no funcionales, historias de usuario y casos de uso principales de Poli-REDI.
+
+### Criterios de aceptacion
+
+- [x] Existe documento dedicado en `docs/`.
+- [x] Incluye actores principales.
+- [x] Incluye requisitos funcionales y no funcionales.
+- [x] Incluye historias de usuario con criterios de aceptacion.
+- [x] Incluye casos de uso principales.
+- [x] Incluye trazabilidad inicial contra backlog.
+
+### Resultado de implementacion
+
+- Se creo `docs/08-requisitos-historias-casos-uso.md`.
+- El documento queda como fuente viva para alcance funcional, historias, casos de uso y trazabilidad inicial.
+
 ---
 
 # Hito 10 - Despliegue
@@ -1119,6 +1211,7 @@ Revision realizada durante la conexion de actividades reales.
 5. `DOC-001` README.
 6. `DOC-002` Arquitectura.
 7. `DOC-003` Flujo de reservas.
+8. `DOC-004` Requisitos, historias y casos de uso.
 
 # Tareas Codex-ready iniciales
 
@@ -1146,3 +1239,24 @@ go test ./...
 cd ../frontend
 npm run build
 ```
+
+# Protocolo de mantenimiento de documentacion
+
+Fecha de inicio: 2026-07-05
+
+Desde esta fecha, cualquier intervencion sobre `Poli-REDI` debe cerrar con una revision de la documentacion viva del proyecto.
+
+## Regla operativa
+
+- Si una tarea se completa, actualizar su estado sugerido, criterios de aceptacion y resultado de implementacion.
+- Si una tarea queda parcialmente resuelta, mantenerla abierta y agregar resultado parcial con lo pendiente.
+- Si durante el trabajo aparece una necesidad nueva, agregarla como tarea nueva en el hito correspondiente.
+- Si cambia el alcance de una tarea existente, actualizar contexto, objetivo y archivos relevantes.
+- Si cambia una funcionalidad, revisar tambien requisitos, historias de usuario y casos de uso.
+- Si cambia arquitectura, instalacion, base de datos, backend, frontend o flujo de reservas, actualizar el documento tecnico correspondiente en `docs/`.
+- Si se toca autenticacion, reservas, base de datos o seguridad, dejar evidencia de pruebas o de la razon por la que no pudieron ejecutarse.
+- Si no hay impacto documental, registrar explicitamente en el cierre del trabajo que no se requirio cambio en `docs/`.
+
+## Responsable
+
+Codex queda encargado de revisar y mantener `docs/` cada vez que trabaje sobre `Poli-REDI`, con foco minimo en `docs/07-backlog.md` y `docs/08-requisitos-historias-casos-uso.md`.

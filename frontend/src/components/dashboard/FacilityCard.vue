@@ -11,12 +11,6 @@ const props = defineProps({
   image: String
 })
 
-const emit = defineEmits(['select'])
-
-const handleClick = () => {
-  emit('select', props)
-}
-
 const statusLabel = computed(() => {
   switch (props.status) {
     case 'available': return 'Disponible'
@@ -28,10 +22,9 @@ const statusLabel = computed(() => {
 </script>
 
 <template>
-  <button
+  <RouterLink
     class="card"
-    type="button"
-    @click="handleClick"
+    to="/availability"
   >
 
     <div class="image" v-if="image">
@@ -53,7 +46,7 @@ const statusLabel = computed(() => {
       </span>
     </div>
 
-  </button>
+  </RouterLink>
 </template>
 
 <style scoped>
@@ -70,6 +63,7 @@ const statusLabel = computed(() => {
   border: none;
   padding: 0;
   text-align: left;
+  text-decoration: none;
 }
 
 .card:hover {

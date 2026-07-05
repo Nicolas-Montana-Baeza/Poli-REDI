@@ -6,3 +6,8 @@ type Activity struct {
 	Description string `json:"description"`
 	IsActive    bool   `json:"isActive"`
 }
+
+type CreateActivityRequest struct {
+	Name        string `json:"name"`
+	Description string `json:"description"`
+}

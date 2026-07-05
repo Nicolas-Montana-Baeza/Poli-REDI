@@ -2,7 +2,7 @@
 import {
   Plus,
   CalendarDays,
-  Trophy,
+  ListChecks,
   Clock3
 } from 'lucide-vue-next'
 
@@ -12,28 +12,32 @@ const actions = [
     title: 'Nueva Reserva',
     description: 'Reserva una cancha o sala',
     icon: Plus,
-    variant: 'primary'
+    variant: 'primary',
+    to: '/availability'
   },
   {
     id: 2,
     title: 'Disponibilidad',
     description: 'Ver horarios libres',
     icon: CalendarDays,
-    variant: 'secondary'
+    variant: 'secondary',
+    to: '/availability'
   },
   {
     id: 3,
-    title: 'Campeonatos',
-    description: 'Solicitar campeonato',
-    icon: Trophy,
-    variant: 'warning'
+    title: 'Mis Reservas',
+    description: 'Ver y cancelar reservas',
+    icon: ListChecks,
+    variant: 'warning',
+    to: '/reservations'
   },
   {
     id: 4,
     title: 'Historial',
     description: 'Revisar reservas pasadas',
     icon: Clock3,
-    variant: 'neutral'
+    variant: 'neutral',
+    to: '/history'
   }
 ]
 </script>
@@ -61,11 +65,12 @@ const actions = [
     <!-- ACTIONS -->
     <div class="actions-grid">
 
-      <button
+      <RouterLink
         v-for="action in actions"
         :key="action.id"
         class="action-card"
         :class="action.variant"
+        :to="action.to"
       >
 
         <!-- Icon -->
@@ -91,7 +96,7 @@ const actions = [
 
         </div>
 
-      </button>
+      </RouterLink>
 
     </div>
 
@@ -150,6 +155,8 @@ const actions = [
   transition: 0.25s;
 
   text-align: left;
+
+  text-decoration: none;
 }
 
 .action-card:hover {

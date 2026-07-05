@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 
 import {
   CalendarDays,
@@ -16,6 +16,9 @@ import {
 } from '@/utils/reservationTime'
 
 const reservationsStore = useReservationsStore()
+const statusFilter = ref('ALL')
+const fromDate = ref('')
+const toDate = ref('')
 
 onMounted(() => {
   reservationsStore.fetchMyReservations()
@@ -61,6 +64,32 @@ const reservations = computed(() => {
     })
 })
 
+const filteredReservations = computed(() => {
+  return reservations.value.filter((reservation) => {
+    const start = parseReservationDateTime(reservation.startTime)
+    const reservationDate = start
+      ? start.toISOString().slice(0, 10)
+      : ''
+
+    if (
+      statusFilter.value !== 'ALL' &&
+      reservation.status !== statusFilter.value
+    ) {
+      return false
+    }
+
+    if (fromDate.value && reservationDate < fromDate.value) {
+      return false
+    }
+
+    if (toDate.value && reservationDate > toDate.value) {
+      return false
+    }
+
+    return true
+  })
+})
+
 const statusLabel = (status) => {
   switch (status) {
     case 'CONFIRMED':
@@ -97,6 +126,44 @@ const statusClass = (status) => {
 
     </header>
 
+    <section class="filters">
+
+      <label>
+        Estado
+        <select v-model="statusFilter">
+          <option value="ALL">
+            Todos
+          </option>
+          <option value="CONFIRMED">
+            Finalizadas
+          </option>
+          <option value="CANCELLED">
+            Canceladas
+          </option>
+          <option value="PENDING">
+            Pendientes
+          </option>
+        </select>
+      </label>
+
+      <label>
+        Desde
+        <input
+          v-model="fromDate"
+          type="date"
+        />
+      </label>
+
+      <label>
+        Hasta
+        <input
+          v-model="toDate"
+          type="date"
+        />
+      </label>
+
+    </section>
+
     <div
       v-if="reservationsStore.myLoading"
       aria-label="Cargando historial"
@@ -121,13 +188,20 @@ const statusClass = (status) => {
       Aun no tienes reservas historicas.
     </div>
 
+    <div
+      v-else-if="!filteredReservations.length"
+      class="state-card"
+    >
+      No hay reservas que coincidan con los filtros.
+    </div>
+
     <section
       v-else
       class="history-list"
     >
 
       <article
-        v-for="reservation in reservations"
+        v-for="reservation in filteredReservations"
         :key="reservation.id"
         class="history-card"
       >
@@ -226,6 +300,55 @@ const statusClass = (status) => {
   border-color: #fecaca;
 }
 
+.filters {
+  background: white;
+
+  border: 1px solid #e2e8f0;
+  border-radius: 18px;
+
+  padding: 18px;
+
+  display: grid;
+  grid-template-columns:
+    repeat(3, minmax(0, 1fr));
+
+  gap: 14px;
+}
+
+.filters label {
+  color: #334155;
+
+  display: flex;
+  flex-direction: column;
+
+  gap: 7px;
+
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.filters input,
+.filters select {
+  width: 100%;
+  height: 42px;
+
+  border: 1px solid #dbe2ea;
+  border-radius: 12px;
+
+  padding: 0 12px;
+
+  box-sizing: border-box;
+  outline: none;
+}
+
+.filters input:focus,
+.filters select:focus {
+  border-color: #2563eb;
+
+  box-shadow:
+    0 0 0 4px rgba(37,99,235,0.08);
+}
+
 .history-list {
   display: flex;
   flex-direction: column;
@@ -318,6 +441,10 @@ const statusClass = (status) => {
 @media (max-width: 768px) {
   .page-header h1 {
     font-size: 26px;
+  }
+
+  .filters {
+    grid-template-columns: 1fr;
   }
 }
 </style>

@@ -54,6 +54,10 @@ func resolveEmail(claims *EntraClaims) string {
 }
 
 func RequireAuth() fiber.Handler {
+	if strings.EqualFold(os.Getenv("DEV_AUTH_ENABLED"), "true") {
+		return requireDevAuth()
+	}
+
 	tenantID := os.Getenv("ENTRA_TENANT_ID")
 	apiClientID := os.Getenv("ENTRA_API_CLIENT_ID")
 	issuer := os.Getenv("ENTRA_ISSUER")
@@ -141,8 +145,78 @@ func RequireAuth() fiber.Handler {
 			})
 		}
 
-		localUser.OID = authUser.OID
-		localUser.TenantID = authUser.Tenant
+		localUser, err = repositories.UpdateUserEntraIdentity(
+			localUser.ID,
+			authUser.OID,
+			authUser.Tenant,
+		)
+
+		if err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"error":  "no se pudo sincronizar la identidad institucional",
+				"detail": err.Error(),
+				"email":  authUser.Email,
+			})
+		}
+
+		c.Locals("authUser", authUser)
+		c.Locals("localUser", *localUser)
+
+		return c.Next()
+	}
+}
+
+func requireDevAuth() fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		email := strings.TrimSpace(c.Get("X-Dev-Auth-Email"))
+		fullName := strings.TrimSpace(c.Get("X-Dev-Auth-Name"))
+
+		if email == "" {
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+				"error":  "modo dev auth activo, pero falta X-Dev-Auth-Email",
+				"detail": "Inicia sesion desde la pantalla local de pruebas.",
+			})
+		}
+
+		if fullName == "" {
+			fullName = email
+		}
+
+		localUser, err := repositories.GetOrCreateUserByEmail(email, fullName)
+
+		if err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"error":  "no se pudo crear o consultar el usuario local de pruebas",
+				"detail": err.Error(),
+				"email":  email,
+			})
+		}
+
+		if localUser.IsBlocked {
+			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+				"error":  "usuario bloqueado",
+				"detail": "El usuario existe, pero esta bloqueado en Poli-REDI.",
+			})
+		}
+
+		if !localUser.IsAdmin && strings.EqualFold(c.Get("X-Dev-Reset-Rut"), "true") {
+			localUser, err = repositories.UpdateUserRUT(localUser.ID, "")
+
+			if err != nil {
+				return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+					"error":  "no se pudo reiniciar el RUT local de pruebas",
+					"detail": err.Error(),
+					"email":  email,
+				})
+			}
+		}
+
+		authUser := AuthUser{
+			OID:    "dev-local",
+			Name:   fullName,
+			Email:  email,
+			Tenant: "dev-local",
+		}
 
 		c.Locals("authUser", authUser)
 		c.Locals("localUser", *localUser)

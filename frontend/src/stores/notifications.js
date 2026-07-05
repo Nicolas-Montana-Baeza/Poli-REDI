@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 
+import { getCurrentAccount } from '@/auth/authService'
 import { notificationsService } from '@/services/notifications.service'
 
 export const useNotificationsStore = defineStore('notifications', {
@@ -19,6 +20,13 @@ export const useNotificationsStore = defineStore('notifications', {
 
   actions: {
     async fetchNotifications() {
+      const account = await getCurrentAccount()
+
+      if (!account) {
+        this.clearNotifications()
+        return
+      }
+
       this.loading = true
       this.error = null
 
@@ -31,6 +39,12 @@ export const useNotificationsStore = defineStore('notifications', {
       } finally {
         this.loading = false
       }
+    },
+
+    clearNotifications() {
+      this.notifications = []
+      this.error = null
+      this.loading = false
     }
   }
 })

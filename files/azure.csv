@@ -1,7 +1,7 @@
 version:v1.0
 Name [displayName] Required,User name [userPrincipalName] Required,Initial password [passwordProfile] Required,Block sign in [accountEnabled] Required,First name [givenName],Last name [surname]
-Administrador General,admin@polirediucen.onmicrosoft.com,Temp#2026Admin!,No,Administrador,General
-Nicolás Montaña,nicolas@polirediucen.onmicrosoft.com,Temp#2026Nicolas!,No,Nicolás,Montaña
+Administrador General,admin@polirediucen.onmicrosoft.com,1324#poliredi.ad,No,Administrador,General
+Nicolás Montaña,nicolas@polirediucen.onmicrosoft.com,Waba6688ucen,No,Nicolás,Montaña
 María González,maria@polirediucen.onmicrosoft.com,Temp#2026Maria!,No,María,González
 Juan Pérez,juan@polirediucen.onmicrosoft.com,Temp#2026Juan!,No,Juan,Pérez
 Camila Soto,camila@polirediucen.onmicrosoft.com,Temp#2026Camila!,No,Camila,Soto

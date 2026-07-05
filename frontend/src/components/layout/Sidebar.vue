@@ -1,7 +1,8 @@
 ﻿<script setup>
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import SidebarItem from './SidebarItem.vue'
+import { useAuthStore } from '@/stores/auth'
 import { useUiStore } from '@/stores/ui'
 import {
   Home,
@@ -22,6 +23,7 @@ import {
 const isOpen = ref(false)
 
 const route = useRoute()
+const authStore = useAuthStore()
 /* AUTO CLOSE ON ROUTE CHANGE */
 watch(
   () => route.path,
@@ -42,73 +44,79 @@ const closeSidebar = () => {
 }
 
 /* MENU */
-const menu = [
-  {
-    section: 'MENÚ',
+const menu = computed(() => {
+  const sections = [
+    {
+      section: 'MENÚ',
 
-    items: [
-      {
-        label: 'Inicio',
-        icon: Home,
-        to: '/'
-      },
+      items: [
+        {
+          label: 'Inicio',
+          icon: Home,
+          to: '/'
+        },
 
-      {
-        label: 'Disponibilidad',
-        icon: Calendar,
-        to: '/availability'
-      },
+        {
+          label: 'Disponibilidad',
+          icon: Calendar,
+          to: '/availability'
+        },
 
-      {
-        label: 'Mis Reservas',
-        icon: ClipboardList,
-        to: '/reservations'
-      },
+        {
+          label: 'Mis Reservas',
+          icon: ClipboardList,
+          to: '/reservations'
+        },
 
-      {
-        label: 'Historial',
-        icon: History,
-        to: '/history'
-      },
+        {
+          label: 'Historial',
+          icon: History,
+          to: '/history'
+        },
 
-      {
-        label: 'Mis Recursos',
-        icon: LayoutGrid,
-        to: '/resources'
-      }
-    ]
-  },
+        {
+          label: 'Configuración',
+          icon: Settings,
+          to: '/settings'
+        }
+      ]
+    }
+  ]
 
-  {
-    section: 'ADMINISTRACIÓN',
+  if (authStore.user?.isAdmin === true) {
+    sections.push({
+      section: 'ADMINISTRACIÓN',
 
-    items: [
-      {
-        label: 'Panel Administrativo',
-        icon: Shield,
-        to: '/admin'
-      },
+      items: [
+        {
+          label: 'Panel Administrativo',
+          icon: Shield,
+          to: '/admin'
+        },
 
-      {
-        label: 'Usuarios',
-        icon: Users,
-        to: '/users'
-      },
+        {
+          label: 'Usuarios',
+          icon: Users,
+          to: '/users'
+        },
 
-      {
-        label: 'Configuración',
-        icon: Settings,
-        to: '/settings'
-      },
+        {
+          label: 'Mis Recursos',
+          icon: LayoutGrid,
+          to: '/resources'
+        },
 
-      {
-        label: 'Reportes',
-        icon: BarChart3,
-        to: '/reports'
-      }
-    ]
+        {
+          label: 'Reportes',
+          icon: BarChart3,
+          to: '/reports'
+        }
+      ]
+    })
   }
-]
+
+  return sections
+})
 </script>
 
 <template>
