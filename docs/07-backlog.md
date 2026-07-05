@@ -1,7 +1,7 @@
 ﻿# Poli-REDI - Backlog maestro
 
 ## Objetivo
-
+    1
 Este backlog consolida las tareas reales detectadas durante la revision inicial, la migracion a Azure SQL Database y las primeras pruebas funcionales del frontend/backend.
 
 La idea es usar este documento como base para crear issues en GitHub Projects o para delegar tareas puntuales a Codex.
@@ -531,7 +531,7 @@ Permitir cancelar reservas desde la interfaz usando el usuario autenticado.
 
 Prioridad: P1
 Labels: `frontend`, `recursos`, `feature`
-Estado sugerido: Done
+Estado sugerido: Ready for Codex
 
 ### Contexto
 
@@ -1028,18 +1028,11 @@ Actualizar `README.md` con stack real, instalacion, ejecucion, Azure SQL y auten
 
 ### Criterios de aceptacion
 
-- [x] Describe frontend, backend y base de datos actual.
-- [x] Explica variables de entorno.
-- [x] Explica como ejecutar backend y frontend.
-- [x] Explica como validar `/api/health`.
-- [x] No contiene secretos.
-
-### Resultado de implementacion
-
-- `README.md` documenta el alcance MVP 1, stack, estructura, variables de entorno y ejecucion local.
-- Se agrego la configuracion de `DEV_AUTH_ENABLED` para pruebas locales.
-- Se actualizaron rutas principales, incluyendo RUT y creacion de actividades.
-- Se agrego checklist de demo MVP 1.
+- [ ] Describe frontend, backend y base de datos actual.
+- [ ] Explica variables de entorno.
+- [ ] Explica como ejecutar backend y frontend.
+- [ ] Explica como validar `/api/health`.
+- [ ] No contiene secretos.
 
 ## DOC-002 - Documentar arquitectura
 
