@@ -29,6 +29,7 @@ Thumbs.db
 # Go
 backend/bin
 backend/tmp
+.gocache/
 
 # Build
 *.exe

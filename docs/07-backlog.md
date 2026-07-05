@@ -531,7 +531,7 @@ Permitir cancelar reservas desde la interfaz usando el usuario autenticado.
 
 Prioridad: P1
 Labels: `frontend`, `recursos`, `feature`
-Estado sugerido: Ready for Codex
+Estado sugerido: Done
 
 ### Contexto
 
@@ -1028,11 +1028,18 @@ Actualizar `README.md` con stack real, instalacion, ejecucion, Azure SQL y auten
 
 ### Criterios de aceptacion
 
-- [ ] Describe frontend, backend y base de datos actual.
-- [ ] Explica variables de entorno.
-- [ ] Explica como ejecutar backend y frontend.
-- [ ] Explica como validar `/api/health`.
-- [ ] No contiene secretos.
+- [x] Describe frontend, backend y base de datos actual.
+- [x] Explica variables de entorno.
+- [x] Explica como ejecutar backend y frontend.
+- [x] Explica como validar `/api/health`.
+- [x] No contiene secretos.
+
+### Resultado de implementacion
+
+- `README.md` documenta el alcance MVP 1, stack, estructura, variables de entorno y ejecucion local.
+- Se agrego la configuracion de `DEV_AUTH_ENABLED` para pruebas locales.
+- Se actualizaron rutas principales, incluyendo RUT y creacion de actividades.
+- Se agrego checklist de demo MVP 1.
 
 ## DOC-002 - Documentar arquitectura
 
@@ -1094,6 +1101,30 @@ Consolidar requisitos funcionales, requisitos no funcionales, historias de usuar
 
 - Se creo `docs/08-requisitos-historias-casos-uso.md`.
 - El documento queda como fuente viva para alcance funcional, historias, casos de uso y trazabilidad inicial.
+
+## DOC-005 - Documentar roadmap de MVPs
+
+Prioridad: P1
+Labels: `documentacion`, `mvp`, `roadmap`
+Estado sugerido: Done
+
+### Objetivo
+
+Formalizar los MVPs incrementales de Poli-REDI, indicando que implementa cada uno, su estado y sus criterios de cierre.
+
+### Criterios de aceptacion
+
+- [x] Existe documento dedicado en `docs/`.
+- [x] Define cantidad y nombre de MVPs.
+- [x] Describe proposito, alcance y estado de cada MVP.
+- [x] Relaciona MVPs con tareas del backlog.
+- [x] Relaciona MVPs con requisitos, historias o casos de uso.
+- [x] Incluye criterios de cierre y dependencias entre MVPs.
+
+### Resultado de implementacion
+
+- Se creo `docs/09-mvps-roadmap.md`.
+- El proyecto queda organizado en cuatro MVPs: base tecnica funcional, flujo usuario completo, administracion institucional, y entrega/calidad/soporte.
 
 ---
 
@@ -1212,6 +1243,7 @@ Revision realizada durante la conexion de actividades reales.
 6. `DOC-002` Arquitectura.
 7. `DOC-003` Flujo de reservas.
 8. `DOC-004` Requisitos, historias y casos de uso.
+9. `DOC-005` Roadmap de MVPs.
 
 # Tareas Codex-ready iniciales
 
@@ -1259,4 +1291,4 @@ Desde esta fecha, cualquier intervencion sobre `Poli-REDI` debe cerrar con una r
 
 ## Responsable
 
-Codex queda encargado de revisar y mantener `docs/` cada vez que trabaje sobre `Poli-REDI`, con foco minimo en `docs/07-backlog.md` y `docs/08-requisitos-historias-casos-uso.md`.
+Codex queda encargado de revisar y mantener `docs/` cada vez que trabaje sobre `Poli-REDI`, con foco minimo en `docs/07-backlog.md`, `docs/08-requisitos-historias-casos-uso.md` y `docs/09-mvps-roadmap.md`.

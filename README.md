@@ -4,6 +4,22 @@ Sistema web para gestion de reservas deportivas institucionales.
 
 Poli-REDI permite consultar disponibilidad de recursos deportivos, crear y cancelar reservas, revisar historial, administrar usuarios y recursos, y visualizar indicadores iniciales de uso. El sistema usa autenticacion con Microsoft Entra ID y datos persistidos en Azure SQL Database.
 
+## Alcance MVP 1
+
+El MVP 1 cubre el flujo base de reservas deportivas:
+
+- Login institucional con Microsoft Entra ID.
+- Login local de prueba para desarrollo.
+- Registro/actualizacion de RUT para usuarios normales.
+- Consulta de disponibilidad por recurso y fecha.
+- Creacion de reservas con usuario autenticado.
+- Creacion rapida de actividades desde el formulario si no existen.
+- Listado de mis reservas, detalle, historial y cancelacion.
+- Panel administrador base con usuarios, recursos y reportes iniciales.
+- Notificaciones internas basicas.
+
+Quedan fuera del MVP 1 la gestion completa de bloqueos, CRUD avanzado de recursos, infracciones, programacion institucional y despliegue productivo.
+
 ## Stack
 
 ### Frontend
@@ -65,11 +81,22 @@ DB_TRUST_SERVER_CERTIFICATE=false
 ENTRA_TENANT_ID=
 ENTRA_API_CLIENT_ID=
 ENTRA_ISSUER=
+
+# Solo desarrollo local
+DEV_AUTH_ENABLED=false
 ```
 
 `DB_PASSWORD` debe existir solo en `backend/.env` local o en las variables de entorno del despliegue. No debe guardarse en archivos versionados.
 
 Tambien se puede usar `AZURE_SQL_CONNECTION_STRING` como alternativa a las variables `DB_*`, segun la plantilla incluida en `backend/.env.example`.
+
+Para pruebas locales sin Microsoft, se puede usar:
+
+```env
+DEV_AUTH_ENABLED=true
+```
+
+Con esta opcion, el frontend muestra accesos locales de prueba y el backend acepta headers `X-Dev-Auth-*`. No activar esta bandera en produccion.
 
 ## Configuracion del frontend
 
@@ -180,8 +207,10 @@ Rutas protegidas por token Bearer:
 
 ```txt
 GET /api/me
+PATCH /api/me/rut
 GET /api/resources
 GET /api/activities
+POST /api/activities
 GET /api/reservations
 GET /api/reservations/mine
 POST /api/reservations
@@ -189,6 +218,24 @@ PATCH /api/reservations/cancel
 GET /api/users
 GET /api/notifications
 ```
+
+En modo `DEV_AUTH_ENABLED=true`, las rutas protegidas tambien pueden probarse con los headers locales enviados por el frontend de desarrollo.
+
+## Checklist MVP 1
+
+Antes de una demo local:
+
+1. Levantar backend en `http://localhost:3000`.
+2. Levantar frontend en `http://localhost:5173`.
+3. Entrar con usuario normal local.
+4. Confirmar que solicita RUT si el usuario no tiene uno.
+5. Guardar RUT y verificar que permite avanzar.
+6. Crear una reserva desde Disponibilidad.
+7. Crear una actividad nueva desde el formulario si corresponde.
+8. Revisar Mis Reservas, Detalle e Historial.
+9. Cancelar una reserva propia.
+10. Entrar como admin local y verificar acceso al panel administrador.
+11. Confirmar que usuario normal no ve ni accede a rutas administrativas.
 
 ## Documentacion relacionada
 

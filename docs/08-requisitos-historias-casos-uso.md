@@ -548,6 +548,17 @@ Flujos alternativos:
 | RF-017 | HU-008 | NOTIF-001 |
 | RF-018 | HU-013 | REP-001, REP-002 |
 
+## Relacion con MVPs
+
+La agrupacion oficial de estos requisitos por incremento se mantiene en `docs/09-mvps-roadmap.md`.
+
+Resumen:
+
+- MVP 1: base tecnica funcional.
+- MVP 2: flujo usuario completo.
+- MVP 3: administracion institucional.
+- MVP 4: entrega, calidad y soporte.
+
 ## Protocolo de mantenimiento
 
 Este documento debe actualizarse cuando:
@@ -562,4 +573,5 @@ Cada cambio funcional debe mantener coherencia entre:
 
 - `docs/07-backlog.md`
 - `docs/08-requisitos-historias-casos-uso.md`
+- `docs/09-mvps-roadmap.md`
 - Documentos tecnicos afectados dentro de `docs/`
