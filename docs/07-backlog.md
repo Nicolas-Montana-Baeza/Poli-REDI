@@ -1,7 +1,6 @@
 ﻿# Poli-REDI - Backlog maestro
 
 ## Objetivo
-    1
 Este backlog consolida las tareas reales detectadas durante la revision inicial, la migracion a Azure SQL Database y las primeras pruebas funcionales del frontend/backend.
 
 La idea es usar este documento como base para crear issues en GitHub Projects o para delegar tareas puntuales a Codex.
@@ -152,10 +151,107 @@ Actualizar los documentos para diferenciar claramente estado historico, estado a
 
 ### Criterios de aceptacion
 
-- [ ] `docs/00-revision-inicial.md` indica que Azure SQL ya esta implementado.
-- [ ] `docs/01-instalacion-y-ejecucion.md` prioriza Azure SQL y deja PostgreSQL solo como antecedente.
-- [ ] `docs/03-base-de-datos.md` queda como fuente principal del modelo actual.
-- [ ] No se exponen credenciales reales.
+- [x] `docs/00-revision-inicial.md` indica que Azure SQL ya esta implementado.
+- [x] `docs/01-instalacion-y-ejecucion.md` prioriza Azure SQL y deja PostgreSQL solo como antecedente.
+- [x] `docs/03-base-de-datos.md` queda como fuente principal del modelo actual.
+- [x] No se exponen credenciales reales.
+
+### Resultado de implementacion
+
+- `docs/00-revision-inicial.md` quedo marcado como documento historico.
+- `docs/01-instalacion-y-ejecucion.md` fue reemplazado por una guia vigente para Azure SQL, backend Go/Fiber y frontend Vue/Vite.
+- `docs/02-arquitectura.md` documenta arquitectura, autenticacion, flujo de reserva y despliegue.
+- `docs/03-base-de-datos.md` queda como referencia del modelo Azure SQL actual.
+
+## BACK-004 - Pulir MVP 1 antes de cierre definitivo
+
+Prioridad: P1
+Labels: `documentacion`, `testing`, `security`, `deploy`, `codex-ready`
+Estado sugerido: Ready for Codex
+
+### Contexto
+
+El MVP 1 ya funciona y esta desplegado como demo online, pero se reabre para una ronda final de pulido tecnico antes de considerarlo cerrado definitivamente.
+
+La idea no es agregar nuevas funcionalidades grandes, sino fortalecer la base: ejecucion local, despliegue, configuracion, seguridad minima, documentacion y pruebas de humo.
+
+### Objetivo
+
+Dejar el MVP 1 lo mas estable, demostrable y defendible posible.
+
+### Criterios de aceptacion
+
+- [x] README y documentos de instalacion reflejan el estado real actual.
+- [x] La guia local permite levantar backend y frontend sin ambiguedades.
+- [ ] La guia de despliegue indica variables obligatorias y valores seguros.
+- [ ] Existe checklist de validacion MVP 1 antes de demo.
+- [x] Se ejecuta o documenta resultado de `go test ./...`.
+- [x] Se ejecuta o documenta resultado de `npm run build`.
+- [x] Se revisa que no haya referencias activas a PostgreSQL como tecnologia vigente.
+- [ ] Se revisa que no haya secretos, passwords ni tokens en documentacion versionada.
+
+### Archivos relevantes
+
+- `README.md`
+- `docs/01-instalacion-y-ejecucion.md`
+- `docs/02-arquitectura.md`
+- `docs/03-base-de-datos.md`
+- `docs/09-mvps-roadmap.md`
+- `backend/.env.example`
+- `frontend/.env.example`
+
+## BACK-005 - Checklist de demo tecnica MVP 1
+
+Prioridad: P1
+Labels: `testing`, `documentacion`, `deploy`
+Estado sugerido: Ready for Codex
+
+### Contexto
+
+La demo online existe, pero conviene tener una lista repetible para validar que la base tecnica sigue operativa antes de una presentacion.
+
+### Objetivo
+
+Crear un checklist corto de pruebas de humo para MVP 1.
+
+### Criterios de aceptacion
+
+- [ ] Validar `/api/health` local.
+- [ ] Validar `/api/health` online.
+- [ ] Validar login institucional o modo local segun ambiente.
+- [ ] Validar carga de recursos reales.
+- [ ] Validar carga de actividades reales.
+- [ ] Validar creacion de una reserva de prueba.
+- [ ] Validar cancelacion de una reserva de prueba.
+- [ ] Validar que un usuario normal no acceda a rutas admin.
+- [ ] Registrar fecha, ambiente y resultado de la ultima validacion.
+
+### Evidencia reciente
+
+- 2026-07-06: `go test ./...` ejecutado correctamente en backend.
+- 2026-07-06: `npm run build` ejecutado correctamente en frontend.
+
+## BACK-006 - Normalizar mensajes y codificacion visible
+
+Prioridad: P2
+Labels: `backend`, `frontend`, `ux`, `refactor`
+Estado sugerido: Backlog
+
+### Contexto
+
+Durante revisiones se observaron textos con problemas de codificacion, por ejemplo acentos mostrados como caracteres rotos en algunos archivos.
+
+### Objetivo
+
+Revisar mensajes visibles de backend/frontend para que no aparezcan caracteres corruptos ni textos tecnicos innecesarios durante la demo.
+
+### Criterios de aceptacion
+
+- [ ] No hay mensajes visibles con caracteres corruptos.
+- [ ] Errores frecuentes de autenticacion y reserva usan texto claro.
+- [ ] Los mensajes tecnicos quedan reservados para logs o `detail` cuando corresponda.
+- [ ] `npm run build` pasa.
+- [ ] `go test ./...` pasa.
 
 ---
 
@@ -497,7 +593,7 @@ Crear una vista donde el usuario vea sus reservas.
 
 Prioridad: P1
 Labels: `frontend`, `backend`, `reservas`
-Estado sugerido: Done
+Estado sugerido: Partial
 
 ### Contexto
 
@@ -511,18 +607,19 @@ Permitir cancelar reservas desde la interfaz usando el usuario autenticado.
 
 - [x] No se usa `requestedByUserId` fijo.
 - [x] El backend determina usuario desde token o valida contra usuario autenticado.
-- [x] La UI pide confirmacion antes de cancelar.
+- [ ] La UI pide confirmacion fuerte antes de cancelar.
 - [x] La reserva cambia a estado `CANCELLED`.
 - [x] Se muestra mensaje de exito o error.
 - [x] La lista se actualiza sin recargar toda la app.
 
-### Resultado de implementacion
+### Resultado parcial
 
 - Los bloques de reserva en disponibilidad son seleccionables.
 - Al seleccionar una reserva se abre `ReservationDetailModal`.
 - Admin puede cancelar cualquier reserva; usuario normal solo ve accion de cancelacion para reservas propias.
 - El modal muestra errores del backend si la cancelacion falla.
 - Al cancelar, la grilla se refresca y el bloque desaparece de la disponibilidad activa.
+- Segunda revision UX: el modal muestra una advertencia, pero aun falta una confirmacion fuerte adicional antes de ejecutar la cancelacion.
 
 ---
 
@@ -532,7 +629,7 @@ Permitir cancelar reservas desde la interfaz usando el usuario autenticado.
 
 Prioridad: P1
 Labels: `frontend`, `recursos`, `feature`
-Estado sugerido: Ready for Codex
+Estado sugerido: Done
 
 ### Contexto
 
@@ -927,6 +1024,51 @@ Evitar confiar en IDs enviados por cliente cuando el usuario ya viene en el toke
 - Usuario normal solo puede cancelar reservas donde `reservations.user_id` coincide con su usuario local.
 - El frontend envia solo `reservationId` al endpoint de cancelacion.
 
+## API-004 - Crear endpoint de disponibilidad sanitizado
+
+Prioridad: P1
+Labels: `backend`, `frontend`, `reservas`, `disponibilidad`, `security`, `ux`
+Estado sugerido: Ready for Codex
+
+### Contexto
+
+La vista de disponibilidad necesita saber que horarios estan ocupados, pero un usuario normal no necesita recibir datos internos de reservas ajenas.
+
+### Objetivo
+
+Exponer un endpoint de disponibilidad por fecha o rango que entregue solo la informacion necesaria para pintar ocupacion.
+
+### Criterios de aceptacion
+
+- [ ] El endpoint acepta fecha o rango de fechas.
+- [ ] Para usuario normal no expone `userId` de reservas ajenas.
+- [ ] Devuelve recurso, inicio, duracion y tipo de ocupacion.
+- [ ] Incluye reservas confirmadas, bloqueos y actividades programadas cuando esten disponibles.
+- [ ] La vista de disponibilidad consume este endpoint en lugar de depender de todas las reservas.
+- [ ] Admin mantiene acceso a detalle administrativo cuando corresponda.
+
+## API-005 - Centralizar validacion de administrador
+
+Prioridad: P1
+Labels: `backend`, `auth`, `admin`, `security`
+Estado sugerido: Ready for Codex
+
+### Contexto
+
+Algunas rutas administrativas validan rol dentro del handler. Para reducir errores futuros, conviene centralizar la regla de autorizacion.
+
+### Objetivo
+
+Crear middleware `RequireAdmin` y aplicarlo a rutas administrativas.
+
+### Criterios de aceptacion
+
+- [ ] Existe middleware reutilizable para exigir usuario administrador.
+- [ ] Rutas como usuarios, reportes administrativos y futuras operaciones admin usan el middleware.
+- [ ] Usuario normal recibe 403.
+- [ ] Usuario no autenticado recibe 401 desde el middleware de autenticacion.
+- [ ] Se mantiene compatibilidad con modo local de desarrollo.
+
 ---
 
 # Hito 8 - Calidad, pruebas y seguridad
@@ -946,10 +1088,19 @@ Crear pruebas de la capa servicio/repositorio para reglas criticas.
 - [ ] Crear reserva valida.
 - [ ] Rechazar recurso inexistente.
 - [ ] Rechazar usuario inexistente.
+- [ ] Rechazar usuario normal sin RUT.
+- [ ] Rechazar recurso inactivo.
+- [ ] Rechazar recurso informativo.
+- [ ] Rechazar recurso solo admin para usuario normal.
 - [ ] Rechazar conflicto horario.
 - [ ] Rechazar usuario bloqueado.
+- [ ] Rechazar cruce con bloqueo.
+- [ ] Rechazar cruce con actividad programada.
+- [ ] Cancelar reserva propia.
 - [ ] Cancelar reserva como admin.
 - [ ] Rechazar cancelacion sin permisos.
+- [ ] Rechazar cancelacion de reserva inexistente.
+- [ ] Rechazar cancelacion duplicada.
 
 ## QA-002 - Agregar pruebas frontend basicas
 
@@ -967,6 +1118,53 @@ Agregar pruebas o checklist automatizado para pantallas criticas.
 - [ ] Estados de carga/error.
 - [ ] Formulario de reserva valida campos.
 - [ ] Router no entra en bucle.
+- [ ] Usuario normal no entra a rutas administrativas.
+- [ ] Usuario sin RUT no puede abrir creacion de reserva.
+- [ ] Conflicto de horario mantiene error visible en el modal.
+- [ ] Cancelacion exige confirmacion antes de llamar a la API.
+
+## UX-001 - Profesionalizar experiencia de disponibilidad y reserva
+
+Prioridad: P1
+Labels: `frontend`, `ux`, `reservas`, `disponibilidad`
+Estado sugerido: Ready for Codex
+
+### Contexto
+
+La vista de disponibilidad ya permite reservar, pero la segunda revision UX detecto mejoras para reducir errores y hacer la experiencia mas institucional.
+
+### Objetivo
+
+Mejorar claridad, control y confianza durante seleccion de horario, creacion y cancelacion de reservas.
+
+### Criterios de aceptacion
+
+- [ ] La seleccion de horario usa intervalos consistentes de 15 o 30 minutos.
+- [ ] El usuario ve el rango final completo antes de confirmar.
+- [ ] La UI muestra capacidad del recurso cuando exista.
+- [ ] Participantes se validan contra capacidad cuando corresponda.
+- [ ] Modos de reserva se muestran con etiquetas humanas, no codigos tecnicos.
+- [ ] Existe leyenda visual para disponibilidad, reservado, bloqueo, mantencion y actividad institucional.
+- [ ] La experiencia movil permite enfocarse en un recurso sin desplazamiento horizontal excesivo.
+
+## UX-002 - Mejorar accesibilidad de modales y estados
+
+Prioridad: P2
+Labels: `frontend`, `ux`, `accessibility`
+Estado sugerido: Backlog
+
+### Objetivo
+
+Reforzar accesibilidad ligera en flujos criticos.
+
+### Criterios de aceptacion
+
+- [ ] Botones iconicos tienen `aria-label`.
+- [ ] Modales cierran con Escape.
+- [ ] El foco vuelve al elemento que abrio el modal.
+- [ ] Mensajes de exito usan `aria-live`.
+- [ ] Errores usan `role="alert"` cuando correspondan.
+- [ ] Los estados no dependen solo del color.
 
 ## SEC-001 - Revisar exposicion de secretos
 
@@ -1025,6 +1223,44 @@ Configurar origenes permitidos por ambiente.
 - `backend/cmd/main.go`
 - `backend/.env.example`
 
+## SEC-003 - Limpiar logs de configuracion de autenticacion
+
+Prioridad: P1
+Labels: `backend`, `auth`, `security`
+Estado sugerido: Ready for Codex
+
+### Contexto
+
+El middleware de autenticacion imprime valores de configuracion de Entra ID al iniciar. Aunque no son passwords, conviene reducir exposicion en logs.
+
+### Objetivo
+
+Reemplazar logs de configuracion sensible por mensajes de estado seguros.
+
+### Criterios de aceptacion
+
+- [ ] No se imprimen tenant, client ID ni issuer completos.
+- [ ] Si falta configuracion critica, el error es claro para diagnostico.
+- [ ] No se registran tokens, cabeceras ni datos personales innecesarios.
+- [ ] `go test ./...` pasa.
+
+## SEC-004 - Checklist productivo de modo desarrollo
+
+Prioridad: P1
+Labels: `backend`, `deploy`, `security`
+Estado sugerido: Backlog
+
+### Objetivo
+
+Evitar que `DEV_AUTH_ENABLED=true` quede activo en un ambiente publico.
+
+### Criterios de aceptacion
+
+- [ ] La documentacion de despliegue exige `DEV_AUTH_ENABLED=false`.
+- [ ] Existe verificacion manual o automatizada antes de entrega.
+- [ ] Se evalua bloquear arranque si modo dev esta activo con origenes productivos.
+- [ ] El README explica que las cabeceras `X-Dev-Auth-*` son solo locales.
+
 ---
 
 # Hito 9 - Documentacion y entrega FIP/tesis
@@ -1041,17 +1277,21 @@ Actualizar `README.md` con stack real, instalacion, ejecucion, Azure SQL y auten
 
 ### Criterios de aceptacion
 
-- [ ] Describe frontend, backend y base de datos actual.
-- [ ] Explica variables de entorno.
-- [ ] Explica como ejecutar backend y frontend.
-- [ ] Explica como validar `/api/health`.
-- [ ] No contiene secretos.
+- [x] Describe frontend, backend y base de datos actual.
+- [x] Explica variables de entorno.
+- [x] Explica como ejecutar backend y frontend.
+- [x] Explica como validar `/api/health`.
+- [x] No contiene secretos.
+
+### Resultado de implementacion
+
+- `README.md` describe stack vigente, Azure SQL, variables de entorno, ejecucion local, rutas principales, demo online y checklist MVP 1.
 
 ## DOC-002 - Documentar arquitectura
 
 Prioridad: P1
 Labels: `documentacion`, `arquitectura`
-Estado sugerido: Backlog
+Estado sugerido: Done
 
 ### Objetivo
 
@@ -1059,18 +1299,22 @@ Completar `docs/02-arquitectura.md` con diagrama y descripcion de flujo.
 
 ### Criterios de aceptacion
 
-- [ ] Describe frontend Vue.
-- [ ] Describe backend Go/Fiber.
-- [ ] Describe autenticacion Entra ID.
-- [ ] Describe Azure SQL Database.
-- [ ] Describe flujo de reserva.
-- [ ] Incluye diagrama Mermaid.
+- [x] Describe frontend Vue.
+- [x] Describe backend Go/Fiber.
+- [x] Describe autenticacion Entra ID.
+- [x] Describe Azure SQL Database.
+- [x] Describe flujo de reserva.
+- [x] Incluye diagrama Mermaid.
+
+### Resultado de implementacion
+
+- `docs/02-arquitectura.md` documenta componentes, autenticacion, base de datos, flujo de reserva y despliegue inicial.
 
 ## DOC-003 - Documentar flujo de reservas
 
 Prioridad: P1
 Labels: `documentacion`, `reservas`
-Estado sugerido: Backlog
+Estado sugerido: Done
 
 ### Objetivo
 
@@ -1078,11 +1322,15 @@ Completar `docs/06-flujo-reservas.md`.
 
 ### Criterios de aceptacion
 
-- [ ] Describe flujo usuario normal.
-- [ ] Describe flujo admin.
-- [ ] Describe validaciones de conflicto.
-- [ ] Describe estados de reserva.
-- [ ] Incluye diagrama de secuencia o actividad.
+- [x] Describe flujo usuario normal.
+- [x] Describe flujo admin.
+- [x] Describe validaciones de conflicto.
+- [x] Describe estados de reserva.
+- [x] Incluye diagrama de secuencia o actividad.
+
+### Resultado de implementacion
+
+- `docs/06-flujo-reservas.md` describe creacion, cancelacion, validaciones frontend/backend/base de datos, reglas UX y pruebas recomendadas.
 
 ## DOC-004 - Documentar requisitos, historias y casos de uso
 

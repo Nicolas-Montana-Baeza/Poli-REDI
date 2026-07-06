@@ -228,6 +228,14 @@ El proyecto debe poder ejecutarse localmente con backend Go/Fiber, frontend Vue/
 
 La interfaz debe mostrar estados de carga, error y vacio en flujos principales.
 
+### RNF-008 - Minimizacion de datos visibles
+
+La disponibilidad para usuarios normales debe exponer solo la informacion necesaria para identificar horarios ocupados, evitando entregar datos internos o personales de reservas ajenas.
+
+### RNF-009 - Accesibilidad basica
+
+Los flujos criticos deben poder operarse con controles claros, mensajes de estado comprensibles y modales con comportamiento accesible basico.
+
 ## Historias de usuario
 
 ### HU-001 - Iniciar sesion
@@ -277,7 +285,7 @@ Como usuario normal, quiero cancelar una reserva propia cuando ya no la usare.
 Criterios de aceptacion:
 
 - Solo puedo cancelar reservas propias.
-- El sistema pide confirmacion.
+- El sistema pide confirmacion fuerte antes de ejecutar la cancelacion.
 - La lista o grilla se actualiza luego de cancelar.
 
 ### HU-006 - Revisar mis reservas
@@ -397,10 +405,10 @@ Flujo principal:
 
 1. El usuario intenta entrar a una ruta interna.
 2. El sistema detecta que falta RUT.
-3. El sistema redirige a configuracion.
-4. El usuario ingresa RUT.
+3. El sistema muestra un modal obligatorio para registrar RUT.
+4. El usuario ingresa RUT en el modal.
 5. El sistema valida y guarda el RUT.
-6. El sistema redirige al destino original.
+6. El sistema permite continuar en la aplicacion.
 
 Postcondiciones:
 
@@ -547,6 +555,8 @@ Flujos alternativos:
 | RF-016 | HU-012 | ADMIN-005 |
 | RF-017 | HU-008 | NOTIF-001 |
 | RF-018 | HU-013 | REP-001, REP-002 |
+| RNF-008 | HU-003, HU-004 | API-004 |
+| RNF-009 | HU-003, HU-004, HU-005 | UX-001, UX-002 |
 
 ## Relacion con MVPs
 

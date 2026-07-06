@@ -10,7 +10,7 @@ Los MVPs organizan el proyecto desde una base tecnica funcional hasta una versio
 
 | MVP | Nombre | Proposito | Estado |
 | --- | --- | --- | --- |
-| MVP 1 | Base tecnica funcional | Dejar frontend, backend, base de datos, autenticacion, seguridad minima y demo online operando con datos reales. | Cerrado funcionalmente y desplegado |
+| MVP 1 | Base tecnica funcional | Dejar frontend, backend, base de datos, autenticacion, seguridad minima y demo online operando con datos reales. | Reabierto para pulido final |
 | MVP 2 | Flujo usuario completo | Permitir que un usuario normal consulte disponibilidad, reserve, cancele y revise su informacion. | Muy avanzado |
 | MVP 3 | Administracion institucional | Completar calendario institucional, bloqueos, recursos y gestion administrativa. | Parcial |
 | MVP 4 | Entrega, calidad y soporte | Completar reportes, notificaciones, pruebas, documentacion y despliegue. | En desarrollo |
@@ -51,6 +51,9 @@ Construir la base operativa del sistema: aplicacion web, API, base de datos real
 - `BACK-001`
 - `BACK-002`
 - `BACK-003`
+- `BACK-004`
+- `BACK-005`
+- `BACK-006`
 - `AUTH-001`
 - `AUTH-002`
 - `API-003`
@@ -73,17 +76,24 @@ Construir la base operativa del sistema: aplicacion web, API, base de datos real
 
 ### Estado actual
 
-Cerrado funcionalmente y desplegado como demo online.
+Reabierto para pulido final.
 
-### Pendientes no bloqueantes
+El MVP 1 ya esta funcional y desplegado como demo online, pero se reabre para aprovechar tiempo disponible y mejorar estabilidad, documentacion, seguridad ligera y evidencia de pruebas antes de considerarlo cerrado definitivamente.
+
+### Pendientes de pulido final
 
 - Documentar paso a paso el despliegue como guia estable de entrega.
 - Automatizar despliegue del backend Docker si se mantiene App Service con contenedor.
 - Endurecer configuracion productiva si se pasa de demo a produccion institucional.
+- Completar checklist de demo tecnica MVP 1 (`BACK-005`).
+- Revisar documentacion historica para evitar confusiones con PostgreSQL (`BACK-003`).
+- Confirmar que README, instalacion y arquitectura reflejan el estado real (`BACK-004`).
+- Normalizar mensajes visibles y posibles problemas de codificacion (`BACK-006`).
+- Dejar evidencia de `go test ./...` y `npm run build` antes del cierre definitivo.
 
 ### Criterio de cierre
 
-El MVP 1 se considera cerrado cuando backend, frontend y Azure SQL funcionan juntos en local y en Azure, la autenticacion protege rutas internas, las reservas usan el usuario autenticado, CORS permite solo origenes configurados y no existen secretos versionados.
+El MVP 1 se considera cerrado definitivamente cuando backend, frontend y Azure SQL funcionan juntos en local y en Azure, la autenticacion protege rutas internas, las reservas usan el usuario autenticado, CORS permite solo origenes configurados, no existen secretos versionados, la documentacion base esta alineada con el estado actual y existe evidencia de pruebas de humo.
 
 ## MVP 2 - Flujo usuario completo
 
@@ -100,7 +110,6 @@ Entregar una experiencia usable para el usuario normal, desde login hasta reserv
 - Vista de disponibilidad con datos reales.
 - Reservas visibles por dia seleccionado.
 - Formulario de reserva con validaciones visibles.
-- Seleccion de actividad real.
 - Seleccion de actividad desde catalogo aprobado.
 - Mis Reservas.
 - Detalle de reserva.
@@ -127,8 +136,11 @@ Entregar una experiencia usable para el usuario normal, desde login hasta reserv
 - `UI-003`
 - `UI-004`
 - `UI-005`
+- `UX-001`
+- `UX-002`
 - `NOTIF-001`
 - `API-002`
+- `API-004`
 
 ### Requisitos relacionados
 
@@ -164,6 +176,9 @@ Muy avanzado.
 ### Pendientes para cierre completo
 
 - Completar filtros backend de reservas por fecha/rango/estado (`API-002`).
+- Crear endpoint de disponibilidad sanitizado para usuarios normales (`API-004`).
+- Agregar confirmacion fuerte antes de cancelar reservas (`RES-007`).
+- Profesionalizar la seleccion de horario, capacidad, etiquetas humanas y experiencia movil (`UX-001`).
 - Completar notificaciones: marcar como leida y diferenciar leidas/no leidas (`NOTIF-001`).
 - Confirmar si el detalle de reserva requiere participantes persistidos (`UI-002`).
 
@@ -196,6 +211,7 @@ Convertir Poli-REDI en una herramienta administrable por la institucion, con cal
 - `ADMIN-005`
 - `RES-004`
 - `API-001`
+- `API-005`
 - `REP-001`
 
 ### Requisitos relacionados
@@ -227,6 +243,7 @@ Parcial.
 - Bloquear y desbloquear usuarios con auditoria (`ADMIN-002`).
 - Registrar programacion institucional (`ADMIN-005`).
 - Agregar filtros backend de recursos por sede, tipo y estado (`API-001`).
+- Centralizar validacion de administrador con middleware (`API-005`).
 - Completar reportes desde vistas SQL e infracciones si corresponde (`REP-001`).
 
 ### Criterio de cierre
@@ -270,6 +287,8 @@ Completar los elementos de soporte necesarios para entregar, defender, probar y 
 - `DEPLOY-001`
 - `DEPLOY-002`
 - `SEC-002`
+- `SEC-003`
+- `SEC-004`
 
 ### Requisitos relacionados
 
@@ -292,6 +311,8 @@ En desarrollo.
 - Completar flujo de reservas con diagramas (`DOC-003`).
 - Agregar pruebas backend para reservas (`QA-001`).
 - Agregar pruebas frontend o checklist automatizado (`QA-002`).
+- Limpiar logs de configuracion de autenticacion (`SEC-003`).
+- Confirmar checklist productivo para desactivar modo desarrollo (`SEC-004`).
 - Completar infracciones (`REP-002`).
 - Mantener y completar la guia de despliegue y operacion (`docs/10-guia-redeploy.md`).
 - Automatizar o estandarizar redeploy del backend Docker.
