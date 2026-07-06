@@ -71,6 +71,36 @@ const showCancelAction = computed(() => {
   )
 })
 
+const details = computed(() => {
+  if (!props.reservation) {
+    return []
+  }
+
+  return [
+    {
+      label: 'Actividad',
+      value: props.reservation.title || 'Reserva'
+    },
+    {
+      label: 'Fecha',
+      value: reservationDate.value
+    },
+    {
+      label: 'Horario',
+      value: reservationTime.value
+    },
+    {
+      label: 'Duracion',
+      value: `${props.reservation.durationMinutes} minutos`
+    },
+    {
+      label: 'Estado',
+      value: statusLabel.value,
+      wide: true
+    }
+  ]
+})
+
 const handleCancel = () => {
   emit('cancel')
 }
@@ -87,7 +117,7 @@ const handleCancel = () => {
 
       <div class="modal">
 
-        <div class="modal-header">
+        <header class="modal-header">
 
           <div>
 
@@ -96,86 +126,50 @@ const handleCancel = () => {
             </h2>
 
             <p>
-              Revisa la información antes de cancelar.
+              Informacion de la reserva seleccionada.
             </p>
 
           </div>
 
           <button
             class="close-btn"
+            type="button"
+            aria-label="Cerrar"
             @click="emit('close')"
           >
-            ✕
+            x
           </button>
 
-        </div>
+        </header>
 
-        <div
+        <section
           v-if="reservation"
-          class="detail-card"
+          class="detail-panel"
         >
 
-          <div class="detail-row">
+          <dl class="detail-list">
 
-            <span>
-              Actividad
-            </span>
+            <div
+              v-for="detail in details"
+              :key="detail.label"
+              class="detail-row"
+            >
 
-            <strong>
-              {{ reservation.title || 'Reserva' }}
-            </strong>
+              <dt>
+                {{ detail.label }}
+              </dt>
 
-          </div>
+              <dd
+                :class="{ status: detail.label === 'Estado' }"
+              >
+                {{ detail.value }}
+              </dd>
 
-          <div class="detail-row">
+            </div>
 
-            <span>
-              Fecha
-            </span>
+          </dl>
 
-            <strong>
-              {{ reservationDate }}
-            </strong>
-
-          </div>
-
-          <div class="detail-row">
-
-            <span>
-              Horario
-            </span>
-
-            <strong>
-              {{ reservationTime }}
-            </strong>
-
-          </div>
-
-          <div class="detail-row">
-
-            <span>
-              Duración
-            </span>
-
-            <strong>
-              {{ reservation.durationMinutes }} minutos
-            </strong>
-
-          </div>
-
-          <div class="detail-row">
-
-            <span>
-              Estado
-            </span>
-
-            <strong class="status">
-              {{ statusLabel }}
-            </strong>
-
-          </div>
-
-        </div>
+        </section>
 
         <div
           v-if="errorMessage"
@@ -194,10 +188,11 @@ const handleCancel = () => {
           </template>
         </div>
 
-        <div class="actions">
+        <footer class="actions">
 
           <button
             class="secondary-btn"
+            type="button"
             @click="emit('close')"
           >
             Cerrar
@@ -206,12 +201,13 @@ const handleCancel = () => {
           <button
             v-if="showCancelAction"
             class="danger-btn"
+            type="button"
             @click="handleCancel"
           >
             Cancelar reserva
           </button>
 
-        </div>
+        </footer>
 
       </div>
 
@@ -231,7 +227,7 @@ const handleCancel = () => {
   align-items: center;
   justify-content: center;
 
-  padding: 20px;
+  padding: 18px;
 
   z-index: 9999;
 
@@ -239,19 +235,21 @@ const handleCancel = () => {
 }
 
 .modal {
-  width: 100%;
-  max-width: 560px;
+  width: min(100%, 500px);
+  max-height: min(88vh, 640px);
 
   background: white;
 
-  border-radius: 28px;
+  border-radius: 22px;
 
-  padding: 28px;
+  padding: 22px;
 
   display: flex;
   flex-direction: column;
 
-  gap: 22px;
+  gap: 16px;
+
+  overflow: hidden;
 
   box-shadow:
     0 24px 60px rgba(0,0,0,0.2);
@@ -262,33 +260,33 @@ const handleCancel = () => {
   align-items: flex-start;
   justify-content: space-between;
 
-  gap: 18px;
+  gap: 16px;
 }
 
 .modal-header h2 {
   margin: 0;
 
-  font-size: 28px;
+  font-size: 24px;
   font-weight: 800;
 
   color: #0f172a;
 }
 
 .modal-header p {
-  margin-top: 6px;
+  margin: 4px 0 0;
 
   color: #64748b;
 
-  font-size: 14px;
+  font-size: 13px;
 }
 
 .close-btn {
-  width: 44px;
-  height: 44px;
+  width: 38px;
+  height: 38px;
 
   border: none;
 
-  border-radius: 14px;
+  border-radius: 12px;
 
   background: #f1f5f9;
 
@@ -297,104 +295,111 @@ const handleCancel = () => {
   cursor: pointer;
 
   font-size: 18px;
+  font-weight: 800;
 }
 
-.detail-card {
-  display: flex;
-  flex-direction: column;
+.close-btn:hover {
+  background: #e2e8f0;
+}
 
-  gap: 12px;
+.detail-panel {
+  padding: 4px 0;
 
-  padding: 18px;
+  overflow-y: auto;
+}
 
-  border-radius: 20px;
-
-  background: #f8fafc;
+.detail-list {
+  margin: 0;
 
   border: 1px solid #e2e8f0;
+  border-radius: 16px;
+
+  overflow: hidden;
+
+  background: #f8fafc;
 }
 
 .detail-row {
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: 126px minmax(0, 1fr);
   align-items: center;
 
   gap: 16px;
 
-  padding-bottom: 10px;
+  padding: 13px 16px;
 
   border-bottom: 1px solid #e2e8f0;
 }
 
 .detail-row:last-child {
-  padding-bottom: 0;
-
   border-bottom: none;
 }
 
-.detail-row span {
+.detail-row dt {
+  margin: 0;
+
   color: #64748b;
 
-  font-size: 14px;
-  font-weight: 700;
+  font-size: 13px;
+  font-weight: 800;
 }
 
-.detail-row strong {
+.detail-row dd {
+  margin: 0;
+
   color: #0f172a;
 
   font-size: 14px;
-  text-align: right;
+  font-weight: 800;
+
+  overflow-wrap: anywhere;
 }
 
 .status {
   color: #2563eb;
 }
 
+.warning,
+.error {
+  padding: 11px 14px;
+
+  border-radius: 14px;
+
+  font-size: 13px;
+  font-weight: 800;
+}
+
 .warning {
-  padding: 14px 16px;
-
-  border-radius: 16px;
-
   background: #fff7ed;
 
   border: 1px solid #fed7aa;
 
   color: #c2410c;
-
-  font-size: 14px;
-  font-weight: 700;
 }
 
 .error {
-  padding: 14px 16px;
-
-  border-radius: 16px;
-
   background: #fee2e2;
 
   border: 1px solid #fecaca;
 
   color: #b91c1c;
-
-  font-size: 14px;
-  font-weight: 700;
 }
 
 .actions {
   display: flex;
   justify-content: flex-end;
 
-  gap: 14px;
+  gap: 12px;
 }
 
 .actions button {
-  height: 50px;
+  height: 44px;
 
   border: none;
 
-  border-radius: 16px;
+  border-radius: 14px;
 
-  padding: 0 22px;
+  padding: 0 18px;
 
   font-size: 14px;
   font-weight: 800;
@@ -406,23 +411,52 @@ const handleCancel = () => {
   background: #f1f5f9;
 
   color: #334155;
+
+  min-width: 116px;
+}
+
+.secondary-btn:hover {
+  background: #e2e8f0;
 }
 
 .danger-btn {
   background: #dc2626;
 
   color: white;
+
+  min-width: 160px;
 }
 
 .danger-btn:hover {
   background: #b91c1c;
 }
 
-@media (max-width: 768px) {
-  .modal {
-    padding: 22px;
+@media (max-width: 520px) {
+  .overlay {
+    align-items: flex-end;
 
-    border-radius: 24px;
+    padding: 12px;
+  }
+
+  .modal {
+    width: 100%;
+    max-height: 92vh;
+
+    padding: 16px;
+
+    border-radius: 20px;
+  }
+
+  .modal-header h2 {
+    font-size: 20px;
+  }
+
+  .detail-row {
+    grid-template-columns: 1fr;
+
+    gap: 5px;
+
+    padding: 12px 14px;
   }
 
   .actions {
@@ -431,15 +465,6 @@ const handleCancel = () => {
 
   .actions button {
     width: 100%;
-  }
-
-  .detail-row {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .detail-row strong {
-    text-align: left;
   }
 }
 </style>

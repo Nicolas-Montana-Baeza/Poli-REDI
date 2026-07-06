@@ -1,5 +1,20 @@
-﻿<script setup>
+<script setup>
+import { computed } from 'vue'
+
+import RutRequiredModal from '@/components/auth/RutRequiredModal.vue'
+import { useAuthStore } from '@/stores/auth'
+
 import HeaderBar from './HeaderBar.vue'
+
+const authStore = useAuthStore()
+
+const shouldRequestRut = computed(() => {
+  return (
+    authStore.user &&
+    authStore.user.isAdmin !== true &&
+    !authStore.user.rut
+  )
+})
 </script>
 
 <template>
@@ -12,6 +27,8 @@ import HeaderBar from './HeaderBar.vue'
       <router-view />
 
     </main>
+
+    <RutRequiredModal :visible="shouldRequestRut" />
 
   </div>
 </template>

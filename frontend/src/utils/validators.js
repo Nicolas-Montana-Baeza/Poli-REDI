@@ -1,17 +1,30 @@
-export const normalizeRut = (value) => {
+export const cleanRutInput = (value) => {
   const cleaned = String(value || '')
-    .trim()
     .toUpperCase()
-    .replaceAll('.', '')
-    .replaceAll(' ', '')
+    .replace(/[^0-9K]/g, '')
+
+  const body = cleaned
+    .slice(0, -1)
+    .replaceAll('K', '')
+
+  return `${body}${cleaned.slice(-1)}`
+}
+
+export const formatRutInput = (value) => {
+  const cleaned = cleanRutInput(value)
+
+  if (cleaned.length <= 1) {
+    return cleaned
+  }
+
+  return `${cleaned.slice(0, -1)}-${cleaned.slice(-1)}`
+}
+
+export const normalizeRut = (value) => {
+  const cleaned = cleanRutInput(value)
 
   if (!cleaned) {
     return ''
-  }
-
-  if (cleaned.includes('-')) {
-    const [number, verifier] = cleaned.split('-')
-    return `${number}-${verifier || ''}`
   }
 
   if (cleaned.length < 2) {

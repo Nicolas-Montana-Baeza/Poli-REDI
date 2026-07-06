@@ -19,6 +19,11 @@ const props = defineProps({
   pixelsPerMinute: {
     type: Number,
     default: 1
+  },
+
+  topOffset: {
+    type: Number,
+    default: 0
   }
 })
 
@@ -46,7 +51,7 @@ const duration = computed(() => {
 
 const blockStyle = computed(() => {
   return {
-    top: `${startMinutes.value * props.pixelsPerMinute}px`,
+    top: `${props.topOffset + startMinutes.value * props.pixelsPerMinute}px`,
     height: `${duration.value * props.pixelsPerMinute}px`
   }
 })

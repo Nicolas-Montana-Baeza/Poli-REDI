@@ -38,6 +38,8 @@ const emit = defineEmits([
   'reservation-selected'
 ])
 
+const timelineTopPadding = 18
+
 /* HEIGHT */
 const totalMinutes = computed(() => {
   return (
@@ -46,7 +48,7 @@ const totalMinutes = computed(() => {
 })
 
 const timelineHeight = computed(() => {
-  return `${totalMinutes.value * props.pixelsPerMinute}px`
+  return `${totalMinutes.value * props.pixelsPerMinute + timelineTopPadding}px`
 })
 
 /* HOUR LINES */
@@ -62,6 +64,7 @@ const hourLines = computed(() => {
       hour,
       label: `${String(hour).padStart(2, '0')}:00`,
       top:
+        timelineTopPadding +
         (hour - props.startHour) *
         60 *
         props.pixelsPerMinute
@@ -131,7 +134,7 @@ const handleTimelineClick = (event) => {
     event.currentTarget.getBoundingClientRect()
 
   const y =
-    event.clientY - rect.top
+    event.clientY - rect.top - timelineTopPadding
 
   const minutesFromStart =
     Math.round(y / props.pixelsPerMinute)
@@ -239,6 +242,7 @@ const statusLabel = (status) => {
         :reservation="reservation"
         :start-hour="startHour"
         :pixels-per-minute="pixelsPerMinute"
+        :top-offset="timelineTopPadding"
         @select="handleReservationSelected"
       />
 
