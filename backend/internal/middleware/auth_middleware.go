@@ -3,6 +3,7 @@ package middleware
 import (
 	"context"
 	"errors"
+	"log"
 	"os"
 	"poli-redi-api/internal/models"
 	"poli-redi-api/internal/repositories"
@@ -18,7 +19,6 @@ type AuthUser struct {
 	Name   string
 	Email  string
 	Tenant string
-	RawJWT string
 }
 
 type EntraClaims struct {
@@ -55,15 +55,19 @@ func resolveEmail(claims *EntraClaims) string {
 
 func RequireAuth() fiber.Handler {
 	if strings.EqualFold(os.Getenv("DEV_AUTH_ENABLED"), "true") {
+		log.Println("Autenticacion local de desarrollo habilitada")
 		return requireDevAuth()
 	}
 
 	tenantID := os.Getenv("ENTRA_TENANT_ID")
 	apiClientID := os.Getenv("ENTRA_API_CLIENT_ID")
 	issuer := os.Getenv("ENTRA_ISSUER")
-	println("ENTRA_TENANT_ID:", tenantID)
-	println("ENTRA_API_CLIENT_ID:", apiClientID)
-	println("ENTRA_ISSUER:", issuer)
+
+	if tenantID == "" || apiClientID == "" || issuer == "" {
+		panic("configuracion de Microsoft Entra ID incompleta")
+	}
+
+	log.Println("Autenticacion Microsoft Entra ID habilitada")
 
 	jwksURL := "https://login.microsoftonline.com/" + tenantID + "/discovery/v2.0/keys"
 
@@ -114,7 +118,6 @@ func RequireAuth() fiber.Handler {
 			Name:   claims.Name,
 			Email:  email,
 			Tenant: claims.TID,
-			RawJWT: tokenString,
 		}
 		if authUser.Email == "" {
 			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
@@ -134,7 +137,6 @@ func RequireAuth() fiber.Handler {
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 				"error":  "no se pudo crear o consultar el usuario",
 				"detail": err.Error(),
-				"email":  authUser.Email,
 			})
 		}
 
@@ -155,7 +157,6 @@ func RequireAuth() fiber.Handler {
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 				"error":  "no se pudo sincronizar la identidad institucional",
 				"detail": err.Error(),
-				"email":  authUser.Email,
 			})
 		}
 
@@ -188,7 +189,6 @@ func requireDevAuth() fiber.Handler {
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 				"error":  "no se pudo crear o consultar el usuario local de pruebas",
 				"detail": err.Error(),
-				"email":  email,
 			})
 		}
 
@@ -206,7 +206,6 @@ func requireDevAuth() fiber.Handler {
 				return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 					"error":  "no se pudo reiniciar el RUT local de pruebas",
 					"detail": err.Error(),
-					"email":  email,
 				})
 			}
 		}
