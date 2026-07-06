@@ -1,7 +1,8 @@
 import {
   msalInstance,
   loginRequest,
-  apiTokenRequest
+  apiTokenRequest,
+  postLogoutRedirectUri
 } from '../auth/msalConfig'
 
 let initPromise = null
@@ -56,7 +57,7 @@ export async function logout() {
   clearMsalCache()
 
   return msalInstance.logoutRedirect({
-    postLogoutRedirectUri: 'http://localhost:5173/login'
+    postLogoutRedirectUri
   })
 }
 

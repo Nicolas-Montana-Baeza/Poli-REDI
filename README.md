@@ -109,10 +109,12 @@ VITE_API_TIMEOUT_MS=30000
 VITE_ENTRA_TENANT_ID=
 VITE_ENTRA_CLIENT_ID=
 VITE_ENTRA_REDIRECT_URI=http://localhost:5173/auth/callback
+VITE_ENTRA_POST_LOGOUT_REDIRECT_URI=http://localhost:5173/login
 VITE_ENTRA_API_SCOPE=
 ```
 
 `VITE_API_BASE_URL` es opcional; si no se define, el frontend usa `http://localhost:3000/api`.
+`VITE_ENTRA_POST_LOGOUT_REDIRECT_URI` permite usar una URL distinta para local y nube sin cambiar codigo.
 
 ## Base de datos
 

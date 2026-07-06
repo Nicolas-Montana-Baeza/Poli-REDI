@@ -4,13 +4,14 @@ const tenantId = import.meta.env.VITE_ENTRA_TENANT_ID
 const clientId = import.meta.env.VITE_ENTRA_CLIENT_ID
 const redirectUri = import.meta.env.VITE_ENTRA_REDIRECT_URI
 const apiScope = import.meta.env.VITE_ENTRA_API_SCOPE
+export const postLogoutRedirectUri = import.meta.env.VITE_ENTRA_POST_LOGOUT_REDIRECT_URI || '/login'
 
 export const msalConfig = {
   auth: {
     clientId,
     authority: `https://login.microsoftonline.com/${tenantId}`,
     redirectUri,
-    postLogoutRedirectUri: 'http://localhost:5173/login'
+    postLogoutRedirectUri
   },
   cache: {
     cacheLocation: 'localStorage',

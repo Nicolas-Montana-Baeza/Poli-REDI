@@ -1,7 +1,8 @@
 import {
   msalInstance,
   loginRequest,
-  apiTokenRequest
+  apiTokenRequest,
+  postLogoutRedirectUri
 } from './msalConfig'
 
 const DEV_ACCOUNT_KEY = 'poli_redi_dev_account'
@@ -147,7 +148,7 @@ export async function logout() {
   clearMsalCache()
 
   return msalInstance.logoutRedirect({
-    postLogoutRedirectUri: 'http://localhost:5173/login'
+    postLogoutRedirectUri
   })
 }
 
