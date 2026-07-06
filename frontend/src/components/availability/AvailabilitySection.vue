@@ -56,7 +56,7 @@ const reservationBlockingError = computed(() => {
     authStore.user.isAdmin !== true &&
     !authStore.user.rut
   ) {
-    return 'Debes registrar tu RUT en Cuenta antes de crear reservas.'
+    return 'Debes registrar tu RUT antes de crear reservas.'
   }
 
   if (resourcesStore.error) {
@@ -188,19 +188,8 @@ const submitReservation = async (reservation) => {
       return
     }
 
-    let activityId =
+    const activityId =
       Number(reservation.activityId)
-
-    if (
-      activityId === 0 &&
-      String(reservation.newActivityName || '').trim()
-    ) {
-      const activity = await activitiesStore.createActivity({
-        name: reservation.newActivityName
-      })
-
-      activityId = activity.id
-    }
 
     const payload = {
       resourceId:

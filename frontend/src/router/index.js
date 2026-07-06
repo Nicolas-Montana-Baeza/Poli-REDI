@@ -117,20 +117,6 @@ router.beforeEach(async (to) => {
       return { path: '/blocked' }
     }
 
-    if (
-      user &&
-      user.isAdmin !== true &&
-      !user.rut &&
-      to.path !== '/settings'
-    ) {
-      return {
-        path: '/settings',
-        query: {
-          redirect: to.fullPath
-        }
-      }
-    }
-
     if (to.meta.requiresAdmin && user?.isAdmin !== true) {
       if (to.path === '/availability') {
         return true

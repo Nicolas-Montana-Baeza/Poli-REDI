@@ -2,6 +2,41 @@ import { defineStore } from 'pinia'
 
 import { activitiesService } from '@/services/activities.service'
 
+const isValidActivityName = (name) => {
+  const normalized = String(name || '').trim().toLowerCase()
+  const words = normalized
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .split(/\s+/)
+  const blockedTerms = [
+    'puta',
+    'puto',
+    'putas',
+    'putos',
+    'mierda',
+    'weon',
+    'weona',
+    'weones',
+    'weonas',
+    'wea',
+    'weas',
+    'ctm',
+    'maricon',
+    'marica',
+    'pico',
+    'pene',
+    'sexo',
+    'fuck',
+    'shit',
+    'bitch'
+  ]
+
+  return (
+    /^[\p{L}\s]{3,120}$/u.test(normalized) &&
+    !blockedTerms.some((term) => words.includes(term))
+  )
+}
+
 export const useActivitiesStore = defineStore('activities', {
   state: () => ({
     activities: [],
@@ -15,39 +50,11 @@ export const useActivitiesStore = defineStore('activities', {
       this.error = null
 
       try {
-        this.activities = await activitiesService.getAll()
+        this.activities = (await activitiesService.getAll())
+          .filter((activity) => isValidActivityName(activity.name))
       } catch {
         this.activities = []
         this.error = 'No se pudieron cargar las actividades'
-      } finally {
-        this.loading = false
-      }
-    },
-
-    async createActivity(activity) {
-      this.loading = true
-      this.error = null
-
-      try {
-        const createdActivity = await activitiesService.create(activity)
-        const exists = this.activities.some(
-          (item) => item.id === createdActivity.id
-        )
-
-        if (!exists) {
-          this.activities.push(createdActivity)
-          this.activities.sort((a, b) => a.name.localeCompare(b.name))
-        }
-
-        return createdActivity
-      } catch (error) {
-        const message =
-          error.response?.data?.error ||
-          error.response?.data?.detail ||
-          'No se pudo crear la actividad'
-
-        this.error = message
-        throw new Error(message)
       } finally {
         this.loading = false
       }

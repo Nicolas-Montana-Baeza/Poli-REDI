@@ -86,12 +86,12 @@ Entregar una experiencia usable para el usuario normal, desde login hasta reserv
 - Login y proteccion de rutas.
 - Registro y validacion de RUT.
 - Bloqueo de reserva para usuarios normales sin RUT.
-- Redireccion a configuracion cuando falta RUT.
+- Modal obligatorio cuando falta RUT.
 - Vista de disponibilidad con datos reales.
 - Reservas visibles por dia seleccionado.
 - Formulario de reserva con validaciones visibles.
 - Seleccion de actividad real.
-- Creacion de actividad nueva desde el flujo de reserva.
+- Seleccion de actividad desde catalogo aprobado.
 - Mis Reservas.
 - Detalle de reserva.
 - Cancelacion de reserva propia.

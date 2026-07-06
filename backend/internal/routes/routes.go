@@ -19,7 +19,6 @@ func RegisterRoutes(app *fiber.App) {
 
 	protected.Get("/resources", handlers.GetResources)
 	protected.Get("/activities", handlers.GetActivities)
-	protected.Post("/activities", handlers.CreateActivity)
 	protected.Get("/notifications", handlers.GetNotifications)
 	protected.Get("/users", handlers.GetUsers)
 

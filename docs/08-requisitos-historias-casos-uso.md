@@ -246,7 +246,7 @@ Como usuario normal, quiero registrar mi RUT cuando el sistema lo solicite para 
 
 Criterios de aceptacion:
 
-- Si no tengo RUT, el sistema me dirige a configuracion.
+- Si no tengo RUT, el sistema me solicita registrarlo en un modal.
 - El RUT se valida antes de guardar.
 - Despues de guardar, puedo continuar al flujo solicitado.
 

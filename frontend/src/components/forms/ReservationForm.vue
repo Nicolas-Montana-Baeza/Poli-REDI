@@ -53,9 +53,7 @@ const form = ref({
 
   participantsCount: 1,
 
-  activityId: null,
-
-  newActivityName: ''
+  activityId: null
 })
 
 const fieldErrors = ref({})
@@ -73,7 +71,6 @@ const getDefaultActivityId = () => {
 
 const handleActivityUpdate = () => {
   fieldErrors.value.activityId = ''
-  fieldErrors.value.newActivityName = ''
 }
 
 watch(
@@ -108,8 +105,6 @@ watch(
     form.value.activityId =
       form.value.activityId ||
       getDefaultActivityId()
-
-    form.value.newActivityName = ''
   },
   {
     immediate: true
@@ -176,13 +171,6 @@ const validateForm = () => {
 
   if (Number(form.value.participantsCount) <= 0) {
     errors.participantsCount = 'La cantidad de participantes debe ser mayor a 0.'
-  }
-
-  if (
-    Number(form.value.activityId) === 0 &&
-    !String(form.value.newActivityName || '').trim()
-  ) {
-    errors.newActivityName = 'Ingresa el nombre de la nueva actividad.'
   }
 
   fieldErrors.value = errors
@@ -338,10 +326,6 @@ const handleClose = () => {
               {{ activities.length ? 'Sin actividad específica' : 'No hay actividades disponibles' }}
             </option>
 
-            <option :value="0">
-              Otra actividad...
-            </option>
-
             <option
               v-for="activity in activities"
               :key="activity.id"
@@ -352,35 +336,6 @@ const handleClose = () => {
             </option>
 
           </select>
-
-        </div>
-
-        <div
-          v-if="Number(form.activityId) === 0"
-          class="field"
-        >
-
-          <label for="newActivityName">
-            Nueva actividad
-          </label>
-
-          <input
-            id="newActivityName"
-            v-model.trim="form.newActivityName"
-            type="text"
-            maxlength="120"
-            placeholder="Ej: Tenis de mesa"
-            :class="{ invalid: fieldErrors.newActivityName }"
-            :disabled="submitting"
-            @input="handleActivityUpdate"
-          />
-
-          <p
-            v-if="fieldErrors.newActivityName"
-            class="field-error"
-          >
-            {{ fieldErrors.newActivityName }}
-          </p>
 
         </div>
 

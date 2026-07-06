@@ -292,7 +292,7 @@ Guardar RUT en `users`, validarlo en frontend/backend y bloquear reservas de usu
 - Se agrego `PATCH /api/me/rut`.
 - `CreateReservation` rechaza usuarios normales sin RUT antes de crear la reserva.
 - `SettingsView.vue` permite registrar o actualizar RUT con validacion frontend.
-- El router envia a usuarios normales sin RUT a `SettingsView` antes de permitir el uso interno.
+- La app muestra un modal obligatorio a usuarios normales sin RUT antes de permitir reservas.
 - En modo desarrollo, el login local no-admin puede resetear RUT para probar el flujo de registro y confirmar cambios en base de datos.
 
 ---
@@ -317,7 +317,7 @@ Permitir seleccionar o resolver la actividad real al crear una reserva.
 
 - [x] El backend expone listado de actividades activas o el frontend usa una fuente real.
 - [x] El formulario permite seleccionar actividad.
-- [x] El formulario permite crear una actividad nueva si no existe en la lista.
+- [x] El formulario limita actividades al catalogo aprobado para MVP 1.
 - [x] No se usa `activityId` fijo.
 - [x] La reserva creada queda asociada a la actividad correcta.
 - [x] Se maneja estado sin actividades.
@@ -325,11 +325,11 @@ Permitir seleccionar o resolver la actividad real al crear una reserva.
 ### Resultado de implementacion
 
 - `GET /api/activities` entrega actividades activas desde Azure SQL.
-- `POST /api/activities` crea o reutiliza una actividad por nombre para asociarla a la reserva.
+- Para MVP 1, las actividades se seleccionan desde el catalogo existente en base de datos.
 - `ReservationForm.vue` muestra un selector de actividades reales.
-- `ReservationForm.vue` permite elegir "Otra actividad..." y escribir un nombre nuevo.
-- `AvailabilitySection.vue` carga actividades junto con recursos/reservas, crea la actividad nueva si corresponde y envia el `activityId` seleccionado.
-- Si no existen actividades cargadas, el formulario permite crear una nueva o dejar la reserva sin actividad especifica.
+- `ReservationForm.vue` permite elegir una actividad del catalogo o dejar la reserva sin actividad especifica.
+- `AvailabilitySection.vue` carga actividades junto con recursos/reservas y envia el `activityId` seleccionado.
+- Si no existen actividades cargadas, el formulario permite dejar la reserva sin actividad especifica.
 
 ### Archivos relevantes
 
@@ -451,7 +451,7 @@ Agregar validaciones visibles antes de enviar reserva.
 
 ### Resultado de implementacion
 
-- `ReservationForm.vue` valida recurso, fecha, hora, duracion, participantes y nombre de actividad nueva antes de enviar.
+- `ReservationForm.vue` valida recurso, fecha, hora y participantes antes de enviar.
 - Los campos invalidos muestran mensajes visibles y estado visual de error.
 - El boton de confirmacion queda bloqueado mientras se crea la reserva o no hay recursos cargados.
 - Los errores de backend se mantienen visibles dentro del modal sin cerrarlo.

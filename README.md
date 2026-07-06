@@ -10,10 +10,10 @@ El MVP 1 cubre el flujo base de reservas deportivas:
 
 - Login institucional con Microsoft Entra ID.
 - Login local de prueba para desarrollo.
-- Registro/actualizacion de RUT para usuarios normales.
+- Registro/actualizacion de RUT para usuarios normales mediante modal obligatorio.
 - Consulta de disponibilidad por recurso y fecha.
 - Creacion de reservas con usuario autenticado.
-- Creacion rapida de actividades desde el formulario si no existen.
+- Seleccion de actividades desde catalogo aprobado.
 - Listado de mis reservas, detalle, historial y cancelacion.
 - Panel administrador base con usuarios, recursos y reportes iniciales.
 - Notificaciones internas basicas.
@@ -210,7 +210,6 @@ GET /api/me
 PATCH /api/me/rut
 GET /api/resources
 GET /api/activities
-POST /api/activities
 GET /api/reservations
 GET /api/reservations/mine
 POST /api/reservations
@@ -228,10 +227,10 @@ Antes de una demo local:
 1. Levantar backend en `http://localhost:3000`.
 2. Levantar frontend en `http://localhost:5173`.
 3. Entrar con usuario normal local.
-4. Confirmar que solicita RUT si el usuario no tiene uno.
+4. Confirmar que solicita RUT en un modal si el usuario no tiene uno.
 5. Guardar RUT y verificar que permite avanzar.
 6. Crear una reserva desde Disponibilidad.
-7. Crear una actividad nueva desde el formulario si corresponde.
+7. Seleccionar una actividad del catalogo o dejarla sin actividad especifica.
 8. Revisar Mis Reservas, Detalle e Historial.
 9. Cancelar una reserva propia.
 10. Entrar como admin local y verificar acceso al panel administrador.

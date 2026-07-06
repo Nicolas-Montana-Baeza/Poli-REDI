@@ -13,7 +13,7 @@ import {
 import SkeletonLoader from '@/components/ui/SkeletonLoader.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useNotificationsStore } from '@/stores/notifications'
-import { isValidRut, normalizeRut } from '@/utils/validators'
+import { formatRutInput, isValidRut, normalizeRut } from '@/utils/validators'
 
 const authStore = useAuthStore()
 const notificationsStore = useNotificationsStore()
@@ -118,6 +118,12 @@ const handleRutSubmit = async () => {
   } finally {
     rutSaving.value = false
   }
+}
+
+const handleRutInput = () => {
+  rutValue.value = formatRutInput(rutValue.value)
+  rutError.value = ''
+  rutSuccess.value = ''
 }
 
 onMounted(() => {
@@ -256,6 +262,7 @@ watch(
               inputmode="text"
               placeholder="12345678-5"
               :disabled="rutSaving"
+              @input="handleRutInput"
             />
 
             <button
