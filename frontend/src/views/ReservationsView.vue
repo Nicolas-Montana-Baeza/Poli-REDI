@@ -9,6 +9,7 @@ import {
 } from 'lucide-vue-next'
 
 import SkeletonLoader from '@/components/ui/SkeletonLoader.vue'
+import { useAuthStore } from '@/stores/auth'
 import { useReservationsStore } from '@/stores/reservations'
 import {
   formatReservationDate,
@@ -17,12 +18,23 @@ import {
 } from '@/utils/reservationTime'
 
 const reservationsStore = useReservationsStore()
+const authStore = useAuthStore()
 const cancellingId = ref(null)
 
-onMounted(() => {
+onMounted(async () => {
   reservationsStore.clearActionError()
   reservationsStore.clearActionSuccess()
-  reservationsStore.fetchMyReservations()
+
+  if (!authStore.user) {
+    await authStore.loadAuthUser()
+  }
+
+  if (authStore.user?.isAdmin) {
+    await reservationsStore.fetchReservations()
+    return
+  }
+
+  await reservationsStore.fetchMyReservations()
 })
 
 const getReservationEnd = (reservation) => {
@@ -45,7 +57,11 @@ const isPast = (reservation) => {
 }
 
 const reservations = computed(() => {
-  return reservationsStore.myReservations
+  const source = authStore.user?.isAdmin
+    ? reservationsStore.reservations
+    : reservationsStore.myReservations
+
+  return source
     .slice()
     .sort((first, second) => {
       const firstDate =
@@ -59,6 +75,24 @@ const reservations = computed(() => {
         (firstDate?.getTime() || 0)
       )
     })
+})
+
+const isLoading = computed(() => {
+  return authStore.user?.isAdmin
+    ? reservationsStore.loading
+    : reservationsStore.myLoading
+})
+
+const loadingError = computed(() => {
+  return authStore.user?.isAdmin
+    ? reservationsStore.loadingError
+    : reservationsStore.myLoadingError
+})
+
+const emptyMessage = computed(() => {
+  return authStore.user?.isAdmin
+    ? 'Aun no hay reservas registradas.'
+    : 'Aun no tienes reservas registradas.'
 })
 
 const statusLabel = (status) => {
@@ -121,17 +155,19 @@ const cancelReservation = async (reservation) => {
     <header class="page-header">
 
       <h1>
-        Mis Reservas
+        {{ authStore.user?.isAdmin ? 'Reservas' : 'Mis Reservas' }}
       </h1>
 
       <p>
-        Revisa tus reservas registradas en el sistema.
+        {{ authStore.user?.isAdmin
+          ? 'Revisa todas las reservas registradas en el sistema.'
+          : 'Revisa tus reservas registradas en el sistema.' }}
       </p>
 
     </header>
 
     <div
-      v-if="reservationsStore.myLoading"
+      v-if="isLoading"
       aria-label="Cargando reservas"
     >
       <SkeletonLoader
@@ -141,10 +177,10 @@ const cancelReservation = async (reservation) => {
     </div>
 
     <div
-      v-else-if="reservationsStore.myLoadingError"
+      v-else-if="loadingError"
       class="state-card error"
     >
-      {{ reservationsStore.myLoadingError }}
+      {{ loadingError }}
     </div>
 
     <section
@@ -170,7 +206,7 @@ const cancelReservation = async (reservation) => {
         v-if="!reservations.length"
         class="state-card"
       >
-        Aun no tienes reservas registradas.
+        {{ emptyMessage }}
       </div>
 
       <section

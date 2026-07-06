@@ -31,18 +31,38 @@ const reservationId = computed(() => {
 })
 
 onMounted(async () => {
-  await Promise.all([
-    authStore.user
-      ? Promise.resolve()
-      : authStore.loadAuthUser(),
-    reservationsStore.fetchMyReservations()
-  ])
+  if (!authStore.user) {
+    await authStore.loadAuthUser()
+  }
+
+  if (authStore.user?.isAdmin) {
+    await reservationsStore.fetchReservations()
+    return
+  }
+
+  await reservationsStore.fetchMyReservations()
 })
 
 const reservation = computed(() => {
-  return reservationsStore.myReservations.find(
+  const source = authStore.user?.isAdmin
+    ? reservationsStore.reservations
+    : reservationsStore.myReservations
+
+  return source.find(
     (item) => item.id === reservationId.value
   )
+})
+
+const isLoading = computed(() => {
+  return authStore.user?.isAdmin
+    ? reservationsStore.loading
+    : reservationsStore.myLoading
+})
+
+const loadingError = computed(() => {
+  return authStore.user?.isAdmin
+    ? reservationsStore.loadingError
+    : reservationsStore.myLoadingError
 })
 
 const getReservationEnd = (item) => {
@@ -135,7 +155,7 @@ const goBack = () => {
     </button>
 
     <div
-      v-if="reservationsStore.myLoading"
+      v-if="isLoading"
       aria-label="Cargando reserva"
     >
       <SkeletonLoader
@@ -145,10 +165,10 @@ const goBack = () => {
     </div>
 
     <div
-      v-else-if="reservationsStore.myLoadingError"
+      v-else-if="loadingError"
       class="state-card error"
     >
-      {{ reservationsStore.myLoadingError }}
+      {{ loadingError }}
     </div>
 
     <div
@@ -267,7 +287,9 @@ const goBack = () => {
           </span>
 
           <strong>
-            {{ authStore.user?.fullName || authStore.user?.email || 'Usuario' }}
+            {{ authStore.user?.isAdmin
+              ? `Usuario #${reservation.userId}`
+              : authStore.user?.fullName || authStore.user?.email || 'Usuario' }}
           </strong>
 
         </article>

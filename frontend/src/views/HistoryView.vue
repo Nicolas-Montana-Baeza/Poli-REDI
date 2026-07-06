@@ -8,6 +8,7 @@ import {
 } from 'lucide-vue-next'
 
 import SkeletonLoader from '@/components/ui/SkeletonLoader.vue'
+import { useAuthStore } from '@/stores/auth'
 import { useReservationsStore } from '@/stores/reservations'
 import {
   formatReservationDate,
@@ -16,12 +17,22 @@ import {
 } from '@/utils/reservationTime'
 
 const reservationsStore = useReservationsStore()
+const authStore = useAuthStore()
 const statusFilter = ref('ALL')
 const fromDate = ref('')
 const toDate = ref('')
 
-onMounted(() => {
-  reservationsStore.fetchMyReservations()
+onMounted(async () => {
+  if (!authStore.user) {
+    await authStore.loadAuthUser()
+  }
+
+  if (authStore.user?.isAdmin) {
+    await reservationsStore.fetchReservations()
+    return
+  }
+
+  await reservationsStore.fetchMyReservations()
 })
 
 const getReservationEnd = (reservation) => {
@@ -47,7 +58,11 @@ const isHistorical = (reservation) => {
 }
 
 const reservations = computed(() => {
-  return reservationsStore.myReservations
+  const source = authStore.user?.isAdmin
+    ? reservationsStore.reservations
+    : reservationsStore.myReservations
+
+  return source
     .filter(isHistorical)
     .slice()
     .sort((first, second) => {
@@ -62,6 +77,24 @@ const reservations = computed(() => {
         (firstDate?.getTime() || 0)
       )
     })
+})
+
+const isLoading = computed(() => {
+  return authStore.user?.isAdmin
+    ? reservationsStore.loading
+    : reservationsStore.myLoading
+})
+
+const loadingError = computed(() => {
+  return authStore.user?.isAdmin
+    ? reservationsStore.loadingError
+    : reservationsStore.myLoadingError
+})
+
+const emptyMessage = computed(() => {
+  return authStore.user?.isAdmin
+    ? 'Aun no hay reservas historicas registradas.'
+    : 'Aun no tienes reservas historicas.'
 })
 
 const filteredReservations = computed(() => {
@@ -121,7 +154,9 @@ const statusClass = (status) => {
       </h1>
 
       <p>
-        Revisa reservas pasadas o canceladas.
+        {{ authStore.user?.isAdmin
+          ? 'Revisa todo el historial de reservas del sistema.'
+          : 'Revisa tus reservas pasadas o canceladas.' }}
       </p>
 
     </header>
@@ -165,7 +200,7 @@ const statusClass = (status) => {
     </section>
 
     <div
-      v-if="reservationsStore.myLoading"
+      v-if="isLoading"
       aria-label="Cargando historial"
     >
       <SkeletonLoader
@@ -175,17 +210,17 @@ const statusClass = (status) => {
     </div>
 
     <div
-      v-else-if="reservationsStore.myLoadingError"
+      v-else-if="loadingError"
       class="state-card error"
     >
-      {{ reservationsStore.myLoadingError }}
+      {{ loadingError }}
     </div>
 
     <div
       v-else-if="!reservations.length"
       class="state-card"
     >
-      Aun no tienes reservas historicas.
+      {{ emptyMessage }}
     </div>
 
     <div

@@ -5,9 +5,10 @@ import (
 	"errors"
 	"log"
 	"os"
+	"strings"
+
 	"poli-redi-api/internal/models"
 	"poli-redi-api/internal/repositories"
-	"strings"
 
 	"github.com/MicahParks/keyfunc/v3"
 	"github.com/gofiber/fiber/v2"
@@ -101,17 +102,18 @@ func RequireAuth() fiber.Handler {
 		)
 
 		if err != nil || !token.Valid {
-			detail := "token no válido"
+			detail := "token no valido"
 
 			if err != nil {
 				detail = err.Error()
 			}
 
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-				"error":  "token inválido o expirado",
+				"error":  "token invalido o expirado",
 				"detail": detail,
 			})
 		}
+
 		email := resolveEmail(claims)
 		authUser := AuthUser{
 			OID:    claims.OID,
@@ -119,12 +121,14 @@ func RequireAuth() fiber.Handler {
 			Email:  email,
 			Tenant: claims.TID,
 		}
+
 		if authUser.Email == "" {
 			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
 				"error":  "usuario no autorizado",
 				"detail": "El token no contiene email, preferred_username, upn ni unique_name.",
 			})
 		}
+
 		fullName := authUser.Name
 
 		if fullName == "" {
@@ -143,7 +147,7 @@ func RequireAuth() fiber.Handler {
 		if localUser.IsBlocked {
 			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
 				"error":  "usuario bloqueado",
-				"detail": "El usuario existe, pero está bloqueado en Poli-REDI.",
+				"detail": "El usuario existe, pero esta bloqueado en Poli-REDI.",
 			})
 		}
 
@@ -224,6 +228,26 @@ func requireDevAuth() fiber.Handler {
 	}
 }
 
+func RequireAdmin() fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		user, ok := GetLocalUser(c)
+
+		if !ok {
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+				"error": "usuario no autenticado",
+			})
+		}
+
+		if !user.IsAdmin {
+			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+				"error": "no tienes permisos para acceder a esta seccion",
+			})
+		}
+
+		return c.Next()
+	}
+}
+
 func extractBearerToken(c *fiber.Ctx) (string, error) {
 	authHeader := c.Get("Authorization")
 
@@ -234,7 +258,7 @@ func extractBearerToken(c *fiber.Ctx) (string, error) {
 	parts := strings.SplitN(authHeader, " ", 2)
 
 	if len(parts) != 2 || !strings.EqualFold(parts[0], "Bearer") {
-		return "", errors.New("formato Authorization inválido")
+		return "", errors.New("formato Authorization invalido")
 	}
 
 	return strings.TrimSpace(parts[1]), nil

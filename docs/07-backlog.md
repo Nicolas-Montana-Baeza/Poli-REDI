@@ -234,8 +234,8 @@ Crear un checklist corto de pruebas de humo para MVP 1.
 ## BACK-006 - Normalizar mensajes y codificacion visible
 
 Prioridad: P2
-Labels: `backend`, `frontend`, `ux`, `refactor`
-Estado sugerido: Backlog
+Labels: `backend`, `frontend`, `ux`, `refactor`, `codex-ready`
+Estado sugerido: Ready for Codex
 
 ### Contexto
 
@@ -252,6 +252,125 @@ Revisar mensajes visibles de backend/frontend para que no aparezcan caracteres c
 - [ ] Los mensajes tecnicos quedan reservados para logs o `detail` cuando corresponda.
 - [ ] `npm run build` pasa.
 - [ ] `go test ./...` pasa.
+
+## BACK-007 - Crear base global de sistema visual MVP 1
+
+Prioridad: P1
+Labels: `frontend`, `ux`, `refactor`, `codex-ready`, `mvp1`
+Estado sugerido: Ready for Codex
+
+### Contexto
+
+El proyecto tiene un estilo global minimo en `frontend/src/style.css`, pero `frontend/src/assets/styles/main.css` y `frontend/src/assets/styles/variables.css` estan vacios. La mayor parte de tarjetas, botones, estados, radios, colores y sombras se redefine dentro de cada componente con `<style scoped>`.
+
+Esto provoca una sensacion de falta de unificacion visual, especialmente en pantallas del MVP 1 usadas para demo: login, layout, disponibilidad, formularios, estados y reservas.
+
+### Objetivo
+
+Crear una base global de estilos reutilizables sin redisenar la aplicacion completa ni romper los estilos existentes.
+
+### Alcance sugerido para Codex
+
+1. Definir tokens en `frontend/src/assets/styles/variables.css`.
+2. Importar `variables.css` y `assets/styles/main.css` desde `frontend/src/style.css`.
+3. Crear utilidades globales base en `assets/styles/main.css`.
+4. Mantener los `<style scoped>` para layout especifico de cada componente.
+5. No cambiar comportamiento funcional.
+
+### Tokens minimos esperados
+
+- Colores: fondo, superficie, texto principal, texto secundario, borde, primario, exito, advertencia, error.
+- Radios: `sm`, `md`, `lg`, `xl`, `pill`.
+- Sombras: tarjeta, modal, foco.
+- Espaciado: escala simple para 4, 8, 12, 16, 20, 24, 32.
+- Tipografia: tamanos base para titulo de pagina, titulo de seccion, cuerpo y ayuda.
+
+### Clases globales minimas esperadas
+
+- `.app-card`
+- `.app-section-header`
+- `.state-card`, `.state-card.error`, `.state-card.success`, `.state-card.warning`
+- `.app-button`, `.app-button.primary`, `.app-button.secondary`, `.app-button.danger`
+- `.form-field`
+- `.form-error`
+- `.app-badge`
+
+### Criterios de aceptacion
+
+- [ ] `variables.css` contiene tokens reutilizables con nombres claros.
+- [ ] `style.css` importa la base global.
+- [ ] `main.css` contiene clases globales para tarjetas, botones, estados, campos y badges.
+- [ ] Los tokens reemplazan valores repetidos evidentes sin hacer un rediseño masivo.
+- [ ] No se eliminan estilos scoped necesarios para layout especifico.
+- [ ] `npm run build` pasa.
+
+### Archivos relevantes
+
+- `frontend/src/style.css`
+- `frontend/src/assets/styles/variables.css`
+- `frontend/src/assets/styles/main.css`
+
+## BACK-008 - Aplicar sistema visual global a pantallas MVP 1
+
+Prioridad: P1
+Labels: `frontend`, `ux`, `refactor`, `codex-ready`, `mvp1`
+Estado sugerido: Ready for Codex
+
+### Contexto
+
+Una vez creada la base global de estilos, conviene aplicarla gradualmente solo a las pantallas y componentes visibles en la demo del MVP 1. El objetivo es mejorar consistencia sin abrir una refactorizacion visual enorme.
+
+### Objetivo
+
+Unificar el aspecto de tarjetas, botones, modales, estados y campos en el recorrido base del MVP 1.
+
+### Alcance sugerido para Codex
+
+Aplicar primero en:
+
+- `LoginView.vue`
+- `BlockedView.vue`
+- `AppLayout.vue`
+- `HeaderBar.vue`
+- `Sidebar.vue`
+- `AvailabilitySection.vue`
+- `ReservationForm.vue`
+- `ReservationDetailModal.vue`
+- `ReservationsView.vue`
+- `ResourcesView.vue`
+
+### Reglas de implementacion
+
+- Reemplazar duplicacion evidente por clases globales.
+- Mantener estilos scoped para grillas, timeline, layout responsive y casos especiales.
+- No cambiar copy funcional salvo textos tecnicos visibles.
+- No introducir nuevas dependencias de UI.
+- No rehacer la marca ni cambiar completamente la paleta.
+
+### Criterios de aceptacion
+
+- [ ] Botones primarios, secundarios y de peligro se ven consistentes en el flujo base.
+- [ ] Tarjetas y estados de error/exito/advertencia comparten radios, bordes y colores.
+- [ ] Campos de formulario comparten altura, borde, foco y error.
+- [ ] Modales principales comparten overlay, superficie, sombra y botones.
+- [ ] La vista de disponibilidad conserva su layout y no pierde legibilidad.
+- [ ] La UI sigue siendo responsive en mobile.
+- [ ] `npm run build` pasa.
+
+### Archivos relevantes
+
+- `frontend/src/assets/styles/main.css`
+- `frontend/src/assets/styles/variables.css`
+- `frontend/src/views/LoginView.vue`
+- `frontend/src/views/BlockedView.vue`
+- `frontend/src/components/layout/AppLayout.vue`
+- `frontend/src/components/layout/HeaderBar.vue`
+- `frontend/src/components/layout/Sidebar.vue`
+- `frontend/src/components/availability/AvailabilitySection.vue`
+- `frontend/src/components/forms/ReservationForm.vue`
+- `frontend/src/components/availability/ReservationDetailModal.vue`
+- `frontend/src/views/ReservationsView.vue`
+- `frontend/src/views/ResourcesView.vue`
 
 ---
 
@@ -561,7 +680,7 @@ Estado sugerido: Done
 
 ### Contexto
 
-`ReservationsView.vue` ya lista reservas reales del usuario autenticado; falta conectar detalle.
+`ReservationsView.vue` lista reservas reales. Para usuarios normales muestra solo reservas propias; para administradores muestra todas las reservas del sistema.
 
 ### Objetivo
 
@@ -570,6 +689,7 @@ Crear una vista donde el usuario vea sus reservas.
 ### Criterios de aceptacion
 
 - [x] Muestra reservas del usuario autenticado.
+- [x] Si el usuario es administrador, muestra todas las reservas.
 - [x] Muestra recurso, actividad, fecha, hora, duracion y estado.
 - [x] Tiene estados de carga, error y vacio.
 - [x] Permite ir al detalle de una reserva.
@@ -579,9 +699,11 @@ Crear una vista donde el usuario vea sus reservas.
 ### Resultado parcial
 
 - `GET /api/reservations/mine` lista reservas del usuario autenticado.
+- `GET /api/reservations` permite que la vista admin cargue todas las reservas.
 - `ReservationsView.vue` ya no muestra `Proximamente...`.
+- `ReservationsView.vue` cambia titulo, mensaje vacio y fuente de datos segun rol.
 - La vista permite cancelar reservas propias disponibles.
-- `ReservationDetailView.vue` permite revisar una reserva desde `/reservations/:id`.
+- `ReservationDetailView.vue` permite revisar una reserva desde `/reservations/:id`; admin puede abrir reservas del listado global.
 
 ### Archivos relevantes
 
@@ -661,7 +783,7 @@ Estado sugerido: Ready for Codex
 
 ### Contexto
 
-`ReservationDetailView.vue` ya muestra datos reales de una reserva del usuario autenticado.
+`ReservationDetailView.vue` ya muestra datos reales de una reserva. Usuarios normales consultan solo sus reservas; administradores pueden abrir reservas del listado global.
 
 ### Objetivo
 
@@ -677,7 +799,7 @@ Mostrar informacion detallada de una reserva.
 ### Resultado parcial
 
 - Existe ruta `/reservations/:id`.
-- La vista carga reservas reales desde `/api/reservations/mine`.
+- La vista carga reservas reales desde `/api/reservations/mine` para usuario normal y desde `/api/reservations` para administrador.
 - Permite cancelar desde el detalle si la reserva corresponde.
 - Participantes queda pendiente porque el campo no esta persistido en el modelo actual.
 
@@ -689,7 +811,7 @@ Estado sugerido: Done
 
 ### Contexto
 
-`HistoryView.vue` ya lista reservas historicas reales; falta agregar filtros.
+`HistoryView.vue` ya lista reservas historicas reales con comportamiento por rol.
 
 ### Objetivo
 
@@ -698,13 +820,14 @@ Mostrar historial de reservas pasadas, canceladas o rechazadas.
 ### Criterios de aceptacion
 
 - [x] Lista reservas historicas del usuario.
+- [x] Si el usuario es administrador, lista todo el historial del sistema.
 - [x] Permite filtrar por estado.
 - [x] Permite filtrar por fecha.
 - [x] Tiene estados de carga, error y vacio.
 
 ### Resultado parcial
 
-- `HistoryView.vue` muestra reservas pasadas o canceladas desde `/api/reservations/mine`.
+- `HistoryView.vue` muestra reservas pasadas o canceladas desde `/api/reservations/mine` para usuario normal y desde `/api/reservations` para administrador.
 - `HistoryView.vue` permite filtrar por estado y rango de fecha.
 
 ## UI-004 - Conectar Dashboard a datos reales
@@ -1051,7 +1174,7 @@ Exponer un endpoint de disponibilidad por fecha o rango que entregue solo la inf
 
 Prioridad: P1
 Labels: `backend`, `auth`, `admin`, `security`
-Estado sugerido: Ready for Codex
+Estado sugerido: Done
 
 ### Contexto
 
@@ -1063,11 +1186,19 @@ Crear middleware `RequireAdmin` y aplicarlo a rutas administrativas.
 
 ### Criterios de aceptacion
 
-- [ ] Existe middleware reutilizable para exigir usuario administrador.
-- [ ] Rutas como usuarios, reportes administrativos y futuras operaciones admin usan el middleware.
-- [ ] Usuario normal recibe 403.
-- [ ] Usuario no autenticado recibe 401 desde el middleware de autenticacion.
-- [ ] Se mantiene compatibilidad con modo local de desarrollo.
+- [x] Existe middleware reutilizable para exigir usuario administrador.
+- [x] Rutas como usuarios, reportes administrativos y futuras operaciones admin usan el middleware.
+- [x] Usuario normal recibe 403.
+- [x] Usuario no autenticado recibe 401 desde el middleware de autenticacion.
+- [x] Se mantiene compatibilidad con modo local de desarrollo.
+
+### Resultado de implementacion
+
+- Se agrego `RequireAdmin` en `backend/internal/middleware/auth_middleware.go`.
+- `GET /api/users` ahora se registra bajo un grupo admin protegido por `RequireAdmin`.
+- `users_handlers.go` queda enfocado en obtener usuarios, sin duplicar validacion de rol.
+- Las futuras rutas administrativas pueden colgar del grupo `admin` en `routes.go`.
+- `go test ./...` pasa.
 
 ---
 
@@ -1227,7 +1358,7 @@ Configurar origenes permitidos por ambiente.
 
 Prioridad: P1
 Labels: `backend`, `auth`, `security`
-Estado sugerido: Ready for Codex
+Estado sugerido: Done
 
 ### Contexto
 
@@ -1239,10 +1370,19 @@ Reemplazar logs de configuracion sensible por mensajes de estado seguros.
 
 ### Criterios de aceptacion
 
-- [ ] No se imprimen tenant, client ID ni issuer completos.
-- [ ] Si falta configuracion critica, el error es claro para diagnostico.
-- [ ] No se registran tokens, cabeceras ni datos personales innecesarios.
-- [ ] `go test ./...` pasa.
+- [x] No se imprimen tenant, client ID ni issuer completos.
+- [x] Si falta configuracion critica, el error es claro para diagnostico.
+- [x] No se registran tokens, cabeceras ni datos personales innecesarios.
+- [x] `go test ./...` pasa.
+
+### Resultado de implementacion
+
+- `RequireAuth` ya no imprime `ENTRA_TENANT_ID`, `ENTRA_API_CLIENT_ID` ni `ENTRA_ISSUER`.
+- El backend solo informa si usa autenticacion Microsoft Entra ID o modo local de desarrollo.
+- Se elimino el JWT crudo del usuario guardado en contexto porque no se usaba.
+- Se quitaron correos de respuestas internas de error 500 en el middleware de autenticacion.
+- Se corrigieron mensajes visibles con caracteres rotos en autenticacion.
+- `go test ./...` pasa.
 
 ## SEC-004 - Checklist productivo de modo desarrollo
 
@@ -1445,6 +1585,41 @@ Estado sugerido: Done
 - `/api/health` permite validar que el App Service este activo.
 - La imagen Docker del backend puede desplegarse en Azure App Service.
 
+## OPS-001 - Plan de corte desde Google Calendar legado
+
+Prioridad: P0
+Labels: `operacion`, `documentacion`, `reservas`, `deploy`
+Estado sugerido: Ready for Codex
+
+### Contexto
+
+La operacion real puede seguir usando calendarios Google como sistema legado. Si Poli-REDI entra en operacion sin plan de corte, existe riesgo de doble reserva, informacion desactualizada y usuarios operando en dos fuentes distintas.
+
+### Objetivo
+
+Definir y ejecutar un plan minimo para mover la operacion desde Google Calendar hacia Poli-REDI.
+
+### Criterios de aceptacion
+
+- [ ] Calendarios Google vigentes inventariados.
+- [ ] Cada calendario legado tiene recurso equivalente en Poli-REDI.
+- [ ] Se define fecha y hora de congelamiento del legado.
+- [ ] Reservas futuras criticas se migran o registran en Poli-REDI.
+- [ ] Se comunica que nuevas reservas se crean solo en Poli-REDI.
+- [ ] Google Calendar queda como consulta historica temporal o respaldo.
+- [ ] Se valida que no existan dobles reservas en el periodo de transicion.
+
+### Resultado parcial
+
+- Se creo `docs/11-plan-corte-google-calendar.md` con plan de corte operativo, riesgos y criterios de aceptacion.
+- La integracion automatica con Google Calendar queda fuera de MVP 1.
+
+### Archivos relevantes
+
+- `docs/11-plan-corte-google-calendar.md`
+- `docs/07-backlog.md`
+- `docs/09-mvps-roadmap.md`
+
 ---
 
 # Inventario actual de datos duros detectados
@@ -1461,9 +1636,9 @@ Revision realizada durante la conexion de actividades reales.
 - `frontend/src/components/layout/HeaderBar.vue`: el saludo usa el nombre del usuario autenticado.
 - `frontend/src/components/layout/UserMenu.vue`: nombre, correo, rol y avatar iniciales vienen del usuario autenticado o de la cuenta Microsoft.
 - `frontend/src/views/SettingsView.vue`: muestra datos reales de la cuenta autenticada.
-- `frontend/src/views/ReservationsView.vue`: lista reservas reales del usuario autenticado.
-- `frontend/src/views/ReservationDetailView.vue`: muestra detalle real de reservas del usuario autenticado.
-- `frontend/src/views/HistoryView.vue`: lista reservas historicas reales del usuario autenticado.
+- `frontend/src/views/ReservationsView.vue`: lista reservas propias para usuarios normales y todas las reservas para administradores.
+- `frontend/src/views/ReservationDetailView.vue`: muestra detalle real de reservas propias o globales segun rol.
+- `frontend/src/views/HistoryView.vue`: lista historial propio para usuarios normales y todo el historial para administradores.
 - `frontend/src/views/AdminView.vue`: muestra resumen administrativo con recursos y reservas reales.
 - `frontend/src/views/ReportsView.vue`: muestra indicadores calculados desde reservas y recursos reales.
 - `frontend/src/views/UsersView.vue`: lista usuarios reales desde Azure SQL para administradores.

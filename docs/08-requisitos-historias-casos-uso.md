@@ -112,15 +112,15 @@ El sistema debe permitir cancelar reservas propias y permitir que administradore
 
 Estado actual: Implementado.
 
-### RF-009 - Mis reservas
+### RF-009 - Reservas por rol
 
-El sistema debe mostrar las reservas del usuario autenticado con fecha, recurso, actividad, duracion y estado.
+El sistema debe mostrar reservas con fecha, recurso, actividad, duracion y estado. Usuarios normales solo ven sus reservas; administradores pueden ver todas las reservas.
 
 Estado actual: Implementado.
 
-### RF-010 - Historial
+### RF-010 - Historial por rol
 
-El sistema debe mostrar reservas pasadas, canceladas o finalizadas del usuario.
+El sistema debe mostrar reservas pasadas, canceladas o finalizadas. Usuarios normales solo ven su historial; administradores pueden ver todo el historial.
 
 Estado actual: Implementado parcialmente.
 
@@ -298,6 +298,16 @@ Criterios de aceptacion:
 - Se muestra recurso, fecha, hora, duracion, actividad y estado.
 - Existe acceso al detalle.
 
+### HU-006A - Revisar reservas como administrador
+
+Como administrador, quiero ver todas las reservas del sistema para apoyar la supervision operacional.
+
+Criterios de aceptacion:
+
+- Se muestran reservas reales de todos los usuarios.
+- Usuarios normales siguen viendo solo sus propias reservas.
+- Existe acceso al detalle de cada reserva visible.
+
 ### HU-007 - Revisar historial
 
 Como usuario normal, quiero revisar reservas pasadas o canceladas para consultar mi actividad anterior.
@@ -307,6 +317,16 @@ Criterios de aceptacion:
 - Se muestran reservas historicas reales.
 - Existen estados de carga, error y vacio.
 - En una iteracion futura, se podra filtrar por fecha y estado.
+
+### HU-007A - Revisar historial global como administrador
+
+Como administrador, quiero revisar todo el historial de reservas para auditar actividad del sistema.
+
+Criterios de aceptacion:
+
+- Se muestran reservas historicas reales de todos los usuarios.
+- Usuarios normales siguen viendo solo su historial.
+- Los filtros de estado y fecha funcionan sobre el conjunto visible segun rol.
 
 ### HU-008 - Revisar notificaciones
 
@@ -545,8 +565,8 @@ Flujos alternativos:
 | RF-006 | HU-004 | RES-001, RES-002, RES-005 |
 | RF-007 | HU-004, HU-012 | RES-004, ADMIN-004, QA-001 |
 | RF-008 | HU-005 | RES-007, API-003 |
-| RF-009 | HU-006 | RES-006 |
-| RF-010 | HU-007 | UI-003 |
+| RF-009 | HU-006, HU-006A | RES-006 |
+| RF-010 | HU-007, HU-007A | UI-003 |
 | RF-011 | HU-003, HU-011 | UI-001, API-001 |
 | RF-012 | HU-009 | ADMIN-001 |
 | RF-013 | HU-010 | ADMIN-002 |

@@ -54,6 +54,8 @@ Construir la base operativa del sistema: aplicacion web, API, base de datos real
 - `BACK-004`
 - `BACK-005`
 - `BACK-006`
+- `BACK-007`
+- `BACK-008`
 - `AUTH-001`
 - `AUTH-002`
 - `API-003`
@@ -89,11 +91,14 @@ El MVP 1 ya esta funcional y desplegado como demo online, pero se reabre para ap
 - Revisar documentacion historica para evitar confusiones con PostgreSQL (`BACK-003`).
 - Confirmar que README, instalacion y arquitectura reflejan el estado real (`BACK-004`).
 - Normalizar mensajes visibles y posibles problemas de codificacion (`BACK-006`).
+- Crear una base global de sistema visual para reducir inconsistencias (`BACK-007`).
+- Aplicar esa base global a pantallas y componentes principales del MVP 1 (`BACK-008`).
+- Definir plan de corte desde Google Calendar legado antes de mover operacion real (`OPS-001`).
 - Dejar evidencia de `go test ./...` y `npm run build` antes del cierre definitivo.
 
 ### Criterio de cierre
 
-El MVP 1 se considera cerrado definitivamente cuando backend, frontend y Azure SQL funcionan juntos en local y en Azure, la autenticacion protege rutas internas, las reservas usan el usuario autenticado, CORS permite solo origenes configurados, no existen secretos versionados, la documentacion base esta alineada con el estado actual y existe evidencia de pruebas de humo.
+El MVP 1 se considera cerrado definitivamente cuando backend, frontend y Azure SQL funcionan juntos en local y en Azure, la autenticacion protege rutas internas, las reservas usan el usuario autenticado, CORS permite solo origenes configurados, no existen secretos versionados, la documentacion base esta alineada con el estado actual, existe evidencia de pruebas de humo y la interfaz base usa un sistema visual consistente.
 
 ## MVP 2 - Flujo usuario completo
 
@@ -315,6 +320,7 @@ En desarrollo.
 - Confirmar checklist productivo para desactivar modo desarrollo (`SEC-004`).
 - Completar infracciones (`REP-002`).
 - Mantener y completar la guia de despliegue y operacion (`docs/10-guia-redeploy.md`).
+- Ejecutar o cerrar plan de corte desde Google Calendar legado (`OPS-001`).
 - Automatizar o estandarizar redeploy del backend Docker.
 - Endurecer configuracion si se pasa de demo online a produccion institucional.
 

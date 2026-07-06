@@ -267,6 +267,7 @@ Antes de una demo local:
 - `docs/06-flujo-reservas.md`: flujo funcional de reservas.
 - `docs/07-backlog.md`: backlog maestro y estado de tareas.
 - `docs/10-guia-redeploy.md`: ejecucion local y redeploy en Azure.
+- `docs/11-plan-corte-google-calendar.md`: plan de transicion desde Google Calendar legado.
 
 ## Seguridad
 

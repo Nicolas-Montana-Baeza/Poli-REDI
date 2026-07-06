@@ -20,6 +20,30 @@ La aplicacion ya cuenta con una estructura clara:
 - `src/services/`: comunicacion con la API.
 - `src/router/`: proteccion de rutas y redireccion segun rol.
 
+## Sistema visual actual
+
+Actualmente existe un estilo global minimo en `src/style.css`, importado desde `src/main.js`. Ese archivo define reset, fuente, fondo base y reglas generales de caja.
+
+Los archivos `src/assets/styles/main.css` y `src/assets/styles/variables.css` existen, pero estan vacios. Por eso, la mayor parte de la interfaz define colores, radios, sombras, botones, tarjetas, campos y estados dentro de cada componente con `<style scoped>`.
+
+Conclusion:
+
+- Existe una base global tecnica.
+- No existe todavia un sistema de diseno global completo.
+- La falta de tokens y clases compartidas explica la sensacion de poca unificacion visual.
+
+Recomendacion para MVP 1:
+
+- Crear tokens globales en `variables.css`.
+- Crear componentes visuales CSS reutilizables en `main.css`.
+- Aplicar la base solo a pantallas y componentes criticos del MVP 1.
+- Mantener estilos scoped para layout especifico y comportamiento propio de cada componente.
+
+Backlog relacionado:
+
+- `BACK-007`: crear base global de sistema visual MVP 1.
+- `BACK-008`: aplicar sistema visual global a pantallas MVP 1.
+
 ## Fortalezas UX actuales
 
 - La navegacion separa rutas publicas, autenticadas y administrativas.
