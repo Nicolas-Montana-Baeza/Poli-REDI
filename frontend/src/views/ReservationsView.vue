@@ -244,7 +244,7 @@ const cancelReservation = async (reservation) => {
             <div class="card-actions">
 
               <RouterLink
-                class="detail-link"
+                class="detail-link app-button secondary"
                 :to="`/reservations/${reservation.id}`"
               >
                 Detalle
@@ -252,7 +252,7 @@ const cancelReservation = async (reservation) => {
 
               <button
                 v-if="canCancel(reservation)"
-                class="cancel-button"
+                class="cancel-button app-button danger"
                 type="button"
                 :disabled="cancellingId === reservation.id"
                 @click="cancelReservation(reservation)"
@@ -312,13 +312,13 @@ const cancelReservation = async (reservation) => {
   font-size: 30px;
   font-weight: 800;
 
-  color: #0f172a;
+  color: var(--color-text);
 }
 
 .page-header p {
   margin-top: 8px;
 
-  color: #64748b;
+  color: var(--color-text-muted);
 }
 
 .content,
@@ -330,39 +330,26 @@ const cancelReservation = async (reservation) => {
 }
 
 .state-card {
-  background: white;
-
-  border: 1px solid #e2e8f0;
-  border-radius: 18px;
-
-  padding: 22px;
-
-  color: #334155;
-
-  font-weight: 700;
+  border-radius: var(--radius-lg);
 }
 
 .state-card.error {
-  background: #fee2e2;
-
-  color: #b91c1c;
-
-  border-color: #fecaca;
+  background: var(--color-error-soft);
+  color: var(--color-error);
+  border-color: var(--color-error-border);
 }
 
 .state-card.success {
-  background: #dcfce7;
-
-  color: #166534;
-
-  border-color: #bbf7d0;
+  background: var(--color-success-soft);
+  color: var(--color-success);
+  border-color: var(--color-success-border);
 }
 
 .reservation-card {
-  background: white;
+  background: var(--color-surface);
 
-  border: 1px solid #e2e8f0;
-  border-radius: 18px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
 
   padding: 20px;
 
@@ -371,8 +358,7 @@ const cancelReservation = async (reservation) => {
 
   gap: 18px;
 
-  box-shadow:
-    0 4px 12px rgba(0,0,0,0.04);
+  box-shadow: var(--shadow-card);
 }
 
 .card-header {
@@ -388,31 +374,31 @@ const cancelReservation = async (reservation) => {
 
   padding: 6px 10px;
 
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
 
-  background: #eff6ff;
-  color: #1d4ed8;
+  background: var(--color-primary-soft);
+  color: var(--color-primary-strong);
 
   font-size: 12px;
   font-weight: 800;
 }
 
 .status.cancelled {
-  background: #fee2e2;
+  background: var(--color-error-soft);
 
-  color: #b91c1c;
+  color: var(--color-error);
 }
 
 .status.pending {
-  background: #fef3c7;
+  background: var(--color-warning-soft);
 
-  color: #92400e;
+  color: var(--color-warning);
 }
 
 .reservation-card h2 {
   margin: 12px 0 0;
 
-  color: #0f172a;
+  color: var(--color-text);
 
   font-size: 20px;
   font-weight: 800;
@@ -421,7 +407,7 @@ const cancelReservation = async (reservation) => {
 .reservation-card p {
   margin: 6px 0 0;
 
-  color: #64748b;
+  color: var(--color-text-muted);
 }
 
 .card-actions {
@@ -435,44 +421,14 @@ const cancelReservation = async (reservation) => {
 
 .detail-link,
 .cancel-button {
-  background: #fee2e2;
-  border: 1px solid #fecaca;
-  border-radius: 14px;
-
-  color: #b91c1c;
-
-  cursor: pointer;
-
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-
+  min-height: 40px;
   padding: 10px 14px;
 
-  font-weight: 800;
-
   white-space: nowrap;
-
-  transition: 0.2s;
 }
 
 .detail-link {
-  background: #eff6ff;
-
-  border-color: #bfdbfe;
-
-  color: #1d4ed8;
-
   text-decoration: none;
-}
-
-.detail-link:hover {
-  background: #dbeafe;
-}
-
-.cancel-button:hover:not(:disabled) {
-  background: #fecaca;
 }
 
 .cancel-button:disabled {
@@ -493,9 +449,9 @@ const cancelReservation = async (reservation) => {
   align-items: center;
   gap: 8px;
 
-  background: #f8fafc;
+  background: var(--color-surface-muted);
 
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
 
   padding: 8px 11px;
 

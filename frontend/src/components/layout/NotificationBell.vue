@@ -228,10 +228,10 @@ onBeforeUnmount(() => {
   width: 42px;
   height: 42px;
 
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
 
-  background: white;
+  background: var(--color-surface);
 
   display: flex;
   align-items: center;
@@ -243,7 +243,7 @@ onBeforeUnmount(() => {
 }
 
 .notification-btn:hover {
-  background: #f8fafc;
+  background: var(--color-surface-muted);
 }
 
 /* Badge */
@@ -260,7 +260,7 @@ onBeforeUnmount(() => {
 
   border-radius: 999px;
 
-  background: #ef4444;
+  background: var(--color-error-strong);
 
   color: white;
 
@@ -284,13 +284,12 @@ onBeforeUnmount(() => {
 
   overflow-y: auto;
 
-  background: white;
+  background: var(--color-surface);
 
-  border: 1px solid #e2e8f0;
-  border-radius: 18px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
 
-  box-shadow:
-    0 12px 32px rgba(0,0,0,0.08);
+  box-shadow: var(--shadow-card);
 
   z-index: 999;
 }
@@ -299,7 +298,7 @@ onBeforeUnmount(() => {
 .dropdown-header {
   padding: 18px;
 
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid var(--color-border);
 
   display: flex;
   align-items: center;
@@ -312,13 +311,13 @@ onBeforeUnmount(() => {
   font-size: 16px;
   font-weight: 700;
 
-  color: #0f172a;
+  color: var(--color-text);
 }
 
 .dropdown-header span {
   font-size: 12px;
 
-  color: #64748b;
+  color: var(--color-text-muted);
 }
 
 /* Notification */
@@ -328,7 +327,7 @@ onBeforeUnmount(() => {
 
   padding: 16px 18px;
 
-  border-bottom: 1px solid #f1f5f9;
+  border-bottom: 1px solid var(--color-border-soft);
 
   transition: 0.2s;
 
@@ -336,7 +335,7 @@ onBeforeUnmount(() => {
 }
 
 .notification-item:hover {
-  background: #f8fafc;
+  background: var(--color-surface-muted);
 }
 
 /* Icon */
@@ -346,9 +345,9 @@ onBeforeUnmount(() => {
 
   border-radius: 12px;
 
-  background: #eff6ff;
+  background: var(--color-primary-soft);
 
-  color: #2563eb;
+  color: var(--color-primary);
 
   display: flex;
   align-items: center;
@@ -366,7 +365,7 @@ onBeforeUnmount(() => {
   display: block;
 
   font-size: 14px;
-  color: #0f172a;
+  color: var(--color-text);
 }
 
 .content p {
@@ -378,7 +377,7 @@ onBeforeUnmount(() => {
 
 .content span {
   font-size: 12px;
-  color: #94a3b8;
+  color: var(--color-text-soft);
 }
 
 /* Empty */
@@ -387,7 +386,7 @@ onBeforeUnmount(() => {
 
   text-align: center;
 
-  color: #94a3b8;
+  color: var(--color-text-soft);
 }
 
 .notification-skeleton {
@@ -400,19 +399,19 @@ onBeforeUnmount(() => {
 
   padding: 14px;
 
-  background: white;
+  background: var(--color-surface);
   border: none;
 
   font-size: 14px;
   font-weight: 600;
 
-  color: #2563eb;
+  color: var(--color-primary);
 
   cursor: pointer;
 }
 
 .view-all:hover {
-  background: #f8fafc;
+  background: var(--color-surface-muted);
 }
 
 /* Animation */

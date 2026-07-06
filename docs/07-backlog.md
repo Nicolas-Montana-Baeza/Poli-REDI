@@ -167,7 +167,7 @@ Actualizar los documentos para diferenciar claramente estado historico, estado a
 
 Prioridad: P1
 Labels: `documentacion`, `testing`, `security`, `deploy`, `codex-ready`
-Estado sugerido: Ready for Codex
+Estado sugerido: Done
 
 ### Contexto
 
@@ -257,7 +257,7 @@ Revisar mensajes visibles de backend/frontend para que no aparezcan caracteres c
 
 Prioridad: P1
 Labels: `frontend`, `ux`, `refactor`, `codex-ready`, `mvp1`
-Estado sugerido: Ready for Codex
+Estado sugerido: Done
 
 ### Contexto
 
@@ -297,12 +297,12 @@ Crear una base global de estilos reutilizables sin redisenar la aplicacion compl
 
 ### Criterios de aceptacion
 
-- [ ] `variables.css` contiene tokens reutilizables con nombres claros.
-- [ ] `style.css` importa la base global.
-- [ ] `main.css` contiene clases globales para tarjetas, botones, estados, campos y badges.
-- [ ] Los tokens reemplazan valores repetidos evidentes sin hacer un rediseño masivo.
-- [ ] No se eliminan estilos scoped necesarios para layout especifico.
-- [ ] `npm run build` pasa.
+- [x] `variables.css` contiene tokens reutilizables con nombres claros.
+- [x] `style.css` importa la base global.
+- [x] `main.css` contiene clases globales para tarjetas, botones, estados, campos y badges.
+- [x] Los tokens reemplazan valores repetidos evidentes sin hacer un rediseño masivo.
+- [x] No se eliminan estilos scoped necesarios para layout especifico.
+- [x] `npm run build` pasa.
 
 ### Archivos relevantes
 
@@ -314,7 +314,7 @@ Crear una base global de estilos reutilizables sin redisenar la aplicacion compl
 
 Prioridad: P1
 Labels: `frontend`, `ux`, `refactor`, `codex-ready`, `mvp1`
-Estado sugerido: Ready for Codex
+Estado sugerido: Done
 
 ### Contexto
 
@@ -349,13 +349,13 @@ Aplicar primero en:
 
 ### Criterios de aceptacion
 
-- [ ] Botones primarios, secundarios y de peligro se ven consistentes en el flujo base.
-- [ ] Tarjetas y estados de error/exito/advertencia comparten radios, bordes y colores.
-- [ ] Campos de formulario comparten altura, borde, foco y error.
-- [ ] Modales principales comparten overlay, superficie, sombra y botones.
-- [ ] La vista de disponibilidad conserva su layout y no pierde legibilidad.
-- [ ] La UI sigue siendo responsive en mobile.
-- [ ] `npm run build` pasa.
+- [x] Botones primarios, secundarios y de peligro se ven consistentes en el flujo base.
+- [x] Tarjetas y estados de error/exito/advertencia comparten radios, bordes y colores.
+- [x] Campos de formulario comparten altura, borde, foco y error.
+- [x] Modales principales comparten overlay, superficie, sombra y botones.
+- [x] La vista de disponibilidad conserva su layout y no pierde legibilidad.
+- [x] La UI sigue siendo responsive en mobile.
+- [x] `npm run build` pasa.
 
 ### Archivos relevantes
 

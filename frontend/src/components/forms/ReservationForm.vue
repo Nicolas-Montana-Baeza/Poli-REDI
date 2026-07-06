@@ -379,7 +379,7 @@ const handleClose = () => {
         <div class="actions">
 
           <button
-            class="cancel-btn"
+            class="cancel-btn app-button secondary"
             :disabled="submitting"
             @click="handleClose"
           >
@@ -387,7 +387,7 @@ const handleClose = () => {
           </button>
 
           <button
-            class="submit-btn"
+            class="submit-btn app-button primary"
             :disabled="!canSubmit"
             @click="handleSubmit"
           >
@@ -408,7 +408,7 @@ const handleClose = () => {
   position: fixed;
   inset: 0;
 
-  background: rgba(15,23,42,0.55);
+  background: rgba(15, 23, 42, 0.55);
 
   display: flex;
   align-items: center;
@@ -430,9 +430,9 @@ const handleClose = () => {
 
   overflow-y: auto;
 
-  background: white;
+  background: var(--color-surface);
 
-  border-radius: 28px;
+  border-radius: var(--radius-xl);
 
   padding: 28px;
 
@@ -441,8 +441,7 @@ const handleClose = () => {
 
   gap: 24px;
 
-  box-shadow:
-    0 24px 60px rgba(0,0,0,0.2);
+  box-shadow: var(--shadow-modal);
 }
 
 /* HEADER */
@@ -460,13 +459,13 @@ const handleClose = () => {
   font-size: 30px;
   font-weight: 800;
 
-  color: #0f172a;
+  color: var(--color-text);
 }
 
 .modal-header p {
   margin-top: 6px;
 
-  color: #64748b;
+  color: var(--color-text-muted);
 
   font-size: 14px;
 }
@@ -478,9 +477,9 @@ const handleClose = () => {
 
   border: none;
 
-  border-radius: 14px;
+  border-radius: var(--radius-md);
 
-  background: #f1f5f9;
+  background: var(--color-surface-soft);
 
   color: #334155;
 
@@ -510,11 +509,11 @@ const handleClose = () => {
 
   gap: 14px;
 
-  background: #eff6ff;
+  background: var(--color-primary-soft);
 
   border: 1px solid #bfdbfe;
 
-  border-radius: 20px;
+  border-radius: var(--radius-lg);
 
   padding: 16px;
 }
@@ -530,16 +529,16 @@ const handleClose = () => {
   font-size: 12px;
   font-weight: 700;
 
-  color: #64748b;
+  color: var(--color-text-muted);
 
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0;
 }
 
 .summary strong {
   font-size: 15px;
 
-  color: #1e3a8a;
+  color: var(--color-primary-strong);
 }
 
 /* FIELD */
@@ -563,9 +562,9 @@ const handleClose = () => {
 
   height: 50px;
 
-  border: 1px solid #dbe2ea;
+  border: 1px solid var(--color-border);
 
-  border-radius: 16px;
+  border-radius: var(--radius-md);
 
   padding: 0 16px;
 
@@ -578,26 +577,17 @@ const handleClose = () => {
   transition: 0.2s;
 }
 
-.field input:focus,
-.field select:focus {
-  border-color: #2563eb;
-
-  box-shadow:
-    0 0 0 4px rgba(37,99,235,0.08);
-}
-
 .field input.invalid,
 .field select.invalid {
-  border-color: #ef4444;
+  border-color: var(--color-error-strong);
 
-  box-shadow:
-    0 0 0 4px rgba(239,68,68,0.08);
+  box-shadow: var(--shadow-danger-focus);
 }
 
 .field select:disabled {
-  color: #94a3b8;
+  color: var(--color-text-soft);
 
-  background: #f8fafc;
+  background: var(--color-surface-muted);
 }
 
 /* FIELD ERRORS */
@@ -605,7 +595,7 @@ const handleClose = () => {
 .field-errors p {
   margin: 0;
 
-  color: #b91c1c;
+  color: var(--color-error);
 
   font-size: 13px;
   font-weight: 700;
@@ -621,27 +611,12 @@ const handleClose = () => {
 
   border-radius: 14px;
 
-  background: #fef2f2;
+  background: var(--color-error-soft);
 
-  border: 1px solid #fecaca;
+  border: 1px solid var(--color-error-border);
 }
 
 /* ERROR */
-.form-error {
-  padding: 14px 16px;
-
-  border-radius: 16px;
-
-  background: #fee2e2;
-
-  border: 1px solid #fecaca;
-
-  color: #b91c1c;
-
-  font-size: 14px;
-  font-weight: 700;
-}
-
 /* ACTIONS */
 .actions {
   display: flex;
@@ -654,10 +629,6 @@ const handleClose = () => {
 
 .actions button {
   height: 50px;
-
-  border: none;
-
-  border-radius: 16px;
 
   padding: 0 22px;
 
@@ -675,31 +646,8 @@ const handleClose = () => {
   opacity: 0.65;
 }
 
-.cancel-btn {
-  background: #f1f5f9;
-
-  color: #334155;
-}
-
-.cancel-btn:hover {
-  background: #e2e8f0;
-}
-
-.submit-btn {
-  background: linear-gradient(
-    135deg,
-    #2563eb,
-    #1d4ed8
-  );
-
-  color: white;
-}
-
 .submit-btn:hover {
   transform: translateY(-1px);
-
-  box-shadow:
-    0 10px 20px rgba(37,99,235,0.25);
 }
 
 .submit-btn:disabled:hover {

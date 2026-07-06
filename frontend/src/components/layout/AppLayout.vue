@@ -37,7 +37,8 @@ const shouldRequestRut = computed(() => {
 .layout {
   min-height: 100vh;
 
-  background: #f8fafc;
+  background: var(--color-bg);
+  color: var(--color-text);
 
   display: flex;
   flex-direction: column;
@@ -47,13 +48,17 @@ const shouldRequestRut = computed(() => {
 .content {
   flex: 1;
 
-  padding: 24px;
+  width: 100%;
+  max-width: 1440px;
+
+  margin: 0 auto;
+  padding: var(--space-6);
 }
 
 /* MOBILE */
 @media (max-width: 768px) {
   .content {
-    padding: 16px;
+    padding: var(--space-4);
   }
 }
 </style>

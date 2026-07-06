@@ -230,13 +230,13 @@ onBeforeUnmount(() => {
 
   padding: 4px 6px;
 
-  border-radius: 14px;
+  border-radius: var(--radius-md);
 
   transition: 0.2s;
 }
 
 .user-trigger:hover {
-  background: #f8fafc;
+  background: var(--color-surface-muted);
 }
 
 .avatar {
@@ -245,12 +245,7 @@ onBeforeUnmount(() => {
 
   border-radius: 999px;
 
-  background:
-    linear-gradient(
-      135deg,
-      #1e3a8a,
-      #2563eb
-    );
+  background: var(--color-primary);
 
   color: white;
 
@@ -280,12 +275,12 @@ onBeforeUnmount(() => {
 
 .user-info strong {
   font-size: 14px;
-  color: #0f172a;
+  color: var(--color-text);
 }
 
 .user-info span {
   font-size: 12px;
-  color: #64748b;
+  color: var(--color-text-muted);
 }
 
 /* Arrow */
@@ -306,13 +301,12 @@ onBeforeUnmount(() => {
 
   width: 260px;
 
-  background: white;
+  background: var(--color-surface);
 
-  border: 1px solid #e2e8f0;
-  border-radius: 18px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
 
-  box-shadow:
-    0 12px 32px rgba(0,0,0,0.08);
+  box-shadow: var(--shadow-card);
 
   overflow: hidden;
 
@@ -333,7 +327,7 @@ onBeforeUnmount(() => {
 
   font-size: 15px;
 
-  color: #0f172a;
+  color: var(--color-text);
 }
 
 .profile-card p {
@@ -341,14 +335,14 @@ onBeforeUnmount(() => {
 
   font-size: 13px;
 
-  color: #64748b;
+  color: var(--color-text-muted);
 }
 
 /* Divider */
 .divider {
   height: 1px;
 
-  background: #e2e8f0;
+  background: var(--color-border-soft);
 }
 
 /* Items */
@@ -372,11 +366,11 @@ onBeforeUnmount(() => {
 }
 
 .dropdown-item:hover {
-  background: #f8fafc;
+  background: var(--color-surface-muted);
 }
 
 .logout {
-  color: #ef4444;
+  color: var(--color-error-strong);
 }
 
 /* Animation */

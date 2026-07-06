@@ -3,7 +3,6 @@ import { computed, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import SidebarItem from './SidebarItem.vue'
 import { useAuthStore } from '@/stores/auth'
-import { useUiStore } from '@/stores/ui'
 import {
   Home,
   Calendar,
@@ -16,6 +15,8 @@ import {
   BarChart3,
   HelpCircle,
   LogOut,
+  Menu,
+  ShieldCheck,
   X
 } from 'lucide-vue-next'
 
@@ -124,9 +125,11 @@ const menu = computed(() => {
   <!-- HAMBURGER -->
   <button
     class="hamburger"
+    type="button"
+    aria-label="Abrir menu"
     @click="toggleSidebar"
   >
-    ☰
+    <Menu :size="23" />
   </button>
 
   <!-- OVERLAY -->
@@ -149,7 +152,7 @@ const menu = computed(() => {
       <div class="logo">
 
         <div class="logo-icon">
-          ⚽
+          <ShieldCheck :size="25" />
         </div>
 
         <div class="logo-text">
@@ -169,6 +172,8 @@ const menu = computed(() => {
       <!-- CLOSE -->
       <button
         class="close-btn"
+        type="button"
+        aria-label="Cerrar menu"
         @click="closeSidebar"
       >
         <X :size="22" />
@@ -229,7 +234,7 @@ const menu = computed(() => {
       <div class="security-box">
 
         <div class="shield">
-          🛡️
+          <ShieldCheck :size="20" />
         </div>
 
         <div>
@@ -261,11 +266,11 @@ const menu = computed(() => {
   height: 44px;
 
   border: none;
-  border-radius: 14px;
+  border-radius: var(--radius-md);
 
-  background: #1e3a8a;
+  background: var(--color-primary);
 
-  color: white;
+  color: var(--color-primary-contrast);
 
   cursor: pointer;
 
@@ -281,7 +286,7 @@ const menu = computed(() => {
 }
 
 .hamburger:hover {
-  background: #2563eb;
+  background: var(--color-primary-strong);
 }
 
 /* OVERLAY */
@@ -289,7 +294,7 @@ const menu = computed(() => {
   position: fixed;
   inset: 0;
 
-  background: rgba(15,23,42,0.45);
+  background: rgba(15, 23, 42, 0.45);
 
   backdrop-filter: blur(2px);
 
@@ -306,16 +311,11 @@ const menu = computed(() => {
   width: 320px;
   height: 100vh;
 
-  background:
-    linear-gradient(
-      180deg,
-      #0f172a,
-      #111827
-    );
+  background: var(--color-sidebar);
 
   color: white;
 
-  padding: 24px;
+  padding: var(--space-6);
 
   box-sizing: border-box;
 
@@ -356,23 +356,15 @@ const menu = computed(() => {
   width: 52px;
   height: 52px;
 
-  border-radius: 18px;
+  border-radius: var(--radius-lg);
 
-  background:
-    linear-gradient(
-      135deg,
-      #2563eb,
-      #1d4ed8
-    );
+  background: var(--color-primary);
 
   display: flex;
   align-items: center;
   justify-content: center;
 
-  font-size: 24px;
-
-  box-shadow:
-    0 10px 25px rgba(37,99,235,0.3);
+  box-shadow: 0 10px 25px rgba(37, 99, 235, 0.28);
 }
 
 .logo-text h1 {
@@ -387,7 +379,7 @@ const menu = computed(() => {
 .logo-text span {
   font-size: 13px;
 
-  color: #94a3b8;
+  color: var(--color-sidebar-muted);
 }
 
 /* CLOSE */
@@ -396,10 +388,9 @@ const menu = computed(() => {
   height: 42px;
 
   border: none;
-  border-radius: 14px;
+  border-radius: var(--radius-md);
 
-  background:
-    rgba(255,255,255,0.08);
+  background: rgba(255, 255, 255, 0.08);
 
   color: white;
 
@@ -413,8 +404,7 @@ const menu = computed(() => {
 }
 
 .close-btn:hover {
-  background:
-    rgba(255,255,255,0.14);
+  background: rgba(255, 255, 255, 0.14);
 }
 
 /* NAV */
@@ -440,9 +430,9 @@ const menu = computed(() => {
   font-size: 12px;
   font-weight: 700;
 
-  letter-spacing: 1px;
+  letter-spacing: 0;
 
-  color: #64748b;
+  color: var(--color-sidebar-muted);
 
   padding-left: 10px;
 }
@@ -471,13 +461,11 @@ const menu = computed(() => {
 
   padding: 18px;
 
-  border-radius: 22px;
+  border-radius: var(--radius-lg);
 
-  background:
-    rgba(255,255,255,0.05);
+  background: rgba(255, 255, 255, 0.05);
 
-  border:
-    1px solid rgba(255,255,255,0.06);
+  border: 1px solid rgba(255, 255, 255, 0.06);
 
   display: flex;
 
@@ -488,10 +476,10 @@ const menu = computed(() => {
   width: 42px;
   height: 42px;
 
-  border-radius: 14px;
+  border-radius: var(--radius-md);
 
-  background:
-    rgba(37,99,235,0.18);
+  background: rgba(37, 99, 235, 0.18);
+  color: white;
 
   display: flex;
   align-items: center;
@@ -512,7 +500,7 @@ const menu = computed(() => {
   font-size: 12px;
   line-height: 1.5;
 
-  color: #94a3b8;
+  color: var(--color-sidebar-muted);
 }
 
 /* SCROLL */
@@ -521,8 +509,7 @@ const menu = computed(() => {
 }
 
 .sidebar::-webkit-scrollbar-thumb {
-  background:
-    rgba(255,255,255,0.15);
+  background: rgba(255, 255, 255, 0.15);
 
   border-radius: 999px;
 }

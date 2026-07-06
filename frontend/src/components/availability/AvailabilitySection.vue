@@ -480,7 +480,7 @@ const goToday = () => {
   font-size: 28px;
   font-weight: 800;
 
-  color: #0f172a;
+  color: var(--color-text);
 }
 
 .section-header p {
@@ -488,46 +488,31 @@ const goToday = () => {
 
   font-size: 15px;
 
-  color: #64748b;
+  color: var(--color-text-muted);
 }
 
 /* STATE */
 .state-card {
-  background: white;
-
-  border-radius: 22px;
-
-  padding: 24px;
-
-  border: 1px solid #e2e8f0;
-
-  color: #334155;
-
-  font-weight: 600;
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
 }
 
 .state-card.error {
-  background: #fee2e2;
-
-  color: #b91c1c;
-
-  border-color: #fecaca;
+  background: var(--color-error-soft);
+  color: var(--color-error);
+  border-color: var(--color-error-border);
 }
 
 .state-card.success {
-  background: #dcfce7;
-
-  color: #166534;
-
-  border-color: #bbf7d0;
+  background: var(--color-success-soft);
+  color: var(--color-success);
+  border-color: var(--color-success-border);
 }
 
 .state-card.warning {
-  background: #fef3c7;
-
-  color: #92400e;
-
-  border-color: #fde68a;
+  background: var(--color-warning-soft);
+  color: var(--color-warning);
+  border-color: var(--color-warning-border);
 }
 
 /* CONTENT */
@@ -560,16 +545,15 @@ const goToday = () => {
 
 /* CARD */
 .selection-card {
-  background: white;
+  background: var(--color-surface);
 
-  border-radius: 22px;
+  border-radius: var(--radius-lg);
 
   padding: 20px;
 
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--color-border);
 
-  box-shadow:
-    0 4px 12px rgba(0,0,0,0.04);
+  box-shadow: var(--shadow-card);
 }
 
 .selection-card h3 {
@@ -578,7 +562,7 @@ const goToday = () => {
   font-size: 16px;
   font-weight: 700;
 
-  color: #0f172a;
+  color: var(--color-text);
 }
 
 .selection-card p {
@@ -588,7 +572,7 @@ const goToday = () => {
 }
 
 .selection-card span {
-  color: #2563eb;
+  color: var(--color-primary);
 
   font-size: 14px;
   font-weight: 700;

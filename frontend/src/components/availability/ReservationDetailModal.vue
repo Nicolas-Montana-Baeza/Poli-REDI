@@ -191,7 +191,7 @@ const handleCancel = () => {
         <footer class="actions">
 
           <button
-            class="secondary-btn"
+            class="secondary-btn app-button secondary"
             type="button"
             @click="emit('close')"
           >
@@ -200,7 +200,7 @@ const handleCancel = () => {
 
           <button
             v-if="showCancelAction"
-            class="danger-btn"
+            class="danger-btn app-button danger"
             type="button"
             @click="handleCancel"
           >
@@ -221,7 +221,7 @@ const handleCancel = () => {
   position: fixed;
   inset: 0;
 
-  background: rgba(15,23,42,0.55);
+  background: rgba(15, 23, 42, 0.55);
 
   display: flex;
   align-items: center;
@@ -238,9 +238,9 @@ const handleCancel = () => {
   width: min(100%, 500px);
   max-height: min(88vh, 640px);
 
-  background: white;
+  background: var(--color-surface);
 
-  border-radius: 22px;
+  border-radius: var(--radius-xl);
 
   padding: 22px;
 
@@ -251,8 +251,7 @@ const handleCancel = () => {
 
   overflow: hidden;
 
-  box-shadow:
-    0 24px 60px rgba(0,0,0,0.2);
+  box-shadow: var(--shadow-modal);
 }
 
 .modal-header {
@@ -269,13 +268,13 @@ const handleCancel = () => {
   font-size: 24px;
   font-weight: 800;
 
-  color: #0f172a;
+  color: var(--color-text);
 }
 
 .modal-header p {
   margin: 4px 0 0;
 
-  color: #64748b;
+  color: var(--color-text-muted);
 
   font-size: 13px;
 }
@@ -286,9 +285,9 @@ const handleCancel = () => {
 
   border: none;
 
-  border-radius: 12px;
+  border-radius: var(--radius-md);
 
-  background: #f1f5f9;
+  background: var(--color-surface-soft);
 
   color: #334155;
 
@@ -311,12 +310,12 @@ const handleCancel = () => {
 .detail-list {
   margin: 0;
 
-  border: 1px solid #e2e8f0;
-  border-radius: 16px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
 
   overflow: hidden;
 
-  background: #f8fafc;
+  background: var(--color-surface-muted);
 }
 
 .detail-row {
@@ -328,7 +327,7 @@ const handleCancel = () => {
 
   padding: 13px 16px;
 
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid var(--color-border);
 }
 
 .detail-row:last-child {
@@ -338,7 +337,7 @@ const handleCancel = () => {
 .detail-row dt {
   margin: 0;
 
-  color: #64748b;
+  color: var(--color-text-muted);
 
   font-size: 13px;
   font-weight: 800;
@@ -347,7 +346,7 @@ const handleCancel = () => {
 .detail-row dd {
   margin: 0;
 
-  color: #0f172a;
+  color: var(--color-text);
 
   font-size: 14px;
   font-weight: 800;
@@ -356,33 +355,33 @@ const handleCancel = () => {
 }
 
 .status {
-  color: #2563eb;
+  color: var(--color-primary);
 }
 
 .warning,
 .error {
   padding: 11px 14px;
 
-  border-radius: 14px;
+  border-radius: var(--radius-md);
 
   font-size: 13px;
   font-weight: 800;
 }
 
 .warning {
-  background: #fff7ed;
+  background: var(--color-warning-soft);
 
-  border: 1px solid #fed7aa;
+  border: 1px solid var(--color-warning-border);
 
-  color: #c2410c;
+  color: var(--color-warning);
 }
 
 .error {
-  background: #fee2e2;
+  background: var(--color-error-soft);
 
-  border: 1px solid #fecaca;
+  border: 1px solid var(--color-error-border);
 
-  color: #b91c1c;
+  color: var(--color-error);
 }
 
 .actions {
@@ -395,10 +394,6 @@ const handleCancel = () => {
 .actions button {
   height: 44px;
 
-  border: none;
-
-  border-radius: 14px;
-
   padding: 0 18px;
 
   font-size: 14px;
@@ -408,27 +403,11 @@ const handleCancel = () => {
 }
 
 .secondary-btn {
-  background: #f1f5f9;
-
-  color: #334155;
-
   min-width: 116px;
 }
 
-.secondary-btn:hover {
-  background: #e2e8f0;
-}
-
 .danger-btn {
-  background: #dc2626;
-
-  color: white;
-
   min-width: 160px;
-}
-
-.danger-btn:hover {
-  background: #b91c1c;
 }
 
 @media (max-width: 520px) {

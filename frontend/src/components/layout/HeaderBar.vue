@@ -69,17 +69,19 @@ onMounted(() => {
 
 <style scoped>
 .header {
-  height: 72px;
+  min-height: var(--header-height);
 
-  background: white;
+  background: rgba(255, 255, 255, 0.94);
 
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--color-border-soft);
+  box-shadow: 0 1px 0 rgba(15, 23, 42, 0.03);
+  backdrop-filter: blur(10px);
 
   display: flex;
   align-items: center;
   justify-content: space-between;
 
-  padding: 0 24px;
+  padding: 0 var(--space-6);
 
   position: sticky;
   top: 0;
@@ -119,7 +121,7 @@ onMounted(() => {
   font-size: 20px;
   font-weight: 700;
 
-  color: #0f172a;
+  color: var(--color-text);
 
   white-space: nowrap;
 }
@@ -129,7 +131,7 @@ onMounted(() => {
 
   font-size: 14px;
 
-  color: #64748b;
+  color: var(--color-text-muted);
 
   white-space: nowrap;
   overflow: hidden;
@@ -149,7 +151,7 @@ onMounted(() => {
 /* Mobile */
 @media (max-width: 768px) {
   .header {
-    padding: 0 16px;
+    padding: 0 var(--space-4);
   }
 
   .left {

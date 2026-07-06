@@ -111,7 +111,7 @@ const presets = [
       </div>
 
       <button
-        class="microsoft-button"
+        class="microsoft-button app-button primary"
         type="button"
         @click="handleMicrosoftLogin"
       >
@@ -148,6 +148,7 @@ const presets = [
             v-for="preset in presets"
             :key="preset.email"
             type="button"
+            class="app-badge"
             @click="usePreset(preset)"
           >
             {{ preset.label }}
@@ -181,7 +182,7 @@ const presets = [
         </div>
 
         <button
-          class="local-button"
+          class="local-button app-button"
           type="button"
           :disabled="loading"
           @click="handleLocalLogin"
@@ -204,12 +205,7 @@ const presets = [
 .login-view {
   min-height: 100vh;
 
-  background:
-    linear-gradient(
-      135deg,
-      #eff6ff,
-      #f8fafc
-    );
+  background: var(--color-bg);
 
   display: flex;
   align-items: center;
@@ -221,15 +217,14 @@ const presets = [
 .login-panel {
   width: min(100%, 460px);
 
-  background: white;
+  background: var(--color-surface);
 
-  border: 1px solid #e2e8f0;
-  border-radius: 24px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
 
   padding: 28px;
 
-  box-shadow:
-    0 24px 60px rgba(15,23,42,0.12);
+  box-shadow: var(--shadow-modal);
 
   display: flex;
   flex-direction: column;
@@ -249,9 +244,9 @@ const presets = [
   width: 54px;
   height: 54px;
 
-  border-radius: 18px;
+  border-radius: var(--radius-lg);
 
-  background: #1d4ed8;
+  background: var(--color-primary);
   color: white;
 
   display: flex;
@@ -266,36 +261,23 @@ p {
 }
 
 h1 {
-  color: #0f172a;
+  color: var(--color-text);
 
   font-size: 28px;
   font-weight: 900;
 }
 
 h2 {
-  color: #0f172a;
+  color: var(--color-text);
 
   font-size: 17px;
   font-weight: 800;
 }
 
 p {
-  color: #64748b;
+  color: var(--color-text-muted);
 
   font-size: 14px;
-}
-
-.microsoft-button,
-.local-button,
-.presets button {
-  border: none;
-  border-radius: 14px;
-
-  cursor: pointer;
-
-  font-weight: 800;
-
-  transition: 0.2s;
 }
 
 .microsoft-button,
@@ -308,19 +290,9 @@ p {
   gap: 10px;
 }
 
-.microsoft-button {
-  background: #1d4ed8;
-  color: white;
-}
-
-.microsoft-button:hover,
-.local-button:hover:not(:disabled) {
-  background: #f97316;
-}
-
 .local-box {
-  border: 1px solid #e2e8f0;
-  border-radius: 18px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
 
   padding: 18px;
 
@@ -331,7 +303,7 @@ p {
 }
 
 .local-header svg {
-  color: #1d4ed8;
+  color: var(--color-primary);
 
   flex-shrink: 0;
 }
@@ -341,13 +313,6 @@ p {
   flex-wrap: wrap;
 
   gap: 8px;
-}
-
-.presets button {
-  background: #eff6ff;
-  color: #1d4ed8;
-
-  padding: 8px 11px;
 }
 
 label {
@@ -366,8 +331,8 @@ input {
   width: 100%;
   height: 46px;
 
-  border: 1px solid #dbe2ea;
-  border-radius: 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
 
   padding: 0 14px;
 
@@ -376,16 +341,13 @@ input {
   outline: none;
 }
 
-input:focus {
-  border-color: #2563eb;
-
-  box-shadow:
-    0 0 0 4px rgba(37,99,235,0.08);
+.local-button {
+  background: var(--color-sidebar);
+  color: white;
 }
 
-.local-button {
-  background: #0f172a;
-  color: white;
+.local-button:hover:not(:disabled) {
+  background: var(--color-primary);
 }
 
 .local-button:disabled {
@@ -395,12 +357,12 @@ input:focus {
 }
 
 .error {
-  background: #fee2e2;
+  background: var(--color-error-soft);
 
-  border: 1px solid #fecaca;
-  border-radius: 14px;
+  border: 1px solid var(--color-error-border);
+  border-radius: var(--radius-md);
 
-  color: #b91c1c;
+  color: var(--color-error);
 
   padding: 12px;
 
@@ -409,7 +371,7 @@ input:focus {
 }
 
 .hint {
-  color: #92400e;
+  color: var(--color-warning);
 
   font-size: 12px;
   font-weight: 700;

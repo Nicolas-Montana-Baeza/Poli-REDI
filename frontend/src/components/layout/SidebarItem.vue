@@ -52,9 +52,9 @@ defineProps({
 
   padding: 14px 16px;
 
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
 
-  color: #cbd5e1;
+  color: var(--color-sidebar-text);
 
   text-decoration: none;
 
@@ -69,26 +69,19 @@ defineProps({
 }
 
 .sidebar-item:hover {
-  background:
-    rgba(255,255,255,0.08);
+  background: rgba(255, 255, 255, 0.08);
 
   color: white;
 }
 
 .router-link-active {
-  background:
-    linear-gradient(
-      135deg,
-      #2563eb,
-      #1d4ed8
-    );
+  background: var(--color-primary);
 
   color: white;
 
   font-weight: 700;
 
-  box-shadow:
-    0 8px 20px rgba(37,99,235,0.35);
+  box-shadow: 0 8px 20px rgba(37, 99, 235, 0.32);
 }
 
 .icon {

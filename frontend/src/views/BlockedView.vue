@@ -32,12 +32,13 @@ const handleLogout = async () => {
 
       <div
         v-if="authStore.error"
-        class="message"
+        class="message state-card error"
       >
         {{ authStore.error }}
       </div>
 
       <button
+        class="app-button primary"
         type="button"
         @click="handleLogout"
       >
@@ -53,7 +54,7 @@ const handleLogout = async () => {
 .blocked-view {
   min-height: 100vh;
 
-  background: #f8fafc;
+  background: var(--color-bg);
 
   display: flex;
   align-items: center;
@@ -65,10 +66,10 @@ const handleLogout = async () => {
 .blocked-panel {
   width: min(100%, 440px);
 
-  background: white;
+  background: var(--color-surface);
 
-  border: 1px solid #e2e8f0;
-  border-radius: 20px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
 
   padding: 30px;
 
@@ -78,18 +79,17 @@ const handleLogout = async () => {
 
   gap: 16px;
 
-  box-shadow:
-    0 20px 48px rgba(15,23,42,0.12);
+  box-shadow: var(--shadow-modal);
 }
 
 .icon {
   width: 62px;
   height: 62px;
 
-  border-radius: 18px;
+  border-radius: var(--radius-lg);
 
-  background: #fee2e2;
-  color: #b91c1c;
+  background: var(--color-error-soft);
+  color: var(--color-error);
 
   display: flex;
   align-items: center;
@@ -102,52 +102,20 @@ p {
 }
 
 h1 {
-  color: #0f172a;
+  color: var(--color-text);
 
   font-size: 28px;
   font-weight: 900;
 }
 
 p {
-  color: #475569;
+  color: var(--color-text-muted);
 
   line-height: 1.5;
-}
-
-.message {
-  width: 100%;
-
-  background: #fef2f2;
-
-  border: 1px solid #fecaca;
-  border-radius: 14px;
-
-  color: #b91c1c;
-
-  padding: 12px;
-
-  box-sizing: border-box;
-
-  font-size: 14px;
-  font-weight: 800;
 }
 
 button {
   width: 100%;
   min-height: 48px;
-
-  border: none;
-  border-radius: 14px;
-
-  background: #0f172a;
-  color: white;
-
-  cursor: pointer;
-
-  font-weight: 800;
-}
-
-button:hover {
-  background: #1d4ed8;
 }
 </style>

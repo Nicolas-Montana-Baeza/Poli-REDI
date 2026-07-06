@@ -251,42 +251,30 @@ const filteredResources = computed(() => {
   font-size: 30px;
   font-weight: 800;
 
-  color: #0f172a;
+  color: var(--color-text);
 }
 
 .page-header p {
   margin-top: 8px;
 
-  color: #64748b;
+  color: var(--color-text-muted);
 }
 
 .state-card {
-  background: white;
-
-  border-radius: 18px;
-
-  padding: 22px;
-
-  border: 1px solid #e2e8f0;
-
-  color: #334155;
-
-  font-weight: 700;
+  border-radius: var(--radius-lg);
 }
 
 .state-card.error {
-  background: #fee2e2;
-
-  color: #b91c1c;
-
-  border-color: #fecaca;
+  background: var(--color-error-soft);
+  color: var(--color-error);
+  border-color: var(--color-error-border);
 }
 
 .filters {
-  background: white;
+  background: var(--color-surface);
 
-  border: 1px solid #e2e8f0;
-  border-radius: 18px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
 
   padding: 18px;
 
@@ -315,21 +303,13 @@ const filteredResources = computed(() => {
   width: 100%;
   height: 42px;
 
-  border: 1px solid #dbe2ea;
-  border-radius: 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
 
   padding: 0 12px;
 
   box-sizing: border-box;
   outline: none;
-}
-
-.filters input:focus,
-.filters select:focus {
-  border-color: #2563eb;
-
-  box-shadow:
-    0 0 0 4px rgba(37,99,235,0.08);
 }
 
 .resources-grid {
@@ -342,10 +322,10 @@ const filteredResources = computed(() => {
 }
 
 .resource-card {
-  background: white;
+  background: var(--color-surface);
 
-  border: 1px solid #e2e8f0;
-  border-radius: 18px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
 
   padding: 20px;
 
@@ -354,8 +334,7 @@ const filteredResources = computed(() => {
 
   gap: 18px;
 
-  box-shadow:
-    0 4px 12px rgba(0,0,0,0.04);
+  box-shadow: var(--shadow-card);
 }
 
 .resource-card h2 {
@@ -364,13 +343,13 @@ const filteredResources = computed(() => {
   font-size: 18px;
   font-weight: 800;
 
-  color: #0f172a;
+  color: var(--color-text);
 }
 
 .resource-card p {
   margin: 6px 0 0;
 
-  color: #64748b;
+  color: var(--color-text-muted);
 }
 
 .meta {
@@ -385,8 +364,8 @@ const filteredResources = computed(() => {
 
   border-radius: 999px;
 
-  background: #eff6ff;
-  color: #1d4ed8;
+  background: var(--color-primary-soft);
+  color: var(--color-primary-strong);
 
   font-size: 12px;
   font-weight: 800;
