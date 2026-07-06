@@ -25,7 +25,7 @@ func main() {
 	app := fiber.New()
 
 	app.Use(cors.New(cors.Config{
-		AllowOrigins: "*",
+		AllowOrigins: envOrDefault("CORS_ALLOWED_ORIGINS", "http://localhost:5173"),
 		AllowMethods: "GET,POST,PUT,PATCH,DELETE,OPTIONS",
 		AllowHeaders: "Origin, Content-Type, Accept, Authorization, X-Dev-Auth-Email, X-Dev-Auth-Name, X-Dev-Reset-Rut, x-dev-auth-email, x-dev-auth-name, x-dev-reset-rut",
 	}))
@@ -41,6 +41,16 @@ func main() {
 	log.Println("Servidor iniciado en http://localhost:" + port)
 
 	log.Fatal(app.Listen(":" + port))
+}
+
+func envOrDefault(key string, fallback string) string {
+	value := os.Getenv(key)
+
+	if value == "" {
+		return fallback
+	}
+
+	return value
 }
 
 func loadEnv() {
