@@ -10,7 +10,7 @@ Los MVPs organizan el proyecto desde una base tecnica funcional hasta una versio
 
 | MVP | Nombre | Proposito | Estado |
 | --- | --- | --- | --- |
-| MVP 1 | Base tecnica funcional | Dejar frontend, backend, base de datos y seguridad minima operando con datos reales. | Cerrado funcionalmente |
+| MVP 1 | Base tecnica funcional | Dejar frontend, backend, base de datos, autenticacion, seguridad minima y demo online operando con datos reales. | Cerrado funcionalmente y desplegado |
 | MVP 2 | Flujo usuario completo | Permitir que un usuario normal consulte disponibilidad, reserve, cancele y revise su informacion. | Muy avanzado |
 | MVP 3 | Administracion institucional | Completar calendario institucional, bloqueos, recursos y gestion administrativa. | Parcial |
 | MVP 4 | Entrega, calidad y soporte | Completar reportes, notificaciones, pruebas, documentacion y despliegue. | En desarrollo |
@@ -19,7 +19,7 @@ Los MVPs organizan el proyecto desde una base tecnica funcional hasta una versio
 
 ### Proposito
 
-Construir la base operativa del sistema: aplicacion web, API, base de datos real, autenticacion, seguridad minima y reglas criticas para que el sistema pueda ejecutarse localmente con datos persistidos.
+Construir la base operativa del sistema: aplicacion web, API, base de datos real, autenticacion, seguridad minima y reglas criticas para que el sistema pueda ejecutarse localmente y en una demo online con datos persistidos.
 
 ### Implementa
 
@@ -33,6 +33,12 @@ Construir la base operativa del sistema: aplicacion web, API, base de datos real
 - Rutas protegidas con token Bearer.
 - Autenticacion Microsoft Entra ID.
 - Modo local de desarrollo controlado.
+- Despliegue online inicial en Azure.
+- Frontend en Azure Static Web Apps.
+- Backend en Azure App Service.
+- Configuracion de variables de entorno para nube.
+- Rutas SPA configuradas con `staticwebapp.config.json`.
+- CORS configurable por ambiente.
 - Uso del usuario autenticado en operaciones protegidas.
 - Creacion de reservas sin confiar en `userId` enviado por frontend.
 - Cancelacion de reservas con permisos.
@@ -51,6 +57,9 @@ Construir la base operativa del sistema: aplicacion web, API, base de datos real
 - `RES-001`
 - `RES-002`
 - `SEC-001`
+- `SEC-002`
+- `DEPLOY-001`
+- `DEPLOY-002`
 
 ### Requisitos relacionados
 
@@ -64,16 +73,17 @@ Construir la base operativa del sistema: aplicacion web, API, base de datos real
 
 ### Estado actual
 
-Cerrado funcionalmente.
+Cerrado funcionalmente y desplegado como demo online.
 
 ### Pendientes no bloqueantes
 
-- Fortalecer CORS productivo (`SEC-002`).
-- Formalizar despliegue (`DEPLOY-001`, `DEPLOY-002`).
+- Documentar paso a paso el despliegue como guia estable de entrega.
+- Automatizar despliegue del backend Docker si se mantiene App Service con contenedor.
+- Endurecer configuracion productiva si se pasa de demo a produccion institucional.
 
 ### Criterio de cierre
 
-El MVP 1 se considera cerrado cuando backend, frontend y Azure SQL funcionan juntos, la autenticacion protege rutas internas, las reservas usan el usuario autenticado y no existen secretos versionados.
+El MVP 1 se considera cerrado cuando backend, frontend y Azure SQL funcionan juntos en local y en Azure, la autenticacion protege rutas internas, las reservas usan el usuario autenticado, CORS permite solo origenes configurados y no existen secretos versionados.
 
 ## MVP 2 - Flujo usuario completo
 
@@ -243,6 +253,7 @@ Completar los elementos de soporte necesarios para entregar, defender, probar y 
 - Roadmap de MVPs.
 - Estrategia de despliegue.
 - Preparacion backend para produccion.
+- Demo online inicial en Azure.
 
 ### Backlog relacionado
 
@@ -282,9 +293,9 @@ En desarrollo.
 - Agregar pruebas backend para reservas (`QA-001`).
 - Agregar pruebas frontend o checklist automatizado (`QA-002`).
 - Completar infracciones (`REP-002`).
-- Definir estrategia de despliegue (`DEPLOY-001`).
-- Preparar backend para produccion (`DEPLOY-002`).
-- Configurar CORS por ambiente (`SEC-002`).
+- Mantener y completar la guia de despliegue y operacion (`docs/10-guia-redeploy.md`).
+- Automatizar o estandarizar redeploy del backend Docker.
+- Endurecer configuracion si se pasa de demo online a produccion institucional.
 
 ### Criterio de cierre
 
@@ -304,9 +315,9 @@ flowchart LR
 
 ### Presentable como demo funcional
 
-MVP 1 y gran parte de MVP 2.
+MVP 1, incluido despliegue online, y gran parte de MVP 2.
 
-La demo puede mostrar login, perfil/RUT, disponibilidad, creacion de reserva, mis reservas, cancelacion, historial, dashboard y panel admin base.
+La demo puede mostrar login Microsoft Entra ID, perfil/RUT, disponibilidad, creacion de reserva, mis reservas, cancelacion, historial, dashboard y panel admin base desde la URL publica de Azure Static Web Apps.
 
 ### Presentable como sistema institucional completo
 

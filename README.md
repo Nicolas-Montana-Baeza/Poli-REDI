@@ -17,8 +17,9 @@ El MVP 1 cubre el flujo base de reservas deportivas:
 - Listado de mis reservas, detalle, historial y cancelacion.
 - Panel administrador base con usuarios, recursos y reportes iniciales.
 - Notificaciones internas basicas.
+- Demo online inicial en Azure con frontend, backend, base de datos y autenticacion real.
 
-Quedan fuera del MVP 1 la gestion completa de bloqueos, CRUD avanzado de recursos, infracciones, programacion institucional y despliegue productivo.
+Quedan fuera del MVP 1 la gestion completa de bloqueos, CRUD avanzado de recursos, infracciones, programacion institucional y endurecimiento de despliegue productivo institucional.
 
 ## Stack
 
@@ -42,6 +43,13 @@ Quedan fuera del MVP 1 la gestion completa de bloqueos, CRUD avanzado de recurso
 
 - Azure SQL Database
 - Scripts T-SQL en `database/`
+
+### Despliegue online inicial
+
+- Frontend en Azure Static Web Apps
+- Backend en Azure App Service con Docker
+- Variables `VITE_*` inyectadas desde GitHub Actions
+- Microsoft Entra ID configurado para local y nube
 
 ## Estructura del proyecto
 
@@ -81,6 +89,7 @@ DB_TRUST_SERVER_CERTIFICATE=false
 ENTRA_TENANT_ID=
 ENTRA_API_CLIENT_ID=
 ENTRA_ISSUER=
+CORS_ALLOWED_ORIGINS=http://localhost:5173
 
 # Solo desarrollo local
 DEV_AUTH_ENABLED=false
@@ -222,6 +231,18 @@ GET /api/notifications
 
 En modo `DEV_AUTH_ENABLED=true`, las rutas protegidas tambien pueden probarse con los headers locales enviados por el frontend de desarrollo.
 
+## Demo online
+
+La demo online inicial usa:
+
+```txt
+Frontend: https://purple-ground-0205c9f10.7.azurestaticapps.net/
+Backend:  https://poli-redi.azurewebsites.net
+Health:   https://poli-redi.azurewebsites.net/api/health
+```
+
+Para nube, `CORS_ALLOWED_ORIGINS` debe incluir la URL de Static Web Apps y el frontend debe compilarse con `VITE_API_BASE_URL` apuntando al backend Azure.
+
 ## Checklist MVP 1
 
 Antes de una demo local:
@@ -245,6 +266,7 @@ Antes de una demo local:
 - `docs/03-base-de-datos.md`: modelo Azure SQL Database.
 - `docs/06-flujo-reservas.md`: flujo funcional de reservas.
 - `docs/07-backlog.md`: backlog maestro y estado de tareas.
+- `docs/10-guia-redeploy.md`: ejecucion local y redeploy en Azure.
 
 ## Seguridad
 

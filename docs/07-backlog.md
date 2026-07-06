@@ -16,6 +16,7 @@ Estado actual:
 - Frontend Vue/Vite ejecutando localmente.
 - Autenticacion con Microsoft Entra ID activa.
 - Azure SQL Database configurada como base de datos objetivo.
+- Demo online desplegada en Azure Static Web Apps y Azure App Service.
 - Backend migrado desde PostgreSQL/pgx a SQL Server/go-mssqldb.
 - Datos de recursos y reservas cargan desde Azure SQL.
 - Ruta `/api/health` funciona como verificacion publica.
@@ -996,11 +997,11 @@ Asegurar que credenciales reales no queden versionadas ni documentadas.
 
 Prioridad: P2
 Labels: `backend`, `security`
-Estado sugerido: Backlog
+Estado sugerido: Done
 
 ### Contexto
 
-El backend usa `AllowOrigins: "*"`.
+El backend usaba `AllowOrigins: "*"`. Durante el despliegue online se necesitaba limitar y configurar origenes por ambiente.
 
 ### Objetivo
 
@@ -1008,9 +1009,21 @@ Configurar origenes permitidos por ambiente.
 
 ### Criterios de aceptacion
 
-- [ ] Desarrollo permite localhost.
-- [ ] Produccion limita origenes autorizados.
-- [ ] Configuracion viene por variable de entorno.
+- [x] Desarrollo permite localhost.
+- [x] Produccion limita origenes autorizados.
+- [x] Configuracion viene por variable de entorno.
+
+### Resultado de implementacion
+
+- El backend lee `CORS_ALLOWED_ORIGINS`.
+- El entorno local permite `http://localhost:5173`.
+- El entorno online permite la URL de Azure Static Web Apps.
+- La configuracion queda fuera del codigo y se define por variables de entorno del App Service.
+
+### Archivos relevantes
+
+- `backend/cmd/main.go`
+- `backend/.env.example`
 
 ---
 
@@ -1127,7 +1140,7 @@ Formalizar los MVPs incrementales de Poli-REDI, indicando que implementa cada un
 
 Prioridad: P2
 Labels: `deploy`, `documentacion`
-Estado sugerido: Backlog
+Estado sugerido: Done
 
 ### Objetivo
 
@@ -1142,23 +1155,47 @@ Definir donde se desplegaran frontend y backend.
 
 ### Criterios de aceptacion
 
-- [ ] Documento corto con alternativa elegida.
-- [ ] Variables necesarias definidas.
-- [ ] Pasos de despliegue inicial documentados.
+- [x] Documento corto con alternativa elegida.
+- [x] Variables necesarias definidas.
+- [x] Pasos de despliegue inicial documentados.
+
+### Resultado de implementacion
+
+- Se eligio Azure Static Web Apps para frontend.
+- Se eligio Azure App Service para backend desplegado con Docker.
+- Se uso Azure SQL Database existente como base de datos.
+- Se conecto Microsoft Entra ID para login real en nube.
+- Se configuraron variables `VITE_*` en GitHub Actions para compilar el frontend.
+- Se agrego `staticwebapp.config.json` para fallback de rutas Vue.
+- La demo online quedo operativa en `https://purple-ground-0205c9f10.7.azurestaticapps.net/`.
+
+### Archivos relevantes
+
+- `.github/workflows/azure-static-web-apps-purple-ground-0205c9f10.yml`
+- `frontend/public/staticwebapp.config.json`
+- `backend/cmd/main.go`
 
 ## DEPLOY-002 - Preparar backend para produccion
 
 Prioridad: P2
 Labels: `backend`, `deploy`, `security`
-Estado sugerido: Backlog
+Estado sugerido: Done
 
 ### Criterios de aceptacion
 
-- [ ] Puerto configurable.
-- [ ] CORS configurable.
-- [ ] Logs no exponen secretos.
-- [ ] Variables de Azure SQL definidas en entorno.
-- [ ] Health check disponible.
+- [x] Puerto configurable.
+- [x] CORS configurable.
+- [x] Logs no exponen secretos.
+- [x] Variables de Azure SQL definidas en entorno.
+- [x] Health check disponible.
+
+### Resultado de implementacion
+
+- El backend usa `PORT` desde variables de entorno.
+- El backend usa `CORS_ALLOWED_ORIGINS` para separar local y nube.
+- Las credenciales de Azure SQL se mantienen fuera del repositorio.
+- `/api/health` permite validar que el App Service este activo.
+- La imagen Docker del backend puede desplegarse en Azure App Service.
 
 ---
 
