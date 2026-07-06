@@ -20,6 +20,8 @@ const reservationsStore = useReservationsStore()
 const cancellingId = ref(null)
 
 onMounted(() => {
+  reservationsStore.clearActionError()
+  reservationsStore.clearActionSuccess()
   reservationsStore.fetchMyReservations()
 })
 
