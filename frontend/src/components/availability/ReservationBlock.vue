@@ -107,12 +107,12 @@ const statusClass = computed(() => {
 .reservation-block {
   position: absolute;
 
-  left: 8px;
-  right: 8px;
+  left: 10px;
+  right: 10px;
 
-  border-radius: 14px;
+  border-radius: var(--radius-md);
 
-  padding: 10px 12px;
+  padding: 9px 11px;
 
   display: flex;
   flex-direction: column;
@@ -122,8 +122,7 @@ const statusClass = computed(() => {
 
   z-index: 3;
 
-  box-shadow:
-    0 8px 18px rgba(0,0,0,0.12);
+  box-shadow: 0 8px 16px rgba(37, 99, 235, 0.14);
 
   border: 1px solid transparent;
 
@@ -154,11 +153,11 @@ const statusClass = computed(() => {
 
 /* STATUS */
 .confirmed {
-  background: #dbeafe;
+  background: #d8e8ff;
 
-  color: #1d4ed8;
+  color: #1e4fb8;
 
-  border-color: #bfdbfe;
+  border-color: #a9c9ff;
 }
 
 .pending {

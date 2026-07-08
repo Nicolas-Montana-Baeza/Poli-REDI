@@ -43,6 +43,24 @@ Backlog relacionado:
 
 - `BACK-007`: crear base global de sistema visual MVP 1.
 - `BACK-008`: aplicar sistema visual global a pantallas MVP 1.
+- `BACK-010`: unificar tarjetas/listado de Mis Reservas e Historial.
+- `BACK-011`: unificar estados, filtros y vacios en vistas de reservas.
+
+## Coherencia visual entre reservas e historial
+
+Mis Reservas e Historial deben sentirse como vistas hermanas del mismo modulo. La diferencia principal es conceptual:
+
+- Mis Reservas muestra reservas accionables o vigentes.
+- Historial muestra reservas pasadas o canceladas.
+
+La tarjeta, los badges, los estados de carga/error/vacio y el acceso al detalle deben compartir el mismo patron visual. Las acciones cambian por contexto: Mis Reservas puede mostrar `Cancelar`, mientras Historial prioriza `Ver detalle`.
+
+Recomendacion:
+
+- Crear un componente compartido de tarjeta de reserva.
+- Usarlo en `ReservationsView.vue` y `HistoryView.vue`.
+- Mantener filtros solo en Historial, pero con el mismo estilo global de formularios.
+- Usar siempre `getReservationDisplayStatus` para la etiqueta visual.
 
 ## Fortalezas UX actuales
 

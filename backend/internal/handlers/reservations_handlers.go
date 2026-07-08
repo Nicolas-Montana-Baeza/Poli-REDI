@@ -16,7 +16,7 @@ func GetReservations(c *fiber.Ctx) error {
 
 	if err != nil {
 		return c.Status(500).JSON(fiber.Map{
-			"error":  "Error obteniendo reservas",
+			"error":  "No se pudieron cargar las reservas",
 			"detail": err.Error(),
 		})
 	}
@@ -37,7 +37,7 @@ func GetMyReservations(c *fiber.Ctx) error {
 
 	if err != nil {
 		return c.Status(500).JSON(fiber.Map{
-			"error":  "Error obteniendo reservas",
+			"error":  "No se pudieron cargar tus reservas",
 			"detail": err.Error(),
 		})
 	}
@@ -58,13 +58,13 @@ func CreateReservation(c *fiber.Ctx) error {
 
 	if !user.IsAdmin && user.RUT == "" {
 		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
-			"error": "Debes registrar tu RUT antes de crear reservas",
+			"error": "Debes registrar tu RUT antes de crear reservas.",
 		})
 	}
 
 	if err := c.BodyParser(&request); err != nil {
 		return c.Status(400).JSON(fiber.Map{
-			"error": "Datos invalidos",
+			"error": "Datos inválidos",
 		})
 	}
 
@@ -72,7 +72,7 @@ func CreateReservation(c *fiber.Ctx) error {
 
 	if err != nil {
 		return c.Status(400).JSON(fiber.Map{
-			"error": "Fecha de inicio invalida",
+			"error": "Fecha de inicio inválida",
 		})
 	}
 
@@ -118,7 +118,7 @@ func parseReservationStartTime(value string) (time.Time, error) {
 		}
 	}
 
-	return time.Time{}, errors.New("startTime tiene formato invalido")
+	return time.Time{}, errors.New("fecha de inicio inválida")
 }
 
 func CancelReservation(c *fiber.Ctx) error {
@@ -134,7 +134,7 @@ func CancelReservation(c *fiber.Ctx) error {
 
 	if err := c.BodyParser(&request); err != nil {
 		return c.Status(400).JSON(fiber.Map{
-			"error": "Datos invalidos",
+			"error": "Datos inválidos",
 		})
 	}
 

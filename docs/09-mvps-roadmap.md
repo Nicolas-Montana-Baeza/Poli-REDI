@@ -56,6 +56,9 @@ Construir la base operativa del sistema: aplicacion web, API, base de datos real
 - `BACK-006`
 - `BACK-007`
 - `BACK-008`
+- `BACK-009`
+- `BACK-010`
+- `BACK-011`
 - `AUTH-001`
 - `AUTH-002`
 - `API-003`
@@ -87,14 +90,23 @@ El MVP 1 ya esta funcional y desplegado como demo online, pero se reabre para ap
 - Documentar paso a paso el despliegue como guia estable de entrega.
 - Automatizar despliegue del backend Docker si se mantiene App Service con contenedor.
 - Endurecer configuracion productiva si se pasa de demo a produccion institucional.
-- Completar checklist de demo tecnica MVP 1 (`BACK-005`).
+- Ejecutar checklist de demo tecnica MVP 1 (`BACK-005`).
 - Revisar documentacion historica para evitar confusiones con PostgreSQL (`BACK-003`).
 - Confirmar que README, instalacion y arquitectura reflejan el estado real (`BACK-004`).
-- Normalizar mensajes visibles y posibles problemas de codificacion (`BACK-006`).
+- Validar en pantalla los mensajes visibles y posibles problemas de codificacion (`BACK-006`).
 - Crear una base global de sistema visual para reducir inconsistencias (`BACK-007`).
 - Aplicar esa base global a pantallas y componentes principales del MVP 1 (`BACK-008`).
+- Separar estado real de categoria temporal de reserva (`BACK-009`).
 - Definir plan de corte desde Google Calendar legado antes de mover operacion real (`OPS-001`).
 - Dejar evidencia de `go test ./...` y `npm run build` antes del cierre definitivo.
+
+### Pulidos completados durante reapertura
+
+- Separacion entre estado real y categoria temporal de reserva (`BACK-009`).
+- Unificacion de tarjetas/listado de Mis Reservas e Historial (`BACK-010`).
+- Unificacion de estados, filtros y vacios en vistas de reservas (`BACK-011`).
+- Creacion del checklist manual de demo tecnica MVP 1 (`BACK-005`).
+- Normalizacion de mensajes visibles y errores frecuentes (`BACK-006`).
 
 ### Criterio de cierre
 

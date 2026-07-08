@@ -20,6 +20,8 @@ func RegisterRoutes(app *fiber.App) {
 	protected.Get("/resources", handlers.GetResources)
 	protected.Get("/activities", handlers.GetActivities)
 	protected.Get("/notifications", handlers.GetNotifications)
+	protected.Get("/workshops", handlers.GetWorkshops)
+	protected.Post("/workshops/:id/enroll", handlers.EnrollInWorkshop)
 
 	admin := protected.Group("", middleware.RequireAdmin())
 	admin.Get("/users", handlers.GetUsers)

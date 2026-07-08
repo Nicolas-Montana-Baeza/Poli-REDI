@@ -34,7 +34,7 @@ func UpdateMeRUT(c *fiber.Ctx) error {
 
 	if err := c.BodyParser(&request); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Datos invalidos",
+			"error": "Datos inválidos",
 		})
 	}
 
@@ -54,7 +54,7 @@ func UpdateMeRUT(c *fiber.Ctx) error {
 
 	if !validators.IsValidRUT(normalizedRUT) {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "RUT invalido",
+			"error": "RUT inválido",
 		})
 	}
 

@@ -98,7 +98,7 @@ const handleRutSubmit = async () => {
   }
 
   if (normalized && !isValidRut(normalized)) {
-    rutError.value = 'El RUT ingresado no es valido.'
+    rutError.value = 'El RUT ingresado no es válido.'
     return
   }
 
@@ -204,7 +204,7 @@ watch(
           @click="handleLogout"
         >
           <Power :size="18" />
-          Cerrar sesion
+          Cerrar sesión
         </button>
 
       </article>

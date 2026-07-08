@@ -50,7 +50,7 @@ defineProps({
 
   gap: 14px;
 
-  padding: 14px 16px;
+  padding: 12px 14px;
 
   border-radius: var(--radius-lg);
 
@@ -61,7 +61,7 @@ defineProps({
   transition: 0.2s;
 
   font-size: 15px;
-  font-weight: 500;
+  font-weight: 600;
 
   box-sizing: border-box;
 
@@ -69,9 +69,9 @@ defineProps({
 }
 
 .sidebar-item:hover {
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--color-primary-soft);
 
-  color: white;
+  color: var(--color-primary-strong);
 }
 
 .router-link-active {
@@ -79,9 +79,9 @@ defineProps({
 
   color: white;
 
-  font-weight: 700;
+  font-weight: 750;
 
-  box-shadow: 0 8px 20px rgba(37, 99, 235, 0.32);
+  box-shadow: 0 8px 18px rgba(37, 99, 235, 0.22);
 }
 
 .icon {

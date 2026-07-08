@@ -117,3 +117,111 @@ export const formatReservationDate = (startTime) => {
     year: 'numeric'
   })
 }
+
+export const getReservationEndDate = (reservation) => {
+  const start = parseReservationDateTime(reservation?.startTime)
+
+  if (!start || !reservation) {
+    return null
+  }
+
+  return new Date(
+    start.getTime() +
+    Number(reservation.durationMinutes || 0) * 60000
+  )
+}
+
+export const getReservationTemporalState = (reservation) => {
+  const start = parseReservationDateTime(reservation?.startTime)
+  const end = getReservationEndDate(reservation)
+
+  if (!start || !end) {
+    return 'unknown'
+  }
+
+  const now = Date.now()
+
+  if (end.getTime() < now) {
+    return 'past'
+  }
+
+  if (start.getTime() <= now && end.getTime() >= now) {
+    return 'ongoing'
+  }
+
+  return 'upcoming'
+}
+
+export const isReservationHistorical = (reservation) => {
+  return (
+    reservation?.status === 'CANCELLED' ||
+    getReservationTemporalState(reservation) === 'past'
+  )
+}
+
+export const isReservationActionable = (reservation) => {
+  return !isReservationHistorical(reservation)
+}
+
+export const isReservationCancelable = (reservation) => {
+  return (
+    reservation?.status !== 'CANCELLED' &&
+    getReservationTemporalState(reservation) !== 'past'
+  )
+}
+
+export const getReservationDisplayStatus = (reservation) => {
+  const temporalState = getReservationTemporalState(reservation)
+
+  switch (reservation?.status) {
+    case 'CONFIRMED':
+      if (temporalState === 'past') {
+        return {
+          label: 'Finalizada',
+          className: 'completed'
+        }
+      }
+
+      if (temporalState === 'ongoing') {
+        return {
+          label: 'En curso',
+          className: 'ongoing'
+        }
+      }
+
+      return {
+        label: 'Confirmada',
+        className: 'confirmed'
+      }
+
+    case 'PENDING':
+      return {
+        label: 'Pendiente',
+        className: 'pending'
+      }
+
+    case 'CANCELLED':
+      return {
+        label: 'Cancelada',
+        className: 'cancelled'
+      }
+
+    case 'REJECTED':
+      return {
+        label: 'Rechazada',
+        className: 'rejected'
+      }
+
+    case 'EXPIRED':
+      return {
+        label: 'Expirada',
+        className: 'expired'
+      }
+
+    default:
+      return {
+        label: reservation?.status || 'Reserva',
+        className: String(reservation?.status || 'default').toLowerCase()
+      }
+  }
+}

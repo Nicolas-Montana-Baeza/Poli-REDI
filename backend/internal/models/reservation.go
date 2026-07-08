@@ -18,6 +18,9 @@ type Reservation struct {
 	Title        string `json:"title"`
 	Type         string `json:"type"`
 	ResourceName string `json:"resourceName"`
+	UserFullName string `json:"userFullName"`
+	UserEmail    string `json:"userEmail"`
+	UserRUT      string `json:"userRut"`
 }
 
 type CreateReservationRequest struct {

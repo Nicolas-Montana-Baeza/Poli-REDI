@@ -87,7 +87,8 @@ func RequireAuth() fiber.Handler {
 
 		if err != nil {
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-				"error": err.Error(),
+				"error":  "debes iniciar sesión para continuar",
+				"detail": err.Error(),
 			})
 		}
 
@@ -109,7 +110,7 @@ func RequireAuth() fiber.Handler {
 			}
 
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-				"error":  "token invalido o expirado",
+				"error":  "tu sesión expiró o no es válida",
 				"detail": detail,
 			})
 		}
@@ -124,7 +125,7 @@ func RequireAuth() fiber.Handler {
 
 		if authUser.Email == "" {
 			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
-				"error":  "usuario no autorizado",
+				"error":  "no se pudo validar tu cuenta institucional",
 				"detail": "El token no contiene email, preferred_username, upn ni unique_name.",
 			})
 		}
@@ -139,7 +140,7 @@ func RequireAuth() fiber.Handler {
 
 		if err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-				"error":  "no se pudo crear o consultar el usuario",
+				"error":  "no se pudo cargar tu usuario",
 				"detail": err.Error(),
 			})
 		}
@@ -147,7 +148,7 @@ func RequireAuth() fiber.Handler {
 		if localUser.IsBlocked {
 			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
 				"error":  "usuario bloqueado",
-				"detail": "El usuario existe, pero esta bloqueado en Poli-REDI.",
+				"detail": "El usuario existe, pero está bloqueado en Poli-REDI.",
 			})
 		}
 
@@ -159,7 +160,7 @@ func RequireAuth() fiber.Handler {
 
 		if err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-				"error":  "no se pudo sincronizar la identidad institucional",
+				"error":  "no se pudo sincronizar tu identidad institucional",
 				"detail": err.Error(),
 			})
 		}
@@ -178,8 +179,8 @@ func requireDevAuth() fiber.Handler {
 
 		if email == "" {
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-				"error":  "modo dev auth activo, pero falta X-Dev-Auth-Email",
-				"detail": "Inicia sesion desde la pantalla local de pruebas.",
+				"error":  "falta iniciar sesión local de prueba",
+				"detail": "Modo dev auth activo, pero falta X-Dev-Auth-Email.",
 			})
 		}
 
@@ -191,7 +192,7 @@ func requireDevAuth() fiber.Handler {
 
 		if err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-				"error":  "no se pudo crear o consultar el usuario local de pruebas",
+				"error":  "no se pudo cargar el usuario local de prueba",
 				"detail": err.Error(),
 			})
 		}
@@ -199,7 +200,7 @@ func requireDevAuth() fiber.Handler {
 		if localUser.IsBlocked {
 			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
 				"error":  "usuario bloqueado",
-				"detail": "El usuario existe, pero esta bloqueado en Poli-REDI.",
+				"detail": "El usuario existe, pero está bloqueado en Poli-REDI.",
 			})
 		}
 
@@ -208,7 +209,7 @@ func requireDevAuth() fiber.Handler {
 
 			if err != nil {
 				return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-					"error":  "no se pudo reiniciar el RUT local de pruebas",
+					"error":  "no se pudo preparar el RUT local de prueba",
 					"detail": err.Error(),
 				})
 			}
@@ -240,7 +241,7 @@ func RequireAdmin() fiber.Handler {
 
 		if !user.IsAdmin {
 			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
-				"error": "no tienes permisos para acceder a esta seccion",
+				"error": "no tienes permisos para acceder a esta sección",
 			})
 		}
 
@@ -252,13 +253,13 @@ func extractBearerToken(c *fiber.Ctx) (string, error) {
 	authHeader := c.Get("Authorization")
 
 	if authHeader == "" {
-		return "", errors.New("falta header Authorization")
+		return "", errors.New("falta la cabecera Authorization")
 	}
 
 	parts := strings.SplitN(authHeader, " ", 2)
 
 	if len(parts) != 2 || !strings.EqualFold(parts[0], "Bearer") {
-		return "", errors.New("formato Authorization invalido")
+		return "", errors.New("formato de Authorization inválido")
 	}
 
 	return strings.TrimSpace(parts[1]), nil

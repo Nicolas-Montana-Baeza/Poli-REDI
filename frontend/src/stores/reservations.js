@@ -2,6 +2,14 @@ import { defineStore } from 'pinia'
 
 import { reservationsService } from '@/services/reservations.service'
 
+const getFriendlyReservationError = (error, fallback) => {
+  if (!error.response) {
+    return 'No se pudo conectar con el backend. Verifica que el servidor esté encendido.'
+  }
+
+  return error.response?.data?.error || fallback
+}
+
 export const useReservationsStore =
   defineStore('reservations', {
     state: () => ({
@@ -30,10 +38,12 @@ export const useReservationsStore =
         try {
           this.reservations =
             await reservationsService.getAll()
-        } catch {
+        } catch (error) {
           this.reservations = []
-          this.loadingError =
-            'No se pudieron cargar las reservas'
+          this.loadingError = getFriendlyReservationError(
+            error,
+            'No se pudieron cargar las reservas.'
+          )
         } finally {
           this.loading = false
         }
@@ -46,10 +56,12 @@ export const useReservationsStore =
         try {
           this.myReservations =
             await reservationsService.getMine()
-        } catch {
+        } catch (error) {
           this.myReservations = []
-          this.myLoadingError =
-            'No se pudieron cargar tus reservas'
+          this.myLoadingError = getFriendlyReservationError(
+            error,
+            'No se pudieron cargar tus reservas.'
+          )
         } finally {
           this.myLoading = false
         }
@@ -77,8 +89,10 @@ export const useReservationsStore =
           return createdReservation
         } catch (error) {
           const message =
-            error.response?.data?.error ||
-            'No se pudo crear la reserva'
+            getFriendlyReservationError(
+              error,
+              'No se pudo crear la reserva.'
+            )
 
           this.actionError = message
 
@@ -136,8 +150,10 @@ export const useReservationsStore =
           return cancelledReservation
         } catch (error) {
           const message =
-            error.response?.data?.error ||
-            'No se pudo cancelar la reserva'
+            getFriendlyReservationError(
+              error,
+              'No se pudo cancelar la reserva.'
+            )
 
           this.actionError = message
 

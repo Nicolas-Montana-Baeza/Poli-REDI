@@ -1,7 +1,7 @@
 .app-card {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-xl);
+  border-radius: var(--radius-lg);
   box-shadow: var(--shadow-card);
 }
 
@@ -11,7 +11,7 @@
 .section-header h2 {
   color: var(--color-text);
   font-size: var(--text-page-title);
-  font-weight: 800;
+  font-weight: 750;
   line-height: 1.15;
 }
 
@@ -28,8 +28,8 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   color: #334155;
-  font-weight: 700;
-  padding: var(--space-5);
+  font-weight: 650;
+  padding: var(--space-4);
 }
 
 .state-card.error,
@@ -52,40 +52,45 @@
 }
 
 .app-button {
-  min-height: 44px;
-  border: 0;
+  min-height: 42px;
+  border: 1px solid transparent;
   border-radius: var(--radius-md);
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: var(--space-2);
-  font-weight: 800;
-  padding: 0 var(--space-5);
+  font-weight: 750;
+  padding: 0 var(--space-4);
   transition: background-color 0.18s ease, color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
 }
 
 .app-button.primary {
   background: var(--color-primary);
+  border-color: var(--color-primary);
   color: var(--color-primary-contrast);
 }
 
 .app-button.primary:hover:not(:disabled) {
   background: var(--color-primary-strong);
-  box-shadow: 0 10px 20px rgba(37, 99, 235, 0.22);
+  box-shadow: 0 8px 16px rgba(39, 94, 216, 0.2);
 }
 
 .app-button.secondary {
-  background: var(--color-surface-soft);
+  background: var(--color-surface);
+  border-color: var(--color-border);
   color: #334155;
 }
 
 .app-button.secondary:hover:not(:disabled) {
-  background: #e2e8f0;
+  background: var(--color-primary-soft);
+  border-color: #bfd3ff;
+  color: var(--color-primary-strong);
 }
 
 .app-button.danger {
   background: var(--color-error-strong);
+  border-color: var(--color-error-strong);
   color: #ffffff;
 }
 
@@ -108,7 +113,7 @@
 label.form-field {
   color: #334155;
   font-size: 14px;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .form-field input,
@@ -137,7 +142,7 @@ textarea:focus {
   border: 1px solid var(--color-error-border);
   border-radius: var(--radius-md);
   font-size: 14px;
-  font-weight: 800;
+  font-weight: 700;
   padding: var(--space-3);
 }
 
@@ -149,8 +154,8 @@ textarea:focus {
   cursor: pointer;
   display: inline-flex;
   align-items: center;
-  min-height: 28px;
+  min-height: 26px;
   padding: 0 var(--space-3);
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 750;
 }

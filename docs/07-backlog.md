@@ -204,7 +204,7 @@ Dejar el MVP 1 lo mas estable, demostrable y defendible posible.
 
 Prioridad: P1
 Labels: `testing`, `documentacion`, `deploy`
-Estado sugerido: Ready for Codex
+Estado sugerido: En revision de usuario
 
 ### Contexto
 
@@ -216,26 +216,37 @@ Crear un checklist corto de pruebas de humo para MVP 1.
 
 ### Criterios de aceptacion
 
-- [ ] Validar `/api/health` local.
-- [ ] Validar `/api/health` online.
-- [ ] Validar login institucional o modo local segun ambiente.
-- [ ] Validar carga de recursos reales.
-- [ ] Validar carga de actividades reales.
-- [ ] Validar creacion de una reserva de prueba.
-- [ ] Validar cancelacion de una reserva de prueba.
-- [ ] Validar que un usuario normal no acceda a rutas admin.
-- [ ] Registrar fecha, ambiente y resultado de la ultima validacion.
+- [x] El checklist incluye validacion de `/api/health` local.
+- [x] El checklist incluye validacion de `/api/health` online.
+- [x] El checklist incluye validacion de login institucional o modo local segun ambiente.
+- [x] El checklist incluye validacion de carga de recursos reales.
+- [x] El checklist incluye validacion de carga de actividades reales.
+- [x] El checklist incluye validacion de creacion de una reserva de prueba.
+- [x] El checklist incluye validacion de cancelacion de una reserva de prueba.
+- [x] El checklist incluye validacion de que un usuario normal no acceda a rutas admin.
+- [x] El checklist incluye registro de fecha, ambiente y resultado de la ultima validacion.
+
+### Resultado parcial
+
+- Se creo `docs/12-checklist-demo-mvp1.md` con checklist manual para validacion local y online.
+- La tarea queda en revision de usuario hasta ejecutar el checklist en un ambiente real.
 
 ### Evidencia reciente
 
 - 2026-07-06: `go test ./...` ejecutado correctamente en backend.
 - 2026-07-06: `npm run build` ejecutado correctamente en frontend.
 
+### Archivos relevantes
+
+- `docs/12-checklist-demo-mvp1.md`
+- `docs/07-backlog.md`
+- `docs/09-mvps-roadmap.md`
+
 ## BACK-006 - Normalizar mensajes y codificacion visible
 
 Prioridad: P2
 Labels: `backend`, `frontend`, `ux`, `refactor`, `codex-ready`
-Estado sugerido: Ready for Codex
+Estado sugerido: En revision de usuario
 
 ### Contexto
 
@@ -247,17 +258,30 @@ Revisar mensajes visibles de backend/frontend para que no aparezcan caracteres c
 
 ### Criterios de aceptacion
 
-- [ ] No hay mensajes visibles con caracteres corruptos.
-- [ ] Errores frecuentes de autenticacion y reserva usan texto claro.
-- [ ] Los mensajes tecnicos quedan reservados para logs o `detail` cuando corresponda.
-- [ ] `npm run build` pasa.
-- [ ] `go test ./...` pasa.
+- [x] No hay mensajes visibles con caracteres corruptos.
+- [x] Errores frecuentes de autenticacion y reserva usan texto claro.
+- [x] Los mensajes tecnicos quedan reservados para logs o `detail` cuando corresponda.
+- [x] `npm run build` pasa.
+- [x] `go test ./...` pasa.
+
+### Resultado parcial
+
+- Se corrigieron textos visibles sin acentos en login, header, menu de usuario, configuracion, historial, reservas y detalle de reserva.
+- Los errores de red del frontend ahora muestran un mensaje claro cuando el backend no responde.
+- Los errores de autenticacion y reserva del backend usan mensajes principales amigables y dejan detalles tecnicos en `detail` cuando corresponde.
+- No se encontraron caracteres corruptos tipo `Ã`, `Â` o `�` en frontend/backend/documentacion.
+- La tarea queda en revision de usuario hasta validar visualmente los textos en la app.
+
+### Evidencia reciente
+
+- 2026-07-08: `npm run build` ejecutado correctamente en frontend.
+- 2026-07-08: `go test ./...` ejecutado correctamente en backend.
 
 ## BACK-007 - Crear base global de sistema visual MVP 1
 
 Prioridad: P1
 Labels: `frontend`, `ux`, `refactor`, `codex-ready`, `mvp1`
-Estado sugerido: Done
+Estado sugerido: Ajustes visuales pendientes
 
 ### Contexto
 
@@ -304,6 +328,12 @@ Crear una base global de estilos reutilizables sin redisenar la aplicacion compl
 - [x] No se eliminan estilos scoped necesarios para layout especifico.
 - [x] `npm run build` pasa.
 
+### Resultado parcial
+
+- La base global existe y compila, pero requiere validacion visual del usuario antes de cierre.
+- Se ajustaron radios, sombras, pesos tipograficos y contraste para reducir una apariencia demasiado pesada.
+- Se reemplazo el sidebar oscuro por una version clara y se aumento la viveza del color primario.
+
 ### Archivos relevantes
 
 - `frontend/src/style.css`
@@ -314,7 +344,7 @@ Crear una base global de estilos reutilizables sin redisenar la aplicacion compl
 
 Prioridad: P1
 Labels: `frontend`, `ux`, `refactor`, `codex-ready`, `mvp1`
-Estado sugerido: Done
+Estado sugerido: Ajustes visuales pendientes
 
 ### Contexto
 
@@ -357,6 +387,12 @@ Aplicar primero en:
 - [x] La UI sigue siendo responsive en mobile.
 - [x] `npm run build` pasa.
 
+### Resultado parcial
+
+- Las pantallas principales usan la base global, pero el resultado visual sigue sujeto a revision del usuario.
+- Se redujo la intensidad visual en login, header, sidebar, tarjetas de reserva y detalle.
+- Se ajustaron botones, mini calendario y timeline de disponibilidad para que se vean mas consistentes y menos apagados.
+
 ### Archivos relevantes
 
 - `frontend/src/assets/styles/main.css`
@@ -371,6 +407,167 @@ Aplicar primero en:
 - `frontend/src/components/availability/ReservationDetailModal.vue`
 - `frontend/src/views/ReservationsView.vue`
 - `frontend/src/views/ResourcesView.vue`
+
+## BACK-009 - Separar estado real de categoria temporal de reserva
+
+Prioridad: P1
+Labels: `frontend`, `ux`, `reservas`, `refactor`, `mvp1`
+Estado sugerido: Done
+
+### Contexto
+
+Durante la revision UX se detecto una ambiguedad conceptual: una reserva `CONFIRMED` podia mostrarse como `Confirmada` en Mis Reservas y como `Finalizada` en Historial. Esto es correcto solo si `Finalizada` se entiende como etiqueta visual derivada por tiempo, no como estado persistido.
+
+Para una demo y defensa tecnica, conviene separar claramente:
+
+- Estado real persistido: `PENDING`, `CONFIRMED`, `CANCELLED`, `REJECTED`, `EXPIRED`.
+- Categoria temporal derivada: futura, en curso o pasada.
+- Vista: Mis Reservas o Historial.
+- Etiqueta UI: Confirmada, En curso, Finalizada, Cancelada, Pendiente.
+
+### Objetivo
+
+Evitar que "activa", "historica" o "finalizada" se traten como estados reales cuando son clasificaciones derivadas por fecha y contexto.
+
+### Criterios de aceptacion
+
+- [x] Existe una utilidad compartida para calcular fecha fin de reserva.
+- [x] Existe una utilidad compartida para clasificar reserva como futura, en curso o pasada.
+- [x] Historial usa clasificacion derivada para mostrar reservas pasadas o canceladas.
+- [x] Mis Reservas de usuario normal muestra reservas accionables, no historicas.
+- [x] La etiqueta `Finalizada` se deriva de `CONFIRMED` + fecha pasada.
+- [x] El detalle usa la misma etiqueta visual que las listas.
+- [x] `npm run build` pasa.
+
+### Resultado de implementacion
+
+- Se agregaron helpers compartidos en `frontend/src/utils/reservationTime.js`.
+- `HistoryView.vue` usa `isReservationHistorical` y `getReservationDisplayStatus`.
+- `ReservationsView.vue` usa `isReservationActionable`, `isReservationCancelable` y `getReservationDisplayStatus`.
+- `ReservationDetailView.vue` usa la misma regla de etiqueta visual y cancelacion.
+- `npm run build` paso correctamente el 2026-07-07.
+
+### Archivos relevantes
+
+- `frontend/src/utils/reservationTime.js`
+- `frontend/src/views/HistoryView.vue`
+- `frontend/src/views/ReservationsView.vue`
+- `frontend/src/views/ReservationDetailView.vue`
+
+## BACK-010 - Unificar tarjetas/listado de Mis Reservas e Historial
+
+Prioridad: P1
+Labels: `frontend`, `ux`, `reservas`, `refactor`, `codex-ready`, `mvp1`
+Estado sugerido: Done
+
+### Contexto
+
+Mis Reservas e Historial son vistas hermanas: ambas muestran reservas con recurso, actividad, fecha, horario, duracion, estado visual y acceso al detalle. Sin embargo, hoy tienen estructuras y estilos distintos, lo que genera una sensacion de falta de coherencia visual.
+
+La diferencia conceptual debe mantenerse:
+
+- Mis Reservas: reservas accionables o vigentes para el usuario normal.
+- Historial: reservas pasadas o canceladas.
+
+Lo que debe unificarse es el lenguaje visual y la estructura de tarjeta.
+
+### Objetivo
+
+Crear un componente compartido para representar reservas en listas, usable por `ReservationsView.vue` y `HistoryView.vue`.
+
+### Alcance sugerido para Codex
+
+1. Crear un componente reutilizable, por ejemplo `frontend/src/components/reservations/ReservationListCard.vue`.
+2. Mover a ese componente la estructura visual comun de tarjeta.
+3. Recibir por props la reserva, etiqueta visual, modo y flags de acciones.
+4. Emitir eventos o usar slots para acciones como `Detalle`, `Ver detalle` y `Cancelar`.
+5. Usar el componente desde `ReservationsView.vue` y `HistoryView.vue`.
+
+### Props/eventos sugeridos
+
+- `reservation`
+- `mode`: `active` o `history`
+- `showCancel`
+- `showUser`
+- `detailTo`
+- `cancelDisabled`
+- `@cancel`
+- `@open-detail`
+
+### Criterios de aceptacion
+
+- [x] Mis Reservas e Historial usan el mismo componente base de tarjeta.
+- [x] Ambas vistas muestran los mismos datos principales con el mismo orden visual.
+- [x] Las diferencias de accion se controlan por props o slots, no duplicando tarjeta completa.
+- [x] El estado visual usa `getReservationDisplayStatus`.
+- [x] La tarjeta conserva acceso a detalle desde ambas vistas.
+- [x] La accion cancelar solo aparece donde corresponde.
+- [x] La tarjeta es usable con teclado.
+- [x] El responsive de ambas vistas queda consistente.
+- [x] `npm run build` pasa.
+
+### Resultado de implementacion
+
+- Se creo `ReservationListCard.vue` como tarjeta compartida para listas de reservas.
+- `ReservationsView.vue` usa la tarjeta compartida con accion de detalle y cancelacion.
+- `HistoryView.vue` usa la tarjeta compartida en modo historial, con el mismo boton de detalle.
+- `ReservationsPanel.vue` del dashboard tambien usa la tarjeta compartida para proximas reservas.
+- Se retiro `components/dashboard/ReservationCard.vue` para evitar dos tarjetas de reserva conviviendo.
+- Se redujo duplicacion de markup, badges, metadatos de fecha/hora/duracion y estilos de tarjeta.
+- `npm run build` paso correctamente el 2026-07-07.
+
+### Archivos relevantes
+
+- `frontend/src/components/reservations/ReservationListCard.vue`
+- `frontend/src/components/dashboard/ReservationsPanel.vue`
+- `frontend/src/views/ReservationsView.vue`
+- `frontend/src/views/HistoryView.vue`
+- `frontend/src/utils/reservationTime.js`
+
+## BACK-011 - Unificar estados, filtros y vacios en vistas de reservas
+
+Prioridad: P2
+Labels: `frontend`, `ux`, `reservas`, `refactor`, `codex-ready`, `mvp1`
+Estado sugerido: Done
+
+### Contexto
+
+Aunque exista una tarjeta compartida, Mis Reservas e Historial tambien deben coincidir en estados de carga, error, vacio, filtros y microcopy. Hoy cada vista define parte de esos patrones localmente.
+
+### Objetivo
+
+Alinear los estados visuales y de interaccion de las vistas relacionadas con reservas.
+
+### Alcance sugerido para Codex
+
+1. Revisar `state-card`, mensajes de carga, errores y vacios en ambas vistas.
+2. Usar clases globales del sistema visual cuando existan.
+3. Mantener filtros solo en Historial, pero con estilo coherente con formularios globales.
+4. Alinear copy entre ambas vistas para que la diferencia sea conceptual, no accidental.
+
+### Criterios de aceptacion
+
+- [x] Mis Reservas e Historial usan el mismo estilo de carga, error, exito y vacio.
+- [x] Los filtros de Historial usan estilo coherente con campos globales.
+- [x] Los badges de estado son consistentes entre lista, historial y detalle.
+- [x] El texto diferencia claramente reservas accionables e historicas.
+- [x] Mobile mantiene filtros y tarjetas legibles a 360px de ancho.
+- [x] `npm run build` pasa.
+
+### Resultado de implementacion
+
+- `HistoryView.vue` usa `app-card` y `form-field` para filtros.
+- Mis Reservas, Historial y Proximas Reservas del dashboard quedan alineadas en tarjeta, estados y badges.
+- El componente compartido mantiene layout responsive para tablets y mobile.
+- `npm run build` paso correctamente el 2026-07-07.
+
+### Archivos relevantes
+
+- `frontend/src/views/ReservationsView.vue`
+- `frontend/src/views/HistoryView.vue`
+- `frontend/src/views/ReservationDetailView.vue`
+- `frontend/src/assets/styles/main.css`
+- `frontend/src/assets/styles/variables.css`
 
 ---
 
@@ -661,6 +858,7 @@ Agregar validaciones visibles antes de enviar reserva.
 - [x] Muestra error si falta fecha.
 - [x] Muestra error si falta hora.
 - [x] Valida duracion mayor a 0.
+- [x] Bloquea fechas y horarios pasados en frontend y backend.
 - [x] Valida participantes mayor a 0.
 - [x] Deshabilita boton mientras se crea la reserva.
 - [x] Muestra error devuelto por backend sin cerrar modal.
@@ -671,6 +869,12 @@ Agregar validaciones visibles antes de enviar reserva.
 - Los campos invalidos muestran mensajes visibles y estado visual de error.
 - El boton de confirmacion queda bloqueado mientras se crea la reserva o no hay recursos cargados.
 - Los errores de backend se mantienen visibles dentro del modal sin cerrarlo.
+- `CalendarMini.vue` resalta el dia seleccionado y diferencia el dia actual.
+- `AvailabilitySection.vue` bloquea seleccion de horarios pasados antes de abrir el formulario.
+- `ReservationForm.vue` evita confirmar reservas con fecha u hora pasada aunque el usuario edite manualmente.
+- `reservations_service.go` rechaza reservas en el pasado desde backend.
+- 2026-07-08: `npm run build` pasa.
+- 2026-07-08: `go test ./...` pasa.
 
 ## RES-006 - Implementar vista Mis Reservas
 

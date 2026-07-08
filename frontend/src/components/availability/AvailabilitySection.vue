@@ -4,6 +4,7 @@ import { ref, computed, onMounted } from 'vue'
 import CalendarToolbar from './CalendarToolbar.vue'
 import CalendarMini from './CalendarMini.vue'
 import ScheduleGrid from './ScheduleGrid.vue'
+import GeneralCalendarView from './GeneralCalendarView.vue'
 import ReservationDetailModal from './ReservationDetailModal.vue'
 import ReservationForm from '../forms/ReservationForm.vue'
 import SkeletonLoader from '@/components/ui/SkeletonLoader.vue'
@@ -18,10 +19,34 @@ const reservationsStore = useReservationsStore()
 const authStore = useAuthStore()
 const activitiesStore = useActivitiesStore()
 
+const formatDateKey = (date) => {
+  return [
+    date.getFullYear(),
+    String(date.getMonth() + 1).padStart(2, '0'),
+    String(date.getDate()).padStart(2, '0')
+  ].join('-')
+}
+
+const todayKey = () => {
+  return formatDateKey(new Date())
+}
+
+const buildLocalDateTime = (date, hour) => {
+  return new Date(`${date}T${hour}:00`)
+}
+
+const isPastStart = (date, hour) => {
+  const start = buildLocalDateTime(date, hour)
+
+  return start.getTime() <= Date.now()
+}
+
 /* DATE */
 const selectedDate = ref(
-  new Date().toISOString().slice(0, 10)
+  todayKey()
 )
+
+const viewMode = ref('resources')
 
 const currentDateLabel = computed(() => {
   const date = new Date(`${selectedDate.value}T00:00:00`)
@@ -114,6 +139,14 @@ const handleSlotSelected = (slot) => {
     return
   }
 
+  if (isPastStart(selectedDate.value, slot.hour)) {
+    reservationsStore.setActionError(
+      'No puedes crear reservas en fechas u horarios pasados.'
+    )
+
+    return
+  }
+
   selectedReservation.value = null
 
   selectedSlot.value = {
@@ -183,6 +216,14 @@ const submitReservation = async (reservation) => {
     if (!reservation.resource?.id) {
       reservationsStore.setActionError(
         'No se pudo identificar el recurso seleccionado'
+      )
+
+      return
+    }
+
+    if (isPastStart(reservation.date, reservation.hour)) {
+      reservationsStore.setActionError(
+        'No puedes crear reservas en fechas u horarios pasados.'
       )
 
       return
@@ -277,8 +318,18 @@ const handleDateSelect = (date) => {
   const day =
     String(date.day).padStart(2, '0')
 
-  selectedDate.value =
+  const nextDate =
     `${date.year}-${month}-${day}`
+
+  if (nextDate < todayKey()) {
+    reservationsStore.setActionError(
+      'No puedes seleccionar una fecha pasada.'
+    )
+
+    return
+  }
+
+  selectedDate.value = nextDate
 
   reservationsStore.clearActionError?.()
   reservationsStore.clearActionSuccess?.()
@@ -291,8 +342,14 @@ const previousDay = () => {
 
   date.setDate(date.getDate() - 1)
 
-  selectedDate.value =
-    date.toISOString().slice(0, 10)
+  const nextDate = formatDateKey(date)
+
+  if (nextDate < todayKey()) {
+    selectedDate.value = todayKey()
+    return
+  }
+
+  selectedDate.value = nextDate
 
   reservationsStore.clearActionError?.()
   reservationsStore.clearActionSuccess?.()
@@ -304,8 +361,7 @@ const nextDay = () => {
 
   date.setDate(date.getDate() + 1)
 
-  selectedDate.value =
-    date.toISOString().slice(0, 10)
+  selectedDate.value = formatDateKey(date)
 
   reservationsStore.clearActionError?.()
   reservationsStore.clearActionSuccess?.()
@@ -313,7 +369,7 @@ const nextDay = () => {
 
 const goToday = () => {
   selectedDate.value =
-    new Date().toISOString().slice(0, 10)
+    todayKey()
 
   reservationsStore.clearActionError?.()
   reservationsStore.clearActionSuccess?.()
@@ -393,6 +449,7 @@ const goToday = () => {
         <div class="calendar-container">
 
           <CalendarMini
+            :selected-date="selectedDate"
             @select-date="handleDateSelect"
           />
 
@@ -423,7 +480,29 @@ const goToday = () => {
         <!-- RIGHT -->
         <div class="grid-container">
 
+          <div
+            class="view-switch"
+            aria-label="Modo de vista"
+          >
+            <button
+              type="button"
+              :class="{ active: viewMode === 'resources' }"
+              @click="viewMode = 'resources'"
+            >
+              Por recurso
+            </button>
+
+            <button
+              type="button"
+              :class="{ active: viewMode === 'general' }"
+              @click="viewMode = 'general'"
+            >
+              Agenda del día
+            </button>
+          </div>
+
           <ScheduleGrid
+            v-if="viewMode === 'resources'"
             :resources="resourcesStore.resources"
             :reservations="reservationsStore.reservations"
             :selected-date="selectedDate"
@@ -431,6 +510,14 @@ const goToday = () => {
             :end-hour="22"
             :pixels-per-minute="1"
             @slot-selected="handleSlotSelected"
+            @reservation-selected="handleReservationSelected"
+          />
+
+          <GeneralCalendarView
+            v-else
+            :resources="resourcesStore.resources"
+            :reservations="reservationsStore.reservations"
+            :selected-date="selectedDate"
             @reservation-selected="handleReservationSelected"
           />
 
@@ -541,6 +628,41 @@ const goToday = () => {
 /* RIGHT */
 .grid-container {
   min-width: 0;
+}
+
+.view-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 16px;
+  padding: 4px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+}
+
+.view-switch button {
+  min-height: 34px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.view-switch button:hover {
+  color: var(--color-primary);
+  background: var(--color-primary-soft);
+}
+
+.view-switch button.active {
+  color: var(--color-primary-contrast);
+  background: var(--color-primary);
+  box-shadow: 0 6px 14px rgba(37, 99, 235, 0.18);
 }
 
 /* CARD */

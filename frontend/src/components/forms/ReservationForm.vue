@@ -150,6 +150,16 @@ const handleParticipantsUpdate = () => {
   fieldErrors.value.participantsCount = ''
 }
 
+const isPastReservationStart = () => {
+  if (!form.value.date || !form.value.hour) {
+    return false
+  }
+
+  const start = new Date(`${form.value.date}T${form.value.hour}:00`)
+
+  return start.getTime() <= Date.now()
+}
+
 const validateForm = () => {
   const errors = {}
 
@@ -167,6 +177,14 @@ const validateForm = () => {
 
   if (Number(form.value.durationMinutes) <= 0) {
     errors.durationMinutes = 'La duración debe ser mayor a 0.'
+  }
+
+  if (
+    form.value.date &&
+    form.value.hour &&
+    isPastReservationStart()
+  ) {
+    errors.hour = 'No puedes crear reservas en fechas u horarios pasados.'
   }
 
   if (Number(form.value.participantsCount) <= 0) {

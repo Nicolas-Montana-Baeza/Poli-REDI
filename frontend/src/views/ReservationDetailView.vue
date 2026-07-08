@@ -17,7 +17,8 @@ import { useReservationsStore } from '@/stores/reservations'
 import {
   formatReservationDate,
   formatReservationTimeRange,
-  parseReservationDateTime
+  getReservationDisplayStatus,
+  isReservationCancelable
 } from '@/utils/reservationTime'
 
 const route = useRoute()
@@ -65,46 +66,40 @@ const loadingError = computed(() => {
     : reservationsStore.myLoadingError
 })
 
-const getReservationEnd = (item) => {
-  const start = parseReservationDateTime(item?.startTime)
-
-  if (!start || !item) {
-    return null
-  }
-
-  return new Date(
-    start.getTime() +
-    item.durationMinutes * 60000
-  )
-}
-
-const isPast = computed(() => {
-  const end = getReservationEnd(reservation.value)
-
-  return end ? end.getTime() < Date.now() : false
-})
-
 const canCancel = computed(() => {
-  return (
-    reservation.value?.status !== 'CANCELLED' &&
-    !isPast.value
-  )
+  return isReservationCancelable(reservation.value)
 })
 
 const statusLabel = computed(() => {
-  switch (reservation.value?.status) {
-    case 'CONFIRMED':
-      return 'Confirmada'
+  return getReservationDisplayStatus(reservation.value).label
+})
 
-    case 'PENDING':
-      return 'Pendiente'
+const statusClass = computed(() => {
+  return getReservationDisplayStatus(reservation.value).className
+})
 
-    case 'CANCELLED':
-      return 'Cancelada'
-
-    default:
-      return reservation.value?.status || 'Reserva'
+const reservationUserName = computed(() => {
+  if (authStore.user?.isAdmin) {
+    return (
+      reservation.value?.userFullName ||
+      reservation.value?.userEmail ||
+      `Usuario #${reservation.value?.userId}`
+    )
   }
+
+  return (
+    authStore.user?.fullName ||
+    authStore.user?.email ||
+    'Usuario'
+  )
+})
+
+const reservationUserRut = computed(() => {
+  if (authStore.user?.isAdmin) {
+    return reservation.value?.userRut || 'RUT no registrado'
+  }
+
+  return authStore.user?.rut || 'RUT no registrado'
 })
 
 const cancelReservation = async () => {
@@ -113,7 +108,7 @@ const cancelReservation = async () => {
   }
 
   const confirmed = window.confirm(
-    'Deseas cancelar esta reserva?'
+    '¿Deseas cancelar esta reserva?'
   )
 
   if (!confirmed) {
@@ -138,6 +133,11 @@ const cancelReservation = async () => {
 }
 
 const goBack = () => {
+  if (route.query.from === 'history') {
+    router.push('/history')
+    return
+  }
+
   router.push('/reservations')
 }
 </script>
@@ -189,7 +189,7 @@ const goBack = () => {
 
           <span
             class="status"
-            :class="reservation.status?.toLowerCase()"
+            :class="statusClass"
           >
             {{ statusLabel }}
           </span>
@@ -269,7 +269,7 @@ const goBack = () => {
           <Timer :size="22" />
 
           <span>
-            Duracion
+            Duración
           </span>
 
           <strong>
@@ -287,10 +287,12 @@ const goBack = () => {
           </span>
 
           <strong>
-            {{ authStore.user?.isAdmin
-              ? `Usuario #${reservation.userId}`
-              : authStore.user?.fullName || authStore.user?.email || 'Usuario' }}
+            {{ reservationUserName }}
           </strong>
+
+          <small>
+            {{ reservationUserRut }}
+          </small>
 
         </article>
 
@@ -314,7 +316,7 @@ const goBack = () => {
 .back-button,
 .cancel-button {
   border: none;
-  border-radius: 14px;
+  border-radius: var(--radius-md);
 
   cursor: pointer;
 
@@ -323,9 +325,9 @@ const goBack = () => {
   justify-content: center;
   gap: 8px;
 
-  padding: 11px 14px;
+  padding: 10px 13px;
 
-  font-weight: 800;
+  font-weight: 750;
 
   transition: 0.2s;
 }
@@ -364,18 +366,18 @@ const goBack = () => {
 .state-card,
 .detail-panel,
 .detail-item {
-  background: white;
+  background: var(--color-surface);
 
-  border: 1px solid #e2e8f0;
-  border-radius: 18px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
 }
 
 .state-card {
-  padding: 22px;
+  padding: var(--space-4);
 
   color: #334155;
 
-  font-weight: 700;
+  font-weight: 650;
 }
 
 .state-card.error {
@@ -395,15 +397,14 @@ const goBack = () => {
 }
 
 .detail-panel {
-  padding: 24px;
+  padding: var(--space-5);
 
   display: flex;
   flex-direction: column;
 
   gap: 18px;
 
-  box-shadow:
-    0 4px 12px rgba(0,0,0,0.04);
+  box-shadow: var(--shadow-card);
 }
 
 .detail-header {
@@ -419,13 +420,13 @@ const goBack = () => {
 
   padding: 6px 10px;
 
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
 
   background: #eff6ff;
   color: #1d4ed8;
 
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 750;
 }
 
 .status.cancelled {
@@ -440,19 +441,31 @@ const goBack = () => {
   color: #92400e;
 }
 
+.status.completed {
+  background: #e2e8f0;
+
+  color: #475569;
+}
+
+.status.ongoing {
+  background: #dcfce7;
+
+  color: #166534;
+}
+
 .detail-header h1 {
   margin: 12px 0 0;
 
-  color: #0f172a;
+  color: var(--color-text);
 
-  font-size: 30px;
-  font-weight: 900;
+  font-size: 28px;
+  font-weight: 850;
 }
 
 .detail-header p {
   margin: 7px 0 0;
 
-  color: #64748b;
+  color: var(--color-text-muted);
 }
 
 .details-grid {
@@ -465,7 +478,7 @@ const goBack = () => {
 }
 
 .detail-item {
-  padding: 18px;
+  padding: var(--space-4);
 
   display: flex;
   flex-direction: column;
@@ -474,18 +487,27 @@ const goBack = () => {
 }
 
 .detail-item svg {
-  color: #1d4ed8;
+  color: var(--color-primary);
 }
 
 .detail-item span {
-  color: #64748b;
+  color: var(--color-text-muted);
 
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .detail-item strong {
-  color: #0f172a;
+  color: var(--color-text);
+
+  overflow-wrap: anywhere;
+}
+
+.detail-item small {
+  color: var(--color-text-muted);
+
+  font-size: 13px;
+  font-weight: 650;
 
   overflow-wrap: anywhere;
 }

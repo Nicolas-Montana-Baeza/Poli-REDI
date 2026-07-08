@@ -1,5 +1,5 @@
 <script setup>
-import ReservationCard from './ReservationCard.vue'
+import ReservationListCard from '@/components/reservations/ReservationListCard.vue'
 
 defineProps({
   reservations: {
@@ -28,7 +28,7 @@ defineProps({
       </div>
 
       <RouterLink
-        class="view-all"
+        class="view-all app-button primary"
         to="/reservations"
       >
         Ver todas
@@ -39,7 +39,7 @@ defineProps({
     <!-- EMPTY -->
     <div
       v-if="!reservations.length"
-      class="empty"
+      class="empty app-card"
     >
 
       <h3>
@@ -47,7 +47,7 @@ defineProps({
       </h3>
 
       <p>
-        Cuando reserves una instalacion aparecera aqui.
+        Cuando reserves una instalación aparecerá aquí.
       </p>
 
     </div>
@@ -58,15 +58,11 @@ defineProps({
       class="reservations-grid"
     >
 
-      <ReservationCard
+      <ReservationListCard
         v-for="reservation in reservations"
         :key="reservation.id"
-        :id="reservation.id"
-        :title="reservation.title"
-        :sport="reservation.sport"
-        :date="reservation.date"
-        :time="reservation.time"
-        :status="reservation.status"
+        :reservation="reservation"
+        :detail-to="`/reservations/${reservation.id}`"
       />
 
     </div>
@@ -111,27 +107,7 @@ defineProps({
 
 /* Button */
 .view-all {
-  border: none;
-
-  background: #1e3a8a;
-  color: white;
-
-  padding: 12px 18px;
-
-  border-radius: 14px;
-
-  font-size: 14px;
-  font-weight: 600;
-
-  cursor: pointer;
-
   text-decoration: none;
-
-  transition: 0.2s;
-}
-
-.view-all:hover {
-  background: #f97316;
 }
 
 /* GRID */
@@ -146,15 +122,9 @@ defineProps({
 
 /* EMPTY */
 .empty {
-  background: white;
-
-  border-radius: 22px;
-
   padding: 40px;
 
   text-align: center;
-
-  border: 1px solid #e2e8f0;
 }
 
 .empty h3 {

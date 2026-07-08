@@ -104,6 +104,30 @@ VALUES
 SET IDENTITY_INSERT dbo.scheduled_activities OFF;
 GO
 
+-- WORKSHOPS
+SET IDENTITY_INSERT dbo.workshops ON;
+INSERT INTO dbo.workshops (id, title, description, day_text, schedule_text, location, instructor_name, capacity, is_active)
+VALUES
+(1, N'Judo', N'Taller deportivo DAVE.', N'Martes y jueves', N'15:45 a 17:45 h', N'Centro Deportivo', NULL, 25, 1),
+(2, N'Entrenamiento funcional', N'Taller deportivo DAVE.', N'Martes y jueves', N'15:30 a 16:15 h', N'Cancha 2, Centro Deportivo', NULL, 25, 1),
+(3, N'Entrenamiento funcional', N'Taller deportivo DAVE.', N'Martes y jueves', N'17:00 a 18:00 h', N'Cancha 2, Centro Deportivo', NULL, 25, 1),
+(4, N'Entrenamiento funcional', N'Taller deportivo DAVE.', N'Lunes y miércoles', N'17:00 a 17:45 h', N'Cancha 2, Centro Deportivo', NULL, 25, 1),
+(5, N'Entrenamiento funcional', N'Taller deportivo DAVE.', N'Lunes y miércoles', N'18:30 a 19:30 h', N'Cancha 2, Centro Deportivo', NULL, 25, 1),
+(6, N'Escalada', N'Taller deportivo DAVE.', N'Martes y jueves', N'12:00 a 15:00 h', N'Muro Escalada, Centro Deportivo', NULL, 25, 1),
+(7, N'Spinning', N'Taller deportivo DAVE.', N'Lunes a jueves', N'14:15 a 15:00 h', N'Sala Spinning', NULL, 25, 1),
+(8, N'Pilates', N'Taller deportivo DAVE.', N'Lunes y miércoles', N'15:30 a 16:15 h', N'Cancha 2, Centro Deportivo', NULL, 25, 1),
+(9, N'Básquetbol', N'Taller deportivo DAVE.', N'Lunes y viernes', N'Lunes 16:30 a 18:30 h / Viernes 17:30 a 19:00 h', N'Centro Deportivo', NULL, 25, 1),
+(10, N'Futsal', N'Taller deportivo DAVE.', N'Miércoles', N'14:00 a 15:30 h', N'Cancha 2, Centro Deportivo', NULL, 25, 1),
+(11, N'Natación', N'Taller deportivo DAVE.', N'Martes a jueves', N'12:45 a 13:45 h', N'Piscina, Centro Deportivo', NULL, 25, 1),
+(12, N'Tenis mesa', N'Taller deportivo DAVE.', N'Lunes y miércoles', N'Lunes 19:30 a 21:00 h / Miércoles 18:00 a 19:30 h', N'Cancha 2, Centro Deportivo', NULL, 25, 1),
+(13, N'Vóleibol femenino', N'Taller deportivo DAVE.', N'Miércoles', N'20:00 a 21:00 h', N'Centro Deportivo', NULL, 25, 1),
+(14, N'Vóleibol masculino', N'Taller deportivo DAVE.', N'Miércoles', N'17:00 a 19:00 h', N'Centro Deportivo', NULL, 25, 1),
+(15, N'Aikido', N'Taller deportivo DAVE.', N'Miércoles', N'17:00 a 18:00 h', N'Sala Multiuso, Centro Deportivo', NULL, 25, 1),
+(16, N'Esgrima', N'Taller deportivo DAVE.', N'Martes y sábado', N'Martes 19:00 a 21:00 h / Sábado 11:45 a 13:00 h', N'Centro Deportivo', NULL, 25, 1),
+(17, N'Gimnasia artística', N'Taller deportivo DAVE.', N'Viernes', N'15:30 a 16:30 h', N'Cancha 3, Centro Deportivo', NULL, 25, 1);
+SET IDENTITY_INSERT dbo.workshops OFF;
+GO
+
 -- VIOLATIONS
 SET IDENTITY_INSERT dbo.violations ON;
 INSERT INTO dbo.violations (id, user_id, reservation_id, created_by_user_id, violation_type, description)

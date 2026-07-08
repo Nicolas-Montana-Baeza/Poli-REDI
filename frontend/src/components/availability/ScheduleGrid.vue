@@ -118,6 +118,8 @@ const handleReservationSelected = (reservation) => {
 
         :end-hour="endHour"
 
+        :selected-date="selectedDate"
+
         :pixels-per-minute="pixelsPerMinute"
 
         @slot-selected="
@@ -147,9 +149,9 @@ const handleReservationSelected = (reservation) => {
   margin: 0;
 
   font-size: 24px;
-  font-weight: 700;
+  font-weight: 800;
 
-  color: #0f172a;
+  color: var(--color-text);
 }
 
 .section-header p {
@@ -157,18 +159,18 @@ const handleReservationSelected = (reservation) => {
 
   font-size: 14px;
 
-  color: #64748b;
+  color: var(--color-text-muted);
 }
 
 /* EMPTY */
 .empty {
-  background: white;
+  background: var(--color-surface);
 
-  border-radius: 22px;
+  border-radius: var(--radius-lg);
 
-  padding: 24px;
+  padding: var(--space-5);
 
-  border: 1px dashed #cbd5e1;
+  border: 1px dashed var(--color-border);
 
   color: #64748b;
 
@@ -179,11 +181,11 @@ const handleReservationSelected = (reservation) => {
 .timelines-wrapper {
   display: flex;
 
-  gap: 20px;
+  gap: var(--space-4);
 
   overflow-x: auto;
 
-  padding-bottom: 12px;
+  padding: 2px 2px 12px;
 
   scroll-behavior: smooth;
 }
@@ -194,7 +196,7 @@ const handleReservationSelected = (reservation) => {
 }
 
 .timelines-wrapper::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: #b9c7da;
 
   border-radius: 999px;
 }

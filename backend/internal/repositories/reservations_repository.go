@@ -23,10 +23,15 @@ func GetAllReservations() ([]models.Reservation, error) {
 			r.created_at,
 			r.updated_at,
 			COALESCE(a.name, 'Reserva') AS activity_name,
-			res.name AS resource_name
+			res.name AS resource_name,
+			COALESCE(u.full_name, '') AS user_full_name,
+			COALESCE(u.email, '') AS user_email,
+			COALESCE(u.rut, '') AS user_rut
 		FROM dbo.reservations r
 		INNER JOIN dbo.resources res
 			ON res.id = r.resource_id
+		INNER JOIN dbo.users u
+			ON u.id = r.user_id
 		LEFT JOIN dbo.activities a
 			ON a.id = r.activity_id
 		ORDER BY r.start_time ASC;
@@ -57,10 +62,15 @@ func GetReservationsByUserID(userID int) ([]models.Reservation, error) {
 			r.created_at,
 			r.updated_at,
 			COALESCE(a.name, 'Reserva') AS activity_name,
-			res.name AS resource_name
+			res.name AS resource_name,
+			COALESCE(u.full_name, '') AS user_full_name,
+			COALESCE(u.email, '') AS user_email,
+			COALESCE(u.rut, '') AS user_rut
 		FROM dbo.reservations r
 		INNER JOIN dbo.resources res
 			ON res.id = r.resource_id
+		INNER JOIN dbo.users u
+			ON u.id = r.user_id
 		LEFT JOIN dbo.activities a
 			ON a.id = r.activity_id
 		WHERE r.user_id = @p1
@@ -85,6 +95,9 @@ func scanReservationRows(rows *sql.Rows) ([]models.Reservation, error) {
 		var reservation models.Reservation
 		var activityName string
 		var resourceName string
+		var userFullName string
+		var userEmail string
+		var userRUT string
 
 		err := rows.Scan(
 			&reservation.ID,
@@ -98,6 +111,9 @@ func scanReservationRows(rows *sql.Rows) ([]models.Reservation, error) {
 			&reservation.UpdatedAt,
 			&activityName,
 			&resourceName,
+			&userFullName,
+			&userEmail,
+			&userRUT,
 		)
 
 		if err != nil {
@@ -108,6 +124,9 @@ func scanReservationRows(rows *sql.Rows) ([]models.Reservation, error) {
 		reservation.Title = activityName
 		reservation.Type = mapReservationType(reservation.Status)
 		reservation.ResourceName = resourceName
+		reservation.UserFullName = userFullName
+		reservation.UserEmail = userEmail
+		reservation.UserRUT = userRUT
 
 		reservations = append(reservations, reservation)
 	}
@@ -122,6 +141,9 @@ func scanReservationRows(rows *sql.Rows) ([]models.Reservation, error) {
 func AddReservation(reservation models.Reservation) (models.Reservation, error) {
 	var activityName string
 	var resourceName string
+	var userFullName string
+	var userEmail string
+	var userRUT string
 
 	err := database.DB.QueryRowContext(
 		context.Background(),
@@ -150,12 +172,17 @@ func AddReservation(reservation models.Reservation) (models.Reservation, error) 
 			r.created_at,
 			r.updated_at,
 			COALESCE(a.name, 'Reserva') AS activity_name,
-			res.name AS resource_name
+			res.name AS resource_name,
+			COALESCE(u.full_name, '') AS user_full_name,
+			COALESCE(u.email, '') AS user_email,
+			COALESCE(u.rut, '') AS user_rut
 		FROM dbo.reservations r
 		INNER JOIN @created c
 			ON c.id = r.id
 		INNER JOIN dbo.resources res
 			ON res.id = r.resource_id
+		INNER JOIN dbo.users u
+			ON u.id = r.user_id
 		LEFT JOIN dbo.activities a
 			ON a.id = r.activity_id;
 		`,
@@ -177,6 +204,9 @@ func AddReservation(reservation models.Reservation) (models.Reservation, error) 
 		&reservation.UpdatedAt,
 		&activityName,
 		&resourceName,
+		&userFullName,
+		&userEmail,
+		&userRUT,
 	)
 
 	if err != nil {
@@ -187,6 +217,9 @@ func AddReservation(reservation models.Reservation) (models.Reservation, error) 
 	reservation.Title = activityName
 	reservation.Type = mapReservationType(reservation.Status)
 	reservation.ResourceName = resourceName
+	reservation.UserFullName = userFullName
+	reservation.UserEmail = userEmail
+	reservation.UserRUT = userRUT
 
 	return reservation, nil
 }
@@ -234,6 +267,9 @@ func CancelReservation(id int) (models.Reservation, error) {
 	var reservation models.Reservation
 	var activityName string
 	var resourceName string
+	var userFullName string
+	var userEmail string
+	var userRUT string
 
 	err := database.DB.QueryRowContext(
 		context.Background(),
@@ -259,12 +295,17 @@ func CancelReservation(id int) (models.Reservation, error) {
 			r.created_at,
 			r.updated_at,
 			COALESCE(a.name, 'Reserva') AS activity_name,
-			res.name AS resource_name
+			res.name AS resource_name,
+			COALESCE(usr.full_name, '') AS user_full_name,
+			COALESCE(usr.email, '') AS user_email,
+			COALESCE(usr.rut, '') AS user_rut
 		FROM dbo.reservations r
 		INNER JOIN @updated u
 			ON u.id = r.id
 		INNER JOIN dbo.resources res
 			ON res.id = r.resource_id
+		INNER JOIN dbo.users usr
+			ON usr.id = r.user_id
 		LEFT JOIN dbo.activities a
 			ON a.id = r.activity_id;
 		`,
@@ -281,6 +322,9 @@ func CancelReservation(id int) (models.Reservation, error) {
 		&reservation.UpdatedAt,
 		&activityName,
 		&resourceName,
+		&userFullName,
+		&userEmail,
+		&userRUT,
 	)
 
 	if err != nil {
@@ -291,6 +335,9 @@ func CancelReservation(id int) (models.Reservation, error) {
 	reservation.Title = activityName
 	reservation.Type = mapReservationType(reservation.Status)
 	reservation.ResourceName = resourceName
+	reservation.UserFullName = userFullName
+	reservation.UserEmail = userEmail
+	reservation.UserRUT = userRUT
 
 	return reservation, nil
 }

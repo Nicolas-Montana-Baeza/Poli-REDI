@@ -233,6 +233,50 @@ END;
 GO
 
 -- ============================================================
+-- TABLE: workshops
+-- Talleres deportivos recurrentes con inscripcion de estudiantes.
+-- ============================================================
+
+IF OBJECT_ID('dbo.workshops', 'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.workshops (
+        id INT IDENTITY(1,1) NOT NULL CONSTRAINT pk_workshops PRIMARY KEY,
+        title NVARCHAR(150) NOT NULL,
+        description NVARCHAR(MAX) NULL,
+        day_text NVARCHAR(120) NOT NULL,
+        schedule_text NVARCHAR(180) NOT NULL,
+        location NVARCHAR(180) NULL,
+        instructor_name NVARCHAR(150) NULL,
+        capacity INT NOT NULL CONSTRAINT df_workshops_capacity DEFAULT (25),
+        is_active BIT NOT NULL CONSTRAINT df_workshops_is_active DEFAULT (1),
+        created_at DATETIME2(0) NOT NULL CONSTRAINT df_workshops_created_at DEFAULT (SYSUTCDATETIME()),
+        updated_at DATETIME2(0) NOT NULL CONSTRAINT df_workshops_updated_at DEFAULT (SYSUTCDATETIME()),
+        CONSTRAINT ck_workshops_capacity CHECK (capacity > 0)
+    );
+END;
+GO
+
+-- ============================================================
+-- TABLE: workshop_enrollments
+-- Inscripciones de estudiantes a talleres deportivos.
+-- ============================================================
+
+IF OBJECT_ID('dbo.workshop_enrollments', 'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.workshop_enrollments (
+        id INT IDENTITY(1,1) NOT NULL CONSTRAINT pk_workshop_enrollments PRIMARY KEY,
+        workshop_id INT NOT NULL,
+        user_id INT NOT NULL,
+        status NVARCHAR(30) NOT NULL CONSTRAINT df_workshop_enrollments_status DEFAULT ('CONFIRMED'),
+        created_at DATETIME2(0) NOT NULL CONSTRAINT df_workshop_enrollments_created_at DEFAULT (SYSUTCDATETIME()),
+        CONSTRAINT fk_workshop_enrollments_workshop FOREIGN KEY (workshop_id) REFERENCES dbo.workshops(id) ON DELETE CASCADE,
+        CONSTRAINT fk_workshop_enrollments_user FOREIGN KEY (user_id) REFERENCES dbo.users(id) ON DELETE NO ACTION,
+        CONSTRAINT ck_workshop_enrollments_status CHECK (status IN ('CONFIRMED', 'CANCELLED'))
+    );
+END;
+GO
+
+-- ============================================================
 -- TABLE: violations
 -- Infracciones o incumplimientos de usuarios.
 -- ============================================================
@@ -340,6 +384,14 @@ IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'idx_scheduled_activity_id
 GO
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'idx_scheduled_start_end' AND object_id = OBJECT_ID('dbo.scheduled_activities')) CREATE INDEX idx_scheduled_start_end ON dbo.scheduled_activities(start_time, end_time);
 GO
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'idx_workshops_active' AND object_id = OBJECT_ID('dbo.workshops')) CREATE INDEX idx_workshops_active ON dbo.workshops(is_active, title);
+GO
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'idx_workshop_enrollments_workshop_id' AND object_id = OBJECT_ID('dbo.workshop_enrollments')) CREATE INDEX idx_workshop_enrollments_workshop_id ON dbo.workshop_enrollments(workshop_id);
+GO
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'idx_workshop_enrollments_user_id' AND object_id = OBJECT_ID('dbo.workshop_enrollments')) CREATE INDEX idx_workshop_enrollments_user_id ON dbo.workshop_enrollments(user_id);
+GO
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'ux_workshop_enrollments_active_user' AND object_id = OBJECT_ID('dbo.workshop_enrollments')) CREATE UNIQUE INDEX ux_workshop_enrollments_active_user ON dbo.workshop_enrollments(workshop_id, user_id) WHERE status = 'CONFIRMED';
+GO
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'idx_violations_user_id' AND object_id = OBJECT_ID('dbo.violations')) CREATE INDEX idx_violations_user_id ON dbo.violations(user_id);
 GO
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'idx_notifications_user_id' AND object_id = OBJECT_ID('dbo.notifications')) CREATE INDEX idx_notifications_user_id ON dbo.notifications(user_id);
@@ -392,6 +444,13 @@ CREATE OR ALTER TRIGGER dbo.trg_scheduled_activities_updated_at ON dbo.scheduled
 BEGIN
     SET NOCOUNT ON; IF TRIGGER_NESTLEVEL() > 1 RETURN;
     UPDATE target SET updated_at = SYSUTCDATETIME() FROM dbo.scheduled_activities target INNER JOIN inserted i ON i.id = target.id;
+END;
+GO
+
+CREATE OR ALTER TRIGGER dbo.trg_workshops_updated_at ON dbo.workshops AFTER UPDATE AS
+BEGIN
+    SET NOCOUNT ON; IF TRIGGER_NESTLEVEL() > 1 RETURN;
+    UPDATE target SET updated_at = SYSUTCDATETIME() FROM dbo.workshops target INNER JOIN inserted i ON i.id = target.id;
 END;
 GO
 

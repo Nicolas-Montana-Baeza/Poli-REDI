@@ -9,8 +9,7 @@ import SkeletonLoader from '@/components/ui/SkeletonLoader.vue'
 import { useResourcesStore } from '@/stores/resources'
 import { useReservationsStore } from '@/stores/reservations'
 import {
-  formatReservationDate,
-  formatReservationTimeRange,
+  isReservationActionable,
   parseReservationDateTime
 } from '@/utils/reservationTime'
 
@@ -31,33 +30,9 @@ const facilities = computed(() => {
   }))
 })
 
-const resourcesById = computed(() => {
-  return new Map(
-    resourcesStore.resources.map((resource) => [
-      resource.id,
-      resource
-    ])
-  )
-})
-
-const mapReservationStatus = (status) => {
-  switch (status) {
-    case 'CONFIRMED':
-      return 'confirmed'
-
-    case 'CANCELLED':
-      return 'cancelled'
-
-    default:
-      return 'pending'
-  }
-}
-
 const reservations = computed(() => {
   return reservationsStore.myReservations
-    .filter((reservation) =>
-      reservation.status !== 'CANCELLED'
-    )
+    .filter(isReservationActionable)
     .slice()
     .sort((first, second) => {
       const firstDate =
@@ -72,22 +47,6 @@ const reservations = computed(() => {
       )
     })
     .slice(0, 3)
-    .map((reservation) => {
-      const resource =
-        resourcesById.value.get(reservation.resourceId)
-
-      return {
-        id: reservation.id,
-        title: resource?.name || 'Recurso',
-        sport: reservation.title || 'Reserva',
-        date: formatReservationDate(reservation.startTime),
-        time: formatReservationTimeRange(
-          reservation.startTime,
-          reservation.durationMinutes
-        ),
-        status: mapReservationStatus(reservation.status)
-      }
-    })
 })
 </script>
 

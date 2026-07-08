@@ -27,6 +27,11 @@ const props = defineProps({
     default: 22
   },
 
+  selectedDate: {
+    type: String,
+    default: ''
+  },
+
   pixelsPerMinute: {
     type: Number,
     default: 1
@@ -39,6 +44,72 @@ const emit = defineEmits([
 ])
 
 const timelineTopPadding = 18
+const timelineBottomPadding = 24
+
+const formatDateKey = (date) => {
+  return [
+    date.getFullYear(),
+    String(date.getMonth() + 1).padStart(2, '0'),
+    String(date.getDate()).padStart(2, '0')
+  ].join('-')
+}
+
+const now = computed(() => new Date())
+
+const isToday = computed(() => {
+  return props.selectedDate === formatDateKey(now.value)
+})
+
+const currentMinuteOfDay = computed(() => {
+  return now.value.getHours() * 60 + now.value.getMinutes()
+})
+
+const pastOverlayHeight = computed(() => {
+  if (!isToday.value) {
+    return 0
+  }
+
+  const startMinute =
+    props.startHour * 60
+
+  const endMinute =
+    props.endHour * 60
+
+  const clampedMinute =
+    Math.min(
+      Math.max(currentMinuteOfDay.value, startMinute),
+      endMinute
+    )
+
+  return (
+    timelineTopPadding +
+    (clampedMinute - startMinute) *
+    props.pixelsPerMinute
+  )
+})
+
+const nowLineTop = computed(() => {
+  if (
+    !isToday.value ||
+    currentMinuteOfDay.value < props.startHour * 60 ||
+    currentMinuteOfDay.value > props.endHour * 60
+  ) {
+    return null
+  }
+
+  return (
+    timelineTopPadding +
+    (currentMinuteOfDay.value - props.startHour * 60) *
+    props.pixelsPerMinute
+  )
+})
+
+const isPastMinute = (minuteOfDay) => {
+  return (
+    isToday.value &&
+    minuteOfDay <= currentMinuteOfDay.value
+  )
+}
 
 /* HEIGHT */
 const totalMinutes = computed(() => {
@@ -48,7 +119,11 @@ const totalMinutes = computed(() => {
 })
 
 const timelineHeight = computed(() => {
-  return `${totalMinutes.value * props.pixelsPerMinute + timelineTopPadding}px`
+  return `${
+    totalMinutes.value * props.pixelsPerMinute +
+    timelineTopPadding +
+    timelineBottomPadding
+  }px`
 })
 
 /* HOUR LINES */
@@ -151,6 +226,10 @@ const handleTimelineClick = (event) => {
     return
   }
 
+  if (isPastMinute(minuteOfDay)) {
+    return
+  }
+
   if (isMinuteReserved(minuteOfDay)) {
     return
   }
@@ -174,6 +253,19 @@ const statusLabel = (status) => {
 
     default:
       return 'Disponible'
+  }
+}
+
+const modeLabel = (mode) => {
+  switch (mode) {
+    case 'ADMIN_ONLY':
+      return 'Solo administrador'
+
+    case 'INFORMATIVE':
+      return 'Informativo'
+
+    default:
+      return 'Reservable'
   }
 }
 </script>
@@ -212,7 +304,7 @@ const statusLabel = (status) => {
     >
       Modo:
       <strong>
-        {{ resource.reservationMode }}
+        {{ modeLabel(resource.reservationMode) }}
       </strong>
     </div>
 
@@ -222,6 +314,22 @@ const statusLabel = (status) => {
       :style="{ height: timelineHeight }"
       @click="handleTimelineClick"
     >
+
+      <div
+        v-if="pastOverlayHeight > timelineTopPadding"
+        class="past-overlay"
+        :style="{ height: `${pastOverlayHeight}px` }"
+      />
+
+      <div
+        v-if="nowLineTop !== null"
+        class="now-line"
+        :style="{ top: `${nowLineTop}px` }"
+      >
+        <span>
+          Ahora
+        </span>
+      </div>
 
       <!-- HOUR LINES -->
       <div
@@ -255,16 +363,15 @@ const statusLabel = (status) => {
 .resource-timeline {
   min-width: 300px;
 
-  background: white;
+  background: var(--color-surface);
 
-  border-radius: 24px;
+  border-radius: var(--radius-xl);
 
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--color-border);
 
   overflow: hidden;
 
-  box-shadow:
-    0 4px 12px rgba(0,0,0,0.04);
+  box-shadow: var(--shadow-card);
 
   display: flex;
   flex-direction: column;
@@ -272,7 +379,7 @@ const statusLabel = (status) => {
 
 /* HEADER */
 .resource-header {
-  padding: 18px;
+  padding: var(--space-4);
 
   display: flex;
   align-items: flex-start;
@@ -280,16 +387,16 @@ const statusLabel = (status) => {
 
   gap: 12px;
 
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid var(--color-border-soft);
 }
 
 .resource-header h3 {
   margin: 0;
 
-  font-size: 18px;
+  font-size: 17px;
   font-weight: 800;
 
-  color: #0f172a;
+  color: var(--color-text);
 }
 
 .resource-header p {
@@ -297,12 +404,12 @@ const statusLabel = (status) => {
 
   font-size: 13px;
 
-  color: #64748b;
+  color: var(--color-text-muted);
 }
 
 /* STATUS */
 .resource-status {
-  padding: 6px 12px;
+  padding: 6px 10px;
 
   border-radius: 999px;
 
@@ -329,47 +436,90 @@ const statusLabel = (status) => {
 
 /* MODE */
 .mode {
-  margin: 14px 18px 0;
+  margin: 12px 16px 0;
 
-  padding: 10px 12px;
+  padding: 9px 11px;
 
-  border-radius: 14px;
+  border-radius: var(--radius-md);
 
-  background: #f8fafc;
+  background: var(--color-primary-soft);
 
-  color: #64748b;
+  color: var(--color-primary-strong);
 
   font-size: 13px;
 }
 
 .mode strong {
-  color: #0f172a;
-
-  text-transform: capitalize;
+  color: var(--color-primary-strong);
 }
 
 /* TIMELINE */
 .timeline {
   position: relative;
 
-  margin: 18px;
+  margin: var(--space-4);
 
-  background:
-    linear-gradient(
-      to bottom,
-      #f8fafc 0,
-      #f8fafc 1px,
-      transparent 1px,
-      transparent 60px
-    );
+  background: #fbfdff;
 
-  border-radius: 18px;
+  border-radius: var(--radius-lg);
 
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--color-border);
 
   cursor: crosshair;
 
   overflow: hidden;
+}
+
+.past-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 2;
+  border-bottom: 1px solid rgba(100, 116, 139, 0.28);
+  background:
+    repeating-linear-gradient(
+      -45deg,
+      rgba(148, 163, 184, 0.16),
+      rgba(148, 163, 184, 0.16) 7px,
+      rgba(226, 232, 240, 0.28) 7px,
+      rgba(226, 232, 240, 0.28) 14px
+  );
+  pointer-events: none;
+}
+
+.now-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  z-index: 4;
+  height: 2px;
+  background: #f97316;
+  pointer-events: none;
+}
+
+.now-line::before {
+  content: "";
+  position: absolute;
+  top: -4px;
+  left: 10px;
+  width: 10px;
+  height: 10px;
+  border-radius: var(--radius-pill);
+  background: #f97316;
+}
+
+.now-line span {
+  position: absolute;
+  top: -13px;
+  right: 10px;
+  padding: 3px 7px;
+  border-radius: var(--radius-pill);
+  background: #f97316;
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0;
 }
 
 /* HOUR LINE */
@@ -381,9 +531,9 @@ const statusLabel = (status) => {
 
   height: 1px;
 
-  background: #e2e8f0;
+  background: var(--color-border-soft);
 
-  z-index: 1;
+  z-index: 3;
 }
 
 .hour-line span {
@@ -392,14 +542,14 @@ const statusLabel = (status) => {
   top: -9px;
   left: 10px;
 
-  background: white;
+  background: #fbfdff;
 
   padding: 0 6px;
 
   font-size: 11px;
   font-weight: 700;
 
-  color: #94a3b8;
+  color: var(--color-text-soft);
 }
 
 /* MOBILE */

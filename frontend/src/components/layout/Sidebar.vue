@@ -6,6 +6,7 @@ import { useAuthStore } from '@/stores/auth'
 import {
   Home,
   Calendar,
+  Dumbbell,
   ClipboardList,
   History,
   LayoutGrid,
@@ -73,6 +74,12 @@ const menu = computed(() => {
           label: 'Historial',
           icon: History,
           to: '/history'
+        },
+
+        {
+          label: 'Talleres',
+          icon: Dumbbell,
+          to: '/workshops'
         },
 
         {
@@ -262,8 +269,8 @@ const menu = computed(() => {
 
 /* HAMBURGER */
 .hamburger {
-  width: 44px;
-  height: 44px;
+  width: 42px;
+  height: 42px;
 
   border: none;
   border-radius: var(--radius-md);
@@ -294,7 +301,7 @@ const menu = computed(() => {
   position: fixed;
   inset: 0;
 
-  background: rgba(15, 23, 42, 0.45);
+  background: rgba(15, 23, 42, 0.32);
 
   backdrop-filter: blur(2px);
 
@@ -308,14 +315,14 @@ const menu = computed(() => {
   top: 0;
   left: -320px;
 
-  width: 320px;
+  width: 304px;
   height: 100vh;
 
   background: var(--color-sidebar);
 
-  color: white;
+  color: var(--color-sidebar-text);
 
-  padding: var(--space-6);
+  padding: var(--space-5);
 
   box-sizing: border-box;
 
@@ -327,6 +334,9 @@ const menu = computed(() => {
   z-index: 999;
 
   overflow-y: auto;
+
+  border-right: 1px solid var(--color-sidebar-border);
+  box-shadow: 16px 0 40px rgba(15, 23, 42, 0.16);
 }
 
 .sidebar.open {
@@ -353,27 +363,28 @@ const menu = computed(() => {
 }
 
 .logo-icon {
-  width: 52px;
-  height: 52px;
+  width: 48px;
+  height: 48px;
 
   border-radius: var(--radius-lg);
 
-  background: var(--color-primary);
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
 
   display: flex;
   align-items: center;
   justify-content: center;
 
-  box-shadow: 0 10px 25px rgba(37, 99, 235, 0.28);
+  box-shadow: none;
 }
 
 .logo-text h1 {
   margin: 0;
 
-  font-size: 18px;
+  font-size: 17px;
   font-weight: 800;
 
-  color: white;
+  color: var(--color-text);
 }
 
 .logo-text span {
@@ -390,9 +401,9 @@ const menu = computed(() => {
   border: none;
   border-radius: var(--radius-md);
 
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--color-surface-muted);
 
-  color: white;
+  color: var(--color-text-muted);
 
   cursor: pointer;
 
@@ -404,7 +415,8 @@ const menu = computed(() => {
 }
 
 .close-btn:hover {
-  background: rgba(255, 255, 255, 0.14);
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
 }
 
 /* NAV */
@@ -459,13 +471,13 @@ const menu = computed(() => {
 .security-box {
   margin-top: 20px;
 
-  padding: 18px;
+  padding: 16px;
 
   border-radius: var(--radius-lg);
 
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--color-surface-muted);
 
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--color-border-soft);
 
   display: flex;
 
@@ -478,8 +490,8 @@ const menu = computed(() => {
 
   border-radius: var(--radius-md);
 
-  background: rgba(37, 99, 235, 0.18);
-  color: white;
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
 
   display: flex;
   align-items: center;
@@ -491,7 +503,7 @@ const menu = computed(() => {
 .security-box strong {
   font-size: 14px;
 
-  color: white;
+  color: var(--color-text);
 }
 
 .security-box p {
@@ -509,7 +521,7 @@ const menu = computed(() => {
 }
 
 .sidebar::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.15);
+  background: #cbd5e1;
 
   border-radius: 999px;
 }

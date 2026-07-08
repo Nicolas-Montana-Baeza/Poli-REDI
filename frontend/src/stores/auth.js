@@ -6,6 +6,14 @@ import {
   logout
 } from '../auth/authService'
 
+const getFriendlyApiError = (error, fallback) => {
+  if (!error.response) {
+    return 'No se pudo conectar con el backend. Verifica que el servidor esté encendido.'
+  }
+
+  return error.response?.data?.error || fallback
+}
+
 export const useAuthStore = defineStore('auth', {
   state: () => ({
     account: null,
@@ -41,7 +49,10 @@ export const useAuthStore = defineStore('auth', {
 
         return this.user
       } catch (error) {
-        this.error = error.response?.data?.error || error.message
+        this.error = getFriendlyApiError(
+          error,
+          'No se pudo cargar tu sesión.'
+        )
         this.errorStatus = error.response?.status || null
         this.user = null
         return null
@@ -70,9 +81,10 @@ export const useAuthStore = defineStore('auth', {
 
         return this.user
       } catch (error) {
-        this.error =
-          error.response?.data?.error ||
-          'No se pudo actualizar el RUT'
+        this.error = getFriendlyApiError(
+          error,
+          'No se pudo actualizar el RUT.'
+        )
 
         throw new Error(this.error)
       }

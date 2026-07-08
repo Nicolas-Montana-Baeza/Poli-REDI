@@ -10,6 +10,11 @@ const props = defineProps({
   year: {
     type: Number,
     default: new Date().getFullYear()
+  },
+
+  selectedDate: {
+    type: String,
+    default: ''
   }
 })
 
@@ -85,17 +90,53 @@ const days = computed(() => {
 /* TODAY */
 const today = new Date()
 
-const isToday = (day) => {
-  return (
-    day === today.getDate() &&
-    currentMonth.value === today.getMonth() &&
-    currentYear.value === today.getFullYear()
+const toDateKey = (year, month, day) => {
+  return [
+    year,
+    String(month + 1).padStart(2, '0'),
+    String(day).padStart(2, '0')
+  ].join('-')
+}
+
+const todayKey = computed(() => {
+  return toDateKey(
+    today.getFullYear(),
+    today.getMonth(),
+    today.getDate()
   )
+})
+
+const getDayKey = (day) => {
+  if (!day) {
+    return ''
+  }
+
+  return toDateKey(
+    currentYear.value,
+    currentMonth.value,
+    day
+  )
+}
+
+const isToday = (day) => {
+  return getDayKey(day) === todayKey.value
+}
+
+const isSelected = (day) => {
+  return getDayKey(day) === props.selectedDate
+}
+
+const isPast = (day) => {
+  const key = getDayKey(day)
+
+  return Boolean(key) && key < todayKey.value
 }
 
 /* SELECT */
 const selectDate = (day) => {
   if (!day) return
+
+  if (isPast(day)) return
 
   emit('select-date', {
     day,
@@ -132,9 +173,11 @@ const nextMonth = () => {
 
       <button
         class="nav-button"
+        type="button"
+        aria-label="Mes anterior"
         @click="prevMonth"
       >
-        ←
+        ‹
       </button>
 
       <h3>
@@ -144,9 +187,11 @@ const nextMonth = () => {
 
       <button
         class="nav-button"
+        type="button"
+        aria-label="Mes siguiente"
         @click="nextMonth"
       >
-        →
+        ›
       </button>
 
     </div>
@@ -175,9 +220,12 @@ const nextMonth = () => {
 
         :class="{
           empty: !day,
-          today: isToday(day)
+          today: isToday(day),
+          selected: isSelected(day),
+          past: isPast(day)
         }"
 
+        :disabled="!day || isPast(day)"
         @click="selectDate(day)"
       >
 
@@ -195,21 +243,20 @@ const nextMonth = () => {
   width: 100%;
   max-width: 340px;
 
-  background: white;
+  background: var(--color-surface);
 
-  border-radius: 24px;
+  border-radius: var(--radius-xl);
 
-  padding: 20px;
+  padding: var(--space-4);
 
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--color-border);
 
-  box-shadow:
-    0 6px 20px rgba(0,0,0,0.05);
+  box-shadow: var(--shadow-card);
 
   display: flex;
   flex-direction: column;
 
-  gap: 20px;
+  gap: var(--space-4);
 }
 
 /* HEADER */
@@ -222,32 +269,36 @@ const nextMonth = () => {
 .calendar-header h3 {
   margin: 0;
 
-  font-size: 18px;
-  font-weight: 700;
+  font-size: 16px;
+  font-weight: 800;
 
-  color: #0f172a;
+  color: var(--color-text);
 }
 
 /* BUTTON */
 .nav-button {
-  width: 38px;
-  height: 38px;
+  width: 34px;
+  height: 34px;
 
-  border: none;
+  border: 1px solid var(--color-border);
 
-  border-radius: 12px;
+  border-radius: var(--radius-md);
 
-  background: #eff6ff;
+  background: var(--color-surface);
 
-  color: #2563eb;
+  color: var(--color-primary);
 
   cursor: pointer;
+
+  font-size: 22px;
+  line-height: 1;
 
   transition: 0.2s;
 }
 
 .nav-button:hover {
-  background: #dbeafe;
+  background: var(--color-primary-soft);
+  border-color: #bfd3ff;
 }
 
 /* WEEK */
@@ -257,16 +308,16 @@ const nextMonth = () => {
   grid-template-columns:
     repeat(7, 1fr);
 
-  gap: 8px;
+  gap: 6px;
 }
 
 .weekday {
   text-align: center;
 
-  font-size: 13px;
-  font-weight: 700;
+  font-size: 12px;
+  font-weight: 800;
 
-  color: #64748b;
+  color: var(--color-text-muted);
 }
 
 /* DAYS */
@@ -276,23 +327,23 @@ const nextMonth = () => {
   grid-template-columns:
     repeat(7, 1fr);
 
-  gap: 8px;
+  gap: 6px;
 }
 
 /* DAY */
 .day {
   aspect-ratio: 1;
 
-  border: none;
+  border: 1px solid transparent;
 
-  border-radius: 14px;
+  border-radius: var(--radius-md);
 
-  background: white;
+  background: var(--color-surface);
 
   cursor: pointer;
 
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 700;
 
   color: #334155;
 
@@ -300,21 +351,43 @@ const nextMonth = () => {
 }
 
 .day:hover {
-  background: #eff6ff;
+  background: var(--color-primary-soft);
+  border-color: #bfd3ff;
+  color: var(--color-primary-strong);
 }
 
 /* TODAY */
 .today {
-  background: linear-gradient(
-    135deg,
-    #2563eb,
-    #1d4ed8
-  );
+  border-color: var(--color-primary);
+  color: var(--color-primary-strong);
+}
+
+/* SELECTED */
+.selected {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
 
   color: white;
 
-  box-shadow:
-    0 8px 18px rgba(37,99,235,0.25);
+  box-shadow: 0 8px 18px rgba(37, 99, 235, 0.2);
+}
+
+.selected:hover {
+  background: var(--color-primary-strong);
+  color: white;
+}
+
+/* PAST */
+.past {
+  color: var(--color-text-soft);
+  cursor: not-allowed;
+  opacity: 0.42;
+}
+
+.past:hover {
+  background: var(--color-surface);
+  border-color: transparent;
+  color: var(--color-text-soft);
 }
 
 /* EMPTY */

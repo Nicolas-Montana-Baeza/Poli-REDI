@@ -1,18 +1,12 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 
-import {
-  CalendarDays,
-  Clock,
-  Timer
-} from 'lucide-vue-next'
-
+import ReservationListCard from '@/components/reservations/ReservationListCard.vue'
 import SkeletonLoader from '@/components/ui/SkeletonLoader.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useReservationsStore } from '@/stores/reservations'
 import {
-  formatReservationDate,
-  formatReservationTimeRange,
+  isReservationHistorical,
   parseReservationDateTime
 } from '@/utils/reservationTime'
 
@@ -35,35 +29,13 @@ onMounted(async () => {
   await reservationsStore.fetchMyReservations()
 })
 
-const getReservationEnd = (reservation) => {
-  const start = parseReservationDateTime(reservation.startTime)
-
-  if (!start) {
-    return null
-  }
-
-  return new Date(
-    start.getTime() +
-    reservation.durationMinutes * 60000
-  )
-}
-
-const isHistorical = (reservation) => {
-  const end = getReservationEnd(reservation)
-
-  return (
-    reservation.status === 'CANCELLED' ||
-    (end ? end.getTime() < Date.now() : false)
-  )
-}
-
 const reservations = computed(() => {
   const source = authStore.user?.isAdmin
     ? reservationsStore.reservations
     : reservationsStore.myReservations
 
   return source
-    .filter(isHistorical)
+    .filter(isReservationHistorical)
     .slice()
     .sort((first, second) => {
       const firstDate =
@@ -93,8 +65,8 @@ const loadingError = computed(() => {
 
 const emptyMessage = computed(() => {
   return authStore.user?.isAdmin
-    ? 'Aun no hay reservas historicas registradas.'
-    : 'Aun no tienes reservas historicas.'
+    ? 'Aún no hay reservas históricas registradas.'
+    : 'Aún no tienes reservas históricas.'
 })
 
 const filteredReservations = computed(() => {
@@ -123,25 +95,15 @@ const filteredReservations = computed(() => {
   })
 })
 
-const statusLabel = (status) => {
-  switch (status) {
-    case 'CONFIRMED':
-      return 'Finalizada'
-
-    case 'PENDING':
-      return 'Pendiente'
-
-    case 'CANCELLED':
-      return 'Cancelada'
-
-    default:
-      return status || 'Reserva'
+const getReservationDetailTo = (reservation) => {
+  return {
+    path: `/reservations/${reservation.id}`,
+    query: {
+      from: 'history'
+    }
   }
 }
 
-const statusClass = (status) => {
-  return String(status || 'default').toLowerCase()
-}
 </script>
 
 <template>
@@ -161,9 +123,9 @@ const statusClass = (status) => {
 
     </header>
 
-    <section class="filters">
+    <section class="filters app-card">
 
-      <label>
+      <label class="form-field">
         Estado
         <select v-model="statusFilter">
           <option value="ALL">
@@ -181,7 +143,7 @@ const statusClass = (status) => {
         </select>
       </label>
 
-      <label>
+      <label class="form-field">
         Desde
         <input
           v-model="fromDate"
@@ -189,7 +151,7 @@ const statusClass = (status) => {
         />
       </label>
 
-      <label>
+      <label class="form-field">
         Hasta
         <input
           v-model="toDate"
@@ -235,54 +197,13 @@ const statusClass = (status) => {
       class="history-list"
     >
 
-      <article
+      <ReservationListCard
         v-for="reservation in filteredReservations"
         :key="reservation.id"
-        class="history-card"
-      >
-
-        <div>
-
-          <span
-            class="status"
-            :class="statusClass(reservation.status)"
-          >
-            {{ statusLabel(reservation.status) }}
-          </span>
-
-          <h2>
-            {{ reservation.title || 'Reserva' }}
-          </h2>
-
-          <p>
-            {{ reservation.resourceName || 'Recurso' }}
-          </p>
-
-        </div>
-
-        <div class="details">
-
-          <span>
-            <CalendarDays :size="17" />
-            {{ formatReservationDate(reservation.startTime) }}
-          </span>
-
-          <span>
-            <Clock :size="17" />
-            {{ formatReservationTimeRange(
-              reservation.startTime,
-              reservation.durationMinutes
-            ) }}
-          </span>
-
-          <span>
-            <Timer :size="17" />
-            {{ reservation.durationMinutes }} minutos
-          </span>
-
-        </div>
-
-      </article>
+        :reservation="reservation"
+        mode="history"
+        :detail-to="getReservationDetailTo(reservation)"
+      />
 
     </section>
 
@@ -314,52 +235,14 @@ const statusClass = (status) => {
   color: #64748b;
 }
 
-.state-card {
-  background: white;
-
-  border: 1px solid #e2e8f0;
-  border-radius: 18px;
-
-  padding: 22px;
-
-  color: #334155;
-
-  font-weight: 700;
-}
-
-.state-card.error {
-  background: #fee2e2;
-
-  color: #b91c1c;
-
-  border-color: #fecaca;
-}
-
 .filters {
-  background: white;
-
-  border: 1px solid #e2e8f0;
-  border-radius: 18px;
-
-  padding: 18px;
+  padding: var(--space-5);
 
   display: grid;
   grid-template-columns:
-    repeat(3, minmax(0, 1fr));
+    repeat(auto-fit, minmax(160px, 1fr));
 
   gap: 14px;
-}
-
-.filters label {
-  color: #334155;
-
-  display: flex;
-  flex-direction: column;
-
-  gap: 7px;
-
-  font-size: 13px;
-  font-weight: 800;
 }
 
 .filters input,
@@ -367,21 +250,9 @@ const statusClass = (status) => {
   width: 100%;
   height: 42px;
 
-  border: 1px solid #dbe2ea;
-  border-radius: 12px;
-
   padding: 0 12px;
 
   box-sizing: border-box;
-  outline: none;
-}
-
-.filters input:focus,
-.filters select:focus {
-  border-color: #2563eb;
-
-  box-shadow:
-    0 0 0 4px rgba(37,99,235,0.08);
 }
 
 .history-list {
@@ -391,93 +262,13 @@ const statusClass = (status) => {
   gap: 14px;
 }
 
-.history-card {
-  background: white;
-
-  border: 1px solid #e2e8f0;
-  border-radius: 18px;
-
-  padding: 20px;
-
-  display: flex;
-  flex-direction: column;
-
-  gap: 18px;
-
-  box-shadow:
-    0 4px 12px rgba(0,0,0,0.04);
-}
-
-.status {
-  display: inline-flex;
-
-  padding: 6px 10px;
-
-  border-radius: 999px;
-
-  background: #eff6ff;
-  color: #1d4ed8;
-
-  font-size: 12px;
-  font-weight: 800;
-}
-
-.status.cancelled {
-  background: #fee2e2;
-
-  color: #b91c1c;
-}
-
-.status.pending {
-  background: #fef3c7;
-
-  color: #92400e;
-}
-
-.history-card h2 {
-  margin: 12px 0 0;
-
-  color: #0f172a;
-
-  font-size: 20px;
-  font-weight: 800;
-}
-
-.history-card p {
-  margin: 6px 0 0;
-
-  color: #64748b;
-}
-
-.details {
-  display: flex;
-  flex-wrap: wrap;
-
-  gap: 10px;
-}
-
-.details span {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-
-  background: #f8fafc;
-
-  border-radius: 999px;
-
-  padding: 8px 11px;
-
-  color: #475569;
-
-  font-size: 13px;
-  font-weight: 700;
-}
-
 @media (max-width: 768px) {
   .page-header h1 {
     font-size: 26px;
   }
+}
 
+@media (max-width: 520px) {
   .filters {
     grid-template-columns: 1fr;
   }

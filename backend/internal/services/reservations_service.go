@@ -3,6 +3,7 @@ package services
 import (
 	"database/sql"
 	"errors"
+	"time"
 
 	"poli-redi-api/internal/models"
 	"poli-redi-api/internal/repositories"
@@ -24,19 +25,23 @@ func GetMyReservations(userID int) ([]models.Reservation, error) {
 
 func CreateReservation(reservation models.Reservation) (models.Reservation, error) {
 	if reservation.UserID == 0 {
-		return models.Reservation{}, errors.New("userId es obligatorio")
+		return models.Reservation{}, errors.New("no se pudo identificar al usuario autenticado")
 	}
 
 	if reservation.ResourceID == 0 {
-		return models.Reservation{}, errors.New("resourceId es obligatorio")
+		return models.Reservation{}, errors.New("selecciona una instalaci\u00f3n")
 	}
 
 	if reservation.StartTime.IsZero() {
-		return models.Reservation{}, errors.New("startTime es obligatorio")
+		return models.Reservation{}, errors.New("selecciona una fecha y hora de inicio")
 	}
 
 	if reservation.DurationMinutes <= 0 {
-		return models.Reservation{}, errors.New("durationMinutes debe ser mayor a 0")
+		return models.Reservation{}, errors.New("la duraci\u00f3n debe ser mayor a 0")
+	}
+
+	if reservation.StartTime.Before(time.Now()) {
+		return models.Reservation{}, errors.New("no puedes crear reservas en el pasado")
 	}
 
 	if reservation.Status == "" {
@@ -60,17 +65,17 @@ func mapDatabaseReservationError(err error) error {
 		case 51000:
 			return errors.New("el usuario se encuentra bloqueado y no puede crear reservas")
 		case 51001:
-			return errors.New("el recurso no esta activo")
+			return errors.New("el recurso no est\u00e1 activo")
 		case 51002:
 			return errors.New("el recurso es solo informativo y no permite reservas")
 		case 51003:
 			return errors.New("el recurso solo puede ser reservado por administradores")
 		case 51004:
-			return errors.New("el recurso ya esta reservado en ese horario")
+			return errors.New("el recurso ya est\u00e1 reservado en ese horario")
 		case 51005:
 			return errors.New("el usuario ya tiene una reserva en ese horario")
 		case 51006:
-			return errors.New("el recurso esta bloqueado en ese horario")
+			return errors.New("el recurso est\u00e1 bloqueado en ese horario")
 		case 51007:
 			return errors.New("el recurso tiene una actividad programada en ese horario")
 		case 547:
@@ -90,7 +95,7 @@ func CancelReservation(
 	requestedByUser models.LocalAuthUser,
 ) (models.Reservation, error) {
 	if reservationID <= 0 {
-		return models.Reservation{}, errors.New("reservationId es obligatorio")
+		return models.Reservation{}, errors.New("no se pudo identificar la reserva")
 	}
 
 	if requestedByUser.ID <= 0 {
@@ -112,7 +117,7 @@ func CancelReservation(
 	}
 
 	if status == "CANCELLED" {
-		return models.Reservation{}, errors.New("la reserva ya esta cancelada")
+		return models.Reservation{}, errors.New("la reserva ya est\u00e1 cancelada")
 	}
 
 	cancelledReservation, err := repositories.CancelReservation(reservationID)

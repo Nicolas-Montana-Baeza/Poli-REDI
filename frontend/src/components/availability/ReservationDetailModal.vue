@@ -90,7 +90,7 @@ const details = computed(() => {
       value: reservationTime.value
     },
     {
-      label: 'Duracion',
+      label: 'Duración',
       value: `${props.reservation.durationMinutes} minutos`
     },
     {
@@ -126,7 +126,7 @@ const handleCancel = () => {
             </h2>
 
             <p>
-              Informacion de la reserva seleccionada.
+              Información de la reserva seleccionada.
             </p>
 
           </div>
@@ -180,7 +180,7 @@ const handleCancel = () => {
 
         <div class="warning">
           <template v-if="showCancelAction">
-            Esta accion cambiara la reserva a estado cancelada.
+            Esta acción cambiará la reserva a estado cancelada.
           </template>
 
           <template v-else>

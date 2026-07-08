@@ -31,14 +31,16 @@ const emit = defineEmits([
       <div class="date-navigation">
 
         <button
-          class="icon-button"
+          class="toolbar-button icon-button"
+          type="button"
           @click="$emit('prev-day')"
         >
           <ChevronLeft :size="18" />
         </button>
 
         <button
-          class="date-button"
+          class="toolbar-button date-button"
+          type="button"
           @click="$emit('open-calendar')"
         >
 
@@ -51,7 +53,8 @@ const emit = defineEmits([
         </button>
 
         <button
-          class="icon-button"
+          class="toolbar-button icon-button"
+          type="button"
           @click="$emit('next-day')"
         >
           <ChevronRight :size="18" />
@@ -65,7 +68,10 @@ const emit = defineEmits([
     <div class="right">
 
       <!-- FILTER -->
-      <button class="filter-button">
+      <button
+        class="toolbar-button filter-button"
+        type="button"
+      >
 
         <Filter :size="18" />
 
@@ -77,7 +83,8 @@ const emit = defineEmits([
 
       <!-- TODAY -->
       <button
-        class="today-button"
+        class="today-button app-button primary"
+        type="button"
         @click="$emit('today')"
       >
         Hoy
@@ -115,66 +122,37 @@ const emit = defineEmits([
   gap: 10px;
 }
 
-/* ICON BUTTON */
-.icon-button {
-  width: 44px;
-  height: 44px;
-
-  border: none;
-
-  border-radius: 14px;
-
-  background: white;
-
-  border: 1px solid #e2e8f0;
-
+.toolbar-button {
+  height: 42px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: #334155;
   display: flex;
   align-items: center;
   justify-content: center;
-
   cursor: pointer;
-
-  transition: 0.2s;
+  font-size: 14px;
+  font-weight: 700;
+  transition: background-color 0.18s ease, border-color 0.18s ease, color 0.18s ease;
 }
 
-.icon-button:hover {
-  background: #eff6ff;
+.toolbar-button:hover {
+  background: var(--color-primary-soft);
+  border-color: #bfd3ff;
+  color: var(--color-primary-strong);
+}
 
-  border-color: #bfdbfe;
+/* ICON BUTTON */
+.icon-button {
+  width: 42px;
 }
 
 /* DATE BUTTON */
 .date-button {
-  height: 44px;
-
-  border: none;
-
-  border-radius: 14px;
-
-  background: white;
-
-  border: 1px solid #e2e8f0;
-
   padding: 0 18px;
-
-  display: flex;
-  align-items: center;
   gap: 10px;
-
-  cursor: pointer;
-
-  font-size: 14px;
-  font-weight: 600;
-
-  color: #0f172a;
-
-  transition: 0.2s;
-}
-
-.date-button:hover {
-  background: #eff6ff;
-
-  border-color: #bfdbfe;
+  color: var(--color-text);
 }
 
 /* RIGHT */
@@ -186,69 +164,13 @@ const emit = defineEmits([
 
 /* FILTER */
 .filter-button {
-  height: 44px;
-
-  border: none;
-
-  border-radius: 14px;
-
-  background: white;
-
-  border: 1px solid #e2e8f0;
-
   padding: 0 16px;
-
-  display: flex;
-  align-items: center;
   gap: 10px;
-
-  cursor: pointer;
-
-  font-size: 14px;
-  font-weight: 600;
-
-  color: #334155;
-
-  transition: 0.2s;
-}
-
-.filter-button:hover {
-  background: #eff6ff;
-
-  border-color: #bfdbfe;
 }
 
 /* TODAY */
 .today-button {
-  height: 44px;
-
-  border: none;
-
-  border-radius: 14px;
-
-  padding: 0 18px;
-
-  background: linear-gradient(
-    135deg,
-    #2563eb,
-    #1d4ed8
-  );
-
-  color: white;
-
-  font-size: 14px;
-  font-weight: 700;
-
-  cursor: pointer;
-
-  transition: 0.2s;
-}
-
-.today-button:hover {
-  transform: translateY(-1px);
-
-  box-shadow:
-    0 10px 20px rgba(37,99,235,0.25);
+  padding: 0 22px;
 }
 
 /* MOBILE */

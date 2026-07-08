@@ -50,6 +50,33 @@ Confirmacion recomendada:
 - Acciones: `Mantener reserva` y `Cancelar reserva`.
 - Mensaje: `Esta accion cambiara la reserva a estado cancelada.`
 
+## Estado real y clasificacion temporal
+
+Para evitar ambiguedades, Poli-REDI diferencia entre estado persistido y clasificacion temporal.
+
+Estado real persistido:
+
+- `PENDING`: pendiente.
+- `CONFIRMED`: confirmada.
+- `CANCELLED`: cancelada.
+- `REJECTED`: rechazada.
+- `EXPIRED`: expirada, si se usa en futuras iteraciones.
+
+Clasificacion temporal derivada:
+
+- Futura: la reserva aun no comienza.
+- En curso: la hora actual esta dentro del rango de la reserva.
+- Pasada: la reserva ya termino.
+
+Regla UX:
+
+- `CONFIRMED` futura se muestra como `Confirmada`.
+- `CONFIRMED` en curso se muestra como `En curso`.
+- `CONFIRMED` pasada se muestra como `Finalizada`.
+- `CANCELLED` siempre se muestra como `Cancelada`.
+
+`Mis Reservas` muestra reservas accionables para el usuario normal. `Historial` muestra reservas pasadas o canceladas. Estas vistas no representan estados de base de datos, sino formas de consultar la misma entidad segun contexto.
+
 ## Validaciones funcionales
 
 ### Frontend

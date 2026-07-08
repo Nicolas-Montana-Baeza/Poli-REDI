@@ -19,6 +19,7 @@ IF OBJECT_ID('dbo.trg_scheduled_activities_validate_conflicts', 'TR') IS NOT NUL
 IF OBJECT_ID('dbo.trg_blocks_validate_conflicts', 'TR') IS NOT NULL DROP TRIGGER dbo.trg_blocks_validate_conflicts;
 IF OBJECT_ID('dbo.trg_reservations_validate_conflicts', 'TR') IS NOT NULL DROP TRIGGER dbo.trg_reservations_validate_conflicts;
 IF OBJECT_ID('dbo.trg_scheduled_activities_updated_at', 'TR') IS NOT NULL DROP TRIGGER dbo.trg_scheduled_activities_updated_at;
+IF OBJECT_ID('dbo.trg_workshops_updated_at', 'TR') IS NOT NULL DROP TRIGGER dbo.trg_workshops_updated_at;
 IF OBJECT_ID('dbo.trg_reservations_updated_at', 'TR') IS NOT NULL DROP TRIGGER dbo.trg_reservations_updated_at;
 IF OBJECT_ID('dbo.trg_activities_updated_at', 'TR') IS NOT NULL DROP TRIGGER dbo.trg_activities_updated_at;
 IF OBJECT_ID('dbo.trg_resources_updated_at', 'TR') IS NOT NULL DROP TRIGGER dbo.trg_resources_updated_at;
@@ -32,6 +33,8 @@ IF OBJECT_ID('dbo.logs', 'U') IS NOT NULL DROP TABLE dbo.logs;
 IF OBJECT_ID('dbo.notifications', 'U') IS NOT NULL DROP TABLE dbo.notifications;
 IF OBJECT_ID('dbo.violations', 'U') IS NOT NULL DROP TABLE dbo.violations;
 IF OBJECT_ID('dbo.priority_reservations', 'U') IS NOT NULL DROP TABLE dbo.priority_reservations;
+IF OBJECT_ID('dbo.workshop_enrollments', 'U') IS NOT NULL DROP TABLE dbo.workshop_enrollments;
+IF OBJECT_ID('dbo.workshops', 'U') IS NOT NULL DROP TABLE dbo.workshops;
 IF OBJECT_ID('dbo.scheduled_activities', 'U') IS NOT NULL DROP TABLE dbo.scheduled_activities;
 IF OBJECT_ID('dbo.availability_blocks', 'U') IS NOT NULL DROP TABLE dbo.availability_blocks;
 IF OBJECT_ID('dbo.participants', 'U') IS NOT NULL DROP TABLE dbo.participants;

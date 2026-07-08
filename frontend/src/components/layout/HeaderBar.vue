@@ -46,7 +46,7 @@ onMounted(() => {
         </h1>
 
         <p>
-          Que instalacion deseas reservar hoy?
+          ¿Qué instalación deseas reservar hoy?
         </p>
 
       </div>
@@ -118,8 +118,8 @@ onMounted(() => {
 .greeting h1 {
   margin: 0;
 
-  font-size: 20px;
-  font-weight: 700;
+  font-size: 19px;
+  font-weight: 750;
 
   color: var(--color-text);
 
@@ -129,7 +129,7 @@ onMounted(() => {
 .greeting p {
   margin: 2px 0 0;
 
-  font-size: 14px;
+  font-size: 13px;
 
   color: var(--color-text-muted);
 

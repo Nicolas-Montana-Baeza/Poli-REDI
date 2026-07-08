@@ -26,6 +26,16 @@ const selectedDate = ref('')
 const selectedHour = ref('')
 const durationMinutes = ref(60)
 
+const todayDate = () => {
+  const date = new Date()
+
+  return [
+    date.getFullYear(),
+    String(date.getMonth() + 1).padStart(2, '0'),
+    String(date.getDate()).padStart(2, '0')
+  ].join('-')
+}
+
 const durationOptions = [
   {
     label: '30 minutos',
@@ -109,6 +119,7 @@ const updateValues = () => {
       <input
         v-model="selectedDate"
         type="date"
+        :min="todayDate()"
         @change="updateValues"
       />
 

@@ -175,7 +175,7 @@ onBeforeUnmount(() => {
 
           <Settings :size="16" />
 
-          Configuracion
+          Configuración
 
         </button>
 
@@ -201,7 +201,7 @@ onBeforeUnmount(() => {
 
           <LogOut :size="16" />
 
-          Cerrar sesion
+          Cerrar sesión
 
         </button>
 

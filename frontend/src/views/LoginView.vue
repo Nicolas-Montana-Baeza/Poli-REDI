@@ -55,7 +55,7 @@ const handleLocalLogin = async () => {
         return
       }
 
-      throw new Error(authStore.error || 'No se pudo iniciar sesion local.')
+      throw new Error(authStore.error || 'No se pudo iniciar sesión local.')
     }
 
     router.replace(redirectPath())
@@ -215,21 +215,21 @@ const presets = [
 }
 
 .login-panel {
-  width: min(100%, 460px);
+  width: min(100%, 440px);
 
   background: var(--color-surface);
 
   border: 1px solid var(--color-border);
   border-radius: var(--radius-xl);
 
-  padding: 28px;
+  padding: 26px;
 
-  box-shadow: var(--shadow-modal);
+  box-shadow: var(--shadow-card);
 
   display: flex;
   flex-direction: column;
 
-  gap: 22px;
+  gap: 20px;
 }
 
 .brand,
@@ -241,8 +241,8 @@ const presets = [
 }
 
 .brand-icon {
-  width: 54px;
-  height: 54px;
+  width: 48px;
+  height: 48px;
 
   border-radius: var(--radius-lg);
 
@@ -263,15 +263,15 @@ p {
 h1 {
   color: var(--color-text);
 
-  font-size: 28px;
-  font-weight: 900;
+  font-size: 27px;
+  font-weight: 850;
 }
 
 h2 {
   color: var(--color-text);
 
   font-size: 17px;
-  font-weight: 800;
+  font-weight: 750;
 }
 
 p {
@@ -282,7 +282,7 @@ p {
 
 .microsoft-button,
 .local-button {
-  min-height: 50px;
+  min-height: 48px;
 
   display: inline-flex;
   align-items: center;
@@ -294,7 +294,7 @@ p {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
 
-  padding: 18px;
+  padding: 17px;
 
   display: flex;
   flex-direction: column;
@@ -324,12 +324,12 @@ label {
   gap: 7px;
 
   font-size: 14px;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 input {
   width: 100%;
-  height: 46px;
+  height: 44px;
 
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
@@ -342,12 +342,12 @@ input {
 }
 
 .local-button {
-  background: var(--color-sidebar);
+  background: var(--color-primary);
   color: white;
 }
 
 .local-button:hover:not(:disabled) {
-  background: var(--color-primary);
+  background: var(--color-primary-strong);
 }
 
 .local-button:disabled {
@@ -367,7 +367,7 @@ input {
   padding: 12px;
 
   font-size: 14px;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .hint {
