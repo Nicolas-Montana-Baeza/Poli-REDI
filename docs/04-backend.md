@@ -25,9 +25,29 @@ La estructura principal esta organizada por capas:
 - La creacion de reservas usa el usuario autenticado y no confia en `userId` enviado por el cliente.
 - La cancelacion valida que el usuario sea propietario de la reserva o administrador.
 - Los usuarios normales sin RUT no pueden crear reservas.
+- La inscripcion a talleres usa el usuario autenticado, exige RUT a usuarios normales y valida cupos.
+- La ruta de usuarios administrativos ya esta agrupada bajo `RequireAdmin`.
 - La base de datos aplica reglas de conflicto para reservas, bloqueos y actividades programadas.
 - Los errores de base de datos se traducen a mensajes mas legibles para reservas.
 - CORS se configura por variable de entorno.
+
+## Endpoints protegidos principales
+
+- `GET /api/me`
+- `PATCH /api/me/rut`
+- `GET /api/resources`
+- `GET /api/activities`
+- `GET /api/notifications`
+- `GET /api/workshops`
+- `POST /api/workshops/:id/enroll`
+- `GET /api/reservations/mine`
+- `GET /api/reservations`
+- `POST /api/reservations`
+- `PATCH /api/reservations/cancel`
+
+## Endpoints administrativos actuales
+
+- `GET /api/users`
 
 ## Hallazgos de seguridad leve
 
@@ -43,12 +63,11 @@ Mejora recomendada:
 
 ### Middleware administrativo explicito
 
-Algunas rutas administrativas ya validan rol dentro del handler, como usuarios. Aun asi, conviene centralizar esta regla.
+La ruta de usuarios ya esta agrupada bajo `RequireAdmin`. Aun asi, conviene mantener este patron para futuras rutas administrativas.
 
 Mejora recomendada:
 
-- Agregar middleware `RequireAdmin`.
-- Agrupar rutas administrativas bajo ese middleware.
+- Agrupar nuevas rutas administrativas bajo `RequireAdmin`.
 - Mantener validacion de defensa adicional en handlers sensibles cuando corresponda.
 
 ### Logs de configuracion
@@ -104,10 +123,19 @@ La prioridad debe estar en reglas de negocio y permisos.
 - Usuario bloqueado recibe 403.
 - Modo dev sin cabeceras requeridas recibe 401.
 
+### Casos criticos de talleres
+
+- Listar talleres activos para usuario autenticado.
+- Rechazar listado sin autenticacion.
+- Inscribir usuario con RUT en taller con cupos.
+- Rechazar usuario normal sin RUT.
+- Rechazar taller inexistente o inactivo.
+- Rechazar taller sin cupos.
+- Rechazar inscripcion duplicada.
+
 ## Prioridades sugeridas
 
 1. Endpoint de disponibilidad sanitizado.
-2. Middleware `RequireAdmin`.
-3. Limpieza de logs de configuracion.
-4. Pruebas backend para reservas y cancelacion.
-5. Checklist productivo para `DEV_AUTH_ENABLED=false`.
+2. Limpieza de logs de configuracion.
+3. Pruebas backend para reservas, cancelacion y talleres.
+4. Checklist productivo para `DEV_AUTH_ENABLED=false`.

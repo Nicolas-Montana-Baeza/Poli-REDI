@@ -15,6 +15,7 @@ func GetActiveWorkshopsForUser(userID int) ([]models.Workshop, error) {
 		`
 		SELECT
 			w.id,
+			w.resource_id,
 			w.title,
 			COALESCE(w.description, '') AS description,
 			COALESCE(w.location, '') AS location,
@@ -62,6 +63,7 @@ func GetActiveWorkshopsForUser(userID int) ([]models.Workshop, error) {
 
 		err := rows.Scan(
 			&workshop.ID,
+			&workshop.ResourceID,
 			&workshop.Title,
 			&workshop.Description,
 			&workshop.Location,
@@ -90,6 +92,10 @@ func GetActiveWorkshopsForUser(userID int) ([]models.Workshop, error) {
 	return workshops, nil
 }
 
+func GetActiveWorkshops() ([]models.Workshop, error) {
+	return GetActiveWorkshopsForUser(0)
+}
+
 func EnrollUserInWorkshop(
 	workshopID int,
 	userID int,
@@ -106,6 +112,7 @@ func EnrollUserInWorkshop(
 	defer tx.Rollback()
 
 	var capacity int
+	var resourceID int
 	var isActive bool
 	var enrolledCount int
 	var isAlreadyEnrolled bool
@@ -114,6 +121,7 @@ func EnrollUserInWorkshop(
 		context.Background(),
 		`
 		SELECT
+			w.resource_id,
 			w.capacity,
 			w.is_active,
 			(
@@ -140,6 +148,7 @@ func EnrollUserInWorkshop(
 		workshopID,
 		userID,
 	).Scan(
+		&resourceID,
 		&capacity,
 		&isActive,
 		&enrolledCount,
@@ -198,6 +207,7 @@ func GetWorkshopForUser(
 		`
 		SELECT
 			w.id,
+			w.resource_id,
 			w.title,
 			COALESCE(w.description, '') AS description,
 			COALESCE(w.location, '') AS location,
@@ -232,6 +242,7 @@ func GetWorkshopForUser(
 		userID,
 	).Scan(
 		&workshop.ID,
+		&workshop.ResourceID,
 		&workshop.Title,
 		&workshop.Description,
 		&workshop.Location,

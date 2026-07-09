@@ -1,6 +1,0 @@
--- ============================================================
--- POLI-REDI - Historical schema note
--- ============================================================
--- This file is kept only as a historical placeholder.
--- The active database model for the project is now Azure SQL Database.
--- Use database/schema.sql, database/seed.sql and database/drop.sql.

@@ -15,11 +15,17 @@ export const useReservationsStore =
     state: () => ({
       reservations: [],
 
+      availabilityReservations: [],
+
       myReservations: [],
 
       loading: false,
 
       loadingError: null,
+
+      availabilityLoading: false,
+
+      availabilityLoadingError: null,
 
       myLoading: false,
 
@@ -46,6 +52,24 @@ export const useReservationsStore =
           )
         } finally {
           this.loading = false
+        }
+      },
+
+      async fetchAvailabilityReservations() {
+        this.availabilityLoading = true
+        this.availabilityLoadingError = null
+
+        try {
+          this.availabilityReservations =
+            await reservationsService.getAvailability()
+        } catch (error) {
+          this.availabilityReservations = []
+          this.availabilityLoadingError = getFriendlyReservationError(
+            error,
+            'No se pudo validar la disponibilidad actual.'
+          )
+        } finally {
+          this.availabilityLoading = false
         }
       },
 
@@ -79,6 +103,10 @@ export const useReservationsStore =
             )
 
           this.reservations.push(
+            createdReservation
+          )
+
+          this.availabilityReservations.push(
             createdReservation
           )
 
@@ -135,6 +163,13 @@ export const useReservationsStore =
 
           this.reservations =
             this.reservations.map((reservation) =>
+              reservation.id === id
+                ? cancelledReservation
+                : reservation
+            )
+
+          this.availabilityReservations =
+            this.availabilityReservations.map((reservation) =>
               reservation.id === id
                 ? cancelledReservation
                 : reservation

@@ -4,6 +4,7 @@ import "time"
 
 type Workshop struct {
 	ID             int       `json:"id"`
+	ResourceID     int       `json:"resourceId"`
 	Title          string    `json:"title"`
 	Description    string    `json:"description"`
 	Location       string    `json:"location"`

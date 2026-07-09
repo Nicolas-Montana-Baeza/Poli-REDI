@@ -32,8 +32,8 @@ Responsabilidades principales:
 
 - Autenticar al usuario con Microsoft Entra ID o modo local de desarrollo.
 - Proteger rutas publicas, autenticadas y administrativas.
-- Consultar recursos, actividades, reservas, notificaciones y usuario actual.
-- Mostrar disponibilidad, formularios de reserva, historial y panel admin base.
+- Consultar recursos, actividades, reservas, talleres, notificaciones y usuario actual.
+- Mostrar disponibilidad, formularios de reserva, historial, talleres deportivos y panel admin base.
 - Enviar reservas sin confiar en IDs de usuario definidos en cliente.
 
 ## Backend
@@ -57,6 +57,7 @@ Responsabilidades principales:
 - Resolver o crear usuario local autenticado.
 - Aplicar permisos de usuario normal y administrador.
 - Crear y cancelar reservas usando el usuario autenticado.
+- Listar talleres activos e inscribir al usuario autenticado cuando tenga RUT.
 - Validar RUT obligatorio para usuarios normales.
 - Exponer datos desde Azure SQL Database.
 
@@ -72,9 +73,10 @@ Scripts principales:
 
 La base aplica reglas criticas mediante constraints, indices, triggers y vistas:
 
-- Usuarios, recursos, actividades y reservas.
+- Usuarios, recursos, actividades, reservas, talleres e inscripciones.
 - Validacion basica de RUT.
 - Conflictos de reserva por recurso y usuario.
+- Control de cupos e inscripcion unica por usuario en talleres.
 - Bloqueos y actividades programadas para iteraciones administrativas.
 - Notificaciones y auditoria.
 

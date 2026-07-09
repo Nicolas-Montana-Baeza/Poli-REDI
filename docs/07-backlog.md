@@ -285,7 +285,7 @@ Estado sugerido: Ajustes visuales pendientes
 
 ### Contexto
 
-El proyecto tiene un estilo global minimo en `frontend/src/style.css`, pero `frontend/src/assets/styles/main.css` y `frontend/src/assets/styles/variables.css` estan vacios. La mayor parte de tarjetas, botones, estados, radios, colores y sombras se redefine dentro de cada componente con `<style scoped>`.
+El proyecto necesitaba una base global porque tarjetas, botones, estados, radios, colores y sombras se redefinian dentro de varios componentes con `<style scoped>`. Esa base ya existe en `frontend/src/assets/styles/variables.css` y `frontend/src/assets/styles/main.css`; queda pendiente la validacion visual final.
 
 Esto provoca una sensacion de falta de unificacion visual, especialmente en pantallas del MVP 1 usadas para demo: login, layout, disponibilidad, formularios, estados y reservas.
 
@@ -1090,6 +1090,39 @@ Crear una vista inicial de configuracion de cuenta/sistema.
 - El menu de usuario navega a `/settings`.
 - `/settings` queda disponible para cualquier usuario autenticado.
 - Al cerrar sesion desde el menu o desde configuracion, la app limpia estado local y redirige a `/login`.
+
+## UI-006 - Implementar Talleres deportivos
+
+Prioridad: P2
+Labels: `frontend`, `backend`, `database`, `talleres`, `feature`
+Estado sugerido: Done
+
+### Contexto
+
+El sistema ahora incluye una vista de talleres deportivos, endpoints protegidos y tablas dedicadas para inscripciones.
+
+### Objetivo
+
+Permitir que usuarios autenticados consulten talleres activos y se inscriban cuando existan cupos disponibles.
+
+### Criterios de aceptacion
+
+- [x] Existe vista `/workshops` accesible desde la navegacion.
+- [x] Lista talleres activos desde `GET /api/workshops`.
+- [x] Permite buscar por taller, dia o lugar.
+- [x] Muestra cupos usados y capacidad.
+- [x] Muestra si el usuario ya esta inscrito.
+- [x] Permite inscripcion mediante `POST /api/workshops/:id/enroll`.
+- [x] Rechaza usuarios normales sin RUT.
+- [x] Rechaza cupos completos e inscripcion duplicada.
+
+### Resultado de implementacion
+
+- Se agregaron `workshops` y `workshop_enrollments` en Azure SQL.
+- Se agregaron modelo, repositorio, servicio y handler de talleres en backend.
+- Se agrego store Pinia y servicio frontend para talleres.
+- Se agrego `WorkshopsView.vue` con busqueda, estados de carga/error/exito y accion de inscripcion.
+- La inscripcion usa transaccion serializable para validar cupos antes de insertar.
 
 ---
 

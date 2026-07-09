@@ -13,11 +13,15 @@ import { useResourcesStore } from '@/stores/resources'
 import { useReservationsStore } from '@/stores/reservations'
 import { useAuthStore } from '@/stores/auth'
 import { useActivitiesStore } from '@/stores/activities'
+import { useWorkshopsStore } from '@/stores/workshops'
+import { buildWorkshopAvailabilityItems } from '@/utils/workshopSchedule'
+import { parseReservationDateTime } from '@/utils/reservationTime'
 
 const resourcesStore = useResourcesStore()
 const reservationsStore = useReservationsStore()
 const authStore = useAuthStore()
 const activitiesStore = useActivitiesStore()
+const workshopsStore = useWorkshopsStore()
 
 const formatDateKey = (date) => {
   return [
@@ -41,6 +45,54 @@ const isPastStart = (date, hour) => {
   return start.getTime() <= Date.now()
 }
 
+const getEndDateTime = (date, hour, durationMinutes) => {
+  const start = buildLocalDateTime(date, hour)
+
+  return new Date(
+    start.getTime() + Number(durationMinutes || 0) * 60000
+  )
+}
+
+const hasAvailabilityConflict = ({
+  resourceId,
+  date,
+  hour,
+  durationMinutes
+}) => {
+  const resource = resourcesStore.resources.find(
+    item => item.id === resourceId
+  )
+
+  if (resource?.reservationMode === 'OPEN_USE') {
+    return false
+  }
+
+  const nextStart = buildLocalDateTime(date, hour)
+  const nextEnd = getEndDateTime(date, hour, durationMinutes)
+
+  return availabilityItems.value.some((item) => {
+    if (
+      item.resourceId !== resourceId ||
+      item.status === 'CANCELLED'
+    ) {
+      return false
+    }
+
+    const itemStart = parseReservationDateTime(item.startTime)
+
+    if (!itemStart) {
+      return false
+    }
+
+    const itemEnd = new Date(
+      itemStart.getTime() +
+      Number(item.durationMinutes || 0) * 60000
+    )
+
+    return nextStart < itemEnd && nextEnd > itemStart
+  })
+}
+
 /* DATE */
 const selectedDate = ref(
   todayKey()
@@ -62,17 +114,30 @@ const isLoadingAvailability = computed(() => {
   return (
     authStore.loading ||
     resourcesStore.loading ||
-    reservationsStore.loading
+    reservationsStore.availabilityLoading ||
+    workshopsStore.loading
   )
 })
 
 const loadWarning = computed(() => {
   return (
     resourcesStore.error ||
-    reservationsStore.loadingError ||
+    reservationsStore.availabilityLoadingError ||
     activitiesStore.error ||
+    workshopsStore.loadingError ||
     ''
   )
+})
+
+const availabilityItems = computed(() => {
+  return [
+    ...reservationsStore.availabilityReservations,
+    ...buildWorkshopAvailabilityItems({
+      workshops: workshopsStore.workshops,
+      resources: resourcesStore.resources,
+      selectedDate: selectedDate.value
+    })
+  ]
 })
 
 const reservationBlockingError = computed(() => {
@@ -88,7 +153,7 @@ const reservationBlockingError = computed(() => {
     return 'No se puede crear la reserva porque no se pudieron cargar los recursos.'
   }
 
-  if (reservationsStore.loadingError) {
+  if (reservationsStore.availabilityLoadingError) {
     return 'No se puede crear la reserva porque no se pudo validar la disponibilidad actual.'
   }
 
@@ -103,6 +168,10 @@ const selectedReservation = ref(null)
 
 const canCancelSelectedReservation = computed(() => {
   if (!authStore.user || !selectedReservation.value) {
+    return false
+  }
+
+  if (selectedReservation.value.isWorkshop) {
     return false
   }
 
@@ -121,8 +190,9 @@ onMounted(async () => {
   await Promise.all([
     authStore.loadAuthUser(),
     resourcesStore.fetchResources(),
-    reservationsStore.fetchReservations(),
-    activitiesStore.fetchActivities()
+    reservationsStore.fetchAvailabilityReservations(),
+    activitiesStore.fetchActivities(),
+    workshopsStore.fetchWorkshops()
   ])
 })
 
@@ -229,6 +299,21 @@ const submitReservation = async (reservation) => {
       return
     }
 
+    if (
+      hasAvailabilityConflict({
+        resourceId: reservation.resource.id,
+        date: reservation.date,
+        hour: reservation.hour,
+        durationMinutes: reservation.durationMinutes
+      })
+    ) {
+      reservationsStore.setActionError(
+        'Ese horario se cruza con una reserva o taller existente.'
+      )
+
+      return
+    }
+
     const activityId =
       Number(reservation.activityId)
 
@@ -257,7 +342,7 @@ const submitReservation = async (reservation) => {
 
     reservationsStore.clearActionError?.()
 
-    await reservationsStore.fetchReservations()
+    await reservationsStore.fetchAvailabilityReservations()
 
     reservationsStore.setActionSuccess(
       'Reserva creada correctamente'
@@ -295,7 +380,7 @@ const cancelSelectedReservation = async () => {
 
     selectedReservation.value = null
 
-    await reservationsStore.fetchReservations()
+    await reservationsStore.fetchAvailabilityReservations()
 
     reservationsStore.setActionSuccess(
       'Reserva cancelada correctamente'
@@ -504,7 +589,7 @@ const goToday = () => {
           <ScheduleGrid
             v-if="viewMode === 'resources'"
             :resources="resourcesStore.resources"
-            :reservations="reservationsStore.reservations"
+            :reservations="availabilityItems"
             :selected-date="selectedDate"
             :start-hour="8"
             :end-hour="22"
@@ -516,7 +601,7 @@ const goToday = () => {
           <GeneralCalendarView
             v-else
             :resources="resourcesStore.resources"
-            :reservations="reservationsStore.reservations"
+            :reservations="availabilityItems"
             :selected-date="selectedDate"
             @reservation-selected="handleReservationSelected"
           />

@@ -74,7 +74,7 @@ const userName = (reservation) => {
   return (
     reservation.userFullName ||
     reservation.userEmail ||
-    `Usuario #${reservation.userId}`
+    'Ocupado'
   )
 }
 

@@ -111,6 +111,10 @@ const isPastMinute = (minuteOfDay) => {
   )
 }
 
+const isOpenUse = computed(() => {
+  return props.resource.reservationMode === 'OPEN_USE'
+})
+
 /* HEIGHT */
 const totalMinutes = computed(() => {
   return (
@@ -166,6 +170,10 @@ const getReservationStartMinutes = (reservation) => {
 }
 
 const isMinuteReserved = (minuteOfDay) => {
+  if (isOpenUse.value) {
+    return false
+  }
+
   return resourceReservations.value.some(
     (reservation) => {
       const start =
@@ -197,6 +205,72 @@ const formatMinuteToHour = (minuteOfDay) => {
     minuteOfDay % 60
 
   return `${String(hour).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`
+}
+
+const heatmapSegments = computed(() => {
+  if (!isOpenUse.value) {
+    return []
+  }
+
+  const segmentMinutes = 30
+  const segments = []
+  const startMinute = props.startHour * 60
+  const endMinute = props.endHour * 60
+
+  for (
+    let minute = startMinute;
+    minute < endMinute;
+    minute += segmentMinutes
+  ) {
+    const segmentEnd = Math.min(
+      minute + segmentMinutes,
+      endMinute
+    )
+
+    const count = resourceReservations.value.filter((reservation) => {
+      const reservationStart =
+        getReservationStartMinutes(reservation)
+
+      if (reservationStart === null) {
+        return false
+      }
+
+      const reservationEnd =
+        reservationStart + Number(reservation.durationMinutes || 60)
+
+      return reservationStart < segmentEnd && reservationEnd > minute
+    }).length
+
+    segments.push({
+      minute,
+      count,
+      top:
+        timelineTopPadding +
+        (minute - startMinute) *
+        props.pixelsPerMinute,
+      height:
+        (segmentEnd - minute) *
+        props.pixelsPerMinute
+    })
+  }
+
+  return segments
+})
+
+const heatmapClass = (count) => {
+  if (count >= 4) {
+    return 'high'
+  }
+
+  if (count >= 2) {
+    return 'medium'
+  }
+
+  if (count === 1) {
+    return 'low'
+  }
+
+  return 'empty'
 }
 
 const handleReservationSelected = (reservation) => {
@@ -263,6 +337,9 @@ const modeLabel = (mode) => {
 
     case 'INFORMATIVE':
       return 'Informativo'
+
+    case 'OPEN_USE':
+      return 'Uso libre'
 
     default:
       return 'Reservable'
@@ -343,16 +420,39 @@ const modeLabel = (mode) => {
         </span>
       </div>
 
+      <!-- OPEN USE HEATMAP -->
+      <div
+        v-if="isOpenUse"
+        class="heatmap-layer"
+      >
+        <div
+          v-for="segment in heatmapSegments"
+          :key="segment.minute"
+          class="heatmap-segment"
+          :class="heatmapClass(segment.count)"
+          :style="{
+            top: `${segment.top}px`,
+            height: `${segment.height}px`
+          }"
+        >
+          <span v-if="segment.count > 0">
+            {{ segment.count }}
+          </span>
+        </div>
+      </div>
+
       <!-- RESERVATIONS -->
-      <ReservationBlock
-        v-for="reservation in resourceReservations"
-        :key="reservation.id"
-        :reservation="reservation"
-        :start-hour="startHour"
-        :pixels-per-minute="pixelsPerMinute"
-        :top-offset="timelineTopPadding"
-        @select="handleReservationSelected"
-      />
+      <template v-if="!isOpenUse">
+        <ReservationBlock
+          v-for="reservation in resourceReservations"
+          :key="reservation.id"
+          :reservation="reservation"
+          :start-hour="startHour"
+          :pixels-per-minute="pixelsPerMinute"
+          :top-offset="timelineTopPadding"
+          @select="handleReservationSelected"
+        />
+      </template>
 
     </div>
 
@@ -550,6 +650,53 @@ const modeLabel = (mode) => {
   font-weight: 700;
 
   color: var(--color-text-soft);
+}
+
+.heatmap-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.heatmap-segment {
+  position: absolute;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 10px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+}
+
+.heatmap-segment.empty {
+  background: rgba(22, 163, 74, 0.04);
+}
+
+.heatmap-segment.low {
+  background: rgba(34, 197, 94, 0.16);
+}
+
+.heatmap-segment.medium {
+  background: rgba(249, 115, 22, 0.18);
+}
+
+.heatmap-segment.high {
+  background: rgba(239, 68, 68, 0.2);
+}
+
+.heatmap-segment span {
+  min-width: 20px;
+  height: 20px;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.84);
+  color: var(--color-text);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 900;
 }
 
 /* MOBILE */

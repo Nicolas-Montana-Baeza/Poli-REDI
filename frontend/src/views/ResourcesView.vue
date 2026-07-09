@@ -30,6 +30,9 @@ const modeLabel = (mode) => {
     case 'INFORMATIVE':
       return 'Informativo'
 
+    case 'OPEN_USE':
+      return 'Uso libre'
+
     default:
       return 'Reservable'
   }
@@ -131,6 +134,9 @@ const filteredResources = computed(() => {
           </option>
           <option value="RESERVABLE">
             Reservable
+          </option>
+          <option value="OPEN_USE">
+            Uso libre
           </option>
           <option value="ADMIN_ONLY">
             Solo admin

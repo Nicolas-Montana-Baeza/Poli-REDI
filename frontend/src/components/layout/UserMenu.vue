@@ -1,13 +1,16 @@
 <script setup>
-import { computed, ref, onMounted, onBeforeUnmount } from 'vue'
+import {
+  computed,
+  onBeforeUnmount,
+  onMounted,
+  ref
+} from 'vue'
 import { useRouter } from 'vue-router'
 
 import {
   ChevronDown,
-  User,
-  Settings,
-  Shield,
-  LogOut
+  LogOut,
+  Settings
 } from 'lucide-vue-next'
 
 import { useAuthStore } from '@/stores/auth'
@@ -92,7 +95,6 @@ onBeforeUnmount(() => {
 <template>
   <div class="user-menu">
 
-    <!-- Trigger -->
     <button
       class="user-trigger"
       type="button"
@@ -123,7 +125,6 @@ onBeforeUnmount(() => {
 
     </button>
 
-    <!-- Dropdown -->
     <transition name="fade">
 
       <div
@@ -131,7 +132,6 @@ onBeforeUnmount(() => {
         class="dropdown"
       >
 
-        <!-- Top User -->
         <div class="profile-card">
 
           <span class="avatar large">
@@ -154,41 +154,13 @@ onBeforeUnmount(() => {
 
         <div class="divider"></div>
 
-        <!-- Menu Items -->
         <button
           class="dropdown-item"
           type="button"
           @click="goToSettings"
         >
-
-          <User :size="16" />
-
-          Mi perfil
-
-        </button>
-
-        <button
-          class="dropdown-item"
-          type="button"
-          @click="goToSettings"
-        >
-
           <Settings :size="16" />
-
           Configuración
-
-        </button>
-
-        <button
-          class="dropdown-item"
-          type="button"
-          @click="goToSettings"
-        >
-
-          <Shield :size="16" />
-
-          Privacidad
-
         </button>
 
         <div class="divider"></div>
@@ -198,11 +170,8 @@ onBeforeUnmount(() => {
           type="button"
           @click="handleLogout"
         >
-
           <LogOut :size="16" />
-
           Cerrar sesión
-
         </button>
 
       </div>
@@ -217,7 +186,6 @@ onBeforeUnmount(() => {
   position: relative;
 }
 
-/* Trigger */
 .user-trigger {
   background: transparent;
   border: none;
@@ -266,7 +234,6 @@ onBeforeUnmount(() => {
   font-size: 18px;
 }
 
-/* Info */
 .user-info {
   display: flex;
   flex-direction: column;
@@ -283,7 +250,6 @@ onBeforeUnmount(() => {
   color: var(--color-text-muted);
 }
 
-/* Arrow */
 .arrow {
   transition: 0.2s;
 }
@@ -292,7 +258,6 @@ onBeforeUnmount(() => {
   transform: rotate(180deg);
 }
 
-/* Dropdown */
 .dropdown {
   position: absolute;
 
@@ -313,7 +278,6 @@ onBeforeUnmount(() => {
   z-index: 999;
 }
 
-/* Profile card */
 .profile-card {
   display: flex;
   align-items: center;
@@ -338,14 +302,12 @@ onBeforeUnmount(() => {
   color: var(--color-text-muted);
 }
 
-/* Divider */
 .divider {
   height: 1px;
 
   background: var(--color-border-soft);
 }
 
-/* Items */
 .dropdown-item {
   width: 100%;
 
@@ -358,6 +320,7 @@ onBeforeUnmount(() => {
 
   padding: 14px 18px;
 
+  color: var(--color-text);
   font-size: 14px;
 
   cursor: pointer;
@@ -373,7 +336,6 @@ onBeforeUnmount(() => {
   color: var(--color-error-strong);
 }
 
-/* Animation */
 .fade-enter-active,
 .fade-leave-active {
   transition: all 0.2s ease;
@@ -385,7 +347,6 @@ onBeforeUnmount(() => {
   transform: translateY(-6px);
 }
 
-/* Mobile */
 @media (max-width: 768px) {
   .user-info {
     display: none;

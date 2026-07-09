@@ -10,6 +10,7 @@ import AvailabilityView from '../views/AvailabilityView.vue'
 import ReservationsView from '../views/ReservationsView.vue'
 import ReservationDetailView from '../views/ReservationDetailView.vue'
 import HistoryView from '../views/HistoryView.vue'
+import WorkshopsView from '../views/WorkshopsView.vue'
 import ResourcesView from '../views/ResourcesView.vue'
 import AdminView from '../views/AdminView.vue'
 import UsersView from '../views/UsersView.vue'
@@ -44,6 +45,11 @@ const routes = [
   {
     path: '/history',
     component: HistoryView,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/workshops',
+    component: WorkshopsView,
     meta: { requiresAuth: true }
   },
   {
@@ -111,7 +117,7 @@ router.beforeEach(async (to) => {
     }
 
     const authStore = useAuthStore()
-    const user = authStore.user || await authStore.loadAuthUser()
+    const user = await authStore.loadAuthUser()
 
     if (!user && authStore.errorStatus === 403) {
       return { path: '/blocked' }

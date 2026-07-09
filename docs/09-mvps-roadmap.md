@@ -133,6 +133,7 @@ Entregar una experiencia usable para el usuario normal, desde login hasta reserv
 - Cancelacion de reserva propia.
 - Historial de reservas.
 - Filtros de historial por estado y fecha.
+- Talleres deportivos con inscripcion.
 - Catalogo de recursos con datos reales.
 - Filtros basicos de recursos en frontend.
 - Dashboard con datos reales.
@@ -153,6 +154,7 @@ Entregar una experiencia usable para el usuario normal, desde login hasta reserv
 - `UI-003`
 - `UI-004`
 - `UI-005`
+- `UI-006`
 - `UX-001`
 - `UX-002`
 - `NOTIF-001`
@@ -171,6 +173,7 @@ Entregar una experiencia usable para el usuario normal, desde login hasta reserv
 - `RF-010`
 - `RF-011`
 - `RF-017`
+- `RF-019`
 - `HU-001`
 - `HU-002`
 - `HU-003`
@@ -179,16 +182,20 @@ Entregar una experiencia usable para el usuario normal, desde login hasta reserv
 - `HU-006`
 - `HU-007`
 - `HU-008`
+- `HU-014`
 - `CU-001`
 - `CU-002`
 - `CU-003`
 - `CU-004`
 - `CU-005`
 - `CU-007`
+- `CU-008`
 
 ### Estado actual
 
 Muy avanzado.
+
+Incluye tambien una primera version funcional de talleres deportivos: listado de talleres activos, busqueda, cupos, estado de inscripcion e inscripcion protegida por RUT.
 
 ### Pendientes para cierre completo
 
@@ -201,7 +208,7 @@ Muy avanzado.
 
 ### Criterio de cierre
 
-El MVP 2 se considera cerrado cuando un usuario normal puede autenticarse, completar su perfil, consultar disponibilidad, crear una reserva valida, cancelar una reserva propia, revisar reservas/historial/recursos y operar sin errores visibles en los flujos principales.
+El MVP 2 se considera cerrado cuando un usuario normal puede autenticarse, completar su perfil, consultar disponibilidad, crear una reserva valida, cancelar una reserva propia, revisar reservas/historial/recursos, inscribirse en talleres deportivos disponibles y operar sin errores visibles en los flujos principales.
 
 ## MVP 3 - Administracion institucional
 

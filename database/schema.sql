@@ -102,7 +102,7 @@ BEGIN
         created_at DATETIME2(0) NOT NULL CONSTRAINT df_resources_created_at DEFAULT (SYSUTCDATETIME()),
         updated_at DATETIME2(0) NOT NULL CONSTRAINT df_resources_updated_at DEFAULT (SYSUTCDATETIME()),
         CONSTRAINT fk_resources_venue FOREIGN KEY (venue_id) REFERENCES dbo.venues(id) ON DELETE NO ACTION,
-        CONSTRAINT ck_resources_reservation_mode CHECK (reservation_mode IN ('RESERVABLE', 'INFORMATIVE', 'ADMIN_ONLY')),
+        CONSTRAINT ck_resources_reservation_mode CHECK (reservation_mode IN ('RESERVABLE', 'OPEN_USE', 'INFORMATIVE', 'ADMIN_ONLY')),
         CONSTRAINT ck_resources_capacity CHECK (capacity IS NULL OR capacity > 0),
         CONSTRAINT uq_resources_venue_name UNIQUE (venue_id, name)
     );
@@ -138,7 +138,7 @@ BEGIN
     CREATE TABLE dbo.reservations (
         id INT IDENTITY(1,1) NOT NULL CONSTRAINT pk_reservations PRIMARY KEY,
         user_id INT NOT NULL,
-        resource_id INT NOT NULL,
+        resource_id INT NULL,
         activity_id INT NULL,
         start_time DATETIME2(0) NOT NULL,
         duration_minutes INT NOT NULL,
@@ -241,6 +241,7 @@ IF OBJECT_ID('dbo.workshops', 'U') IS NULL
 BEGIN
     CREATE TABLE dbo.workshops (
         id INT IDENTITY(1,1) NOT NULL CONSTRAINT pk_workshops PRIMARY KEY,
+        resource_id INT NOT NULL,
         title NVARCHAR(150) NOT NULL,
         description NVARCHAR(MAX) NULL,
         day_text NVARCHAR(120) NOT NULL,
@@ -251,6 +252,7 @@ BEGIN
         is_active BIT NOT NULL CONSTRAINT df_workshops_is_active DEFAULT (1),
         created_at DATETIME2(0) NOT NULL CONSTRAINT df_workshops_created_at DEFAULT (SYSUTCDATETIME()),
         updated_at DATETIME2(0) NOT NULL CONSTRAINT df_workshops_updated_at DEFAULT (SYSUTCDATETIME()),
+        CONSTRAINT fk_workshops_resource FOREIGN KEY (resource_id) REFERENCES dbo.resources(id) ON DELETE NO ACTION,
         CONSTRAINT ck_workshops_capacity CHECK (capacity > 0)
     );
 END;
@@ -386,6 +388,8 @@ IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'idx_scheduled_start_end' 
 GO
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'idx_workshops_active' AND object_id = OBJECT_ID('dbo.workshops')) CREATE INDEX idx_workshops_active ON dbo.workshops(is_active, title);
 GO
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'idx_workshops_resource_id' AND object_id = OBJECT_ID('dbo.workshops')) CREATE INDEX idx_workshops_resource_id ON dbo.workshops(resource_id);
+GO
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'idx_workshop_enrollments_workshop_id' AND object_id = OBJECT_ID('dbo.workshop_enrollments')) CREATE INDEX idx_workshop_enrollments_workshop_id ON dbo.workshop_enrollments(workshop_id);
 GO
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'idx_workshop_enrollments_user_id' AND object_id = OBJECT_ID('dbo.workshop_enrollments')) CREATE INDEX idx_workshop_enrollments_user_id ON dbo.workshop_enrollments(user_id);
@@ -490,7 +494,9 @@ BEGIN
         SELECT 1
         FROM inserted i
         INNER JOIN dbo.reservations existing ON existing.resource_id = i.resource_id
+        INNER JOIN dbo.resources r ON r.id = i.resource_id
         WHERE i.status = 'CONFIRMED'
+          AND r.reservation_mode <> 'OPEN_USE'
           AND existing.status = 'CONFIRMED'
           AND existing.id <> i.id
           AND i.start_time < DATEADD(MINUTE, existing.duration_minutes, existing.start_time)
@@ -525,7 +531,9 @@ BEGIN
         SELECT 1
         FROM inserted i
         INNER JOIN dbo.scheduled_activities s ON s.resource_id = i.resource_id
+        INNER JOIN dbo.resources r ON r.id = i.resource_id
         WHERE i.status = 'CONFIRMED'
+          AND r.reservation_mode <> 'OPEN_USE'
           AND s.is_active = 1
           AND i.start_time < s.end_time
           AND DATEADD(MINUTE, i.duration_minutes, i.start_time) > s.start_time

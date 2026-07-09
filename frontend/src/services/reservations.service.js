@@ -13,6 +13,12 @@ export const reservationsService = {
     return response.data
   },
 
+  async getAvailability() {
+    const response = await api.get('/availability/reservations')
+
+    return response.data
+  },
+
   async create(reservation) {
     const response = await api.post('/reservations', reservation)
 

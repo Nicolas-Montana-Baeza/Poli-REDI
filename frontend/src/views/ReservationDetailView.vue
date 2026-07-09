@@ -32,11 +32,9 @@ const reservationId = computed(() => {
 })
 
 onMounted(async () => {
-  if (!authStore.user) {
-    await authStore.loadAuthUser()
-  }
+  const user = await authStore.loadAuthUser()
 
-  if (authStore.user?.isAdmin) {
+  if (user?.isAdmin) {
     await reservationsStore.fetchReservations()
     return
   }

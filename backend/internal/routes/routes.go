@@ -22,12 +22,21 @@ func RegisterRoutes(app *fiber.App) {
 	protected.Get("/notifications", handlers.GetNotifications)
 	protected.Get("/workshops", handlers.GetWorkshops)
 	protected.Post("/workshops/:id/enroll", handlers.EnrollInWorkshop)
+	protected.Get("/availability/reservations", handlers.GetAvailabilityReservations)
 
-	admin := protected.Group("", middleware.RequireAdmin())
-	admin.Get("/users", handlers.GetUsers)
+	protected.Get(
+		"/users",
+		middleware.RequireAdmin(),
+		handlers.GetUsers,
+	)
+
+	protected.Get(
+		"/reservations",
+		middleware.RequireAdmin(),
+		handlers.GetReservations,
+	)
 
 	protected.Get("/reservations/mine", handlers.GetMyReservations)
-	protected.Get("/reservations", handlers.GetReservations)
 	protected.Post("/reservations", handlers.CreateReservation)
 	protected.Patch("/reservations/cancel", handlers.CancelReservation)
 }

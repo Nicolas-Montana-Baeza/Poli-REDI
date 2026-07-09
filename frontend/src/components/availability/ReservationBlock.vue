@@ -67,7 +67,15 @@ const reservationTime = computed(() => {
   )
 })
 
+const isCompact = computed(() => {
+  return duration.value < 60
+})
+
 const statusClass = computed(() => {
+  if (props.reservation.isWorkshop) {
+    return 'workshop'
+  }
+
   if (props.reservation.status === 'PENDING') {
     return 'pending'
   }
@@ -88,7 +96,10 @@ const statusClass = computed(() => {
   <button
     class="reservation-block"
     type="button"
-    :class="statusClass"
+    :class="[
+      statusClass,
+      { compact: isCompact }
+    ]"
     :style="blockStyle"
     :aria-label="`Ver reserva ${reservationTitle}`"
     @click.stop="emit('select', reservation)"
@@ -135,6 +146,14 @@ const statusClass = computed(() => {
   outline-offset: 2px;
 }
 
+.reservation-block.compact {
+  justify-content: center;
+
+  gap: 2px;
+
+  padding: 5px 9px;
+}
+
 .reservation-block strong {
   font-size: 13px;
   font-weight: 800;
@@ -144,11 +163,23 @@ const statusClass = computed(() => {
   text-overflow: ellipsis;
 }
 
+.reservation-block.compact strong {
+  font-size: 12px;
+
+  line-height: 1.15;
+}
+
 .reservation-block span {
   font-size: 12px;
   font-weight: 600;
 
   opacity: 0.9;
+}
+
+.reservation-block.compact span {
+  font-size: 11px;
+
+  line-height: 1.15;
 }
 
 /* STATUS */
@@ -174,6 +205,14 @@ const statusClass = computed(() => {
   color: #c2410c;
 
   border-color: #fed7aa;
+}
+
+.workshop {
+  background: #fff3e6;
+
+  color: #c2410c;
+
+  border-color: #fdba74;
 }
 
 .cancelled {

@@ -69,6 +69,10 @@ const getDefaultActivityId = () => {
   return props.activities[0]?.id || null
 }
 
+const isOpenUseResource = computed(() => {
+  return form.value.resource?.reservationMode === 'OPEN_USE'
+})
+
 const handleActivityUpdate = () => {
   fieldErrors.value.activityId = ''
 }
@@ -103,8 +107,9 @@ watch(
     form.value.participantsCount = 1
 
     form.value.activityId =
-      form.value.activityId ||
-      getDefaultActivityId()
+      slot.resource?.reservationMode === 'OPEN_USE'
+        ? null
+        : form.value.activityId || getDefaultActivityId()
   },
   {
     immediate: true
@@ -114,7 +119,11 @@ watch(
 watch(
   () => props.activities,
   () => {
-    if (!props.visible || form.value.activityId) return
+    if (
+      !props.visible ||
+      form.value.activityId ||
+      isOpenUseResource.value
+    ) return
 
     form.value.activityId =
       getDefaultActivityId()
@@ -127,6 +136,14 @@ watch(
 /* RESOURCE */
 const handleResourceSelect = (resource) => {
   form.value.resource = resource
+
+  if (resource?.reservationMode === 'OPEN_USE') {
+    form.value.activityId = null
+    fieldErrors.value.activityId = ''
+  } else if (!form.value.activityId) {
+    form.value.activityId = getDefaultActivityId()
+  }
+
   fieldErrors.value.resource = ''
 }
 
@@ -203,7 +220,10 @@ const handleSubmit = () => {
   }
 
   emit('submit', {
-    ...form.value
+    ...form.value,
+    activityId: isOpenUseResource.value
+      ? null
+      : form.value.activityId
   })
 }
 
@@ -325,7 +345,10 @@ const handleClose = () => {
         </div>
 
         <!-- ACTIVITY -->
-        <div class="field">
+        <div
+          v-if="!isOpenUseResource"
+          class="field"
+        >
 
           <label>
             Actividad

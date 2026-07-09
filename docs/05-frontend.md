@@ -16,27 +16,26 @@ La aplicacion ya cuenta con una estructura clara:
 - `src/components/availability/`: calendario, timeline, bloques de reserva y modales.
 - `src/components/forms/`: formulario de reserva, selector de recurso y selector de fecha/hora.
 - `src/components/layout/`: sidebar, header, menu de usuario y campana de notificaciones.
-- `src/stores/`: estado global de autenticacion, reservas, recursos, actividades y notificaciones.
+- `src/stores/`: estado global de autenticacion, reservas, recursos, actividades, talleres y notificaciones.
 - `src/services/`: comunicacion con la API.
 - `src/router/`: proteccion de rutas y redireccion segun rol.
 
 ## Sistema visual actual
 
-Actualmente existe un estilo global minimo en `src/style.css`, importado desde `src/main.js`. Ese archivo define reset, fuente, fondo base y reglas generales de caja.
+Actualmente existe una base global de estilos importada desde `src/style.css`.
 
-Los archivos `src/assets/styles/main.css` y `src/assets/styles/variables.css` existen, pero estan vacios. Por eso, la mayor parte de la interfaz define colores, radios, sombras, botones, tarjetas, campos y estados dentro de cada componente con `<style scoped>`.
+Los archivos `src/assets/styles/main.css` y `src/assets/styles/variables.css` ya contienen tokens y clases reutilizables para colores, superficies, radios, sombras, espacios, botones, tarjetas, estados, campos y badges. Todavia quedan estilos scoped en componentes donde el layout o la grilla lo requieren.
 
 Conclusion:
 
-- Existe una base global tecnica.
-- No existe todavia un sistema de diseno global completo.
-- La falta de tokens y clases compartidas explica la sensacion de poca unificacion visual.
+- Existe una base global funcional.
+- La aplicacion ya aplica parte de esa base en pantallas principales.
+- Todavia falta validacion visual final y completar consistencia en pantallas secundarias.
 
 Recomendacion para MVP 1:
 
-- Crear tokens globales en `variables.css`.
-- Crear componentes visuales CSS reutilizables en `main.css`.
-- Aplicar la base solo a pantallas y componentes criticos del MVP 1.
+- Mantener y ajustar tokens globales en `variables.css`.
+- Seguir aplicando clases reutilizables de `main.css` en pantallas criticas.
 - Mantener estilos scoped para layout especifico y comportamiento propio de cada componente.
 
 Backlog relacionado:
@@ -69,6 +68,7 @@ Recomendacion:
 - El formulario de reserva muestra validaciones por campo.
 - La UI mantiene estados de carga, error y exito en flujos principales.
 - Los usuarios normales sin RUT son bloqueados antes de crear reservas.
+- La vista de talleres permite buscar oferta disponible e inscribirse con control de cupos.
 - Las reservas existentes aparecen como bloques visuales sobre la linea de tiempo.
 - La cancelacion queda limitada visualmente al propietario de la reserva o a administradores.
 
@@ -157,6 +157,8 @@ La configuracion actual de `frontend/package.json` no incluye suite de pruebas a
 - Usuario normal inicia sesion local, registra RUT y crea reserva.
 - Usuario normal sin RUT no puede reservar.
 - Usuario cancela una reserva propia con confirmacion.
+- Usuario con RUT se inscribe en un taller con cupos.
+- Usuario sin RUT no puede inscribirse en talleres.
 - Usuario normal no ve panel admin.
 - Admin entra al panel y revisa usuarios/reportes.
 - Conflicto de horario muestra error y mantiene el formulario abierto.

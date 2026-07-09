@@ -24,6 +24,36 @@ func GetReservations(c *fiber.Ctx) error {
 	return c.JSON(reservations)
 }
 
+func GetAvailabilityReservations(c *fiber.Ctx) error {
+	user, ok := middleware.GetLocalUser(c)
+
+	if !ok {
+		return c.Status(401).JSON(fiber.Map{
+			"error": "usuario no autenticado",
+		})
+	}
+
+	reservations, err := services.GetReservations()
+
+	if err != nil {
+		return c.Status(500).JSON(fiber.Map{
+			"error":  "No se pudo cargar la disponibilidad",
+			"detail": err.Error(),
+		})
+	}
+
+	if !user.IsAdmin {
+		for index := range reservations {
+			reservations[index].UserID = 0
+			reservations[index].UserFullName = ""
+			reservations[index].UserEmail = ""
+			reservations[index].UserRUT = ""
+		}
+	}
+
+	return c.JSON(reservations)
+}
+
 func GetMyReservations(c *fiber.Ctx) error {
 	user, ok := middleware.GetLocalUser(c)
 

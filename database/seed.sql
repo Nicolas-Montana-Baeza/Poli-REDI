@@ -1,4 +1,4 @@
--- ============================================================
+﻿-- ============================================================
 -- POLI-REDI - DATOS INICIALES
 -- Azure SQL Database / SQL Server T-SQL
 -- ============================================================
@@ -35,12 +35,14 @@ GO
 SET IDENTITY_INSERT dbo.resources ON;
 INSERT INTO dbo.resources (id, venue_id, name, type, reservation_mode, capacity, is_active)
 VALUES
-(1, 2, 'Cancha de Futbol 1', 'Cancha', 'RESERVABLE', 22, 1),
-(2, 2, 'Cancha de Basquetbol', 'Cancha', 'RESERVABLE', 10, 1),
-(3, 1, 'Piscina', 'Piscina', 'RESERVABLE', 20, 1),
-(4, 1, 'Gimnasio', 'Gimnasio', 'RESERVABLE', 40, 1),
-(5, 1, 'Sala Multiuso', 'Sala', 'ADMIN_ONLY', 25, 1),
-(6, 1, 'Muro Informativo Deportivo', 'Informativo', 'INFORMATIVE', NULL, 1);
+(1, 2, 'Cancha 1, Centro Deportivo', 'Cancha', 'RESERVABLE', 22, 1),
+(2, 2, 'Cancha 2, Centro Deportivo', 'Cancha', 'RESERVABLE', 22, 1),
+(3, 2, 'Muro Escalada, Centro Deportivo', 'Muro Escalada', 'RESERVABLE', 20, 1),
+(4, 2, 'Sala Spinning, Centro Deportivo', 'Sala', 'RESERVABLE', 25, 1),
+(5, 2, 'Piscina, Centro Deportivo', 'Piscina', 'OPEN_USE', 20, 1),
+(6, 2, 'Sala Multiuso, Centro Deportivo', 'Sala', 'ADMIN_ONLY', 25, 1),
+(7, 2, 'Cancha 3, Centro Deportivo', 'Cancha', 'RESERVABLE', 22, 1),
+(8, 2, 'Gimnasio, Centro Deportivo', 'Gimnasio', 'OPEN_USE', 40, 1);
 SET IDENTITY_INSERT dbo.resources OFF;
 GO
 
@@ -106,25 +108,25 @@ GO
 
 -- WORKSHOPS
 SET IDENTITY_INSERT dbo.workshops ON;
-INSERT INTO dbo.workshops (id, title, description, day_text, schedule_text, location, instructor_name, capacity, is_active)
+INSERT INTO dbo.workshops (id, resource_id, title, description, day_text, schedule_text, location, instructor_name, capacity, is_active)
 VALUES
-(1, N'Judo', N'Taller deportivo DAVE.', N'Martes y jueves', N'15:45 a 17:45 h', N'Centro Deportivo', NULL, 25, 1),
-(2, N'Entrenamiento funcional', N'Taller deportivo DAVE.', N'Martes y jueves', N'15:30 a 16:15 h', N'Cancha 2, Centro Deportivo', NULL, 25, 1),
-(3, N'Entrenamiento funcional', N'Taller deportivo DAVE.', N'Martes y jueves', N'17:00 a 18:00 h', N'Cancha 2, Centro Deportivo', NULL, 25, 1),
-(4, N'Entrenamiento funcional', N'Taller deportivo DAVE.', N'Lunes y miércoles', N'17:00 a 17:45 h', N'Cancha 2, Centro Deportivo', NULL, 25, 1),
-(5, N'Entrenamiento funcional', N'Taller deportivo DAVE.', N'Lunes y miércoles', N'18:30 a 19:30 h', N'Cancha 2, Centro Deportivo', NULL, 25, 1),
-(6, N'Escalada', N'Taller deportivo DAVE.', N'Martes y jueves', N'12:00 a 15:00 h', N'Muro Escalada, Centro Deportivo', NULL, 25, 1),
-(7, N'Spinning', N'Taller deportivo DAVE.', N'Lunes a jueves', N'14:15 a 15:00 h', N'Sala Spinning', NULL, 25, 1),
-(8, N'Pilates', N'Taller deportivo DAVE.', N'Lunes y miércoles', N'15:30 a 16:15 h', N'Cancha 2, Centro Deportivo', NULL, 25, 1),
-(9, N'Básquetbol', N'Taller deportivo DAVE.', N'Lunes y viernes', N'Lunes 16:30 a 18:30 h / Viernes 17:30 a 19:00 h', N'Centro Deportivo', NULL, 25, 1),
-(10, N'Futsal', N'Taller deportivo DAVE.', N'Miércoles', N'14:00 a 15:30 h', N'Cancha 2, Centro Deportivo', NULL, 25, 1),
-(11, N'Natación', N'Taller deportivo DAVE.', N'Martes a jueves', N'12:45 a 13:45 h', N'Piscina, Centro Deportivo', NULL, 25, 1),
-(12, N'Tenis mesa', N'Taller deportivo DAVE.', N'Lunes y miércoles', N'Lunes 19:30 a 21:00 h / Miércoles 18:00 a 19:30 h', N'Cancha 2, Centro Deportivo', NULL, 25, 1),
-(13, N'Vóleibol femenino', N'Taller deportivo DAVE.', N'Miércoles', N'20:00 a 21:00 h', N'Centro Deportivo', NULL, 25, 1),
-(14, N'Vóleibol masculino', N'Taller deportivo DAVE.', N'Miércoles', N'17:00 a 19:00 h', N'Centro Deportivo', NULL, 25, 1),
-(15, N'Aikido', N'Taller deportivo DAVE.', N'Miércoles', N'17:00 a 18:00 h', N'Sala Multiuso, Centro Deportivo', NULL, 25, 1),
-(16, N'Esgrima', N'Taller deportivo DAVE.', N'Martes y sábado', N'Martes 19:00 a 21:00 h / Sábado 11:45 a 13:00 h', N'Centro Deportivo', NULL, 25, 1),
-(17, N'Gimnasia artística', N'Taller deportivo DAVE.', N'Viernes', N'15:30 a 16:30 h', N'Cancha 3, Centro Deportivo', NULL, 25, 1);
+(1, 1, N'Judo', N'Taller deportivo DAVE.', N'Martes y jueves', N'15:45 a 17:45 h', N'Centro Deportivo', NULL, 25, 1),
+(2, 2, N'Entrenamiento funcional', N'Taller deportivo DAVE.', N'Martes y jueves', N'15:30 a 16:15 h', N'Cancha 2, Centro Deportivo', NULL, 25, 1),
+(3, 2, N'Entrenamiento funcional', N'Taller deportivo DAVE.', N'Martes y jueves', N'17:00 a 18:00 h', N'Cancha 2, Centro Deportivo', NULL, 25, 1),
+(4, 2, N'Entrenamiento funcional', N'Taller deportivo DAVE.', N'Lunes y miercoles', N'17:00 a 17:45 h', N'Cancha 2, Centro Deportivo', NULL, 25, 1),
+(5, 2, N'Entrenamiento funcional', N'Taller deportivo DAVE.', N'Lunes y miercoles', N'18:30 a 19:30 h', N'Cancha 2, Centro Deportivo', NULL, 25, 1),
+(6, 3, N'Escalada', N'Taller deportivo DAVE.', N'Martes y jueves', N'12:00 a 15:00 h', N'Muro Escalada, Centro Deportivo', NULL, 25, 1),
+(7, 4, N'Spinning', N'Taller deportivo DAVE.', N'Lunes a jueves', N'14:15 a 15:00 h', N'Sala Spinning', NULL, 25, 1),
+(8, 2, N'Pilates', N'Taller deportivo DAVE.', N'Lunes y miercoles', N'15:30 a 16:15 h', N'Cancha 2, Centro Deportivo', NULL, 25, 1),
+(9, 1, N'Basquetbol', N'Taller deportivo DAVE.', N'Lunes y viernes', N'Lunes 16:30 a 18:30 h / Viernes 17:30 a 19:00 h', N'Centro Deportivo', NULL, 25, 1),
+(10, 2, N'Futsal', N'Taller deportivo DAVE.', N'Miercoles', N'14:00 a 15:30 h', N'Cancha 2, Centro Deportivo', NULL, 25, 1),
+(11, 5, N'Natacion', N'Taller deportivo DAVE.', N'Martes a jueves', N'12:45 a 13:45 h', N'Piscina, Centro Deportivo', NULL, 25, 1),
+(12, 2, N'Tenis mesa', N'Taller deportivo DAVE.', N'Lunes y miercoles', N'Lunes 19:30 a 21:00 h / Miercoles 18:00 a 19:30 h', N'Cancha 2, Centro Deportivo', NULL, 25, 1),
+(13, 1, N'Voleibol femenino', N'Taller deportivo DAVE.', N'Miercoles', N'20:00 a 21:00 h', N'Centro Deportivo', NULL, 25, 1),
+(14, 1, N'Voleibol masculino', N'Taller deportivo DAVE.', N'Miercoles', N'17:00 a 19:00 h', N'Centro Deportivo', NULL, 25, 1),
+(15, 6, N'Aikido', N'Taller deportivo DAVE.', N'Miercoles', N'17:00 a 18:00 h', N'Sala Multiuso, Centro Deportivo', NULL, 25, 1),
+(16, 1, N'Esgrima', N'Taller deportivo DAVE.', N'Martes y sabado', N'Martes 19:00 a 21:00 h / Sabado 11:45 a 13:00 h', N'Centro Deportivo', NULL, 25, 1),
+(17, 7, N'Gimnasia artistica', N'Taller deportivo DAVE.', N'Viernes', N'15:30 a 16:30 h', N'Cancha 3, Centro Deportivo', NULL, 25, 1);
 SET IDENTITY_INSERT dbo.workshops OFF;
 GO
 

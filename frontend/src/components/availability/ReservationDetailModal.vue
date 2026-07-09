@@ -49,6 +49,10 @@ const reservationTime = computed(() => {
 })
 
 const statusLabel = computed(() => {
+  if (props.reservation?.isWorkshop) {
+    return 'Taller programado'
+  }
+
   switch (props.reservation?.status) {
     case 'CONFIRMED':
       return 'Confirmada'
@@ -67,8 +71,21 @@ const statusLabel = computed(() => {
 const showCancelAction = computed(() => {
   return (
     props.canCancel &&
+    !props.reservation?.isWorkshop &&
     props.reservation?.status !== 'CANCELLED'
   )
+})
+
+const warningMessage = computed(() => {
+  if (props.reservation?.isWorkshop) {
+    return 'Este bloque corresponde a un taller deportivo y ocupa la instalacion durante ese horario.'
+  }
+
+  if (showCancelAction.value) {
+    return 'Esta accion cambiara la reserva a estado cancelada.'
+  }
+
+  return 'Solo el administrador o quien creo la reserva puede cancelarla.'
 })
 
 const details = computed(() => {
@@ -78,8 +95,12 @@ const details = computed(() => {
 
   return [
     {
-      label: 'Actividad',
+      label: props.reservation.isWorkshop ? 'Taller' : 'Actividad',
       value: props.reservation.title || 'Reserva'
+    },
+    {
+      label: 'Recurso',
+      value: props.reservation.resourceName || 'Recurso'
     },
     {
       label: 'Fecha',
@@ -179,11 +200,13 @@ const handleCancel = () => {
         </div>
 
         <div class="warning">
-          <template v-if="showCancelAction">
+          {{ warningMessage }}
+
+          <template v-if="false">
             Esta acción cambiará la reserva a estado cancelada.
           </template>
 
-          <template v-else>
+          <template v-if="false">
             Solo el administrador o quien creo la reserva puede cancelarla.
           </template>
         </div>

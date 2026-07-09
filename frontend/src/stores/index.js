@@ -15,9 +15,6 @@ import ReservationsView from
 import HistoryView from
 '../views/HistoryView.vue'
 
-import WorkshopsView from
-'../views/WorkshopsView.vue'
-
 import ResourcesView from
 '../views/ResourcesView.vue'
 
@@ -52,11 +49,6 @@ const routes = [
   {
     path: '/history',
     component: HistoryView
-  },
-
-  {
-    path: '/workshops',
-    component: WorkshopsView
   },
 
   {

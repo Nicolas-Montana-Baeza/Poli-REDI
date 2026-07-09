@@ -182,6 +182,31 @@ Tipos permitidos:
 - `TRAINING`
 - `OTHER`
 
+### `workshops`
+
+Representa talleres deportivos recurrentes disponibles para inscripcion de estudiantes.
+
+Campos relevantes:
+
+- `id`
+- `title`
+- `description`
+- `day_text`
+- `schedule_text`
+- `location`
+- `instructor_name`
+- `capacity`
+- `is_active`
+
+### `workshop_enrollments`
+
+Representa inscripciones de usuarios a talleres deportivos.
+
+Estados permitidos:
+
+- `CONFIRMED`
+- `CANCELLED`
+
 ### `violations`
 
 Representa infracciones o incumplimientos de usuarios.
@@ -243,6 +268,15 @@ El trigger `trg_scheduled_activities_validate_conflicts` valida que:
 - Una actividad programada no se cruce con un bloqueo activo.
 - Una actividad programada no se cruce con una reserva confirmada.
 
+### Reglas de talleres
+
+La base de datos registra talleres activos y sus inscripciones. El backend complementa estas reglas con transaccion serializable para validar cupos antes de insertar una inscripcion.
+
+- Cada taller debe tener capacidad mayor a cero.
+- Una inscripcion apunta a un taller y a un usuario existente.
+- Solo puede existir una inscripcion `CONFIRMED` por usuario y taller.
+- El contador de inscritos se calcula desde `workshop_enrollments`.
+
 ### Auditoria y notificaciones
 
 - `trg_violations_notify`: genera una notificacion cuando se registra una infraccion.
@@ -275,6 +309,7 @@ erDiagram
     USERS ||--o{ PARTICIPANTS : joins
     USERS ||--o{ AVAILABILITY_BLOCKS : creates
     USERS ||--o{ SCHEDULED_ACTIVITIES : creates
+    USERS ||--o{ WORKSHOP_ENROLLMENTS : enrolls
     USERS ||--o{ VIOLATIONS : receives
     USERS ||--o{ NOTIFICATIONS : receives
     USERS ||--o{ AUDIT_LOGS : performs
@@ -285,6 +320,7 @@ erDiagram
 
     ACTIVITIES ||--o{ RESERVATIONS : classifies
     ACTIVITIES ||--o{ SCHEDULED_ACTIVITIES : classifies
+    WORKSHOPS ||--o{ WORKSHOP_ENROLLMENTS : has
 
     RESERVATIONS ||--o{ PARTICIPANTS : has
     RESERVATIONS ||--o{ VIOLATIONS : may_generate
@@ -373,6 +409,25 @@ erDiagram
         boolean is_active
     }
 
+    WORKSHOPS {
+        int id PK
+        string title
+        string description
+        string day_text
+        string schedule_text
+        string location
+        string instructor_name
+        int capacity
+        boolean is_active
+    }
+
+    WORKSHOP_ENROLLMENTS {
+        int id PK
+        int workshop_id FK
+        int user_id FK
+        string status
+    }
+
     VIOLATIONS {
         int id PK
         int user_id FK
@@ -414,7 +469,7 @@ erDiagram
 
 - Probar `database/schema.sql` y `database/seed.sql` en una base limpia desde cero.
 - Agregar pruebas automatizadas para reglas de reservas.
-- Revisar si los nombres de campos del nuevo modelo requieren ajustar modelos Go y servicios frontend.
+- Agregar pruebas automatizadas para inscripcion de talleres, cupos completos e inscripcion duplicada.
 - Definir si `scheduled_activities` sera editable desde el panel administrador.
 - Definir politicas de auditoria completas para mas entidades, no solo reservas.
 - Definir politicas de retencion para `notifications` y `audit_logs`.
@@ -428,9 +483,10 @@ Continuar con una revision funcional de pantallas:
 3. Recursos
 4. Mis Reservas
 5. Historial
-6. Administracion
-7. Usuarios
-8. Reportes
-9. Configuracion
+6. Talleres
+7. Administracion
+8. Usuarios
+9. Reportes
+10. Configuracion
 
 El objetivo de esa revision es detectar que pantallas estan completas, cuales cargan datos reales y cuales deben convertirse en tareas del backlog.

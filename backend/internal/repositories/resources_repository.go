@@ -69,3 +69,50 @@ func GetAllResources() ([]models.Resource, error) {
 
 	return resources, nil
 }
+
+func GetResourceByID(id int) (models.Resource, error) {
+	row := database.DB.QueryRowContext(
+		context.Background(),
+		`
+		SELECT
+			id,
+			name,
+			type,
+			reservation_mode,
+			capacity,
+			is_active
+		FROM dbo.resources
+		WHERE id = @p1;
+		`,
+		id,
+	)
+
+	var resource models.Resource
+	var capacity sql.NullInt64
+
+	err := row.Scan(
+		&resource.ID,
+		&resource.Name,
+		&resource.Type,
+		&resource.ReservationMode,
+		&capacity,
+		&resource.IsActive,
+	)
+
+	if err != nil {
+		return models.Resource{}, err
+	}
+
+	if capacity.Valid {
+		value := int(capacity.Int64)
+		resource.Capacity = &value
+	}
+
+	if resource.IsActive {
+		resource.Status = "available"
+	} else {
+		resource.Status = "maintenance"
+	}
+
+	return resource, nil
+}

@@ -14,8 +14,6 @@ import {
   Users,
   Settings,
   BarChart3,
-  HelpCircle,
-  LogOut,
   Menu,
   ShieldCheck,
   X
@@ -139,18 +137,19 @@ const menu = computed(() => {
     <Menu :size="23" />
   </button>
 
-  <!-- OVERLAY -->
-  <div
-    v-if="isOpen"
-    class="overlay"
-    @click="closeSidebar"
-  />
+  <Teleport to="body">
+    <div
+      v-if="isOpen"
+      class="overlay"
+      @click="closeSidebar"
+    />
+  </Teleport>
 
-  <!-- SIDEBAR -->
-  <aside
-    class="sidebar"
-    :class="{ open: isOpen }"
-  >
+  <Teleport to="body">
+    <aside
+      class="sidebar"
+      :class="{ open: isOpen }"
+    >
 
     <!-- TOP -->
     <div class="top">
@@ -222,46 +221,8 @@ const menu = computed(() => {
 
     </div>
 
-    <!-- FOOTER -->
-    <div class="footer">
-
-      <SidebarItem
-        label="Ayuda"
-        :icon="HelpCircle"
-        to="/"
-      />
-
-      <SidebarItem
-        label="Cerrar sesión"
-        :icon="LogOut"
-        to="/"
-      />
-
-      <!-- SECURITY -->
-      <div class="security-box">
-
-        <div class="shield">
-          <ShieldCheck :size="20" />
-        </div>
-
-        <div>
-
-          <strong>
-            Seguro y confiable
-          </strong>
-
-          <p>
-            Tus datos están protegidos
-            con altos estándares.
-          </p>
-
-        </div>
-
-      </div>
-
-    </div>
-
-  </aside>
+    </aside>
+  </Teleport>
 
 </template>
 
@@ -301,9 +262,7 @@ const menu = computed(() => {
   position: fixed;
   inset: 0;
 
-  background: rgba(15, 23, 42, 0.32);
-
-  backdrop-filter: blur(2px);
+  background: rgba(15, 23, 42, 0.24);
 
   z-index: 998;
 }
@@ -455,64 +414,6 @@ const menu = computed(() => {
   flex-direction: column;
 
   gap: 6px;
-}
-
-/* FOOTER */
-.footer {
-  margin-top: 32px;
-
-  display: flex;
-  flex-direction: column;
-
-  gap: 10px;
-}
-
-/* SECURITY */
-.security-box {
-  margin-top: 20px;
-
-  padding: 16px;
-
-  border-radius: var(--radius-lg);
-
-  background: var(--color-surface-muted);
-
-  border: 1px solid var(--color-border-soft);
-
-  display: flex;
-
-  gap: 14px;
-}
-
-.shield {
-  width: 42px;
-  height: 42px;
-
-  border-radius: var(--radius-md);
-
-  background: var(--color-primary-soft);
-  color: var(--color-primary);
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  flex-shrink: 0;
-}
-
-.security-box strong {
-  font-size: 14px;
-
-  color: var(--color-text);
-}
-
-.security-box p {
-  margin-top: 4px;
-
-  font-size: 12px;
-  line-height: 1.5;
-
-  color: var(--color-sidebar-muted);
 }
 
 /* SCROLL */

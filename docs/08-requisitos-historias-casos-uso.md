@@ -8,7 +8,7 @@ Debe mantenerse actualizado junto con el backlog, la arquitectura, el flujo de r
 
 ## Alcance del sistema
 
-Poli-REDI es un sistema web para gestionar reservas deportivas institucionales. Permite a usuarios autenticados consultar disponibilidad, registrar reservas, cancelar reservas propias, revisar historial y recibir notificaciones. Los administradores pueden revisar informacion operacional, usuarios, recursos, reportes y, en iteraciones futuras, gestionar bloqueos, recursos, programacion institucional e infracciones.
+Poli-REDI es un sistema web para gestionar reservas deportivas institucionales. Permite a usuarios autenticados consultar disponibilidad, registrar reservas, cancelar reservas propias, revisar historial, inscribirse en talleres deportivos y recibir notificaciones. Los administradores pueden revisar informacion operacional, usuarios, recursos, reportes y, en iteraciones futuras, gestionar bloqueos, recursos, programacion institucional e infracciones.
 
 ## Actores
 
@@ -22,6 +22,7 @@ Responsabilidades principales:
 - Crear reservas propias.
 - Registrar o actualizar RUT cuando corresponda.
 - Revisar sus reservas e historial.
+- Consultar talleres deportivos e inscribirse cuando existan cupos.
 - Cancelar reservas permitidas.
 - Revisar notificaciones.
 
@@ -52,7 +53,7 @@ Sistema de persistencia.
 
 Responsabilidades principales:
 
-- Guardar usuarios, recursos, actividades, reservas, notificaciones y datos administrativos.
+- Guardar usuarios, recursos, actividades, reservas, talleres, inscripciones, notificaciones y datos administrativos.
 - Aplicar reglas de integridad y restricciones criticas.
 - Proveer vistas de apoyo para reportes y calendario.
 
@@ -187,6 +188,14 @@ El sistema debe mostrar indicadores de uso, horas punta y datos administrativos.
 Estado actual: Implementado parcialmente.
 
 Pendiente relacionado: `REP-001`, `REP-002`.
+
+### RF-019 - Talleres deportivos
+
+El sistema debe permitir que usuarios autenticados consulten talleres activos e inscribirse cuando tengan RUT y existan cupos.
+
+Estado actual: Implementado.
+
+Pendiente relacionado: `UI-006`.
 
 ## Requisitos no funcionales
 
@@ -388,6 +397,18 @@ Criterios de aceptacion:
 - Se muestran horas punta.
 - En una iteracion futura, se integraran infracciones y vistas SQL dedicadas.
 
+### HU-014 - Inscribirse en taller deportivo
+
+Como usuario normal, quiero revisar talleres deportivos disponibles e inscribirme en uno con cupos para participar en actividades institucionales.
+
+Criterios de aceptacion:
+
+- Se muestran talleres activos con dia, horario, lugar, capacidad e inscritos.
+- Puedo buscar talleres por nombre, dia o lugar.
+- Si ya estoy inscrito, el sistema lo indica y no duplica la inscripcion.
+- Si no tengo RUT, el backend rechaza la inscripcion.
+- Si no hay cupos, el sistema impide la inscripcion.
+
 ## Casos de uso
 
 ### CU-001 - Autenticarse en el sistema
@@ -553,6 +574,35 @@ Flujos alternativos:
 
 - Si no hay sesion, la campana no consulta la API.
 
+### CU-008 - Inscribirse en taller
+
+Actor principal: Usuario normal.
+
+Precondiciones:
+
+- El usuario esta autenticado.
+- El usuario tiene RUT registrado.
+- Existe al menos un taller activo con cupos.
+
+Flujo principal:
+
+1. El usuario abre Talleres.
+2. El frontend solicita talleres activos.
+3. El sistema muestra cupos, horario, lugar y estado de inscripcion.
+4. El usuario solicita inscribirse.
+5. El backend valida usuario, RUT, taller activo, cupo disponible e inscripcion duplicada.
+6. El sistema registra la inscripcion y actualiza el taller.
+
+Postcondiciones:
+
+- El usuario queda inscrito en el taller seleccionado.
+
+Flujos alternativos:
+
+- Si falta RUT, el backend rechaza la inscripcion.
+- Si el taller esta lleno, el sistema muestra error.
+- Si el usuario ya estaba inscrito, el sistema evita duplicar la inscripcion.
+
 ## Matriz de trazabilidad inicial
 
 | Requisito | Historias relacionadas | Backlog relacionado |
@@ -575,6 +625,7 @@ Flujos alternativos:
 | RF-016 | HU-012 | ADMIN-005 |
 | RF-017 | HU-008 | NOTIF-001 |
 | RF-018 | HU-013 | REP-001, REP-002 |
+| RF-019 | HU-014 | UI-006 |
 | RNF-008 | HU-003, HU-004 | API-004 |
 | RNF-009 | HU-003, HU-004, HU-005 | UX-001, UX-002 |
 
