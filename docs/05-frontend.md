@@ -72,6 +72,8 @@ Recomendacion:
 - Los talleres activos se proyectan como bloques de ocupacion en la disponibilidad del recurso.
 - Los recursos de uso libre se muestran como `Uso libre` y usan segmentos de intensidad en vez de bloquear completamente el horario.
 - La disponibilidad consume un endpoint sanitizado, separado de la consulta administrativa de reservas.
+- El catalogo y dashboard muestran imagenes de recursos cuando existen, con fallback visual cuando faltan.
+- Los administradores pueden cambiar la imagen de un recurso desde la vista de recursos.
 - Las reservas existentes aparecen como bloques visuales sobre la linea de tiempo.
 - La cancelacion queda limitada visualmente al propietario de la reserva o a administradores.
 

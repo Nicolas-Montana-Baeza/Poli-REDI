@@ -143,11 +143,15 @@ GET /api/me
 PATCH /api/me/rut
 GET /api/resources
 GET /api/activities
+GET /api/workshops
+POST /api/workshops/:id/enroll
+GET /api/availability/reservations
 GET /api/reservations
 GET /api/reservations/mine
 POST /api/reservations
 PATCH /api/reservations/cancel
 GET /api/users
+PATCH /api/resources/:id/image
 GET /api/notifications
 ```
 

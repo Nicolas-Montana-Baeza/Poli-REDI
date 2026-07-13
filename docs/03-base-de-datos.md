@@ -124,6 +124,8 @@ Modos de reserva:
 
 `OPEN_USE` representa recursos de uso libre, como piscina o gimnasio, donde varias reservas pueden coexistir para medir asistencia o intensidad de uso sin bloquear el recurso completo.
 
+`image_url` permite asociar una URL `http`, `https` o ruta local iniciada en `/` para mostrar imagenes del recurso en dashboard y catalogo. Es opcional y puede quedar `NULL`.
+
 ### `activities`
 
 Representa actividades asociadas a reservas o programacion institucional.
@@ -361,6 +363,7 @@ erDiagram
         string name
         string type
         string reservation_mode
+        string image_url
         int capacity
         boolean is_active
     }

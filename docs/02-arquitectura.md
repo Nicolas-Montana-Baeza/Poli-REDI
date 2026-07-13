@@ -34,6 +34,7 @@ Responsabilidades principales:
 - Proteger rutas publicas, autenticadas y administrativas.
 - Consultar recursos, actividades, reservas, talleres, notificaciones y usuario actual.
 - Mostrar disponibilidad, formularios de reserva, historial, talleres deportivos y panel admin base.
+- Mostrar imagenes configurables de recursos y permitir su actualizacion a administradores.
 - Enviar reservas sin confiar en IDs de usuario definidos en cliente.
 - Consumir disponibilidad desde un endpoint sanitizado y combinarla con talleres recurrentes para bloquear horarios ocupados.
 
@@ -59,6 +60,7 @@ Responsabilidades principales:
 - Aplicar permisos de usuario normal y administrador.
 - Crear y cancelar reservas usando el usuario autenticado.
 - Listar talleres activos e inscribir al usuario autenticado cuando tenga RUT.
+- Actualizar imagenes de recursos mediante ruta administrativa protegida.
 - Exponer disponibilidad sanitizada para usuarios normales y detalle completo de reservas solo a administradores.
 - Validar que reservas no se crucen con talleres activos asociados al mismo recurso.
 - Validar RUT obligatorio para usuarios normales.
@@ -77,6 +79,7 @@ Scripts principales:
 La base aplica reglas criticas mediante constraints, indices, triggers y vistas:
 
 - Usuarios, recursos, actividades, reservas, talleres e inscripciones.
+- Imagen opcional por recurso mediante `resources.image_url`.
 - Validacion basica de RUT.
 - Conflictos de reserva por recurso y usuario.
 - Recursos de uso libre (`OPEN_USE`) que permiten concurrencia y se visualizan como intensidad de uso.

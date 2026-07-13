@@ -72,6 +72,18 @@ BEGIN
 END;
 GO
 
+IF COL_LENGTH('dbo.users', 'entra_oid') IS NULL
+BEGIN
+    ALTER TABLE dbo.users ADD entra_oid NVARCHAR(100) NULL;
+END;
+GO
+
+IF COL_LENGTH('dbo.users', 'tenant_id') IS NULL
+BEGIN
+    ALTER TABLE dbo.users ADD tenant_id NVARCHAR(100) NULL;
+END;
+GO
+
 IF NOT EXISTS (SELECT 1 FROM sys.check_constraints WHERE name = 'ck_users_rut_basic_format' AND parent_object_id = OBJECT_ID('dbo.users'))
 BEGIN
     ALTER TABLE dbo.users ADD CONSTRAINT ck_users_rut_basic_format CHECK (
@@ -107,6 +119,24 @@ BEGIN
         CONSTRAINT ck_resources_capacity CHECK (capacity IS NULL OR capacity > 0),
         CONSTRAINT uq_resources_venue_name UNIQUE (venue_id, name)
     );
+END;
+GO
+
+IF COL_LENGTH('dbo.resources', 'reservation_mode') IS NULL
+BEGIN
+    ALTER TABLE dbo.resources ADD reservation_mode NVARCHAR(50) NOT NULL CONSTRAINT df_resources_reservation_mode DEFAULT ('RESERVABLE');
+END;
+GO
+
+IF COL_LENGTH('dbo.resources', 'image_url') IS NULL
+BEGIN
+    ALTER TABLE dbo.resources ADD image_url NVARCHAR(500) NULL;
+END;
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.check_constraints WHERE name = 'ck_resources_reservation_mode' AND parent_object_id = OBJECT_ID('dbo.resources'))
+BEGIN
+    ALTER TABLE dbo.resources ADD CONSTRAINT ck_resources_reservation_mode CHECK (reservation_mode IN ('RESERVABLE', 'OPEN_USE', 'INFORMATIVE', 'ADMIN_ONLY'));
 END;
 GO
 

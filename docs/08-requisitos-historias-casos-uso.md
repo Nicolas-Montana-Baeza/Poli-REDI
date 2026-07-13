@@ -129,9 +129,9 @@ Pendiente relacionado: `UI-003`.
 
 ### RF-011 - Catalogo de recursos
 
-El sistema debe mostrar recursos deportivos con datos reales.
+El sistema debe mostrar recursos deportivos con datos reales e imagen configurable cuando exista.
 
-Estado actual: Implementado parcialmente.
+Estado actual: Implementado.
 
 Pendiente relacionado: `UI-001`.
 
@@ -153,7 +153,7 @@ Pendiente relacionado: `ADMIN-002`.
 
 El sistema debe permitir crear, editar, activar o desactivar recursos deportivos.
 
-Estado actual: Pendiente.
+Estado actual: Implementado parcialmente. Administradores ya pueden actualizar la imagen del recurso; falta CRUD completo, sede, modo de reserva y activacion/desactivacion.
 
 Pendiente relacionado: `ADMIN-003`.
 
@@ -373,7 +373,8 @@ Como administrador, quiero mantener el catalogo de recursos deportivos para que 
 
 Criterios de aceptacion:
 
-- Puedo crear, editar, activar o desactivar recursos.
+- Puedo actualizar la imagen de un recurso existente.
+- En una iteracion futura, podre crear, editar, activar o desactivar recursos completos.
 - No se eliminan recursos con historial sin criterio definido.
 - Los cambios se reflejan en disponibilidad.
 

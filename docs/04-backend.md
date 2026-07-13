@@ -27,6 +27,7 @@ La estructura principal esta organizada por capas:
 - Los usuarios normales sin RUT no pueden crear reservas.
 - La inscripcion a talleres usa el usuario autenticado, exige RUT a usuarios normales y valida cupos.
 - La ruta de usuarios y la consulta completa de reservas usan `RequireAdmin`.
+- La imagen de un recurso se actualiza con ruta administrativa protegida por `RequireAdmin`.
 - La disponibilidad cuenta con endpoint sanitizado para ocultar datos personales de reservas ajenas a usuarios normales.
 - Las reservas sobre recursos `OPEN_USE` no bloquean otros usos del mismo recurso.
 - La creacion de reservas rechaza cruces con talleres activos asociados al mismo recurso.
@@ -52,6 +53,7 @@ La estructura principal esta organizada por capas:
 
 - `GET /api/users`
 - `GET /api/reservations`
+- `PATCH /api/resources/:id/image`
 
 ## Hallazgos de seguridad leve
 
@@ -66,7 +68,7 @@ Mejora recomendada:
 
 ### Middleware administrativo explicito
 
-La ruta de usuarios ya esta agrupada bajo `RequireAdmin`. Aun asi, conviene mantener este patron para futuras rutas administrativas.
+La ruta de usuarios, la consulta completa de reservas y la actualizacion de imagenes de recursos ya usan `RequireAdmin`. Aun asi, conviene mantener este patron para futuras rutas administrativas.
 
 Mejora recomendada:
 
@@ -127,6 +129,15 @@ La prioridad debe estar en reglas de negocio y permisos.
 - Usuario normal no accede a rutas admin.
 - Usuario bloqueado recibe 403.
 - Modo dev sin cabeceras requeridas recibe 401.
+- Usuario normal no puede actualizar imagenes de recursos.
+
+### Casos criticos de recursos
+
+- Listar recursos con `imageUrl` cuando exista.
+- Actualizar imagen de recurso como administrador.
+- Rechazar ID de recurso invalido.
+- Rechazar URL de imagen con formato no permitido.
+- Permitir limpiar la imagen enviando valor vacio.
 
 ### Casos criticos de talleres
 

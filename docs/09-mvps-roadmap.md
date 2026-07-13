@@ -59,6 +59,12 @@ Construir la base operativa del sistema: aplicacion web, API, base de datos real
 - `BACK-009`
 - `BACK-010`
 - `BACK-011`
+- `BACK-012`
+- `BACK-013`
+- `BACK-014`
+- `BACK-015`
+- `BACK-016`
+- `BACK-017`
 - `AUTH-001`
 - `AUTH-002`
 - `API-003`
@@ -97,6 +103,12 @@ El MVP 1 ya esta funcional y desplegado como demo online, pero se reabre para ap
 - Crear una base global de sistema visual para reducir inconsistencias (`BACK-007`).
 - Aplicar esa base global a pantallas y componentes principales del MVP 1 (`BACK-008`).
 - Separar estado real de categoria temporal de reserva (`BACK-009`).
+- Alinear el formulario de reserva con los datos realmente persistidos (`BACK-012`).
+- Retirar controles visibles sin accion en disponibilidad (`BACK-013`).
+- Rechazar cancelacion de reservas finalizadas desde backend (`BACK-014`).
+- Unificar estado visual del modal de disponibilidad con el helper compartido (`BACK-015`).
+- Sincronizar el mini calendario con la navegacion de dias (`BACK-016`).
+- Hacer accesible la seleccion de instalacion en el formulario (`BACK-017`).
 - Definir plan de corte desde Google Calendar legado antes de mover operacion real (`OPS-001`).
 - Dejar evidencia de `go test ./...` y `npm run build` antes del cierre definitivo.
 
@@ -136,6 +148,7 @@ Entregar una experiencia usable para el usuario normal, desde login hasta reserv
 - Talleres deportivos con inscripcion.
 - Catalogo de recursos con datos reales.
 - Filtros basicos de recursos en frontend.
+- Imagenes configurables de recursos en catalogo y dashboard.
 - Dashboard con datos reales.
 - Configuracion de cuenta.
 - Cierre de sesion redirigido a `/login`.
@@ -149,6 +162,7 @@ Entregar una experiencia usable para el usuario normal, desde login hasta reserv
 - `RES-005`
 - `RES-006`
 - `RES-007`
+- `RES-008`
 - `UI-001`
 - `UI-002`
 - `UI-003`
@@ -157,6 +171,7 @@ Entregar una experiencia usable para el usuario normal, desde login hasta reserv
 - `UI-006`
 - `UX-001`
 - `UX-002`
+- `UX-003`
 - `NOTIF-001`
 - `API-002`
 - `API-004`
@@ -195,14 +210,16 @@ Entregar una experiencia usable para el usuario normal, desde login hasta reserv
 
 Muy avanzado.
 
-Incluye tambien una primera version funcional de talleres deportivos: listado de talleres activos, busqueda, cupos, estado de inscripcion e inscripcion protegida por RUT. La disponibilidad ya consume un endpoint sanitizado y muestra talleres como ocupacion recurrente; los recursos `OPEN_USE` operan como uso libre con intensidad de uso.
+Incluye tambien una primera version funcional de talleres deportivos: listado de talleres activos, busqueda, cupos, estado de inscripcion e inscripcion protegida por RUT. La disponibilidad ya consume un endpoint sanitizado y muestra talleres como ocupacion recurrente; los recursos `OPEN_USE` operan como uso libre con intensidad de uso. El catalogo y dashboard ya pueden mostrar imagenes configuradas para recursos.
 
 ### Pendientes para cierre completo
 
 - Completar filtros backend de reservas por fecha/rango/estado (`API-002`).
 - Completar filtros por fecha/rango y sumar bloqueos/actividades al endpoint de disponibilidad (`API-004`, `ADMIN-004`, `ADMIN-005`).
 - Agregar confirmacion fuerte antes de cancelar reservas (`RES-007`).
+- Persistir participantes y validar capacidad si el campo vuelve al formulario (`RES-008`).
 - Profesionalizar la seleccion de horario, capacidad, etiquetas humanas y experiencia movil (`UX-001`).
+- Mostrar feedback preventivo de conflicto antes de confirmar una reserva (`UX-003`).
 - Completar notificaciones: marcar como leida y diferenciar leidas/no leidas (`NOTIF-001`).
 - Confirmar si el detalle de reserva requiere participantes persistidos (`UI-002`).
 
@@ -225,6 +242,7 @@ Convertir Poli-REDI en una herramienta administrable por la institucion, con cal
 - Resumen administrativo de recursos y reservas.
 - Reportes iniciales visibles para administradores.
 - Cancelacion administrativa de reservas.
+- Actualizacion administrativa de imagenes de recursos.
 
 ### Backlog relacionado
 
@@ -263,7 +281,7 @@ Parcial.
 
 - Integrar reservas, bloqueos y actividades programadas en un calendario unificado (`RES-004`).
 - Crear bloqueos de disponibilidad desde administracion (`ADMIN-004`).
-- Implementar CRUD basico de recursos (`ADMIN-003`).
+- Completar CRUD basico de recursos; la actualizacion de imagen ya esta implementada (`ADMIN-003`).
 - Bloquear y desbloquear usuarios con auditoria (`ADMIN-002`).
 - Registrar programacion institucional (`ADMIN-005`).
 - Agregar filtros backend de recursos por sede, tipo y estado (`API-001`).

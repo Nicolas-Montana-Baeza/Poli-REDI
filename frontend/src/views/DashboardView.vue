@@ -1,7 +1,6 @@
 <script setup>
 import { computed, onMounted } from 'vue'
 
-import QuickActions from '../components/dashboard/QuickActions.vue'
 import FacilityCarousel from '../components/dashboard/FacilityCarousel.vue'
 import ReservationsPanel from '../components/dashboard/ReservationsPanel.vue'
 import SkeletonLoader from '@/components/ui/SkeletonLoader.vue'
@@ -72,9 +71,6 @@ const reservations = computed(() => {
 
     </section>
 
-    <!-- QUICK ACTIONS -->
-    <QuickActions />
-
     <!-- FACILITIES -->
     <section class="section">
 
@@ -127,7 +123,7 @@ const reservations = computed(() => {
         <div>
 
           <h2>
-            Proximas Reservas
+            Próximas Reservas
           </h2>
 
           <p>
@@ -185,9 +181,9 @@ const reservations = computed(() => {
       #2563eb
     );
 
-  border-radius: 28px;
+  border-radius: var(--radius-xl);
 
-  padding: 36px;
+  padding: 30px;
 
   color: white;
 
@@ -199,7 +195,7 @@ const reservations = computed(() => {
 .hero h1 {
   margin: 0;
 
-  font-size: 36px;
+  font-size: 32px;
   font-weight: 800;
 }
 
@@ -240,25 +236,7 @@ const reservations = computed(() => {
 }
 
 .state-card {
-  background: white;
-
-  border-radius: 18px;
-
-  padding: 20px;
-
-  border: 1px solid #e2e8f0;
-
-  color: #334155;
-
-  font-weight: 700;
-}
-
-.state-card.error {
-  background: #fee2e2;
-
-  color: #b91c1c;
-
-  border-color: #fecaca;
+  padding: var(--space-5);
 }
 
 /* TABLET */

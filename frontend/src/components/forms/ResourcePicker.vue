@@ -48,14 +48,18 @@ const handleSelect = (resource) => {
     <div
       v-else
       class="resources"
+      role="radiogroup"
+      aria-label="Instalación"
     >
 
-      <div
+      <button
         v-for="resource in resources"
         :key="resource.id"
-
+        type="button"
+        role="radio"
         class="resource-card"
-
+        :aria-checked="selectedId === resource.id"
+        :aria-label="`${resource.name}, ${resource.type}`"
         :class="{
           selected:
             selectedId === resource.id
@@ -94,7 +98,7 @@ const handleSelect = (resource) => {
           Seleccionado
         </div>
 
-      </div>
+      </button>
 
     </div>
 
@@ -163,6 +167,7 @@ const handleSelect = (resource) => {
   border: 1px solid #e2e8f0;
 
   background: white;
+  color: inherit;
 
   display: flex;
   align-items: center;
@@ -171,6 +176,9 @@ const handleSelect = (resource) => {
   gap: 14px;
 
   cursor: pointer;
+
+  font: inherit;
+  text-align: left;
 
   transition: 0.2s;
 
@@ -181,6 +189,11 @@ const handleSelect = (resource) => {
   background: #eff6ff;
 
   border-color: #bfdbfe;
+}
+
+.resource-card:focus-visible {
+  outline: 3px solid rgba(37, 99, 235, 0.28);
+  outline-offset: 2px;
 }
 
 /* SELECTED */

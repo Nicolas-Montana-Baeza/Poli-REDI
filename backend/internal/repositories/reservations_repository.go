@@ -3,6 +3,7 @@ package repositories
 import (
 	"context"
 	"database/sql"
+	"time"
 
 	"poli-redi-api/internal/database"
 	"poli-redi-api/internal/models"
@@ -237,16 +238,20 @@ func mapReservationType(status string) string {
 	}
 }
 
-func GetReservationOwnerAndStatus(id int) (int, string, error) {
+func GetReservationCancellationSnapshot(id int) (int, string, time.Time, int, error) {
 	var ownerID int
 	var status string
+	var startTime time.Time
+	var durationMinutes int
 
 	err := database.DB.QueryRowContext(
 		context.Background(),
 		`
 		SELECT
 			user_id,
-			status
+			status,
+			start_time,
+			duration_minutes
 		FROM dbo.reservations
 		WHERE id = @p1;
 		`,
@@ -254,13 +259,15 @@ func GetReservationOwnerAndStatus(id int) (int, string, error) {
 	).Scan(
 		&ownerID,
 		&status,
+		&startTime,
+		&durationMinutes,
 	)
 
 	if err != nil {
-		return 0, "", err
+		return 0, "", time.Time{}, 0, err
 	}
 
-	return ownerID, status, nil
+	return ownerID, status, startTime, durationMinutes, nil
 }
 
 func CancelReservation(id int) (models.Reservation, error) {

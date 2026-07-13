@@ -2,8 +2,7 @@
 import {
   ChevronLeft,
   ChevronRight,
-  CalendarDays,
-  Filter
+  CalendarDays
 } from 'lucide-vue-next'
 
 const props = defineProps({
@@ -16,8 +15,7 @@ const props = defineProps({
 const emit = defineEmits([
   'prev-day',
   'next-day',
-  'today',
-  'open-calendar'
+  'today'
 ])
 </script>
 
@@ -38,11 +36,7 @@ const emit = defineEmits([
           <ChevronLeft :size="18" />
         </button>
 
-        <button
-          class="toolbar-button date-button"
-          type="button"
-          @click="$emit('open-calendar')"
-        >
+        <div class="date-label">
 
           <CalendarDays :size="18" />
 
@@ -50,7 +44,7 @@ const emit = defineEmits([
             {{ currentDate }}
           </span>
 
-        </button>
+        </div>
 
         <button
           class="toolbar-button icon-button"
@@ -66,20 +60,6 @@ const emit = defineEmits([
 
     <!-- RIGHT -->
     <div class="right">
-
-      <!-- FILTER -->
-      <button
-        class="toolbar-button filter-button"
-        type="button"
-      >
-
-        <Filter :size="18" />
-
-        <span>
-          Filtros
-        </span>
-
-      </button>
 
       <!-- TODAY -->
       <button
@@ -149,10 +129,19 @@ const emit = defineEmits([
 }
 
 /* DATE BUTTON */
-.date-button {
+.date-label {
+  height: 42px;
   padding: 0 18px;
   gap: 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
   color: var(--color-text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 700;
 }
 
 /* RIGHT */
@@ -160,12 +149,6 @@ const emit = defineEmits([
   display: flex;
   align-items: center;
   gap: 12px;
-}
-
-/* FILTER */
-.filter-button {
-  padding: 0 16px;
-  gap: 10px;
 }
 
 /* TODAY */
@@ -189,12 +172,11 @@ const emit = defineEmits([
     width: 100%;
   }
 
-  .date-button {
+  .date-label {
     flex: 1;
     justify-content: center;
   }
 
-  .filter-button,
   .today-button {
     flex: 1;
     justify-content: center;

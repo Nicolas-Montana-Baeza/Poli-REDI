@@ -335,7 +335,8 @@ func CancelReservation(
 		return models.Reservation{}, errors.New("usuario autenticado es obligatorio")
 	}
 
-	ownerID, status, err := repositories.GetReservationOwnerAndStatus(reservationID)
+	ownerID, status, startTime, durationMinutes, err :=
+		repositories.GetReservationCancellationSnapshot(reservationID)
 
 	if errors.Is(err, sql.ErrNoRows) {
 		return models.Reservation{}, errors.New("reserva no encontrada")
@@ -351,6 +352,14 @@ func CancelReservation(
 
 	if status == "CANCELLED" {
 		return models.Reservation{}, errors.New("la reserva ya est\u00e1 cancelada")
+	}
+
+	reservationEnd := startTime.Add(
+		time.Duration(durationMinutes) * time.Minute,
+	)
+
+	if !reservationEnd.After(time.Now()) {
+		return models.Reservation{}, errors.New("no puedes cancelar una reserva finalizada")
 	}
 
 	cancelledReservation, err := repositories.CancelReservation(reservationID)

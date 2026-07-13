@@ -51,8 +51,6 @@ const form = ref({
 
   durationMinutes: 60,
 
-  participantsCount: 1,
-
   activityId: null
 })
 
@@ -103,8 +101,6 @@ watch(
       new Date().toISOString().slice(0, 10)
 
     form.value.durationMinutes = 60
-
-    form.value.participantsCount = 1
 
     form.value.activityId =
       slot.resource?.reservationMode === 'OPEN_USE'
@@ -163,10 +159,6 @@ const handleDateTimeUpdate = (data) => {
   fieldErrors.value.durationMinutes = ''
 }
 
-const handleParticipantsUpdate = () => {
-  fieldErrors.value.participantsCount = ''
-}
-
 const isPastReservationStart = () => {
   if (!form.value.date || !form.value.hour) {
     return false
@@ -202,10 +194,6 @@ const validateForm = () => {
     isPastReservationStart()
   ) {
     errors.hour = 'No puedes crear reservas en fechas u horarios pasados.'
-  }
-
-  if (Number(form.value.participantsCount) <= 0) {
-    errors.participantsCount = 'La cantidad de participantes debe ser mayor a 0.'
   }
 
   fieldErrors.value = errors
@@ -265,6 +253,8 @@ const handleClose = () => {
 
           <button
             class="close-btn"
+            type="button"
+            aria-label="Cerrar formulario de reserva"
             :disabled="submitting"
             @click="handleClose"
           >
@@ -380,34 +370,6 @@ const handleClose = () => {
 
         </div>
 
-        <!-- PARTICIPANTS -->
-        <div class="field">
-
-          <label for="participantsCount">
-            Participantes
-          </label>
-
-          <input
-            id="participantsCount"
-            v-model.number="form.participantsCount"
-            type="number"
-            min="1"
-            step="1"
-            inputmode="numeric"
-            :class="{ invalid: fieldErrors.participantsCount }"
-            :disabled="submitting"
-            @input="handleParticipantsUpdate"
-          />
-
-          <p
-            v-if="fieldErrors.participantsCount"
-            class="field-error"
-          >
-            {{ fieldErrors.participantsCount }}
-          </p>
-
-        </div>
-
         <!-- FORM ERROR -->
         <div
           v-if="errorMessage"
@@ -421,6 +383,7 @@ const handleClose = () => {
 
           <button
             class="cancel-btn app-button secondary"
+            type="button"
             :disabled="submitting"
             @click="handleClose"
           >
@@ -429,6 +392,7 @@ const handleClose = () => {
 
           <button
             class="submit-btn app-button primary"
+            type="button"
             :disabled="!canSubmit"
             @click="handleSubmit"
           >

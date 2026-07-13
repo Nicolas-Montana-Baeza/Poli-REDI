@@ -1,5 +1,5 @@
 ﻿<script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 
 const props = defineProps({
   month: {
@@ -24,6 +24,29 @@ const emit = defineEmits([
 
 const currentMonth = ref(props.month)
 const currentYear = ref(props.year)
+
+const syncVisibleMonth = (dateKey) => {
+  if (!dateKey) {
+    return
+  }
+
+  const date = new Date(`${dateKey}T00:00:00`)
+
+  if (Number.isNaN(date.getTime())) {
+    return
+  }
+
+  currentMonth.value = date.getMonth()
+  currentYear.value = date.getFullYear()
+}
+
+watch(
+  () => props.selectedDate,
+  syncVisibleMonth,
+  {
+    immediate: true
+  }
+)
 
 const monthNames = [
   'Enero',

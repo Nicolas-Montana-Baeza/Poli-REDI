@@ -36,7 +36,7 @@ SET IDENTITY_INSERT dbo.resources ON;
 INSERT INTO dbo.resources (id, venue_id, name, type, reservation_mode, image_url, capacity, is_active)
 VALUES
 (1, 2, 'Cancha 1, Centro Deportivo', 'Cancha', 'RESERVABLE', 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&w=900&q=80', 22, 1),
-(2, 2, 'Cancha 2, Centro Deportivo', 'Cancha', 'RESERVABLE', 'https://images.unsplash.com/photo-1505666287802-931dc83a3dc3?auto=format&fit=crop&w=900&q=80', 22, 1),
+(2, 2, 'Cancha 2, Centro Deportivo', 'Cancha', 'RESERVABLE', 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&w=900&q=80', 22, 1),
 (3, 2, 'Muro Escalada, Centro Deportivo', 'Muro Escalada', 'RESERVABLE', 'https://images.unsplash.com/photo-1522163182402-834f871fd851?auto=format&fit=crop&w=900&q=80', 20, 1),
 (4, 2, 'Sala Spinning, Centro Deportivo', 'Sala', 'RESERVABLE', 'https://images.unsplash.com/photo-1518611012118-696072aa579a?auto=format&fit=crop&w=900&q=80', 25, 1),
 (5, 2, 'Piscina, Centro Deportivo', 'Piscina', 'OPEN_USE', 'https://images.unsplash.com/photo-1575429198097-0414ec08e8cd?auto=format&fit=crop&w=900&q=80', 20, 1),

@@ -274,7 +274,7 @@ const statusLabel = (status) => {
           <header>
 
             <h2>
-              Proximas reservas
+              Próximas reservas
             </h2>
 
             <p>

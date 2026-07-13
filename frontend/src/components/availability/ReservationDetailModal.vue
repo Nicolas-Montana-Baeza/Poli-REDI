@@ -2,7 +2,9 @@
 import { computed } from 'vue'
 import {
   formatReservationDate,
-  formatReservationTimeRange
+  formatReservationTimeRange,
+  getReservationDisplayStatus,
+  isReservationCancelable
 } from '@/utils/reservationTime'
 
 const props = defineProps({
@@ -48,44 +50,35 @@ const reservationTime = computed(() => {
   )
 })
 
-const statusLabel = computed(() => {
+const displayStatus = computed(() => {
   if (props.reservation?.isWorkshop) {
-    return 'Taller programado'
+    return {
+      label: 'Taller programado',
+      className: 'workshop'
+    }
   }
 
-  switch (props.reservation?.status) {
-    case 'CONFIRMED':
-      return 'Confirmada'
-
-    case 'PENDING':
-      return 'Pendiente'
-
-    case 'CANCELLED':
-      return 'Cancelada'
-
-    default:
-      return 'Sin estado'
-  }
+  return getReservationDisplayStatus(props.reservation)
 })
 
 const showCancelAction = computed(() => {
   return (
     props.canCancel &&
     !props.reservation?.isWorkshop &&
-    props.reservation?.status !== 'CANCELLED'
+    isReservationCancelable(props.reservation)
   )
 })
 
 const warningMessage = computed(() => {
   if (props.reservation?.isWorkshop) {
-    return 'Este bloque corresponde a un taller deportivo y ocupa la instalacion durante ese horario.'
+    return 'Este bloque corresponde a un taller deportivo y ocupa la instalación durante ese horario.'
   }
 
   if (showCancelAction.value) {
-    return 'Esta accion cambiara la reserva a estado cancelada.'
+    return 'Esta acción cambiará la reserva a estado cancelada.'
   }
 
-  return 'Solo el administrador o quien creo la reserva puede cancelarla.'
+  return 'Solo el administrador o quien creó la reserva puede cancelarla.'
 })
 
 const details = computed(() => {
@@ -116,7 +109,8 @@ const details = computed(() => {
     },
     {
       label: 'Estado',
-      value: statusLabel.value,
+      value: displayStatus.value.label,
+      statusClass: displayStatus.value.className,
       wide: true
     }
   ]
@@ -181,7 +175,10 @@ const handleCancel = () => {
               </dt>
 
               <dd
-                :class="{ status: detail.label === 'Estado' }"
+                :class="[
+                  { status: detail.label === 'Estado' },
+                  detail.statusClass
+                ]"
               >
                 {{ detail.value }}
               </dd>
@@ -207,7 +204,7 @@ const handleCancel = () => {
           </template>
 
           <template v-if="false">
-            Solo el administrador o quien creo la reserva puede cancelarla.
+            Solo el administrador o quien creó la reserva puede cancelarla.
           </template>
         </div>
 
@@ -265,7 +262,7 @@ const handleCancel = () => {
 
   border-radius: var(--radius-xl);
 
-  padding: 22px;
+  padding: 20px;
 
   display: flex;
   flex-direction: column;
@@ -288,7 +285,7 @@ const handleCancel = () => {
 .modal-header h2 {
   margin: 0;
 
-  font-size: 24px;
+  font-size: 23px;
   font-weight: 800;
 
   color: var(--color-text);
@@ -348,7 +345,7 @@ const handleCancel = () => {
 
   gap: 16px;
 
-  padding: 13px 16px;
+  padding: 12px 15px;
 
   border-bottom: 1px solid var(--color-border);
 }
@@ -379,6 +376,23 @@ const handleCancel = () => {
 
 .status {
   color: var(--color-primary);
+}
+
+.status.confirmed,
+.status.completed,
+.status.ongoing {
+  color: var(--color-success);
+}
+
+.status.pending,
+.status.workshop {
+  color: var(--color-warning);
+}
+
+.status.cancelled,
+.status.rejected,
+.status.expired {
+  color: var(--color-error);
 }
 
 .warning,

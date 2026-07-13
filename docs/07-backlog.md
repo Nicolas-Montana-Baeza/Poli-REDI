@@ -569,6 +569,221 @@ Alinear los estados visuales y de interaccion de las vistas relacionadas con res
 - `frontend/src/assets/styles/main.css`
 - `frontend/src/assets/styles/variables.css`
 
+## BACK-012 - Alinear formulario de reserva con datos realmente persistidos
+
+Prioridad: P1
+Labels: `frontend`, `ux`, `reservas`, `bug`, `codex-ready`, `mvp1`
+Estado sugerido: Ready for Codex
+
+### Contexto
+
+La revision UX detecto que `ReservationForm.vue` pide "Participantes" y valida `participantsCount`, pero `AvailabilitySection.vue` no envia ese dato al backend y `CreateReservationRequest` tampoco lo recibe. Para MVP 1 esto genera una promesa falsa: el usuario entrega un dato que el sistema no guarda.
+
+### Objetivo
+
+Evitar que el formulario capture datos que no forman parte del contrato real de creacion de reservas en MVP 1.
+
+### Alcance sugerido para Codex
+
+1. Revisar `frontend/src/components/forms/ReservationForm.vue`.
+2. Retirar u ocultar el campo `Participantes` del formulario de creacion para MVP 1.
+3. Eliminar validaciones, errores y estado local asociados a `participantsCount` si ya no se muestran.
+4. Mantener la capacidad del recurso como dato informativo solo si ya existe en `resource.capacity`.
+5. Confirmar que el payload creado en `AvailabilitySection.vue` sigue coincidiendo con `CreateReservationRequest`.
+6. No modificar base de datos ni backend en esta tarea; la persistencia real de participantes queda en `RES-008`.
+
+### Criterios de aceptacion
+
+- [ ] El usuario no ve un campo de participantes si ese dato no se persiste.
+- [ ] No queda validacion visible ni bloqueo por `participantsCount` en MVP 1.
+- [ ] El payload de creacion contiene solo campos soportados por backend.
+- [ ] La UI sigue mostrando recurso, fecha, hora, duracion y actividad cuando corresponda.
+- [ ] `npm run build` pasa.
+
+### Archivos relevantes
+
+- `frontend/src/components/forms/ReservationForm.vue`
+- `frontend/src/components/availability/AvailabilitySection.vue`
+- `backend/internal/models/reservation.go`
+
+## BACK-013 - Retirar controles visibles sin accion en disponibilidad
+
+Prioridad: P1
+Labels: `frontend`, `ux`, `disponibilidad`, `bug`, `codex-ready`, `mvp1`
+Estado sugerido: Ready for Codex
+
+### Contexto
+
+En la barra de disponibilidad existen controles que parecen interactivos pero no completan ninguna accion: el boton de fecha emite `open-calendar` sin listener en `AvailabilitySection.vue`, y el boton `Filtros` no abre ni aplica filtros. En una demo esto puede sentirse como funcionalidad rota.
+
+### Objetivo
+
+Eliminar o neutralizar controles que prometen acciones inexistentes en MVP 1.
+
+### Alcance sugerido para Codex
+
+1. Revisar `CalendarToolbar.vue` y su uso en `AvailabilitySection.vue`.
+2. Quitar el boton `Filtros` si no se implementara en MVP 1.
+3. Convertir el boton de fecha en texto/indicador no clickeable, o conectar una accion real si se decide usar el mini calendario.
+4. Mantener los botones de dia anterior, dia siguiente y hoy.
+5. Revisar responsive de la barra en mobile.
+
+### Criterios de aceptacion
+
+- [ ] No hay botones visibles que no produzcan una accion clara.
+- [ ] La fecha actual sigue visible en la toolbar.
+- [ ] Navegar dia anterior/siguiente/hoy sigue funcionando.
+- [ ] El layout mobile no queda con espacios vacios o botones fantasma.
+- [ ] `npm run build` pasa.
+
+### Archivos relevantes
+
+- `frontend/src/components/availability/CalendarToolbar.vue`
+- `frontend/src/components/availability/AvailabilitySection.vue`
+
+## BACK-014 - Rechazar cancelacion de reservas finalizadas en backend
+
+Prioridad: P1
+Labels: `backend`, `reservas`, `security`, `bug`, `codex-ready`, `mvp1`
+Estado sugerido: Ready for Codex
+
+### Contexto
+
+El frontend oculta la accion de cancelar cuando una reserva ya esta en el pasado, pero el backend actualmente valida permisos y estado `CANCELLED`, no la ventana temporal. Para seguridad ligera y coherencia de reglas, el backend debe rechazar tambien cancelaciones de reservas finalizadas.
+
+### Objetivo
+
+Hacer que la regla "no se cancelan reservas ya finalizadas" exista en backend, no solo en la interfaz.
+
+### Alcance sugerido para Codex
+
+1. Revisar `backend/internal/services/reservations_service.go`.
+2. Extender la consulta del repositorio para obtener `start_time` y `duration_minutes` junto con propietario/estado, o crear una funcion especifica.
+3. En `CancelReservation`, calcular fecha/hora de termino y rechazar si ya paso.
+4. Retornar un mensaje amigable, por ejemplo: `No puedes cancelar una reserva ya finalizada`.
+5. Mantener permisos actuales: admin puede cancelar cualquier reserva no finalizada; usuario normal solo reservas propias.
+6. Agregar o actualizar pruebas backend si aplica.
+
+### Criterios de aceptacion
+
+- [ ] Backend rechaza cancelar reservas cuyo termino ya paso.
+- [ ] Backend conserva rechazo por reserva inexistente, sin permisos y ya cancelada.
+- [ ] Frontend muestra el error del backend si la API rechaza la cancelacion.
+- [ ] `go test ./...` pasa.
+
+### Archivos relevantes
+
+- `backend/internal/services/reservations_service.go`
+- `backend/internal/repositories/reservations_repository.go`
+- `backend/internal/handlers/reservations_handlers.go`
+- `frontend/src/stores/reservations.js`
+
+## BACK-015 - Unificar estado visual en modal de disponibilidad
+
+Prioridad: P2
+Labels: `frontend`, `ux`, `reservas`, `disponibilidad`, `refactor`, `codex-ready`, `mvp1`
+Estado sugerido: Ready for Codex
+
+### Contexto
+
+`ReservationDetailView.vue` y `ReservationListCard.vue` usan `getReservationDisplayStatus`, pero `ReservationDetailModal.vue` mantiene su propio `statusLabel`. Esto puede producir etiquetas distintas entre lista, detalle e inspeccion desde disponibilidad.
+
+### Objetivo
+
+Usar una sola regla de estado visual para reservas en todo el flujo MVP 1.
+
+### Alcance sugerido para Codex
+
+1. Importar `getReservationDisplayStatus` en `ReservationDetailModal.vue`.
+2. Reemplazar el `statusLabel` local por el helper compartido.
+3. Mantener tratamiento especial de talleres con etiqueta `Taller programado`.
+4. Si se muestra badge de estado, usar clases compatibles con `app-badge` o estilos ya existentes.
+5. Revisar copy de advertencia para cancelacion segun estado real.
+
+### Criterios de aceptacion
+
+- [ ] La misma reserva muestra el mismo estado visual en lista, detalle e inspeccion desde disponibilidad.
+- [ ] Reservas `CONFIRMED` pasadas se ven como `Finalizada`.
+- [ ] Reservas en curso se ven como `En curso`.
+- [ ] Talleres siguen diferenciados como talleres programados.
+- [ ] `npm run build` pasa.
+
+### Archivos relevantes
+
+- `frontend/src/components/availability/ReservationDetailModal.vue`
+- `frontend/src/utils/reservationTime.js`
+- `frontend/src/views/ReservationDetailView.vue`
+- `frontend/src/components/reservations/ReservationListCard.vue`
+
+## BACK-016 - Sincronizar mini calendario con navegacion de dias
+
+Prioridad: P2
+Labels: `frontend`, `ux`, `disponibilidad`, `bug`, `codex-ready`, `mvp1`
+Estado sugerido: Ready for Codex
+
+### Contexto
+
+`CalendarMini.vue` mantiene `currentMonth` y `currentYear` como estado interno inicial. Si el usuario navega con dia anterior, dia siguiente u hoy desde `AvailabilitySection.vue`, el dia seleccionado cambia, pero el mini calendario puede quedar mirando otro mes.
+
+### Objetivo
+
+Mantener sincronizada la vista mensual del mini calendario con `selectedDate`.
+
+### Alcance sugerido para Codex
+
+1. Agregar un `watch` sobre `selectedDate` en `CalendarMini.vue`.
+2. Parsear `selectedDate` de forma local y segura.
+3. Actualizar `currentMonth` y `currentYear` cuando la fecha seleccionada cambie desde afuera.
+4. Mantener navegacion manual de meses dentro del mini calendario.
+5. Evitar regresiones con fechas pasadas deshabilitadas.
+
+### Criterios de aceptacion
+
+- [ ] Al presionar `Hoy`, el mini calendario muestra el mes correspondiente a hoy.
+- [ ] Al navegar a un dia de otro mes, el mini calendario cambia a ese mes.
+- [ ] El dia seleccionado queda destacado correctamente.
+- [ ] Las fechas pasadas siguen deshabilitadas.
+- [ ] `npm run build` pasa.
+
+### Archivos relevantes
+
+- `frontend/src/components/availability/CalendarMini.vue`
+- `frontend/src/components/availability/AvailabilitySection.vue`
+
+## BACK-017 - Hacer accesible la seleccion de instalacion en formulario
+
+Prioridad: P2
+Labels: `frontend`, `ux`, `accessibility`, `reservas`, `codex-ready`, `mvp1`
+Estado sugerido: Ready for Codex
+
+### Contexto
+
+`ResourcePicker.vue` usa `div` clickeables para seleccionar instalaciones. Funciona con mouse, pero no expone semantica de boton ni estado seleccionado para teclado/lectores de pantalla.
+
+### Objetivo
+
+Mejorar accesibilidad ligera del formulario de reserva sin cambiar el diseno visual.
+
+### Alcance sugerido para Codex
+
+1. Cambiar cada `resource-card` interactiva a `<button type="button">`.
+2. Mantener clases y layout actuales.
+3. Agregar `aria-pressed` o equivalente para indicar seleccion.
+4. Revisar foco visible y estado disabled si aplica.
+5. Confirmar que seleccionar recurso sigue emitiendo `select`.
+
+### Criterios de aceptacion
+
+- [ ] Las instalaciones se pueden seleccionar con teclado.
+- [ ] El foco visible es claro.
+- [ ] El estado seleccionado queda anunciado semanticamente.
+- [ ] La apariencia visual no cambia de forma disruptiva.
+- [ ] `npm run build` pasa.
+
+### Archivos relevantes
+
+- `frontend/src/components/forms/ResourcePicker.vue`
+
 ---
 
 # Hito 2 - Autenticacion y usuario actual
@@ -947,6 +1162,55 @@ Permitir cancelar reservas desde la interfaz usando el usuario autenticado.
 - Al cancelar, la grilla se refresca y el bloque desaparece de la disponibilidad activa.
 - Segunda revision UX: el modal muestra una advertencia, pero aun falta una confirmacion fuerte adicional antes de ejecutar la cancelacion.
 
+## RES-008 - Persistir participantes de reserva y validar capacidad
+
+Prioridad: P2
+Labels: `frontend`, `backend`, `database`, `reservas`, `ux`, `codex-ready`, `mvp2`
+Estado sugerido: Ready for Codex
+
+### Contexto
+
+Para MVP 1 se debe evitar capturar participantes si no se persisten (`BACK-012`). Si el producto confirma que el numero de participantes es parte del flujo usuario completo, MVP 2 debe implementarlo de punta a punta.
+
+La base ya tiene capacidad por recurso (`resources.capacity`) y una tabla `participants`, pero el formulario actual solo captura un numero simple. Para MVP 2 se recomienda implementar primero `participants_count` como dato numerico de la reserva, sin modelar asistentes individualizados.
+
+### Objetivo
+
+Guardar la cantidad de participantes de una reserva y validar que no supere la capacidad del recurso cuando exista.
+
+### Alcance sugerido para Codex
+
+1. Agregar columna `participants_count` a `dbo.reservations` con default `1` y `CHECK (participants_count > 0)`.
+2. Actualizar `database/schema.sql` y, si corresponde, `database/seed.sql`.
+3. Agregar `ParticipantsCount` al modelo `Reservation` y a `CreateReservationRequest`.
+4. Leer/escribir el campo en `reservations_repository.go`.
+5. Validar en `CreateReservation` que el valor sea mayor a cero.
+6. Validar contra `resources.capacity` cuando no sea `NULL`.
+7. Enviar `participantsCount` desde `ReservationForm.vue` y `AvailabilitySection.vue`.
+8. Mostrar participantes en detalle y listas solo si aporta valor visual.
+
+### Criterios de aceptacion
+
+- [ ] Crear reserva guarda `participantsCount`.
+- [ ] Backend rechaza valores menores o iguales a cero.
+- [ ] Backend rechaza participantes sobre capacidad cuando el recurso tenga capacidad definida.
+- [ ] Frontend muestra error claro si se supera capacidad.
+- [ ] El detalle de reserva muestra participantes si el dato existe.
+- [ ] `go test ./...` pasa.
+- [ ] `npm run build` pasa.
+
+### Archivos relevantes
+
+- `database/schema.sql`
+- `database/seed.sql`
+- `backend/internal/models/reservation.go`
+- `backend/internal/repositories/reservations_repository.go`
+- `backend/internal/services/reservations_service.go`
+- `backend/internal/handlers/reservations_handlers.go`
+- `frontend/src/components/forms/ReservationForm.vue`
+- `frontend/src/components/availability/AvailabilitySection.vue`
+- `frontend/src/views/ReservationDetailView.vue`
+
 ---
 
 # Hito 4 - Pantallas pendientes
@@ -959,7 +1223,7 @@ Estado sugerido: Done
 
 ### Contexto
 
-`ResourcesView.vue` ya lista recursos reales desde `/api/resources`; falta agregar filtros.
+`ResourcesView.vue` ya lista recursos reales desde `/api/resources`, permite filtros y muestra imagenes cuando estan configuradas.
 
 ### Objetivo
 
@@ -970,6 +1234,7 @@ Mostrar catalogo de recursos deportivos con datos reales.
 - [x] Lista recursos desde `/api/resources`.
 - [x] Muestra nombre, tipo, modo de reserva, capacidad y estado.
 - [x] Permite filtrar por tipo o sede si los datos estan disponibles.
+- [x] Muestra imagen del recurso cuando existe y fallback cuando no.
 - [x] Tiene estados de carga, error y vacio.
 - [x] Mantiene estilo visual actual.
 
@@ -978,6 +1243,7 @@ Mostrar catalogo de recursos deportivos con datos reales.
 - `ResourcesView.vue` ya no muestra `Proximamente...`.
 - `GET /api/resources` ahora incluye `capacity` desde Azure SQL.
 - `ResourcesView.vue` permite buscar por nombre/tipo y filtrar por tipo, modo de reserva y estado.
+- `ResourcesView.vue` muestra `imageUrl` cuando existe y una inicial como fallback.
 
 ## UI-002 - Implementar detalle de reserva
 
@@ -1186,7 +1452,7 @@ Permitir que un admin vea usuarios y pueda bloquear/desbloquear cuentas.
 
 Prioridad: P2
 Labels: `frontend`, `backend`, `admin`, `recursos`
-Estado sugerido: Backlog
+Estado sugerido: Partially Done
 
 ### Objetivo
 
@@ -1195,10 +1461,20 @@ Permitir crear, editar, activar o desactivar recursos deportivos.
 ### Criterios de aceptacion
 
 - [ ] CRUD basico de recursos.
+- [x] Permite actualizar la imagen del recurso desde una ruta administrativa.
 - [ ] Recurso pertenece a una sede.
 - [ ] Valida `reservation_mode`.
 - [ ] No permite eliminar recursos con reservas historicas sin criterio definido.
 - [ ] Refresca disponibilidad luego de cambios.
+
+### Resultado parcial de implementacion
+
+- Se agrego `resources.image_url` en `database/schema.sql` y datos iniciales en `database/seed.sql`.
+- `GET /api/resources` y la consulta por ID devuelven `imageUrl`.
+- Se agrego `PATCH /api/resources/:id/image`, protegido con `RequireAdmin`.
+- El backend valida ID, largo maximo de URL y acepta solo `http://`, `https://` o rutas locales iniciadas en `/`.
+- `ResourcesView.vue` permite a administradores editar o limpiar la imagen del recurso y actualiza el store sin recargar toda la pagina.
+- Pendiente: CRUD completo de recursos, sede, modo de reserva, activacion/desactivacion y criterio de eliminacion.
 
 ## ADMIN-004 - Implementar bloqueos de disponibilidad
 
@@ -1541,6 +1817,47 @@ Reforzar accesibilidad ligera en flujos criticos.
 - [ ] Mensajes de exito usan `aria-live`.
 - [ ] Errores usan `role="alert"` cuando correspondan.
 - [ ] Los estados no dependen solo del color.
+
+## UX-003 - Mostrar feedback preventivo de conflicto antes de confirmar reserva
+
+Prioridad: P2
+Labels: `frontend`, `ux`, `reservas`, `disponibilidad`, `codex-ready`, `mvp2`
+Estado sugerido: Ready for Codex
+
+### Contexto
+
+El backend y `AvailabilitySection.vue` ya rechazan cruces de horario al confirmar. Sin embargo, el usuario puede cambiar duracion, fecha, hora o recurso dentro del modal y recien enterarse del conflicto al presionar confirmar.
+
+Para MVP 2, el flujo debe prevenir mejor el error antes del submit, especialmente cuando el usuario ajusta duracion.
+
+### Objetivo
+
+Dar feedback inmediato o casi inmediato cuando la seleccion actual cruza con una reserva, taller, bloqueo o actividad institucional conocida por el frontend.
+
+### Alcance sugerido para Codex
+
+1. Exponer desde `AvailabilitySection.vue` una validacion reutilizable para la seleccion actual.
+2. Pasar al formulario un mensaje preventivo o un flag de conflicto.
+3. Recalcular conflicto al cambiar recurso, fecha, hora o duracion.
+4. Mostrar el rango final completo antes de confirmar.
+5. Deshabilitar `Confirmar Reserva` solo cuando el conflicto sea seguro.
+6. Mantener la validacion final de backend como fuente de verdad.
+
+### Criterios de aceptacion
+
+- [ ] Al cambiar duracion, la UI avisa si el rango cruza con ocupacion existente.
+- [ ] El formulario muestra inicio, termino y duracion final.
+- [ ] Si el conflicto es seguro, el boton de confirmar queda deshabilitado.
+- [ ] Si el frontend no puede validar por datos incompletos, el backend sigue mostrando error claro al confirmar.
+- [ ] No se bloquean recursos `OPEN_USE` por concurrencia si su regla permite uso compartido.
+- [ ] `npm run build` pasa.
+
+### Archivos relevantes
+
+- `frontend/src/components/availability/AvailabilitySection.vue`
+- `frontend/src/components/forms/ReservationForm.vue`
+- `frontend/src/components/forms/DateTimePicker.vue`
+- `frontend/src/utils/reservationTime.js`
 
 ## SEC-001 - Revisar exposicion de secretos
 

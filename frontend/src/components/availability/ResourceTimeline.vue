@@ -471,7 +471,7 @@ const modeLabel = (mode) => {
 
   overflow: hidden;
 
-  box-shadow: var(--shadow-card);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
 
   display: flex;
   flex-direction: column;
@@ -538,19 +538,19 @@ const modeLabel = (mode) => {
 .mode {
   margin: 12px 16px 0;
 
-  padding: 9px 11px;
+  padding: 8px 10px;
 
   border-radius: var(--radius-md);
 
-  background: var(--color-primary-soft);
+  background: var(--color-surface-muted);
 
-  color: var(--color-primary-strong);
+  color: var(--color-text-muted);
 
   font-size: 13px;
 }
 
 .mode strong {
-  color: var(--color-primary-strong);
+  color: var(--color-text);
 }
 
 /* TIMELINE */
@@ -559,7 +559,7 @@ const modeLabel = (mode) => {
 
   margin: var(--space-4);
 
-  background: #fbfdff;
+  background: #ffffff;
 
   border-radius: var(--radius-lg);
 
@@ -642,7 +642,7 @@ const modeLabel = (mode) => {
   top: -9px;
   left: 10px;
 
-  background: #fbfdff;
+  background: #ffffff;
 
   padding: 0 6px;
 

@@ -226,7 +226,7 @@ const selectReservation = (reservation) => {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   background: var(--color-surface);
-  box-shadow: var(--shadow-card);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
 }
 
 .summary-item span,
@@ -270,7 +270,7 @@ const selectReservation = (reservation) => {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   background: var(--color-surface);
-  box-shadow: var(--shadow-card);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
   text-align: left;
   cursor: pointer;
 }
