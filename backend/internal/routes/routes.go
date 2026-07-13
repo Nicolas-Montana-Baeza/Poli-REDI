@@ -18,6 +18,11 @@ func RegisterRoutes(app *fiber.App) {
 	protected.Patch("/me/rut", handlers.UpdateMeRUT)
 
 	protected.Get("/resources", handlers.GetResources)
+	protected.Patch(
+		"/resources/:id/image",
+		middleware.RequireAdmin(),
+		handlers.UpdateResourceImage,
+	)
 	protected.Get("/activities", handlers.GetActivities)
 	protected.Get("/notifications", handlers.GetNotifications)
 	protected.Get("/workshops", handlers.GetWorkshops)

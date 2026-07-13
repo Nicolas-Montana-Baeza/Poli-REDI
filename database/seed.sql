@@ -33,16 +33,16 @@ GO
 
 -- RESOURCES
 SET IDENTITY_INSERT dbo.resources ON;
-INSERT INTO dbo.resources (id, venue_id, name, type, reservation_mode, capacity, is_active)
+INSERT INTO dbo.resources (id, venue_id, name, type, reservation_mode, image_url, capacity, is_active)
 VALUES
-(1, 2, 'Cancha 1, Centro Deportivo', 'Cancha', 'RESERVABLE', 22, 1),
-(2, 2, 'Cancha 2, Centro Deportivo', 'Cancha', 'RESERVABLE', 22, 1),
-(3, 2, 'Muro Escalada, Centro Deportivo', 'Muro Escalada', 'RESERVABLE', 20, 1),
-(4, 2, 'Sala Spinning, Centro Deportivo', 'Sala', 'RESERVABLE', 25, 1),
-(5, 2, 'Piscina, Centro Deportivo', 'Piscina', 'OPEN_USE', 20, 1),
-(6, 2, 'Sala Multiuso, Centro Deportivo', 'Sala', 'ADMIN_ONLY', 25, 1),
-(7, 2, 'Cancha 3, Centro Deportivo', 'Cancha', 'RESERVABLE', 22, 1),
-(8, 2, 'Gimnasio, Centro Deportivo', 'Gimnasio', 'OPEN_USE', 40, 1);
+(1, 2, 'Cancha 1, Centro Deportivo', 'Cancha', 'RESERVABLE', 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&w=900&q=80', 22, 1),
+(2, 2, 'Cancha 2, Centro Deportivo', 'Cancha', 'RESERVABLE', 'https://images.unsplash.com/photo-1505666287802-931dc83a3dc3?auto=format&fit=crop&w=900&q=80', 22, 1),
+(3, 2, 'Muro Escalada, Centro Deportivo', 'Muro Escalada', 'RESERVABLE', 'https://images.unsplash.com/photo-1522163182402-834f871fd851?auto=format&fit=crop&w=900&q=80', 20, 1),
+(4, 2, 'Sala Spinning, Centro Deportivo', 'Sala', 'RESERVABLE', 'https://images.unsplash.com/photo-1518611012118-696072aa579a?auto=format&fit=crop&w=900&q=80', 25, 1),
+(5, 2, 'Piscina, Centro Deportivo', 'Piscina', 'OPEN_USE', 'https://images.unsplash.com/photo-1575429198097-0414ec08e8cd?auto=format&fit=crop&w=900&q=80', 20, 1),
+(6, 2, 'Sala Multiuso, Centro Deportivo', 'Sala', 'ADMIN_ONLY', 'https://images.unsplash.com/photo-1517457373958-b7bdd4587205?auto=format&fit=crop&w=900&q=80', 25, 1),
+(7, 2, 'Cancha 3, Centro Deportivo', 'Cancha', 'RESERVABLE', 'https://images.unsplash.com/photo-1577223625816-7546f13df25d?auto=format&fit=crop&w=900&q=80', 22, 1),
+(8, 2, 'Gimnasio, Centro Deportivo', 'Gimnasio', 'OPEN_USE', 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&w=900&q=80', 40, 1);
 SET IDENTITY_INSERT dbo.resources OFF;
 GO
 

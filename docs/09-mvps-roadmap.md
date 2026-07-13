@@ -195,12 +195,12 @@ Entregar una experiencia usable para el usuario normal, desde login hasta reserv
 
 Muy avanzado.
 
-Incluye tambien una primera version funcional de talleres deportivos: listado de talleres activos, busqueda, cupos, estado de inscripcion e inscripcion protegida por RUT.
+Incluye tambien una primera version funcional de talleres deportivos: listado de talleres activos, busqueda, cupos, estado de inscripcion e inscripcion protegida por RUT. La disponibilidad ya consume un endpoint sanitizado y muestra talleres como ocupacion recurrente; los recursos `OPEN_USE` operan como uso libre con intensidad de uso.
 
 ### Pendientes para cierre completo
 
 - Completar filtros backend de reservas por fecha/rango/estado (`API-002`).
-- Crear endpoint de disponibilidad sanitizado para usuarios normales (`API-004`).
+- Completar filtros por fecha/rango y sumar bloqueos/actividades al endpoint de disponibilidad (`API-004`, `ADMIN-004`, `ADMIN-005`).
 - Agregar confirmacion fuerte antes de cancelar reservas (`RES-007`).
 - Profesionalizar la seleccion de horario, capacidad, etiquetas humanas y experiencia movil (`UX-001`).
 - Completar notificaciones: marcar como leida y diferenciar leidas/no leidas (`NOTIF-001`).

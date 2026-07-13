@@ -1,5 +1,5 @@
 ﻿<script setup>
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 
 const props = defineProps({
   name: String,
@@ -19,6 +19,15 @@ const statusLabel = computed(() => {
     default: return 'Desconocido'
   }
 })
+
+const imageFailed = ref(false)
+
+watch(
+  () => props.image,
+  () => {
+    imageFailed.value = false
+  }
+)
 </script>
 
 <template>
@@ -27,11 +36,21 @@ const statusLabel = computed(() => {
     to="/availability"
   >
 
-    <div class="image" v-if="image">
-      <img :src="image" :alt="name" />
+    <div
+      v-if="image && !imageFailed"
+      class="image"
+    >
+      <img
+        :src="image"
+        :alt="name"
+        @error="imageFailed = true"
+      />
     </div>
 
-    <div class="image fallback" v-else>
+    <div
+      v-else
+      class="image fallback"
+    >
       <span>
         {{ name?.slice(0, 1) || 'R' }}
       </span>

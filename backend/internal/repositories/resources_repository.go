@@ -17,6 +17,7 @@ func GetAllResources() ([]models.Resource, error) {
 			name,
 			type,
 			reservation_mode,
+			COALESCE(image_url, '') AS image_url,
 			capacity,
 			is_active
 		FROM dbo.resources
@@ -41,6 +42,7 @@ func GetAllResources() ([]models.Resource, error) {
 			&resource.Name,
 			&resource.Type,
 			&resource.ReservationMode,
+			&resource.ImageURL,
 			&capacity,
 			&resource.IsActive,
 		)
@@ -79,6 +81,7 @@ func GetResourceByID(id int) (models.Resource, error) {
 			name,
 			type,
 			reservation_mode,
+			COALESCE(image_url, '') AS image_url,
 			capacity,
 			is_active
 		FROM dbo.resources
@@ -95,6 +98,7 @@ func GetResourceByID(id int) (models.Resource, error) {
 		&resource.Name,
 		&resource.Type,
 		&resource.ReservationMode,
+		&resource.ImageURL,
 		&capacity,
 		&resource.IsActive,
 	)
@@ -115,4 +119,25 @@ func GetResourceByID(id int) (models.Resource, error) {
 	}
 
 	return resource, nil
+}
+
+func UpdateResourceImageURL(id int, imageURL string) (models.Resource, error) {
+	_, err := database.DB.ExecContext(
+		context.Background(),
+		`
+		UPDATE dbo.resources
+		SET
+			image_url = NULLIF(@p2, ''),
+			updated_at = SYSUTCDATETIME()
+		WHERE id = @p1;
+		`,
+		id,
+		imageURL,
+	)
+
+	if err != nil {
+		return models.Resource{}, err
+	}
+
+	return GetResourceByID(id)
 }

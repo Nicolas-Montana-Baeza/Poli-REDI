@@ -118,8 +118,11 @@ Ejemplos:
 Modos de reserva:
 
 - `RESERVABLE`
+- `OPEN_USE`
 - `INFORMATIVE`
 - `ADMIN_ONLY`
+
+`OPEN_USE` representa recursos de uso libre, como piscina o gimnasio, donde varias reservas pueden coexistir para medir asistencia o intensidad de uso sin bloquear el recurso completo.
 
 ### `activities`
 
@@ -185,6 +188,8 @@ Tipos permitidos:
 ### `workshops`
 
 Representa talleres deportivos recurrentes disponibles para inscripcion de estudiantes.
+
+Cada taller queda asociado a un `resource_id`. Esa relacion permite que backend y frontend lo traten como ocupacion del recurso durante sus dias y horarios recurrentes.
 
 Campos relevantes:
 
@@ -272,6 +277,7 @@ El trigger `trg_scheduled_activities_validate_conflicts` valida que:
 
 La base de datos registra talleres activos y sus inscripciones. El backend complementa estas reglas con transaccion serializable para validar cupos antes de insertar una inscripcion.
 
+- Cada taller apunta a un recurso existente.
 - Cada taller debe tener capacidad mayor a cero.
 - Una inscripcion apunta a un taller y a un usuario existente.
 - Solo puede existir una inscripcion `CONFIRMED` por usuario y taller.

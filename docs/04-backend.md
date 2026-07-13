@@ -26,7 +26,10 @@ La estructura principal esta organizada por capas:
 - La cancelacion valida que el usuario sea propietario de la reserva o administrador.
 - Los usuarios normales sin RUT no pueden crear reservas.
 - La inscripcion a talleres usa el usuario autenticado, exige RUT a usuarios normales y valida cupos.
-- La ruta de usuarios administrativos ya esta agrupada bajo `RequireAdmin`.
+- La ruta de usuarios y la consulta completa de reservas usan `RequireAdmin`.
+- La disponibilidad cuenta con endpoint sanitizado para ocultar datos personales de reservas ajenas a usuarios normales.
+- Las reservas sobre recursos `OPEN_USE` no bloquean otros usos del mismo recurso.
+- La creacion de reservas rechaza cruces con talleres activos asociados al mismo recurso.
 - La base de datos aplica reglas de conflicto para reservas, bloqueos y actividades programadas.
 - Los errores de base de datos se traducen a mensajes mas legibles para reservas.
 - CORS se configura por variable de entorno.
@@ -40,26 +43,26 @@ La estructura principal esta organizada por capas:
 - `GET /api/notifications`
 - `GET /api/workshops`
 - `POST /api/workshops/:id/enroll`
+- `GET /api/availability/reservations`
 - `GET /api/reservations/mine`
-- `GET /api/reservations`
 - `POST /api/reservations`
 - `PATCH /api/reservations/cancel`
 
 ## Endpoints administrativos actuales
 
 - `GET /api/users`
+- `GET /api/reservations`
 
 ## Hallazgos de seguridad leve
 
 ### Separar disponibilidad de detalle administrativo
 
-`GET /api/reservations` entrega reservas generales a usuarios autenticados. Para disponibilidad, un usuario normal no necesita recibir datos internos de reservas ajenas.
+`GET /api/availability/reservations` entrega disponibilidad a usuarios autenticados. Para usuarios normales, el handler elimina `userId`, nombre, email y RUT de reservas ajenas. `GET /api/reservations` queda reservado para administradores.
 
 Mejora recomendada:
 
-- Crear un endpoint de disponibilidad por fecha o rango.
-- Para usuarios normales, devolver solo datos necesarios para pintar ocupacion: recurso, inicio, duracion y tipo de bloqueo.
-- Reservar datos completos de reservas para administradores o para `GET /api/reservations/mine`.
+- Agregar filtros por fecha o rango para no devolver mas datos de los necesarios.
+- Incorporar bloqueos y actividades programadas al mismo contrato cuando esas gestiones esten habilitadas.
 
 ### Middleware administrativo explicito
 
@@ -105,6 +108,8 @@ La prioridad debe estar en reglas de negocio y permisos.
 - Rechazar recurso solo admin para usuario normal.
 - Rechazar conflicto por recurso.
 - Rechazar conflicto por usuario.
+- Permitir concurrencia en recursos `OPEN_USE`.
+- Rechazar cruce con talleres activos del recurso.
 - Rechazar cruce con bloqueo.
 - Rechazar cruce con actividad programada.
 
@@ -135,7 +140,7 @@ La prioridad debe estar en reglas de negocio y permisos.
 
 ## Prioridades sugeridas
 
-1. Endpoint de disponibilidad sanitizado.
+1. Filtros de fecha/rango para disponibilidad.
 2. Limpieza de logs de configuracion.
-3. Pruebas backend para reservas, cancelacion y talleres.
+3. Pruebas backend para reservas, cancelacion, disponibilidad y talleres.
 4. Checklist productivo para `DEV_AUTH_ENABLED=false`.

@@ -26,7 +26,7 @@ onMounted(async () => {
 const facilities = computed(() => {
   return resourcesStore.resources.map((resource) => ({
     ...resource,
-    image: ''
+    image: resource.imageUrl || ''
   }))
 })
 

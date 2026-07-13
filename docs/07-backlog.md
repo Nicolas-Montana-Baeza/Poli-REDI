@@ -1388,7 +1388,7 @@ Evitar confiar en IDs enviados por cliente cuando el usuario ya viene en el toke
 
 Prioridad: P1
 Labels: `backend`, `frontend`, `reservas`, `disponibilidad`, `security`, `ux`
-Estado sugerido: Ready for Codex
+Estado sugerido: Partially Done
 
 ### Contexto
 
@@ -1401,11 +1401,19 @@ Exponer un endpoint de disponibilidad por fecha o rango que entregue solo la inf
 ### Criterios de aceptacion
 
 - [ ] El endpoint acepta fecha o rango de fechas.
-- [ ] Para usuario normal no expone `userId` de reservas ajenas.
-- [ ] Devuelve recurso, inicio, duracion y tipo de ocupacion.
+- [x] Para usuario normal no expone `userId` de reservas ajenas.
+- [x] Devuelve recurso, inicio y duracion para pintar ocupacion.
 - [ ] Incluye reservas confirmadas, bloqueos y actividades programadas cuando esten disponibles.
-- [ ] La vista de disponibilidad consume este endpoint en lugar de depender de todas las reservas.
-- [ ] Admin mantiene acceso a detalle administrativo cuando corresponda.
+- [x] La vista de disponibilidad consume este endpoint en lugar de depender de todas las reservas.
+- [x] Admin mantiene acceso a detalle administrativo cuando corresponda.
+
+### Resultado parcial de implementacion
+
+- Se agrego `GET /api/availability/reservations`.
+- Para usuarios normales, el handler limpia `userId`, nombre, email y RUT antes de responder.
+- `GET /api/reservations` quedo protegido con `RequireAdmin`.
+- El store frontend separa `availabilityReservations` de las reservas administrativas.
+- Pendiente: agregar filtros por fecha/rango y unificar en el contrato bloqueos/actividades programadas.
 
 ## API-005 - Centralizar validacion de administrador
 

@@ -2,16 +2,21 @@
 import { computed, onMounted, ref } from 'vue'
 
 import SkeletonLoader from '@/components/ui/SkeletonLoader.vue'
+import { useAuthStore } from '@/stores/auth'
 import { useResourcesStore } from '@/stores/resources'
 
 const resourcesStore = useResourcesStore()
+const authStore = useAuthStore()
 const search = ref('')
 const typeFilter = ref('ALL')
 const modeFilter = ref('ALL')
 const statusFilter = ref('ALL')
+const editingImageId = ref(null)
+const imageDraft = ref('')
 
 onMounted(() => {
   resourcesStore.fetchResources()
+  authStore.loadAuthUser()
 })
 
 const statusLabel = (resource) => {
@@ -82,6 +87,31 @@ const filteredResources = computed(() => {
     return true
   })
 })
+
+const startImageEdit = (resource) => {
+  editingImageId.value = resource.id
+  imageDraft.value = resource.imageUrl || ''
+  resourcesStore.actionError = null
+  resourcesStore.actionSuccess = null
+}
+
+const cancelImageEdit = () => {
+  editingImageId.value = null
+  imageDraft.value = ''
+}
+
+const saveImageEdit = async (resource) => {
+  try {
+    await resourcesStore.updateImage(
+      resource.id,
+      imageDraft.value.trim()
+    )
+
+    cancelImageEdit()
+  } catch {
+    // El store deja el mensaje visible para el usuario.
+  }
+}
 </script>
 
 <template>
@@ -181,21 +211,36 @@ const filteredResources = computed(() => {
       {{ resourcesStore.error }}
     </div>
 
-    <div
-      v-else-if="!resourcesStore.resources.length"
-      class="state-card"
-    >
-      No hay instalaciones registradas.
-    </div>
+    <template v-else>
+      <div
+        v-if="resourcesStore.actionError"
+        class="state-card error"
+      >
+        {{ resourcesStore.actionError }}
+      </div>
 
-    <div
-      v-else-if="!filteredResources.length"
-      class="state-card"
-    >
-      No hay instalaciones que coincidan con los filtros.
-    </div>
+      <div
+        v-if="resourcesStore.actionSuccess"
+        class="state-card success"
+      >
+        {{ resourcesStore.actionSuccess }}
+      </div>
 
-    <section
+      <div
+        v-if="!resourcesStore.resources.length"
+        class="state-card"
+      >
+        No hay instalaciones registradas.
+      </div>
+
+      <div
+        v-else-if="!filteredResources.length"
+        class="state-card"
+      >
+        No hay instalaciones que coincidan con los filtros.
+      </div>
+
+      <section
       v-else
       class="resources-grid"
     >
@@ -205,6 +250,23 @@ const filteredResources = computed(() => {
         :key="resource.id"
         class="resource-card"
       >
+
+        <div
+          v-if="resource.imageUrl"
+          class="resource-image"
+        >
+          <img
+            :src="resource.imageUrl"
+            :alt="resource.name"
+          />
+        </div>
+
+        <div
+          v-else
+          class="resource-image fallback"
+        >
+          {{ resource.name.slice(0, 1) }}
+        </div>
 
         <div>
 
@@ -234,9 +296,52 @@ const filteredResources = computed(() => {
 
         </div>
 
+        <div
+          v-if="authStore.isAdmin"
+          class="image-editor"
+        >
+          <template v-if="editingImageId === resource.id">
+            <input
+              v-model="imageDraft"
+              type="url"
+              placeholder="https://... o /images/..."
+            />
+
+            <div class="editor-actions">
+              <button
+                type="button"
+                class="save"
+                :disabled="resourcesStore.updatingImageId === resource.id"
+                @click="saveImageEdit(resource)"
+              >
+                Guardar
+              </button>
+
+              <button
+                type="button"
+                class="cancel"
+                :disabled="resourcesStore.updatingImageId === resource.id"
+                @click="cancelImageEdit"
+              >
+                Cancelar
+              </button>
+            </div>
+          </template>
+
+          <button
+            v-else
+            type="button"
+            class="edit-image"
+            @click="startImageEdit(resource)"
+          >
+            Cambiar imagen
+          </button>
+        </div>
+
       </article>
 
-    </section>
+      </section>
+    </template>
 
   </main>
 </template>
@@ -274,6 +379,12 @@ const filteredResources = computed(() => {
   background: var(--color-error-soft);
   color: var(--color-error);
   border-color: var(--color-error-border);
+}
+
+.state-card.success {
+  background: var(--color-success-soft);
+  color: var(--color-success);
+  border-color: var(--color-success-border);
 }
 
 .filters {
@@ -343,6 +454,30 @@ const filteredResources = computed(() => {
   box-shadow: var(--shadow-card);
 }
 
+.resource-image {
+  height: 150px;
+  margin: -20px -20px 0;
+  overflow: hidden;
+  background: var(--color-surface-soft);
+}
+
+.resource-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.resource-image.fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-primary);
+  font-size: 30px;
+  font-weight: 900;
+  background: var(--color-primary-soft);
+}
+
 .resource-card h2 {
   margin: 0;
 
@@ -375,6 +510,47 @@ const filteredResources = computed(() => {
 
   font-size: 12px;
   font-weight: 800;
+}
+
+.image-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.image-editor input {
+  height: 42px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 0 12px;
+  font: inherit;
+}
+
+.editor-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.edit-image,
+.editor-actions button {
+  min-height: 38px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 0 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.edit-image,
+.editor-actions .save {
+  background: var(--color-primary);
+  color: var(--color-primary-contrast);
+  border-color: var(--color-primary);
+}
+
+.editor-actions .cancel {
+  background: var(--color-surface);
+  color: var(--color-text);
 }
 
 @media (max-width: 900px) {

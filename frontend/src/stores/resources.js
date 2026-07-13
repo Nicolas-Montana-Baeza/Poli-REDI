@@ -6,7 +6,10 @@ export const useResourcesStore = defineStore('resources', {
   state: () => ({
     resources: [],
     loading: false,
-    error: null
+    error: null,
+    actionError: null,
+    actionSuccess: null,
+    updatingImageId: null
   }),
 
   getters: {
@@ -29,6 +32,35 @@ export const useResourcesStore = defineStore('resources', {
         this.error = 'No se pudieron cargar los recursos'
       } finally {
         this.loading = false
+      }
+    },
+
+    async updateImage(resourceId, imageUrl) {
+      this.updatingImageId = resourceId
+      this.actionError = null
+      this.actionSuccess = null
+
+      try {
+        const updatedResource =
+          await resourcesService.updateImage(resourceId, imageUrl)
+
+        this.resources = this.resources.map((resource) =>
+          resource.id === updatedResource.id
+            ? updatedResource
+            : resource
+        )
+
+        this.actionSuccess = 'Imagen actualizada correctamente'
+
+        return updatedResource
+      } catch (error) {
+        this.actionError =
+          error.response?.data?.error ||
+          'No se pudo actualizar la imagen'
+
+        throw new Error(this.actionError)
+      } finally {
+        this.updatingImageId = null
       }
     }
   }

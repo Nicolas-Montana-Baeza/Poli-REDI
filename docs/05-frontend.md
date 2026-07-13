@@ -69,6 +69,9 @@ Recomendacion:
 - La UI mantiene estados de carga, error y exito en flujos principales.
 - Los usuarios normales sin RUT son bloqueados antes de crear reservas.
 - La vista de talleres permite buscar oferta disponible e inscribirse con control de cupos.
+- Los talleres activos se proyectan como bloques de ocupacion en la disponibilidad del recurso.
+- Los recursos de uso libre se muestran como `Uso libre` y usan segmentos de intensidad en vez de bloquear completamente el horario.
+- La disponibilidad consume un endpoint sanitizado, separado de la consulta administrativa de reservas.
 - Las reservas existentes aparecen como bloques visuales sobre la linea de tiempo.
 - La cancelacion queda limitada visualmente al propietario de la reserva o a administradores.
 
@@ -167,7 +170,7 @@ La configuracion actual de `frontend/package.json` no incluye suite de pruebas a
 
 1. Confirmacion fuerte para cancelacion.
 2. Disponibilidad por bloques de 15 o 30 minutos.
-3. Endpoint de disponibilidad sanitizado para no exponer datos innecesarios.
+3. Completar filtros de fecha/rango para disponibilidad sanitizada.
 4. Validacion de capacidad y participantes.
 5. Suite minima de pruebas frontend.
 6. Mejoras de accesibilidad en modales.

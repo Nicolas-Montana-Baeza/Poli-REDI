@@ -87,9 +87,9 @@ Estado actual: Implementado.
 
 ### RF-005 - Consulta de disponibilidad
 
-El sistema debe mostrar disponibilidad de recursos por fecha, considerando reservas existentes.
+El sistema debe mostrar disponibilidad de recursos por fecha, considerando reservas existentes y talleres activos asociados al recurso.
 
-Estado actual: Implementado parcialmente.
+Estado actual: Implementado parcialmente. Ya existe endpoint sanitizado para reservas y la UI suma talleres recurrentes; falta incorporar bloqueos/actividades programadas y filtros backend por fecha/rango.
 
 Pendiente relacionado: `RES-004`.
 
@@ -101,9 +101,9 @@ Estado actual: Implementado.
 
 ### RF-007 - Validacion de conflictos de reserva
 
-El sistema debe rechazar reservas que se solapen con otras reservas confirmadas o reglas de disponibilidad.
+El sistema debe rechazar reservas que se solapen con otras reservas confirmadas, talleres activos o reglas de disponibilidad. Los recursos `OPEN_USE` permiten concurrencia y no bloquean por reserva existente.
 
-Estado actual: Implementado para reservas.
+Estado actual: Implementado para reservas y talleres activos.
 
 Pendiente relacionado: `RES-004`, `ADMIN-004`.
 

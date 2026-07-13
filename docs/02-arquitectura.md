@@ -35,6 +35,7 @@ Responsabilidades principales:
 - Consultar recursos, actividades, reservas, talleres, notificaciones y usuario actual.
 - Mostrar disponibilidad, formularios de reserva, historial, talleres deportivos y panel admin base.
 - Enviar reservas sin confiar en IDs de usuario definidos en cliente.
+- Consumir disponibilidad desde un endpoint sanitizado y combinarla con talleres recurrentes para bloquear horarios ocupados.
 
 ## Backend
 
@@ -58,6 +59,8 @@ Responsabilidades principales:
 - Aplicar permisos de usuario normal y administrador.
 - Crear y cancelar reservas usando el usuario autenticado.
 - Listar talleres activos e inscribir al usuario autenticado cuando tenga RUT.
+- Exponer disponibilidad sanitizada para usuarios normales y detalle completo de reservas solo a administradores.
+- Validar que reservas no se crucen con talleres activos asociados al mismo recurso.
 - Validar RUT obligatorio para usuarios normales.
 - Exponer datos desde Azure SQL Database.
 
@@ -76,6 +79,7 @@ La base aplica reglas criticas mediante constraints, indices, triggers y vistas:
 - Usuarios, recursos, actividades, reservas, talleres e inscripciones.
 - Validacion basica de RUT.
 - Conflictos de reserva por recurso y usuario.
+- Recursos de uso libre (`OPEN_USE`) que permiten concurrencia y se visualizan como intensidad de uso.
 - Control de cupos e inscripcion unica por usuario en talleres.
 - Bloqueos y actividades programadas para iteraciones administrativas.
 - Notificaciones y auditoria.
@@ -128,7 +132,7 @@ La demo online inicial usa:
 
 ## Riesgos y mejoras recomendadas
 
-- Crear endpoint de disponibilidad sanitizado para no exponer datos innecesarios de reservas ajenas.
+- Extender el endpoint de disponibilidad para aceptar fecha o rango y sumar bloqueos/actividades programadas cuando se habilite su gestion.
 - Centralizar validacion de administrador con middleware reutilizable.
 - Confirmar `DEV_AUTH_ENABLED=false` antes de cualquier despliegue publico.
 - Agregar pruebas backend para reglas criticas de reservas y cancelacion.

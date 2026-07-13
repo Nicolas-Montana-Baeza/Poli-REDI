@@ -97,6 +97,7 @@ BEGIN
         name NVARCHAR(120) NOT NULL,
         type NVARCHAR(80) NOT NULL,
         reservation_mode NVARCHAR(50) NOT NULL CONSTRAINT df_resources_reservation_mode DEFAULT ('RESERVABLE'),
+        image_url NVARCHAR(500) NULL,
         capacity INT NULL,
         is_active BIT NOT NULL CONSTRAINT df_resources_is_active DEFAULT (1),
         created_at DATETIME2(0) NOT NULL CONSTRAINT df_resources_created_at DEFAULT (SYSUTCDATETIME()),
