@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"runtime"
 
+	"poli-redi-api/internal/businessclock"
 	"poli-redi-api/internal/database"
 	"poli-redi-api/internal/routes"
 
@@ -17,6 +18,10 @@ import (
 
 func main() {
 	loadEnv()
+
+	if err := businessclock.Configure(os.Getenv("APP_TIMEZONE")); err != nil {
+		log.Fatal(err)
+	}
 
 	database.Connect()
 

@@ -55,6 +55,7 @@ DB_USER=poli-redi-admin
 DB_PASSWORD=
 DB_ENCRYPT=true
 DB_TRUST_SERVER_CERTIFICATE=false
+APP_TIMEZONE=America/Santiago
 
 ENTRA_TENANT_ID=
 ENTRA_API_CLIENT_ID=
@@ -77,6 +78,7 @@ Archivo: `frontend/.env`
 ```env
 VITE_API_BASE_URL=http://localhost:3000/api
 VITE_API_TIMEOUT_MS=30000
+VITE_APP_TIMEZONE=America/Santiago
 
 VITE_ENTRA_TENANT_ID=
 VITE_ENTRA_CLIENT_ID=
@@ -100,6 +102,7 @@ Variables:
 ```env
 PORT=3000
 CORS_ALLOWED_ORIGINS=https://purple-ground-0205c9f10.7.azurestaticapps.net
+APP_TIMEZONE=America/Santiago
 
 DB_SERVER=poli-redi-server.database.windows.net
 DB_PORT=1433
@@ -123,11 +126,12 @@ Reglas:
 - Si se necesita probar local contra backend online temporalmente, agregar `http://localhost:5173` solo durante la prueba y retirarlo despues.
 - Reiniciar App Service despues de cambiar variables.
 
-Pendiente antes del cierre definitivo de MVP 1:
+Contrato temporal:
 
-- `RES-009` debe implementar `APP_TIMEZONE=America/Santiago` en backend y documentar si Azure SQL persiste UTC normalizado u hora local institucional.
-- No basta con definir la variable en Azure antes de que el codigo la consuma.
-- Hasta cerrar esa tarea, validar manualmente que una reserva creada para una hora de Chile conserve la misma hora en local y en la demo online.
+- Azure SQL conserva hora institucional de muro en sus columnas `DATETIME2` de agenda.
+- El backend interpreta esas columnas con `APP_TIMEZONE=America/Santiago` y serializa con offset.
+- Una zona invalida impide iniciar el backend con un error de configuracion claro.
+- Antes de validar `RES-009`, comprobar online que una reserva creada para una hora de Chile conserve la misma hora al recargar.
 
 ### 2.4 Frontend Azure Static Web Apps
 
@@ -142,6 +146,7 @@ Variables:
 ```env
 VITE_API_BASE_URL=https://poli-redi.azurewebsites.net/api
 VITE_API_TIMEOUT_MS=30000
+VITE_APP_TIMEZONE=America/Santiago
 
 VITE_ENTRA_TENANT_ID=
 VITE_ENTRA_CLIENT_ID=

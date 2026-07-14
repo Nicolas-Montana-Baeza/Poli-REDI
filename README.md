@@ -92,6 +92,7 @@ ENTRA_TENANT_ID=
 ENTRA_API_CLIENT_ID=
 ENTRA_ISSUER=
 CORS_ALLOWED_ORIGINS=http://localhost:5173
+APP_TIMEZONE=America/Santiago
 
 # Solo desarrollo local
 DEV_AUTH_ENABLED=false
@@ -116,6 +117,7 @@ Crear un archivo `.env` en `frontend/` con las variables de Vite usadas por la a
 ```env
 VITE_API_BASE_URL=http://localhost:3000/api
 VITE_API_TIMEOUT_MS=30000
+VITE_APP_TIMEZONE=America/Santiago
 
 VITE_ENTRA_TENANT_ID=
 VITE_ENTRA_CLIENT_ID=

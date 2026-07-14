@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"poli-redi-api/internal/businessclock"
 	"poli-redi-api/internal/models"
 	"poli-redi-api/internal/repositories"
 
@@ -105,6 +106,15 @@ func GetMyReservations(userID int) ([]models.Reservation, error) {
 }
 
 func CreateReservation(reservation models.Reservation) (models.Reservation, error) {
+	return createReservationAt(reservation, businessclock.Now())
+}
+
+func createReservationAt(
+	reservation models.Reservation,
+	now time.Time,
+) (models.Reservation, error) {
+	reservation = enforceInitialReservationStatus(reservation)
+
 	if reservation.UserID == 0 {
 		return models.Reservation{}, errors.New("no se pudo identificar al usuario autenticado")
 	}
@@ -121,12 +131,8 @@ func CreateReservation(reservation models.Reservation) (models.Reservation, erro
 		return models.Reservation{}, errors.New("la duraci\u00f3n debe ser mayor a 0")
 	}
 
-	if reservation.StartTime.Before(time.Now()) {
+	if reservation.StartTime.Before(now) {
 		return models.Reservation{}, errors.New("no puedes crear reservas en el pasado")
-	}
-
-	if reservation.Status == "" {
-		reservation.Status = "CONFIRMED"
 	}
 
 	resource, err := repositories.GetResourceByID(reservation.ResourceID)
@@ -150,6 +156,13 @@ func CreateReservation(reservation models.Reservation) (models.Reservation, erro
 	}
 
 	return createdReservation, nil
+}
+
+func enforceInitialReservationStatus(
+	reservation models.Reservation,
+) models.Reservation {
+	reservation.Status = models.ReservationStatusConfirmed
+	return reservation
 }
 
 func validateWorkshopAvailability(reservation models.Reservation) error {
@@ -393,6 +406,18 @@ func CancelReservation(
 	reservationID int,
 	requestedByUser models.LocalAuthUser,
 ) (models.Reservation, error) {
+	return cancelReservationAt(
+		reservationID,
+		requestedByUser,
+		businessclock.Now(),
+	)
+}
+
+func cancelReservationAt(
+	reservationID int,
+	requestedByUser models.LocalAuthUser,
+	now time.Time,
+) (models.Reservation, error) {
 	if reservationID <= 0 {
 		return models.Reservation{}, errors.New("no se pudo identificar la reserva")
 	}
@@ -416,23 +441,38 @@ func CancelReservation(
 		return models.Reservation{}, errors.New("no tienes permisos para cancelar esta reserva")
 	}
 
-	if status == "CANCELLED" {
-		return models.Reservation{}, errors.New("la reserva ya est\u00e1 cancelada")
+	if err := validateCancellationStatus(status); err != nil {
+		return models.Reservation{}, err
 	}
 
 	reservationEnd := startTime.Add(
 		time.Duration(durationMinutes) * time.Minute,
 	)
 
-	if !reservationEnd.After(time.Now()) {
+	if !reservationEnd.After(now) {
 		return models.Reservation{}, errors.New("no puedes cancelar una reserva finalizada")
 	}
 
 	cancelledReservation, err := repositories.CancelReservation(reservationID)
+
+	if errors.Is(err, sql.ErrNoRows) {
+		return models.Reservation{}, errors.New("la reserva ya no se puede cancelar")
+	}
 
 	if err != nil {
 		return models.Reservation{}, err
 	}
 
 	return cancelledReservation, nil
+}
+
+func validateCancellationStatus(status string) error {
+	switch status {
+	case models.ReservationStatusConfirmed, models.ReservationStatusPending:
+		return nil
+	case models.ReservationStatusCancelled:
+		return errors.New("la reserva ya est\u00e1 cancelada")
+	default:
+		return errors.New("la reserva en este estado no se puede cancelar")
+	}
 }

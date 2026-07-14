@@ -23,7 +23,7 @@ Estado actual:
 - Vista `AvailabilityView` carga datos reales.
 - El flujo `Historial -> Detalle` funciona para usuario y administrador segun permisos.
 - `npm run build` pasa en frontend.
-- `go test ./...` finaliza correctamente, pero no existen archivos de prueba; `QA-001` sigue abierto.
+- `go test ./...` finaliza correctamente y ya incluye cobertura inicial del reloj de negocio; `QA-001` sigue abierto para ampliar los casos de reservas.
 - El MVP 1 permanece reabierto por zona horaria, estado controlado por servidor, horario/duracion, pruebas reales y coherencia responsive/accesible.
 
 ## Convenciones sugeridas
@@ -930,7 +930,7 @@ Agregar un archivo SQL temporal que pueda ejecutarse despues del seed normal par
 
 Prioridad: P1
 Labels: `frontend`, `ux`, `reservas`, `recursos`, `bug`, `codex-ready`, `mvp1`
-Estado sugerido: Ready for Codex
+Estado actual: En revision
 
 ### Contexto
 
@@ -1643,11 +1643,19 @@ Aplicar una unica zona horaria de negocio, explicita y comprobable, en creacion,
 
 - [ ] Local y Azure clasifican la misma reserva en la misma categoria temporal.
 - [ ] Una reserva de Chile no cambia tres o cuatro horas al viajar API -> frontend.
-- [ ] Cancelacion y rechazo de fechas pasadas usan la zona configurada.
-- [ ] El contrato de fecha/hora queda documentado con un ejemplo de request y response.
-- [ ] Una `APP_TIMEZONE` invalida impide iniciar o produce un error de configuracion claro.
-- [ ] Existen pruebas con un reloj inyectable; no dependen de la hora real del equipo.
-- [ ] `go test ./...` y `npm run build` pasan.
+- [x] Cancelacion y rechazo de fechas pasadas usan la zona configurada.
+- [x] El contrato de fecha/hora queda documentado con un ejemplo de request y response.
+- [x] Una `APP_TIMEZONE` invalida impide iniciar o produce un error de configuracion claro.
+- [x] Existen pruebas con un reloj inyectable; no dependen de la hora real del equipo.
+- [x] `go test ./...`, `npm test` y `npm run build` pasan localmente.
+
+### Resultado de implementacion
+
+- `DATETIME2` conserva la hora institucional de muro; no se requieren columnas nuevas ni transformar reservas existentes.
+- Backend y frontend usan `America/Santiago` de forma explicita, incluidos cambios de horario de invierno y verano.
+- Requests con offset se convierten a Santiago; requests sin offset se interpretan directamente en la zona institucional.
+- Se agregaron pruebas de cambio estacional, cruce de medianoche, configuracion invalida y rechazo de reservas pasadas con reloj controlado.
+- Falta configurar las variables en Azure, desplegar ambos componentes y comparar una reserva de hora conocida en local y online antes de cerrar la tarea.
 
 ### Archivos relevantes
 

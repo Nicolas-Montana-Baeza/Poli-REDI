@@ -3,6 +3,10 @@ import { computed, ref, watch } from 'vue'
 
 import ResourcePicker from './ResourcePicker.vue'
 import DateTimePicker from './DateTimePicker.vue'
+import {
+  getBusinessDateKey,
+  parseReservationDateTime
+} from '@/utils/reservationTime'
 
 const props = defineProps({
   visible: {
@@ -98,7 +102,7 @@ watch(
 
     form.value.date =
       slot.date ||
-      new Date().toISOString().slice(0, 10)
+      getBusinessDateKey()
 
     form.value.durationMinutes = 60
 
@@ -164,9 +168,11 @@ const isPastReservationStart = () => {
     return false
   }
 
-  const start = new Date(`${form.value.date}T${form.value.hour}:00`)
+  const start = parseReservationDateTime(
+    `${form.value.date}T${form.value.hour}:00`
+  )
 
-  return start.getTime() <= Date.now()
+  return start ? start.getTime() <= Date.now() : false
 }
 
 const validateForm = () => {

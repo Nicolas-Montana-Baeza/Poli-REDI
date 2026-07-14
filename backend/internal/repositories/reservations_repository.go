@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"time"
 
+	"poli-redi-api/internal/businessclock"
 	"poli-redi-api/internal/database"
 	"poli-redi-api/internal/models"
 )
@@ -121,6 +122,7 @@ func scanReservationRows(rows *sql.Rows) ([]models.Reservation, error) {
 			return nil, err
 		}
 
+		reservation.StartTime = businessclock.FromDatabaseWallTime(reservation.StartTime)
 		reservation.Hour = reservation.StartTime.Format("15:04")
 		reservation.Title = activityName
 		reservation.Type = mapReservationType(reservation.Status)
@@ -190,7 +192,7 @@ func AddReservation(reservation models.Reservation) (models.Reservation, error) 
 		reservation.UserID,
 		reservation.ResourceID,
 		reservation.ActivityID,
-		reservation.StartTime,
+		businessclock.ToDatabaseWallTime(reservation.StartTime),
 		reservation.DurationMinutes,
 		reservation.Status,
 	).Scan(
@@ -214,6 +216,7 @@ func AddReservation(reservation models.Reservation) (models.Reservation, error) 
 		return models.Reservation{}, err
 	}
 
+	reservation.StartTime = businessclock.FromDatabaseWallTime(reservation.StartTime)
 	reservation.Hour = reservation.StartTime.Format("15:04")
 	reservation.Title = activityName
 	reservation.Type = mapReservationType(reservation.Status)
@@ -267,7 +270,7 @@ func GetReservationCancellationSnapshot(id int) (int, string, time.Time, int, er
 		return 0, "", time.Time{}, 0, err
 	}
 
-	return ownerID, status, startTime, durationMinutes, nil
+	return ownerID, status, businessclock.FromDatabaseWallTime(startTime), durationMinutes, nil
 }
 
 func CancelReservation(id int) (models.Reservation, error) {
@@ -289,7 +292,7 @@ func CancelReservation(id int) (models.Reservation, error) {
 			updated_at = SYSUTCDATETIME()
 		OUTPUT INSERTED.id INTO @updated
 		WHERE id = @p1
-		  AND status <> 'CANCELLED';
+		  AND status IN ('CONFIRMED', 'PENDING');
 
 		SELECT
 			r.id,
@@ -338,6 +341,7 @@ func CancelReservation(id int) (models.Reservation, error) {
 		return models.Reservation{}, err
 	}
 
+	reservation.StartTime = businessclock.FromDatabaseWallTime(reservation.StartTime)
 	reservation.Hour = reservation.StartTime.Format("15:04")
 	reservation.Title = activityName
 	reservation.Type = mapReservationType(reservation.Status)

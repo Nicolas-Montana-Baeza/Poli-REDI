@@ -1,5 +1,6 @@
 ﻿<script setup>
 import { computed, ref, watch } from 'vue'
+import { getBusinessDateKey } from '@/utils/reservationTime'
 
 const props = defineProps({
   month: {
@@ -111,8 +112,6 @@ const days = computed(() => {
 })
 
 /* TODAY */
-const today = new Date()
-
 const toDateKey = (year, month, day) => {
   return [
     year,
@@ -122,11 +121,7 @@ const toDateKey = (year, month, day) => {
 }
 
 const todayKey = computed(() => {
-  return toDateKey(
-    today.getFullYear(),
-    today.getMonth(),
-    today.getDate()
-  )
+  return getBusinessDateKey()
 })
 
 const getDayKey = (day) => {

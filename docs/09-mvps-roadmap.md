@@ -108,10 +108,10 @@ El MVP 1 ya esta funcional y desplegado como demo online, pero se reabre para ap
 
 Bloqueantes funcionales y de integridad:
 
-- Definir una zona horaria de negocio unica para frontend, backend y Azure SQL (`RES-009`).
+- Verificar online la zona horaria de negocio ya implementada en frontend y backend (`RES-009`, en revision).
 - Impedir que el cliente controle el estado inicial o transiciones de reserva (`RES-010`).
 - Aplicar duracion y horario operativo en backend, no solo en UI (`RES-011`).
-- Agregar pruebas backend reales para estas reglas; hoy `go test ./...` no encuentra archivos de test (`QA-001`).
+- Ampliar las pruebas backend reales iniciadas con el reloj de negocio hacia estados, duracion y horario operativo (`QA-001`).
 
 Pulido visible y estabilidad transversal:
 

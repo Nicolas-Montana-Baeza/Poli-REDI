@@ -156,12 +156,15 @@ Campos temporales relevantes:
 - `start_time`: `DATETIME2`, sin zona horaria embebida.
 - `duration_minutes`: duracion numerica usada para calcular el termino.
 
-Contrato temporal pendiente para MVP 1:
+Contrato temporal de reservas para MVP 1:
 
-- `DATETIME2` no permite deducir por si solo si el valor representa UTC o hora local institucional.
-- `RES-009` debe escoger una unica estrategia: UTC normalizado o `America/Santiago` como hora de muro.
-- La estrategia elegida debe aplicarse en request, persistencia, response, frontend y comparaciones con la hora actual.
-- Hasta cerrar `RES-009`, un sufijo `Z` generado al serializar no debe asumirse como prueba de que el valor fue persistido en UTC.
+- `start_time` y los rangos de disponibilidad guardan hora institucional de muro en `America/Santiago`.
+- `DATETIME2` no contiene zona. Un valor SQL `2026-07-14 10:30:00` significa 10:30 de Chile, no 10:30 UTC.
+- El backend asigna `APP_TIMEZONE` al leer estos campos y responde RFC 3339 con el offset real. Ejemplo de invierno: `2026-07-14T10:30:00-04:00`.
+- Un request sin offset, por ejemplo `2026-07-14T10:30:00`, se interpreta en `APP_TIMEZONE`.
+- Un request con `Z` u otro offset se convierte primero a la hora equivalente de Santiago.
+- `created_at`, `updated_at` y otros campos generados mediante `SYSUTCDATETIME()` continuan representando UTC.
+- La estrategia conserva las horas de las reservas existentes y evita una conversion masiva de datos.
 
 ### `participants`
 

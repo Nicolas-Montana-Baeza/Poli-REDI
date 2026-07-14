@@ -2,6 +2,14 @@ package models
 
 import "time"
 
+const (
+	ReservationStatusPending   = "PENDING"
+	ReservationStatusConfirmed = "CONFIRMED"
+	ReservationStatusCancelled = "CANCELLED"
+	ReservationStatusRejected  = "REJECTED"
+	ReservationStatusExpired   = "EXPIRED"
+)
+
 type Reservation struct {
 	ID              int       `json:"id"`
 	UserID          int       `json:"userId"`
@@ -28,7 +36,6 @@ type CreateReservationRequest struct {
 	ActivityID      *int   `json:"activityId"`
 	StartTime       string `json:"startTime"`
 	DurationMinutes int    `json:"durationMinutes"`
-	Status          string `json:"status"`
 }
 
 type CancelReservationRequest struct {

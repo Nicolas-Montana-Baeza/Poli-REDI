@@ -96,7 +96,7 @@ Estas validaciones son obligatorias para el cierre definitivo reabierto del MVP 
 
 | Paso | Resultado esperado | Estado | Backlog |
 | --- | --- | --- | --- |
-| Crear una reserva con hora conocida en local y online | Inicio, termino y categoria temporal coinciden en Chile | Pendiente | `RES-009` |
+| Crear una reserva con hora conocida en local y online | Inicio, termino y categoria temporal coinciden en Chile | En revision; falta prueba online | `RES-009` |
 | Intentar enviar `status` manualmente al crear | El servidor lo rechaza o ignora sin alterar el estado inicial ni conflictos | Pendiente | `RES-010` |
 | Crear antes de apertura, despues de cierre o con duracion no permitida | Backend rechaza cada caso con mensaje seguro | Pendiente | `RES-011` |
 | Seleccionar recurso inactivo, informativo o solo admin como usuario normal | No abre formulario y explica el motivo | Pendiente | `BACK-020` |
@@ -133,6 +133,7 @@ npm run build
 
 | Comando | Fecha | Resultado | Observacion |
 | --- | --- | --- | --- |
-| `go test ./...` | 2026-07-14 | Pasa sin pruebas reales | Todos los paquetes informan `[no test files]`; pendiente `QA-001` |
+| `go test ./...` | 2026-07-14 | Aprobado local | Incluye pruebas iniciales de reloj de negocio y reservas; pendiente ampliar `QA-001` |
+| `npm test` | 2026-07-14 | Aprobado local | Tres casos de zona horaria: invierno, verano y cruce de medianoche |
 | `npm run test:run` |  | No disponible | Pendiente configurar suite en `QA-002` |
 | `npm run build` | 2026-07-14 | Aprobado | Vite completa build de produccion |

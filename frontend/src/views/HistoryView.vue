@@ -6,6 +6,7 @@ import SkeletonLoader from '@/components/ui/SkeletonLoader.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useReservationsStore } from '@/stores/reservations'
 import {
+  getReservationDateKey,
   isReservationHistorical,
   parseReservationDateTime
 } from '@/utils/reservationTime'
@@ -71,7 +72,7 @@ const filteredReservations = computed(() => {
   return reservations.value.filter((reservation) => {
     const start = parseReservationDateTime(reservation.startTime)
     const reservationDate = start
-      ? start.toISOString().slice(0, 10)
+      ? getReservationDateKey(start)
       : ''
 
     if (

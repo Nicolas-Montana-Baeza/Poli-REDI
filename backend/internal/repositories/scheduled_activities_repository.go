@@ -3,6 +3,7 @@ package repositories
 import (
 	"context"
 
+	"poli-redi-api/internal/businessclock"
 	"poli-redi-api/internal/database"
 	"poli-redi-api/internal/models"
 )
@@ -51,6 +52,9 @@ func GetActiveScheduledActivities() ([]models.ScheduledActivity, error) {
 		); err != nil {
 			return nil, err
 		}
+
+		activity.StartTime = businessclock.FromDatabaseWallTime(activity.StartTime)
+		activity.EndTime = businessclock.FromDatabaseWallTime(activity.EndTime)
 
 		activities = append(activities, activity)
 	}

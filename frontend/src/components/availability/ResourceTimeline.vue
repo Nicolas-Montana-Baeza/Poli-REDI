@@ -3,6 +3,7 @@ import { computed } from 'vue'
 
 import ReservationBlock from './ReservationBlock.vue'
 import {
+  getBusinessDateKey,
   getReservationStartMinutes as getReservationStartMinutesFromTime
 } from '@/utils/reservationTime'
 
@@ -46,22 +47,14 @@ const emit = defineEmits([
 const timelineTopPadding = 18
 const timelineBottomPadding = 24
 
-const formatDateKey = (date) => {
-  return [
-    date.getFullYear(),
-    String(date.getMonth() + 1).padStart(2, '0'),
-    String(date.getDate()).padStart(2, '0')
-  ].join('-')
-}
-
 const now = computed(() => new Date())
 
 const isToday = computed(() => {
-  return props.selectedDate === formatDateKey(now.value)
+  return props.selectedDate === getBusinessDateKey(now.value)
 })
 
 const currentMinuteOfDay = computed(() => {
-  return now.value.getHours() * 60 + now.value.getMinutes()
+  return getReservationStartMinutesFromTime(now.value)
 })
 
 const pastOverlayHeight = computed(() => {

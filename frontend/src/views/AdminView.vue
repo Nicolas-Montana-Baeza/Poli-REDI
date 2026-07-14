@@ -15,6 +15,7 @@ import { useReservationsStore } from '@/stores/reservations'
 import {
   formatReservationDate,
   formatReservationTimeRange,
+  getBusinessDateKey,
   getReservationDateKey,
   parseReservationDateTime
 } from '@/utils/reservationTime'
@@ -30,13 +31,7 @@ onMounted(async () => {
 })
 
 const todayKey = computed(() => {
-  const today = new Date()
-
-  return [
-    today.getFullYear(),
-    String(today.getMonth() + 1).padStart(2, '0'),
-    String(today.getDate()).padStart(2, '0')
-  ].join('-')
+  return getBusinessDateKey()
 })
 
 const activeResources = computed(() => {

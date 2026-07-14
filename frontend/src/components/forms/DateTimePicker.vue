@@ -1,5 +1,6 @@
 ﻿<script setup>
 import { ref, watch } from 'vue'
+import { getBusinessDateKey } from '@/utils/reservationTime'
 
 const props = defineProps({
   initialDate: {
@@ -27,13 +28,7 @@ const selectedHour = ref('')
 const durationMinutes = ref(60)
 
 const todayDate = () => {
-  const date = new Date()
-
-  return [
-    date.getFullYear(),
-    String(date.getMonth() + 1).padStart(2, '0'),
-    String(date.getDate()).padStart(2, '0')
-  ].join('-')
+  return getBusinessDateKey()
 }
 
 const durationOptions = [

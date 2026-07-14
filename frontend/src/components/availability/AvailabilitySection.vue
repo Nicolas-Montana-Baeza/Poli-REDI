@@ -15,7 +15,10 @@ import { useAuthStore } from '@/stores/auth'
 import { useActivitiesStore } from '@/stores/activities'
 import { useWorkshopsStore } from '@/stores/workshops'
 import { buildWorkshopAvailabilityItems } from '@/utils/workshopSchedule'
-import { parseReservationDateTime } from '@/utils/reservationTime'
+import {
+  getBusinessDateKey,
+  parseReservationDateTime
+} from '@/utils/reservationTime'
 
 const resourcesStore = useResourcesStore()
 const reservationsStore = useReservationsStore()
@@ -32,11 +35,11 @@ const formatDateKey = (date) => {
 }
 
 const todayKey = () => {
-  return formatDateKey(new Date())
+  return getBusinessDateKey()
 }
 
 const buildLocalDateTime = (date, hour) => {
-  return new Date(`${date}T${hour}:00`)
+  return parseReservationDateTime(`${date}T${hour}:00`)
 }
 
 const isPastStart = (date, hour) => {
