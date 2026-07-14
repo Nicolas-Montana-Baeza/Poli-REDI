@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, ref } from 'vue'
 import { ChevronLeft, ChevronRight } from 'lucide-vue-next'
 import FacilityCard from './FacilityCard.vue'
 
@@ -12,8 +12,6 @@ const props = defineProps({
 
 const currentIndex = ref(0)
 const isPaused = ref(false)
-const transitionEnabled = ref(true)
-let autoTimer = null
 
 const loopedFacilities = computed(() => {
   if (props.facilities.length <= 1) {
@@ -31,11 +29,16 @@ const canMove = computed(() => {
 })
 
 const trackStyle = computed(() => {
+  if (!canMove.value) {
+    return {}
+  }
+
+  const duration = Math.max(props.facilities.length * 5, 26)
+
   return {
-    transform: `translateX(calc(${-currentIndex.value} * (var(--carousel-card-width) + var(--carousel-gap))))`,
-    transition: transitionEnabled.value
-      ? 'transform 520ms cubic-bezier(0.22, 1, 0.36, 1)'
-      : 'none'
+    '--carousel-duration': `${duration}s`,
+    '--carousel-offset': String(currentIndex.value),
+    '--carousel-items': String(props.facilities.length)
   }
 })
 
@@ -44,8 +47,8 @@ const moveNext = () => {
     return
   }
 
-  transitionEnabled.value = true
-  currentIndex.value += 1
+  currentIndex.value =
+    (currentIndex.value + 1) % props.facilities.length
 }
 
 const movePrevious = () => {
@@ -53,52 +56,10 @@ const movePrevious = () => {
     return
   }
 
-  if (currentIndex.value === 0) {
-    transitionEnabled.value = false
-    currentIndex.value = props.facilities.length
-
-    window.requestAnimationFrame(() => {
-      window.requestAnimationFrame(() => {
-        transitionEnabled.value = true
-        currentIndex.value -= 1
-      })
-    })
-
-    return
-  }
-
-  transitionEnabled.value = true
-  currentIndex.value -= 1
+  currentIndex.value =
+    (currentIndex.value - 1 + props.facilities.length) %
+    props.facilities.length
 }
-
-const handleTransitionEnd = () => {
-  if (currentIndex.value < props.facilities.length) {
-    return
-  }
-
-  transitionEnabled.value = false
-  currentIndex.value = 0
-
-  window.requestAnimationFrame(() => {
-    transitionEnabled.value = true
-  })
-}
-
-const advance = () => {
-  if (!isPaused.value) {
-    moveNext()
-  }
-}
-
-onMounted(() => {
-  autoTimer = window.setInterval(advance, 3200)
-})
-
-onBeforeUnmount(() => {
-  if (autoTimer) {
-    window.clearInterval(autoTimer)
-  }
-})
 </script>
 
 <template>
@@ -141,8 +102,8 @@ onBeforeUnmount(() => {
     >
       <div
         class="carousel-track"
+        :class="{ paused: isPaused || !canMove }"
         :style="trackStyle"
-        @transitionend="handleTransitionEnd"
       >
         <div
           v-for="(facility, index) in loopedFacilities"
@@ -163,8 +124,8 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .facility-carousel {
-  --carousel-card-width: clamp(260px, 24vw, 315px);
-  --carousel-gap: 16px;
+  --carousel-card-width: clamp(240px, 26vw, 320px);
+  --carousel-gap: 18px;
   width: 100%;
   min-width: 0;
 }
@@ -210,13 +171,32 @@ onBeforeUnmount(() => {
 .carousel-window {
   width: 100%;
   overflow: hidden;
-  padding: 2px 2px 14px;
+  padding: 2px 2px 16px;
+  mask-image: linear-gradient(
+    90deg,
+    transparent 0,
+    #000 32px,
+    #000 calc(100% - 32px),
+    transparent 100%
+  );
 }
 
 .carousel-track {
   display: flex;
   gap: var(--carousel-gap);
+  width: max-content;
+  transform:
+    translateX(calc(
+      var(--carousel-offset, 0) *
+      -1 *
+      (var(--carousel-card-width) + var(--carousel-gap))
+    ));
+  animation: carousel-marquee var(--carousel-duration, 30s) linear infinite;
   will-change: transform;
+}
+
+.carousel-track.paused {
+  animation-play-state: paused;
 }
 
 .carousel-item {
@@ -224,9 +204,46 @@ onBeforeUnmount(() => {
   min-width: var(--carousel-card-width);
 }
 
+@keyframes carousel-marquee {
+  from {
+    transform:
+      translateX(calc(
+        var(--carousel-offset, 0) *
+        -1 *
+        (var(--carousel-card-width) + var(--carousel-gap))
+      ));
+  }
+
+  to {
+    transform:
+      translateX(calc(
+        -1 *
+        var(--carousel-items) *
+        (var(--carousel-card-width) + var(--carousel-gap)) -
+        (
+          var(--carousel-offset, 0) *
+          (var(--carousel-card-width) + var(--carousel-gap))
+        )
+      ));
+  }
+}
+
 @media (max-width: 768px) {
   .facility-carousel {
-    --carousel-card-width: min(82vw, 330px);
+    --carousel-card-width: min(78vw, 330px);
+    --carousel-gap: 14px;
+  }
+
+  .carousel-header {
+    align-items: flex-start;
+  }
+
+  .carousel-header h2 {
+    font-size: 20px;
+  }
+
+  .carousel-window {
+    mask-image: none;
   }
 }
 </style>

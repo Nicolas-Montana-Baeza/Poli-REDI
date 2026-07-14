@@ -171,7 +171,10 @@ const canCancelSelectedReservation = computed(() => {
     return false
   }
 
-  if (selectedReservation.value.isWorkshop) {
+  if (
+    selectedReservation.value.isWorkshop ||
+    selectedReservation.value.isScheduledActivity
+  ) {
     return false
   }
 

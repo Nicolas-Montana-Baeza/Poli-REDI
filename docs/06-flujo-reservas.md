@@ -16,14 +16,14 @@ Este documento describe el flujo funcional de reservas en Poli-REDI, sus validac
 1. El usuario inicia sesion.
 2. El frontend carga usuario actual, recursos, reservas y actividades.
 3. El usuario abre disponibilidad.
-4. El sistema muestra recursos y reservas del dia seleccionado.
+4. El sistema muestra recursos, reservas, talleres y actividades institucionales del dia seleccionado.
 5. El usuario selecciona un horario libre.
 6. Si el usuario normal no tiene RUT, la UI bloquea la accion.
-7. El formulario permite ajustar recurso, fecha, hora, duracion, actividad y participantes.
+7. El formulario permite ajustar recurso, fecha, hora, duracion y actividad. Participantes no se solicita en MVP 1 porque todavia no se persiste.
 8. El frontend valida campos obligatorios.
 9. El backend toma el usuario desde la sesion autenticada.
 10. El backend rechaza usuarios normales sin RUT.
-11. El servicio valida datos minimos de reserva.
+11. El servicio valida datos minimos de reserva. La validacion completa de zona horaria, duraciones permitidas y horario operativo queda priorizada en `RES-009` y `RES-011`.
 12. La base de datos valida conflictos de recurso, usuario, bloqueos y actividades programadas.
 13. Si la reserva se crea, la UI refresca disponibilidad y muestra mensaje de exito.
 14. Si existe conflicto, el formulario mantiene el error visible.
@@ -36,8 +36,13 @@ Este documento describe el flujo funcional de reservas en Poli-REDI, sus validac
 4. El frontend solicita cancelacion enviando el ID de reserva.
 5. El backend obtiene el usuario autenticado desde middleware.
 6. El servicio valida que el usuario sea propietario o administrador.
-7. Si la reserva existe y no esta cancelada, cambia su estado a `CANCELLED`.
+7. Si la reserva existe, no esta cancelada y su termino no ha pasado, cambia su estado a `CANCELLED`.
 8. La UI refresca disponibilidad y muestra mensaje de exito.
+
+Brecha abierta para MVP 1:
+
+- El servidor debe permitir la transicion solo desde estados activos y no confiar en estados enviados por el cliente (`RES-010`).
+- Todas las comparaciones de inicio/termino deben usar una zona horaria de negocio explicita (`RES-009`).
 
 ## Mejora requerida en cancelacion
 
@@ -62,6 +67,12 @@ Estado real persistido:
 - `REJECTED`: rechazada.
 - `EXPIRED`: expirada, si se usa en futuras iteraciones.
 
+Regla de integridad objetivo para MVP 1:
+
+- El endpoint publico de creacion no acepta un estado decidido por el cliente.
+- El backend asigna el estado inicial.
+- Solo estados activos pueden transicionar a `CANCELLED`.
+
 Clasificacion temporal derivada:
 
 - Futura: la reserva aun no comienza.
@@ -85,9 +96,9 @@ Regla UX:
 - Fecha obligatoria.
 - Hora obligatoria.
 - Duracion mayor a cero.
-- Participantes mayor a cero.
 - Bloqueo de creacion si no se pudo cargar disponibilidad.
 - Bloqueo de creacion si usuario normal no tiene RUT.
+- Instalaciones inactivas, informativas o no permitidas para el rol deben mostrarse deshabilitadas (`BACK-020`).
 
 ### Backend
 
@@ -97,6 +108,12 @@ Regla UX:
 - `startTime` obligatorio y parseable.
 - `durationMinutes` mayor a cero.
 - Cancelacion solo por propietario o administrador.
+
+Validaciones backend requeridas antes de cerrar MVP 1:
+
+- Zona horaria institucional explicita y compartida (`RES-009`).
+- Estado inicial y transiciones controlados por servidor (`RES-010`).
+- Duraciones permitidas, paso de inicio y jornada operativa (`RES-011`).
 
 ### Base de datos
 
@@ -113,7 +130,7 @@ Regla UX:
 
 - Mostrar siempre el rango completo de la reserva antes de confirmar.
 - Redondear seleccion de horario a intervalos institucionales.
-- Mostrar capacidad y validar participantes cuando el recurso la tenga.
+- Mostrar capacidad como informacion. Validar participantes solo si el dato se incorpora de punta a punta en MVP 2 (`RES-008`).
 - Diferenciar visualmente reserva, bloqueo, mantencion y actividad institucional.
 - No exponer informacion personal de reservas ajenas en disponibilidad.
 - Mantener errores recuperables dentro del mismo contexto visual.
@@ -144,8 +161,16 @@ sequenceDiagram
 - Crear reserva valida.
 - Crear reserva sin RUT debe fallar para usuario normal.
 - Crear reserva con conflicto debe fallar y mantener modal abierto.
+- Enviar un estado manipulado no debe alterar el estado inicial ni evitar conflictos.
+- Crear fuera de horario o con duracion no permitida debe fallar en backend.
+- La misma reserva debe conservar hora y categoria temporal en local y Azure.
 - Cancelar reserva propia debe pedir confirmacion y actualizar grilla.
 - Cancelar reserva ajena debe fallar para usuario normal.
+- Cancelar una reserva rechazada, expirada, cancelada o finalizada debe fallar.
 - Admin puede cancelar reserva ajena.
 - Cambio de fecha no debe mostrar reservas de otro dia.
 - Reservas canceladas no deben bloquear disponibilidad activa.
+
+## Politica temporal pendiente de implementacion
+
+La regla propuesta para `RES-009` es usar `APP_TIMEZONE=America/Santiago` como zona de negocio y un reloj inyectable en pruebas. La implementacion debe decidir y documentar una sola estrategia de persistencia para `DATETIME2`: UTC normalizado o hora local institucional. Hasta cerrar esa tarea, no debe asumirse que `Z` recibido desde la API representa correctamente la intencion horaria guardada.

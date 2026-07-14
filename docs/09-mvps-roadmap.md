@@ -65,13 +65,26 @@ Construir la base operativa del sistema: aplicacion web, API, base de datos real
 - `BACK-015`
 - `BACK-016`
 - `BACK-017`
+- `BACK-018`
+- `BACK-019`
+- `BACK-020`
+- `BACK-021`
+- `BACK-022`
+- `BACK-023`
+- `BACK-024`
 - `AUTH-001`
 - `AUTH-002`
 - `API-003`
 - `RES-001`
 - `RES-002`
+- `RES-009`
+- `RES-010`
+- `RES-011`
+- `QA-001`
+- `QA-002`
 - `SEC-001`
 - `SEC-002`
+- `SEC-005`
 - `DEPLOY-001`
 - `DEPLOY-002`
 
@@ -93,24 +106,25 @@ El MVP 1 ya esta funcional y desplegado como demo online, pero se reabre para ap
 
 ### Pendientes de pulido final
 
-- Documentar paso a paso el despliegue como guia estable de entrega.
+Bloqueantes funcionales y de integridad:
+
+- Definir una zona horaria de negocio unica para frontend, backend y Azure SQL (`RES-009`).
+- Impedir que el cliente controle el estado inicial o transiciones de reserva (`RES-010`).
+- Aplicar duracion y horario operativo en backend, no solo en UI (`RES-011`).
+- Agregar pruebas backend reales para estas reglas; hoy `go test ./...` no encuentra archivos de test (`QA-001`).
+
+Pulido visible y estabilidad transversal:
+
+- Impedir seleccion de instalaciones no reservables antes del submit (`BACK-020`).
+- Corregir header, campana y sidebar en mobile y teclado (`BACK-021`).
+- Completar foco, Escape, labels y teclado en modales/calendario (`BACK-022`).
+- Incorporar 404 y eliminar cargas duplicadas de sesion (`BACK-023`).
+- Sanitizar respuestas de error internas (`SEC-005`).
+- Terminar el carrusel sin cortes, duplicacion accesible ni movimiento forzado (`BACK-018`).
+- Hacer reproducible la instalacion limpia de `frontend/` y retirar duplicados muertos (`BACK-024`).
+- Agregar una base minima de regresion frontend (`QA-002`).
 - Automatizar despliegue del backend Docker si se mantiene App Service con contenedor.
-- Endurecer configuracion productiva si se pasa de demo a produccion institucional.
-- Ejecutar checklist de demo tecnica MVP 1 (`BACK-005`).
-- Revisar documentacion historica para evitar confusiones con PostgreSQL (`BACK-003`).
-- Confirmar que README, instalacion y arquitectura reflejan el estado real (`BACK-004`).
-- Validar en pantalla los mensajes visibles y posibles problemas de codificacion (`BACK-006`).
-- Crear una base global de sistema visual para reducir inconsistencias (`BACK-007`).
-- Aplicar esa base global a pantallas y componentes principales del MVP 1 (`BACK-008`).
-- Separar estado real de categoria temporal de reserva (`BACK-009`).
-- Alinear el formulario de reserva con los datos realmente persistidos (`BACK-012`).
-- Retirar controles visibles sin accion en disponibilidad (`BACK-013`).
-- Rechazar cancelacion de reservas finalizadas desde backend (`BACK-014`).
-- Unificar estado visual del modal de disponibilidad con el helper compartido (`BACK-015`).
-- Sincronizar el mini calendario con la navegacion de dias (`BACK-016`).
-- Hacer accesible la seleccion de instalacion en el formulario (`BACK-017`).
-- Definir plan de corte desde Google Calendar legado antes de mover operacion real (`OPS-001`).
-- Dejar evidencia de `go test ./...` y `npm run build` antes del cierre definitivo.
+- Mantener el plan de corte desde Google Calendar antes de mover operacion real (`OPS-001`).
 
 ### Pulidos completados durante reapertura
 
@@ -118,11 +132,25 @@ El MVP 1 ya esta funcional y desplegado como demo online, pero se reabre para ap
 - Unificacion de tarjetas/listado de Mis Reservas e Historial (`BACK-010`).
 - Unificacion de estados, filtros y vacios en vistas de reservas (`BACK-011`).
 - Creacion del checklist manual de demo tecnica MVP 1 (`BACK-005`).
+- Validacion de usuario del checklist de demo tecnica MVP 1 (`BACK-005`).
 - Normalizacion de mensajes visibles y errores frecuentes (`BACK-006`).
+- Rechazo backend de cancelacion de reservas finalizadas (`BACK-014`).
+- Validacion de usuario del checklist productivo de modo desarrollo (`SEC-004`).
+- Creacion de seed temporal separado para pruebas de hoy sin modificar `seed.sql` (`BACK-019`).
+- Validacion de usuario del seed temporal de pruebas (`BACK-019`).
+- Actualizacion de la guia operativa de despliegue y redeploy (`BACK-004`).
+- Creacion de la base global de sistema visual (`BACK-007`).
+- Aplicacion inicial del sistema visual en pantallas principales (`BACK-008`).
+- Alineacion del formulario con datos realmente persistidos (`BACK-012`).
+- Retiro de controles sin accion en disponibilidad (`BACK-013`).
+- Unificacion del estado visual del modal (`BACK-015`).
+- Sincronizacion del mini calendario (`BACK-016`).
+- Seleccion de instalacion operable con teclado (`BACK-017`).
+- Verificacion 2026-07-14 de build frontend, autorizacion basica y flujo Historial -> Detalle.
 
 ### Criterio de cierre
 
-El MVP 1 se considera cerrado definitivamente cuando backend, frontend y Azure SQL funcionan juntos en local y en Azure, la autenticacion protege rutas internas, las reservas usan el usuario autenticado, CORS permite solo origenes configurados, no existen secretos versionados, la documentacion base esta alineada con el estado actual, existe evidencia de pruebas de humo y la interfaz base usa un sistema visual consistente.
+El MVP 1 se considera cerrado definitivamente cuando backend, frontend y Azure SQL funcionan juntos en local y en Azure; la autenticacion protege rutas internas; las reservas usan usuario, estado, horario y zona temporal controlados por servidor; CORS permite solo origenes configurados; no existen secretos ni errores internos expuestos; existen pruebas reales para reglas criticas; y el flujo visible es coherente y operable en mobile, escritorio y teclado.
 
 ## MVP 2 - Flujo usuario completo
 
@@ -175,6 +203,7 @@ Entregar una experiencia usable para el usuario normal, desde login hasta reserv
 - `NOTIF-001`
 - `API-002`
 - `API-004`
+- `API-006`
 
 ### Requisitos relacionados
 
@@ -215,7 +244,8 @@ Incluye tambien una primera version funcional de talleres deportivos: listado de
 ### Pendientes para cierre completo
 
 - Completar filtros backend de reservas por fecha/rango/estado (`API-002`).
-- Completar filtros por fecha/rango y sumar bloqueos/actividades al endpoint de disponibilidad (`API-004`, `ADMIN-004`, `ADMIN-005`).
+- Completar filtros por fecha/rango y sumar bloqueos al endpoint de disponibilidad; las actividades programadas ya estan integradas (`API-004`, `ADMIN-004`).
+- Cargar el detalle por ID sin descargar colecciones completas (`API-006`).
 - Agregar confirmacion fuerte antes de cancelar reservas (`RES-007`).
 - Persistir participantes y validar capacidad si el campo vuelve al formulario (`RES-008`).
 - Profesionalizar la seleccion de horario, capacidad, etiquetas humanas y experiencia movil (`UX-001`).
@@ -255,6 +285,7 @@ Convertir Poli-REDI en una herramienta administrable por la institucion, con cal
 - `API-001`
 - `API-005`
 - `REP-001`
+- `REP-003`
 
 ### Requisitos relacionados
 
@@ -279,7 +310,7 @@ Parcial.
 
 ### Pendientes para cierre completo
 
-- Integrar reservas, bloqueos y actividades programadas en un calendario unificado (`RES-004`).
+- Completar la integracion de bloqueos en el calendario unificado; reservas y actividades programadas ya comparten contrato (`RES-004`).
 - Crear bloqueos de disponibilidad desde administracion (`ADMIN-004`).
 - Completar CRUD basico de recursos; la actualizacion de imagen ya esta implementada (`ADMIN-003`).
 - Bloquear y desbloquear usuarios con auditoria (`ADMIN-002`).
@@ -287,6 +318,7 @@ Parcial.
 - Agregar filtros backend de recursos por sede, tipo y estado (`API-001`).
 - Centralizar validacion de administrador con middleware (`API-005`).
 - Completar reportes desde vistas SQL e infracciones si corresponde (`REP-001`).
+- Corregir definicion de reservas activas y precision de horas en indicadores (`REP-003`).
 
 ### Criterio de cierre
 
@@ -303,8 +335,7 @@ Completar los elementos de soporte necesarios para entregar, defender, probar y 
 - Reportes administrativos.
 - Infracciones.
 - Notificaciones completas.
-- Pruebas backend para reglas criticas.
-- Pruebas o checklist frontend.
+- Ampliacion de pruebas backend y frontend mas alla de la base critica del MVP 1.
 - README actualizado.
 - Arquitectura documentada.
 - Flujo de reservas documentado.
@@ -319,8 +350,6 @@ Completar los elementos de soporte necesarios para entregar, defender, probar y 
 - `REP-001`
 - `REP-002`
 - `NOTIF-001`
-- `QA-001`
-- `QA-002`
 - `DOC-001`
 - `DOC-002`
 - `DOC-003`
@@ -351,10 +380,8 @@ En desarrollo.
 - Completar README principal (`DOC-001`).
 - Completar arquitectura con diagrama (`DOC-002`).
 - Completar flujo de reservas con diagramas (`DOC-003`).
-- Agregar pruebas backend para reservas (`QA-001`).
-- Agregar pruebas frontend o checklist automatizado (`QA-002`).
+- Ampliar cobertura automatizada una vez cerrada la base critica exigida por MVP 1.
 - Limpiar logs de configuracion de autenticacion (`SEC-003`).
-- Confirmar checklist productivo para desactivar modo desarrollo (`SEC-004`).
 - Completar infracciones (`REP-002`).
 - Mantener y completar la guia de despliegue y operacion (`docs/10-guia-redeploy.md`).
 - Ejecutar o cerrar plan de corte desde Google Calendar legado (`OPS-001`).

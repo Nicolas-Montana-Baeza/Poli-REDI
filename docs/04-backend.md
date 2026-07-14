@@ -29,11 +29,13 @@ La estructura principal esta organizada por capas:
 - La ruta de usuarios y la consulta completa de reservas usan `RequireAdmin`.
 - La imagen de un recurso se actualiza con ruta administrativa protegida por `RequireAdmin`.
 - La disponibilidad cuenta con endpoint sanitizado para ocultar datos personales de reservas ajenas a usuarios normales.
+- La disponibilidad combina reservas y actividades institucionales activas; para usuarios normales sanitiza creador y titulo interno de la actividad.
 - Las reservas sobre recursos `OPEN_USE` no bloquean otros usos del mismo recurso.
 - La creacion de reservas rechaza cruces con talleres activos asociados al mismo recurso.
 - La base de datos aplica reglas de conflicto para reservas, bloqueos y actividades programadas.
 - Los errores de base de datos se traducen a mensajes mas legibles para reservas.
 - CORS se configura por variable de entorno.
+- La cancelacion rechaza reservas cuyo termino ya paso.
 
 ## Endpoints protegidos principales
 
@@ -64,7 +66,7 @@ La estructura principal esta organizada por capas:
 Mejora recomendada:
 
 - Agregar filtros por fecha o rango para no devolver mas datos de los necesarios.
-- Incorporar bloqueos y actividades programadas al mismo contrato cuando esas gestiones esten habilitadas.
+- Incorporar bloqueos al mismo contrato; las actividades programadas ya estan integradas.
 
 ### Middleware administrativo explicito
 
@@ -77,23 +79,46 @@ Mejora recomendada:
 
 ### Logs de configuracion
 
-El middleware de autenticacion imprime valores de configuracion de Entra ID al iniciar.
+La limpieza de logs de configuracion ya fue implementada en `SEC-003`: el middleware no imprime tenant, client ID, issuer, tokens ni correos en errores internos.
 
-Mejora recomendada:
+Pendiente relacionado:
 
-- Evitar imprimir tenant, client ID o issuer completos.
-- Registrar solo si la configuracion existe o falta.
-- No registrar tokens, cabeceras ni datos sensibles.
+- Mantener esta regla al agregar nuevos logs y cubrirla mediante revision de respuestas publicas (`SEC-005`).
 
 ### Modo desarrollo
 
 El modo `DEV_AUTH_ENABLED=true` es util para pruebas locales, pero debe quedar claramente protegido para despliegue.
 
-Mejora recomendada:
+Estado:
 
-- Validar en arranque que `DEV_AUTH_ENABLED=true` no se use con origenes productivos.
-- Documentar que solo puede usarse localmente.
-- Agregar una prueba o checklist de despliegue que confirme que esta desactivado en Azure.
+- La guia de despliegue exige desactivarlo en Azure y el checklist fue validado (`SEC-004`).
+- Un bloqueo automatico de arranque queda como endurecimiento posterior si el sistema pasa de demo a operacion institucional.
+
+### Contrato temporal inconsistente
+
+Azure SQL guarda reservas en `DATETIME2`, mientras frontend y backend interpretan fechas sin una politica unica de zona horaria. El uso de `time.Local`, `time.Now()` y valores serializados con `Z` puede producir diferencias entre desarrollo local y el contenedor Azure.
+
+Accion requerida para MVP 1:
+
+- Implementar `RES-009` con `APP_TIMEZONE`, estrategia de persistencia documentada y reloj inyectable.
+- Cubrir medianoche y cambios de horario de Chile con pruebas deterministas.
+
+### Estado y limites controlados parcialmente por cliente
+
+El contrato de creacion acepta `status` y la validacion de duracion solo exige un valor positivo. La UI limita opciones, pero una llamada directa puede intentar estados, duraciones u horarios no previstos.
+
+Accion requerida para MVP 1:
+
+- Retirar `status` del request publico y validar transiciones (`RES-010`).
+- Validar jornada, paso y duraciones permitidas en backend (`RES-011`).
+
+### Detalles internos en respuestas HTTP
+
+Varios handlers incluyen `err.Error()` en respuestas. Esto debe considerarse informacion de diagnostico interno aunque el frontend no la muestre.
+
+Accion requerida para MVP 1:
+
+- Implementar respuestas publicas estables y logs internos sanitizados (`SEC-005`).
 
 ## Pruebas backend recomendadas
 
@@ -110,6 +135,11 @@ La prioridad debe estar en reglas de negocio y permisos.
 - Rechazar recurso solo admin para usuario normal.
 - Rechazar conflicto por recurso.
 - Rechazar conflicto por usuario.
+- Rechazar estado inicial enviado por cliente.
+- Asignar estado inicial desde servidor.
+- Rechazar duracion fuera del catalogo permitido.
+- Rechazar inicio o termino fuera de jornada.
+- Mantener hora y clasificacion temporal con `America/Santiago`.
 - Permitir concurrencia en recursos `OPEN_USE`.
 - Rechazar cruce con talleres activos del recurso.
 - Rechazar cruce con bloqueo.
@@ -122,6 +152,8 @@ La prioridad debe estar en reglas de negocio y permisos.
 - Usuario normal no cancela reserva ajena.
 - No se cancela una reserva inexistente.
 - No se cancela dos veces una reserva ya cancelada.
+- No se cancela una reserva rechazada o expirada.
+- No se cancela una reserva finalizada segun reloj y zona configurados.
 
 ### Casos de seguridad
 
@@ -130,6 +162,7 @@ La prioridad debe estar en reglas de negocio y permisos.
 - Usuario bloqueado recibe 403.
 - Modo dev sin cabeceras requeridas recibe 401.
 - Usuario normal no puede actualizar imagenes de recursos.
+- Respuestas 500 no contienen el texto del error interno simulado.
 
 ### Casos criticos de recursos
 
@@ -151,7 +184,9 @@ La prioridad debe estar en reglas de negocio y permisos.
 
 ## Prioridades sugeridas
 
-1. Filtros de fecha/rango para disponibilidad.
-2. Limpieza de logs de configuracion.
-3. Pruebas backend para reservas, cancelacion, disponibilidad y talleres.
-4. Checklist productivo para `DEV_AUTH_ENABLED=false`.
+1. `RES-009`: contrato temporal y zona horaria.
+2. `RES-010`: estado y transiciones controlados por servidor.
+3. `RES-011`: jornada y duraciones validadas en backend.
+4. `QA-001`: pruebas reales de esas reglas y permisos.
+5. `SEC-005`: respuestas publicas sin detalles internos.
+6. `API-004`: filtros de fecha/rango para disponibilidad.

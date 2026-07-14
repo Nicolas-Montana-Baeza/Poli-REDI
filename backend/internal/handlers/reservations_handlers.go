@@ -33,7 +33,7 @@ func GetAvailabilityReservations(c *fiber.Ctx) error {
 		})
 	}
 
-	reservations, err := services.GetReservations()
+	items, err := services.GetAvailabilityItems()
 
 	if err != nil {
 		return c.Status(500).JSON(fiber.Map{
@@ -43,15 +43,19 @@ func GetAvailabilityReservations(c *fiber.Ctx) error {
 	}
 
 	if !user.IsAdmin {
-		for index := range reservations {
-			reservations[index].UserID = 0
-			reservations[index].UserFullName = ""
-			reservations[index].UserEmail = ""
-			reservations[index].UserRUT = ""
+		for index := range items {
+			items[index].UserID = 0
+			items[index].UserFullName = ""
+			items[index].UserEmail = ""
+			items[index].UserRUT = ""
+
+			if items[index].IsScheduledActivity {
+				items[index].Title = "Actividad institucional"
+			}
 		}
 	}
 
-	return c.JSON(reservations)
+	return c.JSON(items)
 }
 
 func GetMyReservations(c *fiber.Ctx) error {

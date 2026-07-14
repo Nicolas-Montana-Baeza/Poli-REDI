@@ -76,6 +76,10 @@ const statusClass = computed(() => {
     return 'workshop'
   }
 
+  if (props.reservation.isScheduledActivity) {
+    return 'scheduled'
+  }
+
   if (props.reservation.status === 'PENDING') {
     return 'pending'
   }
@@ -213,6 +217,14 @@ const statusClass = computed(() => {
   color: #c2410c;
 
   border-color: #fdba74;
+}
+
+.scheduled {
+  background: #ffedd5;
+
+  color: #c2410c;
+
+  border-color: #fb923c;
 }
 
 .cancelled {

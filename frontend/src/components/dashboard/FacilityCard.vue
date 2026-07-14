@@ -122,7 +122,6 @@ watch(
 </template>
 
 <style scoped>
-/* (mismo CSS que arriba) */
 .card {
   width: 100%;
   height: 100%;
@@ -137,6 +136,8 @@ watch(
   padding: 0;
   text-align: left;
   text-decoration: none;
+  display: flex;
+  flex-direction: column;
 }
 
 .card:hover {
@@ -148,13 +149,14 @@ watch(
 .image img {
   display: block;
   width: 100%;
-  height: 172px;
+  aspect-ratio: 16 / 9;
+  height: auto;
   object-fit: cover;
   object-position: center;
 }
 
 .image.fallback {
-  height: 172px;
+  aspect-ratio: 16 / 9;
 
   background:
     linear-gradient(
@@ -186,6 +188,7 @@ watch(
 }
 
 .content {
+  flex: 1;
   padding: 14px 15px 16px;
 }
 
@@ -193,6 +196,7 @@ h3 {
   margin: 0;
   font-size: 16px;
   line-height: 1.25;
+  color: var(--color-text);
 }
 
 .type {

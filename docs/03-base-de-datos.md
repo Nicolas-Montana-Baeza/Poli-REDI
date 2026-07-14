@@ -151,6 +151,18 @@ Estados permitidos:
 - `REJECTED`
 - `EXPIRED`
 
+Campos temporales relevantes:
+
+- `start_time`: `DATETIME2`, sin zona horaria embebida.
+- `duration_minutes`: duracion numerica usada para calcular el termino.
+
+Contrato temporal pendiente para MVP 1:
+
+- `DATETIME2` no permite deducir por si solo si el valor representa UTC o hora local institucional.
+- `RES-009` debe escoger una unica estrategia: UTC normalizado o `America/Santiago` como hora de muro.
+- La estrategia elegida debe aplicarse en request, persistencia, response, frontend y comparaciones con la hora actual.
+- Hasta cerrar `RES-009`, un sufijo `Z` generado al serializar no debe asumirse como prueba de que el valor fue persistido en UTC.
+
 ### `participants`
 
 Representa participantes asociados a una reserva.
@@ -259,6 +271,12 @@ El trigger `trg_reservations_validate_conflicts` valida que:
 - Un usuario no tenga dos reservas confirmadas en el mismo horario.
 - No se reserve durante un bloqueo activo.
 - No se reserve durante una actividad institucional programada.
+
+Limites conocidos:
+
+- Las reglas de solapamiento dependen de estados activos como `CONFIRMED`; por eso el endpoint publico no debe permitir que el cliente escoja `status` (`RES-010`).
+- La base solo comprueba que `duration_minutes` sea positivo. Jornada, pasos y duraciones permitidas deben validarse en servicio (`RES-011`).
+- Las comparaciones de pasado, en curso y finalizada pertenecen a la capa de negocio y deben usar la zona definida en `RES-009`.
 
 ### Reglas de bloqueos
 

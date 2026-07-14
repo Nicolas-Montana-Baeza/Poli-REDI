@@ -1,43 +1,48 @@
-# Poli-REDI - Guia de ejecucion y redeploy
+# Poli-REDI - Guia de despliegue y redeploy
 
 ## Objetivo
 
-Esta guia resume como volver a ejecutar Poli-REDI en local y como redeployar la demo online en Azure.
+Esta guia deja un flujo estable para levantar Poli-REDI en local y redeployar la demo online en Azure sin depender de pasos improvisados.
 
-La configuracion actual usa:
+Arquitectura actual:
 
 - Frontend: Vue/Vite en Azure Static Web Apps.
-- Backend: Go/Fiber en Azure App Service con Docker.
+- Backend: Go/Fiber en Azure App Service con contenedor Docker.
 - Base de datos: Azure SQL Database.
 - Autenticacion: Microsoft Entra ID.
 - CI/CD frontend: GitHub Actions.
 
-## URLs actuales
+URLs actuales:
 
 ```txt
-Frontend Azure:
+Frontend:
 https://purple-ground-0205c9f10.7.azurestaticapps.net/
 
-Backend Azure:
+Backend:
 https://poli-redi.azurewebsites.net
 
 Health check:
 https://poli-redi.azurewebsites.net/api/health
 ```
 
-## 1. Ejecutar en local
+## 1. Regla rapida
 
-### 1.1 Requisitos
+Usar este criterio antes de redeployar:
 
-- Node.js y npm.
-- Go compatible con `backend/go.mod`.
-- Docker, solo si se quiere probar imagen local.
-- Acceso a Azure SQL Database.
-- App registrations de Microsoft Entra ID para frontend y API.
+| Cambio realizado | Accion necesaria |
+| --- | --- |
+| Solo frontend | Push a `main`; GitHub Actions redeploya Static Web Apps |
+| Solo variables `VITE_*` | Reejecutar workflow o hacer commit vacio |
+| Solo backend | Construir nueva imagen Docker, publicarla, actualizar tag en App Service y reiniciar |
+| Backend y frontend | Probar local, push a `main`, esperar frontend, luego redeploy backend |
+| Base de datos | Ejecutar `drop.sql`, `schema.sql`, `seed.sql` solo en ambiente de prueba o con respaldo |
+| Datos demo de hoy | Ejecutar `database/seed_today_temp.sql` despues del seed normal |
 
-### 1.2 Variables del backend local
+## 2. Variables obligatorias
 
-Crear o revisar `backend/.env`.
+### 2.1 Backend local
+
+Archivo: `backend/.env`
 
 ```env
 PORT=3000
@@ -60,13 +65,14 @@ DEV_AUTH_ENABLED=true
 
 Notas:
 
-- `DB_PASSWORD` no debe subirse al repositorio.
+- `DB_PASSWORD` nunca debe quedar versionado.
 - Para pruebas locales rapidas se puede usar `DEV_AUTH_ENABLED=true`.
 - Para probar Microsoft Entra ID real en local, usar `DEV_AUTH_ENABLED=false`.
+- Tambien se puede usar `AZURE_SQL_CONNECTION_STRING` en vez de las variables `DB_*`.
 
-### 1.3 Variables del frontend local
+### 2.2 Frontend local
 
-Crear o revisar `frontend/.env`.
+Archivo: `frontend/.env`
 
 ```env
 VITE_API_BASE_URL=http://localhost:3000/api
@@ -81,68 +87,19 @@ VITE_ENTRA_API_SCOPE=api://ENTRA_API_CLIENT_ID/access_as_user
 VITE_DEV_AUTH_ENABLED=true
 ```
 
-### 1.4 Ejecutar backend local
+### 2.3 Backend Azure App Service
 
-```bash
-cd backend
-go run ./cmd
-```
-
-Validar:
+Ruta en Azure Portal:
 
 ```txt
-http://localhost:3000/api/health
+App Service > poli-redi > Settings > Environment variables
 ```
 
-### 1.5 Ejecutar frontend local
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-Abrir:
-
-```txt
-http://localhost:5173
-```
-
-### 1.6 Validaciones locales recomendadas
-
-```bash
-cd backend
-go test ./...
-
-cd ../frontend
-npm run build
-```
-
-Flujos minimos:
-
-1. Entrar a la aplicacion.
-2. Validar `/api/me`.
-3. Abrir Disponibilidad.
-4. Crear una reserva.
-5. Ver Mis Reservas.
-6. Cancelar una reserva.
-7. Ver Dashboard y panel admin con usuario administrador.
-
-## 2. Variables de nube
-
-### 2.1 Azure App Service backend
-
-En Azure Portal:
-
-```txt
-App Service poli-redi > Settings > Environment variables
-```
-
-Variables esperadas:
+Variables:
 
 ```env
 PORT=3000
-CORS_ALLOWED_ORIGINS=https://purple-ground-0205c9f10.7.azurestaticapps.net,http://localhost:5173
+CORS_ALLOWED_ORIGINS=https://purple-ground-0205c9f10.7.azurestaticapps.net
 
 DB_SERVER=poli-redi-server.database.windows.net
 DB_PORT=1433
@@ -159,21 +116,28 @@ ENTRA_ISSUER=
 DEV_AUTH_ENABLED=false
 ```
 
-Notas:
+Reglas:
 
-- Si App Service usa un puerto distinto por configuracion de contenedor, mantener el mismo puerto que expone la imagen.
-- En la configuracion actual el Dockerfile expone `3000`.
+- En nube, `DEV_AUTH_ENABLED` debe ser `false`.
+- `CORS_ALLOWED_ORIGINS` debe contener solo origenes necesarios. Para demo publica basta la URL de Static Web Apps.
+- Si se necesita probar local contra backend online temporalmente, agregar `http://localhost:5173` solo durante la prueba y retirarlo despues.
 - Reiniciar App Service despues de cambiar variables.
 
-### 2.2 GitHub Actions variables del frontend
+Pendiente antes del cierre definitivo de MVP 1:
 
-En GitHub:
+- `RES-009` debe implementar `APP_TIMEZONE=America/Santiago` en backend y documentar si Azure SQL persiste UTC normalizado u hora local institucional.
+- No basta con definir la variable en Azure antes de que el codigo la consuma.
+- Hasta cerrar esa tarea, validar manualmente que una reserva creada para una hora de Chile conserve la misma hora en local y en la demo online.
+
+### 2.4 Frontend Azure Static Web Apps
+
+Ruta en GitHub:
 
 ```txt
 Repository > Settings > Secrets and variables > Actions > Variables
 ```
 
-Variables esperadas:
+Variables:
 
 ```env
 VITE_API_BASE_URL=https://poli-redi.azurewebsites.net/api
@@ -188,62 +152,99 @@ VITE_ENTRA_API_SCOPE=api://ENTRA_API_CLIENT_ID/access_as_user
 VITE_DEV_AUTH_ENABLED=false
 ```
 
-El workflow que consume estas variables es:
-
-```txt
-.github/workflows/azure-static-web-apps-purple-ground-0205c9f10.yml
-```
-
-### 2.3 GitHub Actions secrets
-
-El secret de Azure Static Web Apps debe existir:
+Secret requerido:
 
 ```txt
 AZURE_STATIC_WEB_APPS_API_TOKEN_PURPLE_GROUND_0205C9F10
 ```
 
-Azure lo crea al conectar la Static Web App con GitHub.
-
-## 3. Microsoft Entra ID
-
-### 3.1 App frontend
-
-En el tenant correcto, revisar:
+Workflow:
 
 ```txt
-Microsoft Entra ID > App registrations > Poli-REDI Frontend > Authentication
+.github/workflows/azure-static-web-apps-purple-ground-0205c9f10.yml
 ```
 
-Redirect URIs esperadas para SPA:
+## 3. Ejecucion local
 
-```txt
-http://localhost:5173/auth/callback
-https://purple-ground-0205c9f10.7.azurestaticapps.net/auth/callback
-```
-
-### 3.2 App API
-
-En el tenant correcto, revisar:
-
-```txt
-Microsoft Entra ID > App registrations > Poli-REDI API > Expose an API
-```
-
-Debe existir un scope equivalente a:
-
-```txt
-api://ENTRA_API_CLIENT_ID/access_as_user
-```
-
-El backend usa `ENTRA_API_CLIENT_ID` para validar el `aud` del token.
-
-## 4. Redeploy del frontend
-
-El frontend se redeploya con GitHub Actions al hacer push a `main`.
-
-Flujo normal:
+Backend:
 
 ```bash
+cd backend
+go run cmd/main.go
+```
+
+Validar:
+
+```txt
+http://localhost:3000/api/health
+```
+
+Frontend:
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Abrir:
+
+```txt
+http://localhost:5173
+```
+
+Pruebas recomendadas antes de redeploy:
+
+```bash
+cd backend
+go test ./...
+
+cd ../frontend
+npm run build
+```
+
+Estado 2026-07-14:
+
+- `go test ./...` finaliza correctamente, pero aun no descubre archivos de prueba; no debe interpretarse como cobertura hasta cerrar `QA-001`.
+- El frontend todavia no tiene `npm run test:run`; se agregara en `QA-002`.
+- `npm run build` completa el build de produccion.
+
+## 4. Base de datos
+
+Scripts principales:
+
+```txt
+database/drop.sql
+database/schema.sql
+database/seed.sql
+```
+
+Flujo para base limpia de desarrollo:
+
+1. Ejecutar `drop.sql`.
+2. Ejecutar `schema.sql`.
+3. Ejecutar `seed.sql`.
+4. Opcional para pruebas de hoy: ejecutar `seed_today_temp.sql`.
+5. Levantar backend y validar `/api/health`.
+6. Abrir frontend y revisar disponibilidad/reservas.
+
+Precauciones:
+
+- No ejecutar `drop.sql` en una base con datos reales sin respaldo.
+- `seed_today_temp.sql` es solo un overlay temporal de prueba.
+- El seed base debe mantenerse estable.
+
+## 5. Redeploy frontend
+
+El frontend se publica automaticamente al hacer push a `main`.
+
+Flujo:
+
+```bash
+cd frontend
+npm run build
+
+cd ..
 git status
 git add .
 git commit -m "mensaje del cambio"
@@ -256,80 +257,63 @@ Luego revisar:
 GitHub > Actions > Azure Static Web Apps CI/CD
 ```
 
-El workflow debe:
-
-- Instalar dependencias del frontend.
-- Ejecutar `npm run build`.
-- Publicar `frontend/dist`.
-- Incluir `frontend/public/staticwebapp.config.json` en el build.
-
-### 4.1 Rebuild sin cambios funcionales
-
-Si solo se cambiaron variables `VITE_*`, se debe volver a correr el workflow. Se puede usar un commit vacio:
+Si solo cambiaron variables `VITE_*`, hay que forzar un nuevo build:
 
 ```bash
 git commit --allow-empty -m "chore: trigger frontend redeploy"
 git push origin main
 ```
 
-## 5. Redeploy del backend con Docker
+Validar:
 
-El backend se despliega como contenedor en Azure App Service.
+- La accion termina sin errores.
+- La app carga en la URL de Static Web Apps.
+- El frontend llama a `https://poli-redi.azurewebsites.net/api`, no a `localhost`.
 
-### 5.1 Construir imagen
+## 6. Redeploy backend
 
-Desde la raiz del proyecto o desde `backend/`, construir usando el Dockerfile del backend.
+El backend se publica como imagen Docker en Azure App Service.
 
-Ejemplo con Docker Hub:
+### 6.1 Construir y publicar imagen
 
-```bash
-cd backend
-docker build -t TU_USUARIO/poli-redi-api:TAG .
-docker push TU_USUARIO/poli-redi-api:TAG
-```
-
-Ejemplo con Azure Container Registry:
+Desde `backend/`:
 
 ```bash
-cd backend
-docker build -t TU_REGISTRY.azurecr.io/poli-redi-api:TAG .
-docker push TU_REGISTRY.azurecr.io/poli-redi-api:TAG
+docker build -t TU_REGISTRY_O_USUARIO/poli-redi-api:TAG .
+docker push TU_REGISTRY_O_USUARIO/poli-redi-api:TAG
 ```
 
-Usar un `TAG` nuevo por despliegue evita que Azure conserve una imagen antigua en cache.
+Usar siempre un `TAG` nuevo. Evitar `latest` para no pelear con cache.
 
-Ejemplos de tags:
+Ejemplos:
 
 ```txt
-v1
-v2
-2026-07-06
-main-001
+2026-07-14-01
+main-042
+mvp1-final-01
 ```
 
-### 5.2 Apuntar App Service a la imagen
+### 6.2 Actualizar Azure App Service
 
 En Azure Portal:
 
 ```txt
-App Service poli-redi > Deployment Center
+App Service > poli-redi > Deployment Center
 ```
 
-Revisar:
+Actualizar:
 
 - Registry.
 - Image.
 - Tag.
 
-Guardar cambios y reiniciar:
+Luego reiniciar:
 
 ```txt
-App Service poli-redi > Overview > Restart
+App Service > poli-redi > Overview > Restart
 ```
 
-### 5.3 Validar backend
-
-Abrir:
+Validar:
 
 ```txt
 https://poli-redi.azurewebsites.net/api/health
@@ -344,143 +328,121 @@ Respuesta esperada:
 }
 ```
 
-## 6. Redeploy completo recomendado
+## 7. Checklist antes de publicar
 
-Cuando cambia frontend y backend:
+Antes de considerar un redeploy como usable para demo:
 
-1. Ejecutar pruebas locales.
-2. Hacer commit de cambios.
-3. Push a `main`.
-4. Esperar deploy del frontend en GitHub Actions.
-5. Construir nueva imagen Docker del backend.
-6. Publicar imagen en el registry.
-7. Actualizar tag en Azure App Service.
-8. Reiniciar App Service.
-9. Validar `/api/health`.
-10. Validar frontend online.
-
-Comandos base:
-
-```bash
-cd backend
-go test ./...
-
-cd ../frontend
-npm run build
-
-cd ..
-git status
-git add .
-git commit -m "mensaje del cambio"
-git push origin main
-```
-
-Luego:
-
-```bash
-cd backend
-docker build -t TU_REGISTRY_O_USUARIO/poli-redi-api:TAG .
-docker push TU_REGISTRY_O_USUARIO/poli-redi-api:TAG
-```
-
-## 7. Checklist de demo online
-
-Validar:
-
-- `https://poli-redi.azurewebsites.net/api/health` responde `ok`.
-- `https://purple-ground-0205c9f10.7.azurestaticapps.net/` carga la app.
-- Login Microsoft redirige correctamente.
-- `/api/me` responde `200`.
-- Dashboard carga sin errores criticos.
-- Disponibilidad carga recursos y reservas.
-- Crear reserva funciona.
-- Mis Reservas muestra la reserva.
-- Cancelar reserva funciona.
-- Usuario normal no entra a rutas admin.
-- Usuario admin ve panel administrador.
+- `go test ./...` pasa.
+- `npm run build` pasa.
+- Una vez implementados `QA-001` y `QA-002`, ambas suites descubren y ejecutan pruebas reales.
+- `DEV_AUTH_ENABLED=false` en App Service.
+- `VITE_DEV_AUTH_ENABLED=false` en GitHub Actions Variables.
+- `CORS_ALLOWED_ORIGINS` no queda abierto con `*`.
+- `APP_TIMEZONE=America/Santiago` esta configurada una vez implementado `RES-009`.
+- `DB_PASSWORD` vive solo en Azure App Service o `.env` local.
+- El frontend online apunta al backend online.
+- `/api/health` responde `ok`.
+- Login Microsoft funciona.
+- `/api/me` responde `200` para usuario valido.
+- Usuario normal no ve rutas admin.
+- Crear y cancelar reserva funciona en ambiente de prueba.
+- Una reserva creada con hora de Chile conserva inicio/termino y categoria temporal en frontend online.
 
 ## 8. Problemas frecuentes
 
-### 8.1 Pantalla 404 al abrir `/login` o `/auth/callback`
+### 8.1 `ERR_CONNECTION_REFUSED`
 
-Revisar que exista:
+El frontend intenta llamar a un backend apagado o a `localhost` desde un ambiente incorrecto.
+
+Revisar:
+
+- Backend local encendido si se usa `localhost`.
+- `VITE_API_BASE_URL` en GitHub Actions si ocurre online.
+- App Service iniciado si ocurre en Azure.
+
+### 8.2 Error CORS
+
+Revisar `CORS_ALLOWED_ORIGINS` en App Service.
+
+Para demo online debe incluir:
+
+```txt
+https://purple-ground-0205c9f10.7.azurestaticapps.net
+```
+
+Reiniciar App Service despues del cambio.
+
+### 8.3 `AADSTS50011`
+
+La Redirect URI no esta registrada en Microsoft Entra ID.
+
+Registrar:
+
+```txt
+http://localhost:5173/auth/callback
+https://purple-ground-0205c9f10.7.azurestaticapps.net/auth/callback
+```
+
+### 8.4 Login correcto pero vuelve a `/login`
+
+Revisar en Network:
+
+```txt
+GET /api/me
+```
+
+Interpretacion:
+
+- `200`: revisar estado/router frontend.
+- `401`: revisar scope, audience o issuer.
+- `403`: usuario bloqueado o sin permisos.
+- Error CORS: revisar `CORS_ALLOWED_ORIGINS`.
+
+### 8.5 Cambios backend no aparecen
+
+Probables causas:
+
+- App Service sigue apuntando a un tag antiguo.
+- Se uso `latest` y Azure mantuvo cache.
+- Falta reiniciar App Service.
+
+Solucion:
+
+1. Construir imagen con tag nuevo.
+2. Publicar imagen.
+3. Actualizar tag en Deployment Center.
+4. Reiniciar App Service.
+5. Validar `/api/health`.
+
+### 8.6 Pantalla 404 al abrir rutas internas
+
+Revisar:
 
 ```txt
 frontend/public/staticwebapp.config.json
 ```
 
-Debe contener fallback a `/index.html`.
-
-### 8.2 Error `AADSTS50011`
-
-La Redirect URI no esta registrada en Entra ID.
-
-Agregar en la app frontend:
-
-```txt
-https://purple-ground-0205c9f10.7.azurestaticapps.net/auth/callback
-```
-
-### 8.3 Error `Invalid URL` en frontend
-
-Faltan variables `VITE_*` durante el build.
-
-Revisar GitHub Actions Variables y redeployar frontend.
-
-### 8.4 Error CORS
-
-Revisar en Azure App Service:
-
-```env
-CORS_ALLOWED_ORIGINS=https://purple-ground-0205c9f10.7.azurestaticapps.net,http://localhost:5173
-```
-
-Reiniciar App Service despues del cambio.
-
-### 8.5 Login correcto pero vuelve a `/login`
-
-Revisar en Network:
-
-```txt
-GET https://poli-redi.azurewebsites.net/api/me
-```
-
-Interpretacion:
-
-- `200`: token y backend funcionan; revisar router/estado frontend.
-- `401`: revisar scope, audience o issuer.
-- `403`: usuario bloqueado o token sin email usable.
-- Error CORS: revisar `CORS_ALLOWED_ORIGINS`.
-
-### 8.6 Frontend apunta a `localhost`
-
-El frontend fue compilado sin `VITE_API_BASE_URL` de nube.
-
-Actualizar GitHub Actions Variables y correr el workflow de nuevo.
-
-### 8.7 Backend no refleja cambios recientes
-
-Si se usa Docker con tag `latest`, Azure puede conservar cache.
-
-Solucion recomendada:
-
-- Publicar imagen con tag nuevo.
-- Actualizar el tag en Deployment Center.
-- Reiniciar App Service.
+Debe existir fallback a `index.html` para que Vue Router maneje rutas como `/login`, `/availability` o `/auth/callback`.
 
 ## 9. Seguridad operativa
 
 - No subir `.env`.
-- No guardar passwords en README ni docs.
-- Mantener secretos en Azure App Service o GitHub Secrets.
-- Mantener variables no secretas del frontend en GitHub Actions Variables.
-- Rotar la clave de Azure SQL si fue compartida fuera del entorno seguro.
-- Usar `DEV_AUTH_ENABLED=false` y `VITE_DEV_AUTH_ENABLED=false` en nube.
+- No copiar passwords en README, docs, issues ni capturas.
+- Mantener secretos backend en Azure App Service.
+- Mantener variables frontend no secretas en GitHub Actions Variables.
+- Rotar la clave de Azure SQL si fue compartida fuera de un canal seguro.
+- Mantener modo local (`DEV_AUTH_ENABLED`) desactivado en nube.
+- Evitar CORS amplio en despliegue publico.
 
-## 10. Estado actual
+## 10. Estado para MVP 1
 
-Con esta configuracion, Poli-REDI queda en estado de demo online funcional:
+Con esta guia, el MVP 1 tiene un flujo documentado para:
 
-- MVP 1 cerrado funcionalmente y desplegado.
-- Parte importante de MVP 2 ya demostrable.
-- Despliegue productivo institucional formal queda como endurecimiento futuro.
+- Levantar entorno local.
+- Configurar variables seguras.
+- Probar backend/frontend.
+- Redeployar frontend.
+- Redeployar backend Docker.
+- Validar la demo online.
+
+El endurecimiento productivo institucional queda como mejora posterior si Poli-REDI pasa de demo a operacion formal.

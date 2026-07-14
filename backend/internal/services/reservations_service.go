@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -28,6 +29,71 @@ var dayNames = []string{
 
 func GetReservations() ([]models.Reservation, error) {
 	return repositories.GetAllReservations()
+}
+
+func GetAvailabilityItems() ([]models.AvailabilityItem, error) {
+	reservations, err := repositories.GetAllReservations()
+
+	if err != nil {
+		return nil, err
+	}
+
+	scheduledActivities, err := repositories.GetActiveScheduledActivities()
+
+	if err != nil {
+		return nil, err
+	}
+
+	items := make(
+		[]models.AvailabilityItem,
+		0,
+		len(reservations)+len(scheduledActivities),
+	)
+
+	for _, reservation := range reservations {
+		items = append(items, models.AvailabilityItem{
+			ID:              reservation.ID,
+			AvailabilityKey: "reservation-" + strconv.Itoa(reservation.ID),
+			UserID:          reservation.UserID,
+			ResourceID:      reservation.ResourceID,
+			StartTime:       reservation.StartTime,
+			DurationMinutes: reservation.DurationMinutes,
+			Status:          reservation.Status,
+			Hour:            reservation.Hour,
+			Title:           reservation.Title,
+			Type:            reservation.Type,
+			ResourceName:    reservation.ResourceName,
+			UserFullName:    reservation.UserFullName,
+			UserEmail:       reservation.UserEmail,
+			UserRUT:         reservation.UserRUT,
+		})
+	}
+
+	for _, activity := range scheduledActivities {
+		duration := int(activity.EndTime.Sub(activity.StartTime).Minutes())
+
+		items = append(items, models.AvailabilityItem{
+			ID:                  activity.ID,
+			AvailabilityKey:     "scheduled-" + strconv.Itoa(activity.ID),
+			UserID:              activity.CreatedByUserID,
+			ResourceID:          activity.ResourceID,
+			StartTime:           activity.StartTime,
+			DurationMinutes:     duration,
+			Status:              "CONFIRMED",
+			Hour:                activity.StartTime.Format("15:04"),
+			Title:               activity.Title,
+			Type:                "scheduled",
+			ResourceName:        activity.ResourceName,
+			IsScheduledActivity: true,
+			ActivityType:        activity.ActivityType,
+		})
+	}
+
+	sort.Slice(items, func(i, j int) bool {
+		return items[i].StartTime.Before(items[j].StartTime)
+	})
+
+	return items, nil
 }
 
 func GetMyReservations(userID int) ([]models.Reservation, error) {

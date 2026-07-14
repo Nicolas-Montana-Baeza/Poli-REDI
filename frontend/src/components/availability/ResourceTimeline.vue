@@ -445,7 +445,7 @@ const modeLabel = (mode) => {
       <template v-if="!isOpenUse">
         <ReservationBlock
           v-for="reservation in resourceReservations"
-          :key="reservation.id"
+          :key="reservation.availabilityKey || reservation.id"
           :reservation="reservation"
           :start-hour="startHour"
           :pixels-per-minute="pixelsPerMinute"

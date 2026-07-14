@@ -87,31 +87,35 @@ Estado actual: Implementado.
 
 ### RF-005 - Consulta de disponibilidad
 
-El sistema debe mostrar disponibilidad de recursos por fecha, considerando reservas existentes y talleres activos asociados al recurso.
+El sistema debe mostrar disponibilidad de recursos por fecha, considerando reservas existentes, talleres activos, actividades institucionales y bloqueos asociados al recurso.
 
-Estado actual: Implementado parcialmente. Ya existe endpoint sanitizado para reservas y la UI suma talleres recurrentes; falta incorporar bloqueos/actividades programadas y filtros backend por fecha/rango.
+Estado actual: Implementado parcialmente. El endpoint sanitizado combina reservas con actividades institucionales y la UI suma talleres recurrentes; falta incorporar bloqueos y filtros backend por fecha/rango.
 
 Pendiente relacionado: `RES-004`.
 
 ### RF-006 - Creacion de reservas
 
-El sistema debe permitir crear reservas sobre recursos disponibles, asociadas al usuario autenticado y, opcionalmente, a una actividad.
+El sistema debe permitir crear reservas sobre recursos disponibles, asociadas al usuario autenticado y, opcionalmente, a una actividad. El servidor debe asignar el estado inicial y rechazar fecha, horario o duracion fuera de las reglas institucionales.
 
-Estado actual: Implementado.
+Estado actual: Implementado parcialmente. La asociacion al usuario y la creacion funcionan; falta cerrar estado controlado por servidor, zona horaria y limites operativos.
+
+Pendiente relacionado: `RES-009`, `RES-010`, `RES-011`.
 
 ### RF-007 - Validacion de conflictos de reserva
 
 El sistema debe rechazar reservas que se solapen con otras reservas confirmadas, talleres activos o reglas de disponibilidad. Los recursos `OPEN_USE` permiten concurrencia y no bloquean por reserva existente.
 
-Estado actual: Implementado para reservas y talleres activos.
+Estado actual: Implementado parcialmente para reservas y talleres activos. Debe impedirse que un estado enviado por cliente eluda las reglas activas.
 
-Pendiente relacionado: `RES-004`, `ADMIN-004`.
+Pendiente relacionado: `RES-004`, `RES-010`, `ADMIN-004`.
 
 ### RF-008 - Cancelacion de reservas
 
-El sistema debe permitir cancelar reservas propias y permitir que administradores cancelen reservas segun permisos.
+El sistema debe permitir cancelar reservas propias y permitir que administradores cancelen reservas segun permisos, siempre que el estado admita cancelacion y la reserva no haya finalizado segun la zona horaria institucional.
 
-Estado actual: Implementado.
+Estado actual: Implementado parcialmente. Propiedad, rol y reserva finalizada ya se validan; falta restringir transiciones por estado y unificar zona horaria.
+
+Pendiente relacionado: `RES-009`, `RES-010`.
 
 ### RF-009 - Reservas por rol
 
@@ -123,9 +127,7 @@ Estado actual: Implementado.
 
 El sistema debe mostrar reservas pasadas, canceladas o finalizadas. Usuarios normales solo ven su historial; administradores pueden ver todo el historial.
 
-Estado actual: Implementado parcialmente.
-
-Pendiente relacionado: `UI-003`.
+Estado actual: Implementado. Historial usa datos reales, filtros por estado/fecha y acceso al detalle segun rol.
 
 ### RF-011 - Catalogo de recursos
 
@@ -187,7 +189,7 @@ El sistema debe mostrar indicadores de uso, horas punta y datos administrativos.
 
 Estado actual: Implementado parcialmente.
 
-Pendiente relacionado: `REP-001`, `REP-002`.
+Pendiente relacionado: `REP-001`, `REP-002`, `REP-003`.
 
 ### RF-019 - Talleres deportivos
 
@@ -224,10 +226,11 @@ cd backend
 go test ./...
 
 cd ../frontend
+npm run test:run
 npm run build
 ```
 
-Si no se pueden ejecutar pruebas, debe registrarse el motivo.
+Mientras `QA-002` no este implementada, `npm run test:run` puede registrarse como pendiente. Un comando que finaliza sin descubrir archivos de prueba no constituye evidencia de cobertura. Si no se pueden ejecutar pruebas, debe registrarse el motivo.
 
 ### RNF-006 - Compatibilidad local
 
@@ -244,6 +247,24 @@ La disponibilidad para usuarios normales debe exponer solo la informacion necesa
 ### RNF-009 - Accesibilidad basica
 
 Los flujos criticos deben poder operarse con controles claros, mensajes de estado comprensibles y modales con comportamiento accesible basico.
+
+### RNF-010 - Consistencia temporal
+
+Frontend, backend y base de datos deben aplicar una unica zona horaria de negocio y un contrato explicito de serializacion. Las reglas de pasado, en curso, futuro y cancelacion no deben depender de la zona local del servidor.
+
+Pendiente relacionado: `RES-009`.
+
+### RNF-011 - Errores publicos seguros
+
+Las respuestas HTTP deben entregar codigos y mensajes publicos estables sin incluir errores internos de SQL, JWT, JWKS o configuracion. El diagnostico tecnico debe permanecer en logs sanitizados.
+
+Pendiente relacionado: `SEC-005`.
+
+### RNF-012 - Responsive transversal
+
+El shell, header, sidebar, dropdowns y modales deben mantenerse operables sin superposiciones desde 320 px y no dejar controles ocultos dentro del orden de tabulacion.
+
+Pendiente relacionado: `BACK-021`, `BACK-022`.
 
 ## Historias de usuario
 
@@ -284,6 +305,8 @@ Como usuario normal, quiero crear una reserva sobre un recurso disponible para a
 Criterios de aceptacion:
 
 - La reserva se asocia a mi usuario autenticado.
+- El servidor asigna el estado inicial.
+- Fecha, hora y duracion cumplen la jornada institucional.
 - El sistema rechaza conflictos de horario.
 - El sistema muestra exito o error.
 
@@ -294,6 +317,7 @@ Como usuario normal, quiero cancelar una reserva propia cuando ya no la usare.
 Criterios de aceptacion:
 
 - Solo puedo cancelar reservas propias.
+- Solo puedo cancelar una reserva en estado cancelable y no finalizada.
 - El sistema pide confirmacion fuerte antes de ejecutar la cancelacion.
 - La lista o grilla se actualiza luego de cancelar.
 
@@ -325,7 +349,7 @@ Criterios de aceptacion:
 
 - Se muestran reservas historicas reales.
 - Existen estados de carga, error y vacio.
-- En una iteracion futura, se podra filtrar por fecha y estado.
+- Se puede filtrar por fecha y estado dentro del historial visible para el rol.
 
 ### HU-007A - Revisar historial global como administrador
 
@@ -396,6 +420,8 @@ Criterios de aceptacion:
 
 - Se muestran indicadores de uso.
 - Se muestran horas punta.
+- La definicion de reserva activa excluye finalizadas, canceladas, rechazadas y expiradas.
+- Las horas se presentan sin redondeos que alteren el total real.
 - En una iteracion futura, se integraran infracciones y vistas SQL dedicadas.
 
 ### HU-014 - Inscribirse en taller deportivo
@@ -471,8 +497,8 @@ Flujo principal:
 1. El usuario abre disponibilidad.
 2. El usuario selecciona fecha, recurso, hora, duracion y actividad.
 3. El usuario confirma la reserva.
-4. El backend valida usuario, recurso y conflicto horario.
-5. El sistema crea la reserva.
+4. El backend valida usuario, recurso, estado inicial, zona horaria, jornada, duracion y conflicto horario.
+5. El sistema crea la reserva con estado asignado por servidor.
 6. La disponibilidad se actualiza.
 
 Postcondiciones:
@@ -482,6 +508,8 @@ Postcondiciones:
 Flujos alternativos:
 
 - Si hay conflicto horario, el sistema rechaza la reserva.
+- Si el horario o duracion estan fuera de regla, el sistema rechaza la reserva con mensaje accionable.
+- Si un cliente intenta enviar un estado, no puede modificar el estado inicial ni evitar validaciones.
 - Si falta RUT, el sistema bloquea la creacion.
 - Si falta un dato obligatorio, el frontend muestra error.
 
@@ -499,7 +527,7 @@ Flujo principal:
 1. El usuario abre el detalle de una reserva.
 2. El usuario solicita cancelar.
 3. El sistema pide confirmacion.
-4. El backend valida permisos.
+4. El backend valida permisos, estado cancelable y termino segun la zona institucional.
 5. El sistema cambia el estado a cancelada.
 6. La interfaz actualiza la lista o grilla.
 
@@ -510,6 +538,7 @@ Postcondiciones:
 Flujos alternativos:
 
 - Si el usuario normal intenta cancelar reserva ajena, el sistema rechaza la accion.
+- Si la reserva esta cancelada, rechazada, expirada o finalizada, el sistema rechaza la accion.
 
 ### CU-005 - Consultar mis reservas
 
@@ -613,9 +642,9 @@ Flujos alternativos:
 | RF-003 | HU-002 | AUTH-004 |
 | RF-004 | HU-002, HU-004 | AUTH-004 |
 | RF-005 | HU-003 | RES-003, RES-004 |
-| RF-006 | HU-004 | RES-001, RES-002, RES-005 |
-| RF-007 | HU-004, HU-012 | RES-004, ADMIN-004, QA-001 |
-| RF-008 | HU-005 | RES-007, API-003 |
+| RF-006 | HU-004 | RES-001, RES-002, RES-005, RES-009, RES-010, RES-011 |
+| RF-007 | HU-004, HU-012 | RES-004, RES-010, ADMIN-004, QA-001 |
+| RF-008 | HU-005 | RES-007, RES-009, RES-010, API-003 |
 | RF-009 | HU-006, HU-006A | RES-006 |
 | RF-010 | HU-007, HU-007A | UI-003 |
 | RF-011 | HU-003, HU-011 | UI-001, API-001 |
@@ -625,7 +654,7 @@ Flujos alternativos:
 | RF-015 | HU-012 | ADMIN-004 |
 | RF-016 | HU-012 | ADMIN-005 |
 | RF-017 | HU-008 | NOTIF-001 |
-| RF-018 | HU-013 | REP-001, REP-002 |
+| RF-018 | HU-013 | REP-001, REP-002, REP-003 |
 | RF-019 | HU-014 | UI-006 |
 | RNF-008 | HU-003, HU-004 | API-004 |
 | RNF-009 | HU-003, HU-004, HU-005 | UX-001, UX-002 |

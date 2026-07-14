@@ -36,7 +36,7 @@ Responsabilidades principales:
 - Mostrar disponibilidad, formularios de reserva, historial, talleres deportivos y panel admin base.
 - Mostrar imagenes configurables de recursos y permitir su actualizacion a administradores.
 - Enviar reservas sin confiar en IDs de usuario definidos en cliente.
-- Consumir disponibilidad desde un endpoint sanitizado y combinarla con talleres recurrentes para bloquear horarios ocupados.
+- Consumir disponibilidad desde un endpoint sanitizado y combinar reservas, talleres recurrentes y actividades institucionales para bloquear horarios ocupados.
 
 ## Backend
 
@@ -135,8 +135,11 @@ La demo online inicial usa:
 
 ## Riesgos y mejoras recomendadas
 
-- Extender el endpoint de disponibilidad para aceptar fecha o rango y sumar bloqueos/actividades programadas cuando se habilite su gestion.
-- Centralizar validacion de administrador con middleware reutilizable.
-- Confirmar `DEV_AUTH_ENABLED=false` antes de cualquier despliegue publico.
-- Agregar pruebas backend para reglas criticas de reservas y cancelacion.
-- Agregar checklist frontend o pruebas de humo para demo.
+- Extender el endpoint de disponibilidad para aceptar fecha o rango y sumar bloqueos; las actividades programadas activas ya forman parte del contrato.
+- Definir un contrato temporal unico entre `DATETIME2`, API y frontend mediante `APP_TIMEZONE` (`RES-009`).
+- Hacer que estado inicial y transiciones de reserva pertenezcan exclusivamente al servidor (`RES-010`).
+- Aplicar jornada y duraciones permitidas en backend (`RES-011`).
+- Agregar pruebas backend reales para reglas criticas; `go test ./...` actualmente no descubre archivos de test (`QA-001`).
+- Agregar regresion frontend automatizada para router, formulario, recursos no reservables y helpers temporales (`QA-002`).
+- Evitar detalles internos en respuestas HTTP y conservarlos solo en logs sanitizados (`SEC-005`).
+- Mantener `RequireAdmin` para nuevas rutas administrativas y `DEV_AUTH_ENABLED=false` en despliegues publicos; ambas bases ya estan implementadas/documentadas.

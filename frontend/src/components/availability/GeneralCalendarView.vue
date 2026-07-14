@@ -71,6 +71,10 @@ const resourceName = (reservation) => {
 }
 
 const userName = (reservation) => {
+  if (reservation.isScheduledActivity) {
+    return 'Programación institucional'
+  }
+
   return (
     reservation.userFullName ||
     reservation.userEmail ||
@@ -93,7 +97,7 @@ const selectReservation = (reservation) => {
         </h2>
 
         <p>
-          Resumen operacional de todas las reservas ordenadas por horario.
+          Reservas y programación institucional ordenadas por horario.
         </p>
       </div>
     </div>
@@ -101,7 +105,7 @@ const selectReservation = (reservation) => {
     <div class="summary-row">
       <div class="summary-item">
         <span>
-          Reservas
+          Bloques
         </span>
 
         <strong>
@@ -121,7 +125,7 @@ const selectReservation = (reservation) => {
 
       <div class="summary-item">
         <span>
-          Tiempo reservado
+          Tiempo ocupado
         </span>
 
         <strong>
@@ -134,7 +138,7 @@ const selectReservation = (reservation) => {
       v-if="dayReservations.length === 0"
       class="empty"
     >
-      No hay reservas registradas para este día.
+      No hay reservas ni programación institucional para este día.
     </div>
 
     <div
@@ -143,7 +147,7 @@ const selectReservation = (reservation) => {
     >
       <button
         v-for="reservation in dayReservations"
-        :key="reservation.id"
+        :key="reservation.availabilityKey || reservation.id"
         type="button"
         class="agenda-item"
         @click="selectReservation(reservation)"
@@ -340,6 +344,11 @@ const selectReservation = (reservation) => {
 }
 
 .status-pill.pending {
+  background: var(--color-warning-soft);
+  color: var(--color-warning);
+}
+
+.status-pill.scheduled {
   background: var(--color-warning-soft);
   color: var(--color-warning);
 }

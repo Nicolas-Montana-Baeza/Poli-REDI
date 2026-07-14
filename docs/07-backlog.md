@@ -7,7 +7,7 @@ La idea es usar este documento como base para crear issues en GitHub Projects o 
 
 ## Estado base verificado
 
-Fecha de referencia: 2026-07-03
+Fecha de referencia: 2026-07-14
 
 Estado actual:
 
@@ -21,6 +21,10 @@ Estado actual:
 - Ruta `/api/health` funciona como verificacion publica.
 - Rutas protegidas requieren token Bearer.
 - Vista `AvailabilityView` carga datos reales.
+- El flujo `Historial -> Detalle` funciona para usuario y administrador segun permisos.
+- `npm run build` pasa en frontend.
+- `go test ./...` finaliza correctamente, pero no existen archivos de prueba; `QA-001` sigue abierto.
+- El MVP 1 permanece reabierto por zona horaria, estado controlado por servidor, horario/duracion, pruebas reales y coherencia responsive/accesible.
 
 ## Convenciones sugeridas
 
@@ -183,12 +187,20 @@ Dejar el MVP 1 lo mas estable, demostrable y defendible posible.
 
 - [x] README y documentos de instalacion reflejan el estado real actual.
 - [x] La guia local permite levantar backend y frontend sin ambiguedades.
-- [ ] La guia de despliegue indica variables obligatorias y valores seguros.
-- [ ] Existe checklist de validacion MVP 1 antes de demo.
+- [x] La guia de despliegue indica variables obligatorias y valores seguros.
+- [x] Existe checklist de validacion MVP 1 antes de demo.
 - [x] Se ejecuta o documenta resultado de `go test ./...`.
 - [x] Se ejecuta o documenta resultado de `npm run build`.
 - [x] Se revisa que no haya referencias activas a PostgreSQL como tecnologia vigente.
 - [ ] Se revisa que no haya secretos, passwords ni tokens en documentacion versionada.
+
+### Resultado parcial
+
+- `docs/10-guia-redeploy.md` fue reescrita como guia operativa de despliegue y redeploy.
+- La guia separa escenarios: frontend, backend, variables `VITE_*`, base de datos y seed temporal.
+- Se documentaron variables obligatorias locales y online, valores seguros para `DEV_AUTH_ENABLED`, `VITE_DEV_AUTH_ENABLED` y `CORS_ALLOWED_ORIGINS`.
+- Se agrego checklist antes de publicar y problemas frecuentes.
+- Queda pendiente la revision final de secretos en documentacion versionada antes del cierre definitivo.
 
 ### Archivos relevantes
 
@@ -197,6 +209,7 @@ Dejar el MVP 1 lo mas estable, demostrable y defendible posible.
 - `docs/02-arquitectura.md`
 - `docs/03-base-de-datos.md`
 - `docs/09-mvps-roadmap.md`
+- `docs/10-guia-redeploy.md`
 - `backend/.env.example`
 - `frontend/.env.example`
 
@@ -204,7 +217,7 @@ Dejar el MVP 1 lo mas estable, demostrable y defendible posible.
 
 Prioridad: P1
 Labels: `testing`, `documentacion`, `deploy`
-Estado sugerido: En revision de usuario
+Estado sugerido: Validado por usuario
 
 ### Contexto
 
@@ -229,7 +242,7 @@ Crear un checklist corto de pruebas de humo para MVP 1.
 ### Resultado parcial
 
 - Se creo `docs/12-checklist-demo-mvp1.md` con checklist manual para validacion local y online.
-- La tarea queda en revision de usuario hasta ejecutar el checklist en un ambiente real.
+- El usuario confirmo que el checklist de demo MVP 1 ya fue validado.
 
 ### Evidencia reciente
 
@@ -281,7 +294,7 @@ Revisar mensajes visibles de backend/frontend para que no aparezcan caracteres c
 
 Prioridad: P1
 Labels: `frontend`, `ux`, `refactor`, `codex-ready`, `mvp1`
-Estado sugerido: Ajustes visuales pendientes
+Estado sugerido: Done
 
 ### Contexto
 
@@ -330,9 +343,10 @@ Crear una base global de estilos reutilizables sin redisenar la aplicacion compl
 
 ### Resultado parcial
 
-- La base global existe y compila, pero requiere validacion visual del usuario antes de cierre.
+- La base global existe, compila y cumple su objetivo estructural.
 - Se ajustaron radios, sombras, pesos tipograficos y contraste para reducir una apariencia demasiado pesada.
 - Se reemplazo el sidebar oscuro por una version clara y se aumento la viveza del color primario.
+- Los defectos responsive y de componentes compartidos se siguen en `BACK-018`, `BACK-021` y `BACK-022`; no reabren la creacion de tokens.
 
 ### Archivos relevantes
 
@@ -344,7 +358,7 @@ Crear una base global de estilos reutilizables sin redisenar la aplicacion compl
 
 Prioridad: P1
 Labels: `frontend`, `ux`, `refactor`, `codex-ready`, `mvp1`
-Estado sugerido: Ajustes visuales pendientes
+Estado sugerido: Partially Done
 
 ### Contexto
 
@@ -384,7 +398,7 @@ Aplicar primero en:
 - [x] Campos de formulario comparten altura, borde, foco y error.
 - [x] Modales principales comparten overlay, superficie, sombra y botones.
 - [x] La vista de disponibilidad conserva su layout y no pierde legibilidad.
-- [x] La UI sigue siendo responsive en mobile.
+- [ ] La UI sigue siendo responsive en mobile sin superposiciones ni controles fuera del viewport.
 - [x] `npm run build` pasa.
 
 ### Resultado parcial
@@ -392,6 +406,7 @@ Aplicar primero en:
 - Las pantallas principales usan la base global, pero el resultado visual sigue sujeto a revision del usuario.
 - Se redujo la intensidad visual en login, header, sidebar, tarjetas de reserva y detalle.
 - Se ajustaron botones, mini calendario y timeline de disponibilidad para que se vean mas consistentes y menos apagados.
+- La revision de 2026-07-14 encontro quiebres en header, campana, sidebar, modales y carrusel. El cierre concreto queda repartido en `BACK-018`, `BACK-021` y `BACK-022`.
 
 ### Archivos relevantes
 
@@ -573,7 +588,7 @@ Alinear los estados visuales y de interaccion de las vistas relacionadas con res
 
 Prioridad: P1
 Labels: `frontend`, `ux`, `reservas`, `bug`, `codex-ready`, `mvp1`
-Estado sugerido: Ready for Codex
+Estado sugerido: Done
 
 ### Contexto
 
@@ -594,11 +609,18 @@ Evitar que el formulario capture datos que no forman parte del contrato real de 
 
 ### Criterios de aceptacion
 
-- [ ] El usuario no ve un campo de participantes si ese dato no se persiste.
-- [ ] No queda validacion visible ni bloqueo por `participantsCount` en MVP 1.
-- [ ] El payload de creacion contiene solo campos soportados por backend.
-- [ ] La UI sigue mostrando recurso, fecha, hora, duracion y actividad cuando corresponda.
-- [ ] `npm run build` pasa.
+- [x] El usuario no ve un campo de participantes si ese dato no se persiste.
+- [x] No queda validacion visible ni bloqueo por `participantsCount` en MVP 1.
+- [x] El payload de creacion contiene solo campos soportados por backend.
+- [x] La UI sigue mostrando recurso, fecha, hora, duracion y actividad cuando corresponda.
+- [x] `npm run build` pasa.
+
+### Resultado de implementacion
+
+- El formulario de MVP 1 ya no solicita participantes ni conserva validaciones asociadas.
+- El payload visible coincide con el contrato actual de creacion.
+- La persistencia de participantes se mantiene separada en `RES-008` para MVP 2, si producto confirma que el dato es necesario.
+- 2026-07-14: `npm run build` ejecutado correctamente.
 
 ### Archivos relevantes
 
@@ -610,7 +632,7 @@ Evitar que el formulario capture datos que no forman parte del contrato real de 
 
 Prioridad: P1
 Labels: `frontend`, `ux`, `disponibilidad`, `bug`, `codex-ready`, `mvp1`
-Estado sugerido: Ready for Codex
+Estado sugerido: Done
 
 ### Contexto
 
@@ -630,11 +652,17 @@ Eliminar o neutralizar controles que prometen acciones inexistentes en MVP 1.
 
 ### Criterios de aceptacion
 
-- [ ] No hay botones visibles que no produzcan una accion clara.
-- [ ] La fecha actual sigue visible en la toolbar.
-- [ ] Navegar dia anterior/siguiente/hoy sigue funcionando.
-- [ ] El layout mobile no queda con espacios vacios o botones fantasma.
-- [ ] `npm run build` pasa.
+- [x] No hay botones visibles que no produzcan una accion clara en la toolbar de disponibilidad.
+- [x] La fecha actual sigue visible en la toolbar.
+- [x] Navegar dia anterior/siguiente/hoy sigue funcionando.
+- [x] El layout mobile no queda con espacios vacios o botones fantasma.
+- [x] `npm run build` pasa.
+
+### Resultado de implementacion
+
+- Se retiraron los controles de fecha/filtros que no completaban una accion.
+- La navegacion por dia y la accion `Hoy` se mantienen operativas.
+- 2026-07-14: validado en navegador y con build de produccion.
 
 ### Archivos relevantes
 
@@ -645,11 +673,11 @@ Eliminar o neutralizar controles que prometen acciones inexistentes en MVP 1.
 
 Prioridad: P1
 Labels: `backend`, `reservas`, `security`, `bug`, `codex-ready`, `mvp1`
-Estado sugerido: Ready for Codex
+Estado sugerido: Done
 
 ### Contexto
 
-El frontend oculta la accion de cancelar cuando una reserva ya esta en el pasado, pero el backend actualmente valida permisos y estado `CANCELLED`, no la ventana temporal. Para seguridad ligera y coherencia de reglas, el backend debe rechazar tambien cancelaciones de reservas finalizadas.
+El frontend oculta la accion de cancelar cuando una reserva ya esta en el pasado. El backend ahora valida tambien la ventana temporal antes de cancelar, ademas de permisos y estado `CANCELLED`.
 
 ### Objetivo
 
@@ -666,10 +694,17 @@ Hacer que la regla "no se cancelan reservas ya finalizadas" exista en backend, n
 
 ### Criterios de aceptacion
 
-- [ ] Backend rechaza cancelar reservas cuyo termino ya paso.
-- [ ] Backend conserva rechazo por reserva inexistente, sin permisos y ya cancelada.
-- [ ] Frontend muestra el error del backend si la API rechaza la cancelacion.
-- [ ] `go test ./...` pasa.
+- [x] Backend rechaza cancelar reservas cuyo termino ya paso.
+- [x] Backend conserva rechazo por reserva inexistente, sin permisos y ya cancelada.
+- [x] Frontend muestra el error del backend si la API rechaza la cancelacion.
+- [x] `go test ./...` pasa.
+
+### Resultado de implementacion
+
+- `GetReservationCancellationSnapshot` obtiene propietario, estado, inicio y duracion de la reserva.
+- `CancelReservation` calcula el termino de la reserva y retorna `no puedes cancelar una reserva finalizada` si ya paso.
+- La regla aplica tanto a usuarios normales como a administradores; los permisos existentes se mantienen.
+- 2026-07-14: `go test ./...` finaliza correctamente. Actualmente no existen archivos de pruebas, por lo que la cobertura real queda pendiente en `QA-001`.
 
 ### Archivos relevantes
 
@@ -682,7 +717,7 @@ Hacer que la regla "no se cancelan reservas ya finalizadas" exista en backend, n
 
 Prioridad: P2
 Labels: `frontend`, `ux`, `reservas`, `disponibilidad`, `refactor`, `codex-ready`, `mvp1`
-Estado sugerido: Ready for Codex
+Estado sugerido: Done
 
 ### Contexto
 
@@ -702,11 +737,17 @@ Usar una sola regla de estado visual para reservas en todo el flujo MVP 1.
 
 ### Criterios de aceptacion
 
-- [ ] La misma reserva muestra el mismo estado visual en lista, detalle e inspeccion desde disponibilidad.
-- [ ] Reservas `CONFIRMED` pasadas se ven como `Finalizada`.
-- [ ] Reservas en curso se ven como `En curso`.
-- [ ] Talleres siguen diferenciados como talleres programados.
-- [ ] `npm run build` pasa.
+- [x] La misma reserva muestra el mismo estado visual en lista, detalle e inspeccion desde disponibilidad.
+- [x] Reservas `CONFIRMED` pasadas se ven como `Finalizada`.
+- [x] Reservas en curso se ven como `En curso`.
+- [x] Talleres siguen diferenciados como talleres programados.
+- [x] `npm run build` pasa.
+
+### Resultado de implementacion
+
+- `ReservationDetailModal.vue` usa el helper compartido de estado visual.
+- Lista, detalle e inspeccion desde disponibilidad conservan la misma etiqueta temporal.
+- 2026-07-14: validado en navegador y con build de produccion.
 
 ### Archivos relevantes
 
@@ -719,7 +760,7 @@ Usar una sola regla de estado visual para reservas en todo el flujo MVP 1.
 
 Prioridad: P2
 Labels: `frontend`, `ux`, `disponibilidad`, `bug`, `codex-ready`, `mvp1`
-Estado sugerido: Ready for Codex
+Estado sugerido: Done
 
 ### Contexto
 
@@ -739,11 +780,17 @@ Mantener sincronizada la vista mensual del mini calendario con `selectedDate`.
 
 ### Criterios de aceptacion
 
-- [ ] Al presionar `Hoy`, el mini calendario muestra el mes correspondiente a hoy.
-- [ ] Al navegar a un dia de otro mes, el mini calendario cambia a ese mes.
-- [ ] El dia seleccionado queda destacado correctamente.
-- [ ] Las fechas pasadas siguen deshabilitadas.
-- [ ] `npm run build` pasa.
+- [x] Al presionar `Hoy`, el mini calendario muestra el mes correspondiente a hoy.
+- [x] Al navegar a un dia de otro mes, el mini calendario cambia a ese mes.
+- [x] El dia seleccionado queda destacado correctamente.
+- [x] Las fechas pasadas siguen deshabilitadas.
+- [x] `npm run build` pasa.
+
+### Resultado de implementacion
+
+- `CalendarMini.vue` observa `selectedDate` y sincroniza mes y ano cuando cambia desde afuera.
+- La navegacion manual y las fechas pasadas deshabilitadas se mantienen.
+- 2026-07-14: build de produccion correcto.
 
 ### Archivos relevantes
 
@@ -754,7 +801,7 @@ Mantener sincronizada la vista mensual del mini calendario con `selectedDate`.
 
 Prioridad: P2
 Labels: `frontend`, `ux`, `accessibility`, `reservas`, `codex-ready`, `mvp1`
-Estado sugerido: Ready for Codex
+Estado sugerido: Done
 
 ### Contexto
 
@@ -774,15 +821,321 @@ Mejorar accesibilidad ligera del formulario de reserva sin cambiar el diseno vis
 
 ### Criterios de aceptacion
 
-- [ ] Las instalaciones se pueden seleccionar con teclado.
-- [ ] El foco visible es claro.
-- [ ] El estado seleccionado queda anunciado semanticamente.
-- [ ] La apariencia visual no cambia de forma disruptiva.
-- [ ] `npm run build` pasa.
+- [x] Las instalaciones se pueden seleccionar con teclado.
+- [x] El foco visible es claro.
+- [x] El estado seleccionado queda anunciado semanticamente.
+- [x] La apariencia visual no cambia de forma disruptiva.
+- [x] `npm run build` pasa.
+
+### Resultado de implementacion
+
+- Las tarjetas de instalacion usan controles `button` con semantica de seleccion.
+- Se conserva el layout visual y existe foco visible para teclado.
+- Los estados no reservables se cubren de forma separada en `BACK-020`.
 
 ### Archivos relevantes
 
 - `frontend/src/components/forms/ResourcePicker.vue`
+
+## BACK-018 - Pulir dashboard y carrusel de instalaciones MVP 1
+
+Prioridad: P1
+Labels: `frontend`, `ux`, `dashboard`, `visual`, `codex-ready`, `mvp1`
+Estado sugerido: Ajustes visuales pendientes
+
+### Contexto
+
+Durante el pulido final del MVP 1 se detecto que el dashboard perdio claridad visual: los accesos rapidos resultaban redundantes, el carrusel dejo de sentirse como carrusel horizontal y algunas imagenes se veian mal encuadradas.
+
+### Objetivo
+
+Dejar el dashboard inicial mas limpio, con instalaciones visibles en un carrusel horizontal elegante y sin accesos rapidos redundantes.
+
+### Alcance sugerido para Codex
+
+1. Eliminar o mantener fuera de la vista principal los accesos rapidos redundantes.
+2. Mantener las acciones principales disponibles desde navegacion existente.
+3. Rehacer el carrusel como una banda horizontal con desplazamiento automatico de izquierda a derecha.
+4. Evitar que la primera tarjeta quede cortada en desktop y que el centrado cambie al iniciar la animacion.
+5. Permitir control manual simple sin mostrar una barra de scroll fea ni competir con la animacion automatica.
+6. Evitar que las copias usadas para el loop generen enlaces duplicados para lectores de pantalla.
+7. Respetar `prefers-reduced-motion` y detener la animacion continua cuando el usuario lo solicite desde el sistema.
+8. Asegurar que las imagenes de recursos mantengan proporcion y encuadre consistente.
+9. Evitar que el carrusel rompa el layout en mobile.
+
+### Criterios de aceptacion
+
+- [x] Los accesos rapidos redundantes no aparecen en el dashboard principal.
+- [ ] El carrusel se percibe como carrusel horizontal, no como grilla ni lista cortada.
+- [ ] El carrusel tiene movimiento automatico suave de izquierda a derecha.
+- [ ] El usuario puede desplazarse manualmente sin depender de una barra de scroll visible.
+- [ ] La primera y ultima tarjeta no quedan cortadas al cargar en desktop o mobile.
+- [ ] Los controles manuales producen un desplazamiento perceptible y estable.
+- [ ] Las copias del loop no duplican enlaces anunciados por tecnologia asistiva.
+- [ ] Con `prefers-reduced-motion: reduce` el contenido queda usable sin movimiento continuo.
+- [ ] Las imagenes de recursos se ven proporcionadas y consistentes.
+- [ ] El dashboard mantiene buen aspecto en desktop y mobile.
+- [x] `npm run build` pasa.
+
+### Resultado parcial
+
+- Se eliminaron los accesos rapidos del dashboard principal.
+- Se ajusto el carrusel como banda horizontal continua, sin barra de scroll visible y con pausa al interactuar.
+- Se estabilizo la proporcion visual de las tarjetas de instalaciones.
+- La revision de 2026-07-14 detecto una tarjeta inicial cortada en desktop, contenido parcial en mobile, controles manuales que compiten con la animacion y ausencia de reduccion de movimiento.
+- La tarea permanece abierta hasta resolver esos puntos y repetir validacion visual en 360, 611 y 1440 px.
+
+### Evidencia reciente
+
+- 2026-07-14: `npm run build` ejecutado correctamente en frontend.
+
+### Archivos relevantes
+
+- `frontend/src/views/DashboardView.vue`
+- `frontend/src/components/dashboard/FacilityCarousel.vue`
+- `frontend/src/components/dashboard/FacilityCard.vue`
+
+## BACK-019 - Crear seed temporal de pruebas sin modificar seed base
+
+Prioridad: P2
+Labels: `database`, `testing`, `demo`, `mvp1`
+Estado sugerido: Validado por usuario
+
+### Contexto
+
+Para probar disponibilidad, reservas, bloqueos y actividades del dia actual se necesita un seed temporal con fechas de hoy, pero sin alterar `database/seed.sql`, que debe mantenerse como dato base estable.
+
+### Objetivo
+
+Agregar un archivo SQL temporal que pueda ejecutarse despues del seed normal para reemplazar datos demo por datos del dia de prueba.
+
+### Criterios de aceptacion
+
+- [x] `database/seed.sql` no queda modificado por el seed temporal.
+- [x] Existe un archivo SQL separado para datos temporales de hoy.
+- [x] El archivo temporal limpia datos demo dependientes antes de reinsertarlos.
+- [x] Las reservas, participantes, bloqueos y actividades usan fecha de hoy para pruebas.
+- [x] Se valida ejecutandolo en una base local despues de `drop -> schema -> seed`.
+
+### Resultado de validacion
+
+- Se creo `database/seed_today_temp.sql` como overlay temporal posterior al seed normal.
+- El usuario confirmo que el seed temporal fue validado.
+
+### Archivos relevantes
+
+- `database/seed_today_temp.sql`
+
+## BACK-020 - Impedir seleccion de instalaciones no reservables
+
+Prioridad: P1
+Labels: `frontend`, `ux`, `reservas`, `recursos`, `bug`, `codex-ready`, `mvp1`
+Estado sugerido: Ready for Codex
+
+### Contexto
+
+La disponibilidad y el selector del formulario muestran recursos inactivos, informativos o restringidos a administracion como si fueran seleccionables. El backend los rechaza al confirmar, pero el usuario ya recorrio un camino que parecia valido.
+
+### Objetivo
+
+Reflejar en la interfaz la misma elegibilidad que aplica el backend, manteniendolo como fuente final de verdad.
+
+### Alcance sugerido para Codex
+
+1. Crear o reutilizar un helper frontend que determine si un recurso es reservable para el rol actual segun `status` y `reservationMode`.
+2. Aplicar el helper en `ResourcePicker.vue`, `ResourceTimeline.vue` y la apertura de `ReservationForm.vue`.
+3. Mostrar recursos no reservables como deshabilitados, sin abrir el formulario ni emitir una seleccion valida.
+4. Comunicar el motivo con copy breve: `No disponible`, `Solo administracion` o `Uso informativo`.
+5. Mantener visibles los recursos si aportan contexto; no ocultarlos salvo que el patron actual ya lo requiera.
+6. No relajar las validaciones backend existentes.
+
+### Criterios de aceptacion
+
+- [ ] Un usuario normal no puede abrir el formulario desde un recurso inactivo, informativo o `ADMIN_ONLY`.
+- [ ] Un administrador conserva las acciones permitidas por las reglas actuales.
+- [ ] El estado deshabilitado se reconoce visualmente, por teclado y con `aria-disabled` o `disabled`.
+- [ ] Los recursos `OPEN_USE` mantienen su comportamiento de uso libre.
+- [ ] Un payload manipulado sigue siendo rechazado por backend.
+- [ ] `npm run build` pasa.
+
+### Pruebas minimas
+
+- Recurso activo y reservable permite abrir formulario.
+- Recurso inactivo no abre formulario.
+- Recurso informativo no abre formulario.
+- Recurso solo administracion se bloquea para usuario normal.
+
+### Archivos relevantes
+
+- `frontend/src/components/forms/ResourcePicker.vue`
+- `frontend/src/components/availability/ResourceTimeline.vue`
+- `frontend/src/components/availability/AvailabilitySection.vue`
+- `frontend/src/components/forms/ReservationForm.vue`
+
+## BACK-021 - Corregir shell responsive y controles globales
+
+Prioridad: P1
+Labels: `frontend`, `ux`, `responsive`, `accessibility`, `layout`, `codex-ready`, `mvp1`
+Estado sugerido: Ready for Codex
+
+### Contexto
+
+La revision en 360 px detecto que el saludo del header se superpone con la campana, el dropdown de notificaciones sale del viewport y el sidebar cerrado conserva enlaces enfocables fuera de pantalla. Ademas, `Ver todas` en la campana parece accionable pero no ejecuta ninguna accion.
+
+### Objetivo
+
+Hacer que el layout compartido sea estable, operable y coherente en todas las pantallas del MVP 1.
+
+### Alcance sugerido para Codex
+
+1. Ajustar el saludo para que pueda truncarse, ocultarse o cambiar de linea sin invadir acciones del header.
+2. Limitar el dropdown de notificaciones al ancho disponible y mantenerlo dentro del viewport desde 320 px.
+3. Retirar `Ver todas` mientras no exista destino, o conectarlo a una ruta funcional.
+4. Impedir que enlaces del sidebar cerrado reciban foco; usar `inert`, desmontaje condicional o una estrategia equivalente.
+5. Mantener cierre del sidebar al navegar y al activar el overlay en mobile.
+6. Dejar un solo `h1` principal por pantalla; logo y saludo deben usar semantica secundaria.
+7. Validar Dashboard, Disponibilidad, Mis Reservas, Historial, Recursos, Talleres y Reportes.
+
+### Criterios de aceptacion
+
+- [ ] No hay superposiciones en 320, 360, 611, 768 y 1440 px.
+- [ ] La campana y el menu de usuario siempre permanecen visibles y utilizables.
+- [ ] El dropdown de notificaciones no sale del viewport.
+- [ ] No existen acciones visibles sin efecto dentro del header.
+- [ ] El sidebar cerrado no expone enlaces en el orden de tabulacion.
+- [ ] Cada pantalla tiene un unico encabezado principal anunciado como `h1`.
+- [ ] `npm run build` pasa.
+
+### Archivos relevantes
+
+- `frontend/src/components/layout/HeaderBar.vue`
+- `frontend/src/components/layout/NotificationBell.vue`
+- `frontend/src/components/layout/Sidebar.vue`
+- `frontend/src/components/layout/AppLayout.vue`
+
+## BACK-022 - Completar accesibilidad de modales y calendario
+
+Prioridad: P1
+Labels: `frontend`, `ux`, `accessibility`, `reservas`, `codex-ready`, `mvp1`
+Estado sugerido: Ready for Codex
+
+### Contexto
+
+Al abrir los modales de reserva o detalle, el foco permanece en el control de fondo. Los dialogos no declaran semantica completa, no atrapan foco ni garantizan cierre con Escape. Los inputs de fecha/hora y varios botones iconicos tampoco tienen nombre accesible asociado.
+
+### Objetivo
+
+Permitir completar el flujo critico de reserva y detalle con teclado y lectores de pantalla sin alterar el diseno visual.
+
+### Alcance sugerido para Codex
+
+1. Agregar `role="dialog"`, `aria-modal="true"` y titulo asociado a cada modal critico.
+2. Mover el foco al primer control util al abrir, mantenerlo dentro del dialogo y devolverlo al disparador al cerrar.
+3. Cerrar con Escape cuando la accion no este procesandose.
+4. Asociar cada `label` con su input mediante `for`/`id` o estructura equivalente.
+5. Agregar `aria-label` a navegacion anterior/siguiente y demas botones solo icono.
+6. Convertir la seleccion de hora sobre timeline en una interaccion operable por teclado o proveer una alternativa equivalente.
+7. Mantener errores con `role="alert"` o `aria-live` sin borrar el contexto del formulario.
+
+### Criterios de aceptacion
+
+- [ ] El foco entra al modal, no escapa con Tab y vuelve al control de origen al cerrar.
+- [ ] Escape cierra los modales cuando no hay una operacion en curso.
+- [ ] Fecha, hora, duracion y actividad tienen nombre accesible.
+- [ ] Los botones iconicos del calendario anuncian su accion.
+- [ ] Se puede iniciar una reserva sin depender exclusivamente del mouse.
+- [ ] Los errores son anunciados y permanecen visibles.
+- [ ] `npm run build` pasa.
+
+### Archivos relevantes
+
+- `frontend/src/components/forms/ReservationForm.vue`
+- `frontend/src/components/availability/ReservationDetailModal.vue`
+- `frontend/src/components/forms/DateTimePicker.vue`
+- `frontend/src/components/availability/CalendarToolbar.vue`
+- `frontend/src/components/availability/ResourceTimeline.vue`
+
+## BACK-023 - Estabilizar navegacion y carga de sesion
+
+Prioridad: P1
+Labels: `frontend`, `router`, `auth`, `performance`, `bug`, `codex-ready`, `mvp1`
+Estado sugerido: Ready for Codex
+
+### Contexto
+
+Una ruta inexistente deja el contenido principal vacio aunque existe `NotFoundView.vue`. Ademas, el router, el header y varias vistas pueden ejecutar `loadAuthUser()` durante la misma navegacion, generando consultas duplicadas y esperas innecesarias.
+
+### Objetivo
+
+Hacer que la navegacion protegida tenga una salida clara y una sola carga coordinada del usuario actual.
+
+### Alcance sugerido para Codex
+
+1. Registrar una ruta catch-all que muestre `NotFoundView.vue` sin romper las reglas de autenticacion.
+2. Agregar cache de sesion e in-flight promise a `authStore.loadAuthUser()`, con opcion explicita de refresco.
+3. Centralizar la carga inicial en el guard o store y retirar llamadas redundantes de componentes cuando no sean necesarias.
+4. Mantener limpieza de sesion y cache al cerrar sesion o recibir un fallo de autenticacion.
+5. Verificar que usuarios normales sigan sin acceder a rutas administrativas.
+
+### Criterios de aceptacion
+
+- [ ] Una URL desconocida muestra una vista 404 con accion para volver.
+- [ ] Navegar entre vistas protegidas no dispara solicitudes duplicadas a `/api/me`.
+- [ ] Dos consumidores simultaneos comparten la misma promesa de carga.
+- [ ] Cerrar sesion invalida usuario y cache.
+- [ ] No se introducen bucles de redireccion.
+- [ ] `npm run build` pasa.
+
+### Archivos relevantes
+
+- `frontend/src/router/index.js`
+- `frontend/src/stores/auth.js`
+- `frontend/src/components/layout/HeaderBar.vue`
+- `frontend/src/views/NotFoundView.vue`
+
+## BACK-024 - Hacer reproducible la instalacion frontend y retirar duplicados muertos
+
+Prioridad: P2
+Labels: `frontend`, `dependencies`, `cleanup`, `build`, `codex-ready`, `mvp1`
+Estado sugerido: Ready for Codex
+
+### Contexto
+
+`lucide-vue-next` esta declarado en el `package.json` de la raiz, pero el despliegue compila `./frontend`. El build local pasa porque existen dependencias instaladas en la raiz, lo que puede ocultar un fallo en una instalacion limpia. Tambien existen stores/composables vacios y un servicio de autenticacion duplicado que no forman parte del flujo real.
+
+### Objetivo
+
+Conseguir que `frontend/` sea instalable y compilable de forma independiente, reduciendo archivos que confunden a futuros agentes.
+
+### Alcance sugerido para Codex
+
+1. Declarar `lucide-vue-next` en `frontend/package.json` y actualizar `frontend/package-lock.json`.
+2. Verificar desde una instalacion limpia que `npm ci` y `npm run build` funcionan dentro de `frontend/`.
+3. Confirmar con busqueda de imports que los archivos vacios o duplicados no se usan antes de eliminarlos.
+4. Retirar `frontend/src/stores/index.js` si conserva un router obsoleto no importado.
+5. Mantener una sola implementacion de `authService` y corregir imports si fuera necesario.
+6. No cambiar comportamiento funcional durante la limpieza.
+
+### Criterios de aceptacion
+
+- [ ] Todas las dependencias usadas por `frontend/src` estan declaradas en `frontend/package.json`.
+- [ ] `npm ci` seguido de `npm run build` funciona dentro de `frontend/` sin depender de `node_modules` raiz.
+- [ ] No quedan stores, composables, routers o servicios duplicados sin uso.
+- [ ] El workflow de Azure sigue compilando `./frontend`.
+- [ ] El diff no contiene refactors funcionales ajenos a la tarea.
+
+### Archivos relevantes
+
+- `package.json`
+- `frontend/package.json`
+- `frontend/package-lock.json`
+- `frontend/src/stores/index.js`
+- `frontend/src/stores/reservationStore.js`
+- `frontend/src/composables/useReservations.js`
+- `frontend/src/composables/useAvailability.js`
+- `frontend/src/composables/useAuth.js`
+- `frontend/src/services/authService.js`
+- `frontend/src/auth/authService.js`
 
 ---
 
@@ -1007,12 +1360,13 @@ La grilla recibe todas las reservas. Se debe confirmar si `ScheduleGrid` filtra 
 
 ### Objetivo
 
-Asegurar que la disponibilidad muestre solo reservas, bloqueos y actividades del dia seleccionado.
+Asegurar que la disponibilidad muestre solo los items recibidos para el dia seleccionado.
 
 ### Criterios de aceptacion
 
 - [x] Al cambiar fecha se actualiza la grilla correctamente.
 - [x] Reservas de otros dias no aparecen en la fecha actual.
+- [x] Actividades institucionales de otros dias no aparecen en la fecha actual.
 - [x] Se consideran hora de inicio y duracion.
 - [x] Se documenta criterio de zona horaria.
 - [x] `npm run build` pasa.
@@ -1021,7 +1375,7 @@ Asegurar que la disponibilidad muestre solo reservas, bloqueos y actividades del
 
 - `ScheduleGrid.vue` filtra reservas por la fecha seleccionada.
 - `ReservationBlock.vue`, `ResourceTimeline.vue` y `ReservationDetailModal.vue` usan un helper comun para fecha/hora.
-- Las horas de reserva se interpretan como horario local de agenda para evitar desplazamientos por UTC al leer `DATETIME2` desde Azure SQL.
+- Las horas de reserva se interpretan actualmente como horario local de agenda; `RES-009` debe reemplazar esta convencion implicita por un contrato temporal explicito.
 - La vista muestra el bloque reservado despues de crear una reserva y mantiene la validacion de solapamiento desde la base de datos.
 
 ### Archivos relevantes
@@ -1034,12 +1388,12 @@ Asegurar que la disponibilidad muestre solo reservas, bloqueos y actividades del
 ## RES-004 - Integrar bloqueos y actividades programadas en calendario
 
 Prioridad: P1
-Labels: `frontend`, `backend`, `disponibilidad`, `database`
-Estado sugerido: Backlog
+Labels: `frontend`, `backend`, `disponibilidad`, `database`, `codex-ready`, `mvp3`
+Estado sugerido: Partially Done
 
 ### Contexto
 
-La base incluye `availability_blocks`, `scheduled_activities` y la vista `vw_resource_calendar`, pero el backend/frontend aun se enfocan principalmente en reservas.
+La base incluye `availability_blocks`, `scheduled_activities` y la vista `vw_resource_calendar`. La disponibilidad ya combina reservas con actividades institucionales activas; todavia falta incorporar bloqueos y filtrar el contrato por rango.
 
 ### Objetivo
 
@@ -1048,10 +1402,27 @@ Mostrar en disponibilidad reservas, bloqueos y actividades institucionales.
 ### Criterios de aceptacion
 
 - [ ] Backend expone datos de calendario por rango de fecha.
-- [ ] Frontend distingue visualmente reserva, bloqueo y actividad programada.
-- [ ] No se permite seleccionar horarios bloqueados.
-- [ ] Se muestra detalle al hacer clic en cada bloque.
-- [ ] La informacion proviene de Azure SQL.
+- [ ] Frontend distingue visualmente reserva, bloqueo y actividad programada; reserva y actividad ya estan resueltas.
+- [ ] No se permite seleccionar horarios bloqueados; las actividades institucionales ya ocupan su rango.
+- [x] Se muestra detalle al hacer clic en reservas y actividades institucionales.
+- [x] Las reservas y actividades programadas provienen de Azure SQL.
+
+### Resultado parcial
+
+- `GetAvailabilityItems` combina reservas con `scheduled_activities` activas y genera una clave estable por tipo.
+- Para usuarios normales, las actividades ocultan creador y titulo interno bajo `Actividad institucional`.
+- Frontend diferencia `Programacion institucional`, muestra detalle y evita cancelarla como reserva.
+- Pendiente: `availability_blocks`, filtros backend por fecha/rango y pruebas automatizadas.
+- 2026-07-14: `go test ./...` y `npm run build` pasan; backend continua sin archivos de prueba.
+
+### Archivos relevantes
+
+- `backend/internal/models/availability_item.go`
+- `backend/internal/repositories/scheduled_activities_repository.go`
+- `backend/internal/services/reservations_service.go`
+- `backend/internal/handlers/reservations_handlers.go`
+- `frontend/src/components/availability/ReservationBlock.vue`
+- `frontend/src/components/availability/ReservationDetailModal.vue`
 
 ## RES-005 - Mejorar validaciones del formulario de reserva
 
@@ -1074,13 +1445,13 @@ Agregar validaciones visibles antes de enviar reserva.
 - [x] Muestra error si falta hora.
 - [x] Valida duracion mayor a 0.
 - [x] Bloquea fechas y horarios pasados en frontend y backend.
-- [x] Valida participantes mayor a 0.
+- [x] No solicita participantes mientras el dato no se persiste (`BACK-012`).
 - [x] Deshabilita boton mientras se crea la reserva.
 - [x] Muestra error devuelto por backend sin cerrar modal.
 
 ### Resultado de implementacion
 
-- `ReservationForm.vue` valida recurso, fecha, hora y participantes antes de enviar.
+- `ReservationForm.vue` valida recurso, fecha, hora y duracion antes de enviar.
 - Los campos invalidos muestran mensajes visibles y estado visual de error.
 - El boton de confirmacion queda bloqueado mientras se crea la reserva o no hay recursos cargados.
 - Los errores de backend se mantienen visibles dentro del modal sin cerrarlo.
@@ -1089,7 +1460,8 @@ Agregar validaciones visibles antes de enviar reserva.
 - `ReservationForm.vue` evita confirmar reservas con fecha u hora pasada aunque el usuario edite manualmente.
 - `reservations_service.go` rechaza reservas en el pasado desde backend.
 - 2026-07-08: `npm run build` pasa.
-- 2026-07-08: `go test ./...` pasa.
+- 2026-07-08: `go test ./...` pasa; la revision de 2026-07-14 confirma que aun no existen archivos de prueba.
+- La politica completa de zona horaria, duraciones permitidas y jornada se separa en `RES-009` y `RES-011`.
 
 ## RES-006 - Implementar vista Mis Reservas
 
@@ -1211,6 +1583,132 @@ Guardar la cantidad de participantes de una reserva y validar que no supere la c
 - `frontend/src/components/availability/AvailabilitySection.vue`
 - `frontend/src/views/ReservationDetailView.vue`
 
+## RES-009 - Definir zona horaria de negocio para reservas
+
+Prioridad: P0
+Labels: `backend`, `frontend`, `database`, `reservas`, `timezone`, `bug`, `codex-ready`, `mvp1`
+Estado sugerido: Ready for Codex
+
+### Contexto
+
+Azure SQL usa columnas `DATETIME2` sin zona. El frontend interpreta los valores serializados con sufijo `Z` como hora de muro local, mientras el backend parsea fechas sin offset con `time.Local` y compara contra `time.Now()`. En un contenedor Azure configurado en UTC, las reglas de pasado, cancelacion y disponibilidad pueden adelantarse o atrasarse respecto de Chile.
+
+### Objetivo
+
+Aplicar una unica zona horaria de negocio, explicita y comprobable, en creacion, serializacion, clasificacion temporal y cancelacion.
+
+### Alcance sugerido para Codex
+
+1. Definir `APP_TIMEZONE` con valor esperado `America/Santiago` y documentar fallback seguro.
+2. Crear un helper backend para cargar la ubicacion y obtener `now` de negocio; evitar usos directos de `time.Local` en reservas.
+3. Parsear `startTime` segun un contrato unico. Preferencia: aceptar ISO 8601 con offset y normalizar antes de persistir; si se mantiene fecha sin offset, interpretarla explicitamente en `APP_TIMEZONE`.
+4. Definir si `DATETIME2` guarda UTC normalizado o hora local institucional y documentarlo en `docs/03-base-de-datos.md`.
+5. Alinear `parseReservationDateTime` con ese contrato, sin ignorar silenciosamente un offset real.
+6. Usar el mismo reloj para pasado/en curso/futuro y para cancelacion.
+7. Agregar pruebas alrededor de medianoche y del cambio de horario de Chile.
+
+### Criterios de aceptacion
+
+- [ ] Local y Azure clasifican la misma reserva en la misma categoria temporal.
+- [ ] Una reserva de Chile no cambia tres o cuatro horas al viajar API -> frontend.
+- [ ] Cancelacion y rechazo de fechas pasadas usan la zona configurada.
+- [ ] El contrato de fecha/hora queda documentado con un ejemplo de request y response.
+- [ ] Una `APP_TIMEZONE` invalida impide iniciar o produce un error de configuracion claro.
+- [ ] Existen pruebas con un reloj inyectable; no dependen de la hora real del equipo.
+- [ ] `go test ./...` y `npm run build` pasan.
+
+### Archivos relevantes
+
+- `backend/internal/handlers/reservations_handlers.go`
+- `backend/internal/services/reservations_service.go`
+- `backend/internal/models/reservation.go`
+- `frontend/src/utils/reservationTime.js`
+- `backend/.env.example`
+- `docs/03-base-de-datos.md`
+- `docs/10-guia-redeploy.md`
+
+## RES-010 - Hacer que el servidor controle estados de reserva
+
+Prioridad: P0
+Labels: `backend`, `reservas`, `security`, `integrity`, `codex-ready`, `mvp1`
+Estado sugerido: Ready for Codex
+
+### Contexto
+
+`CreateReservationRequest` acepta `status` y el handler lo copia al modelo. Un cliente modificado puede intentar crear reservas `PENDING`, `CANCELLED`, `REJECTED` o `EXPIRED`; algunos de esos estados no participan en las mismas reglas de conflicto. La cancelacion, por su parte, solo rechaza `CANCELLED` y no limita la transicion a estados activos.
+
+### Objetivo
+
+Tratar el estado y sus transiciones como reglas exclusivas del servidor.
+
+### Alcance sugerido para Codex
+
+1. Retirar `status` del contrato publico `CreateReservationRequest`.
+2. Forzar en el servicio el estado inicial definido para MVP 1, actualmente `CONFIRMED`.
+3. Rechazar campos desconocidos o documentar que `status` recibido se ignora; preferir rechazo para detectar clientes desactualizados.
+4. Definir una funcion de transicion que permita cancelar solo estados activos (`CONFIRMED` y `PENDING` si este ultimo se usa).
+5. Mantener idempotencia o error estable para una reserva ya cancelada.
+6. Confirmar que triggers/consultas de conflicto no puedan eludirse mediante estados enviados por cliente.
+7. Agregar pruebas de request manipulado y transiciones invalidas.
+
+### Criterios de aceptacion
+
+- [ ] El cliente no puede decidir el estado inicial de una reserva.
+- [ ] Toda reserva creada por el endpoint publico queda en el estado inicial esperado.
+- [ ] No se puede cancelar una reserva `REJECTED`, `EXPIRED` o ya `CANCELLED`.
+- [ ] Propietario/admin y ventana temporal siguen validandose.
+- [ ] Un intento de enviar `status` no permite evitar conflictos ni reglas de recurso.
+- [ ] `go test ./...` pasa con casos positivos y negativos.
+
+### Archivos relevantes
+
+- `backend/internal/models/reservation.go`
+- `backend/internal/handlers/reservations_handlers.go`
+- `backend/internal/services/reservations_service.go`
+- `backend/internal/repositories/reservations_repository.go`
+
+## RES-011 - Validar duracion y horario operativo en backend
+
+Prioridad: P0
+Labels: `backend`, `frontend`, `reservas`, `validation`, `codex-ready`, `mvp1`
+Estado sugerido: Ready for Codex
+
+### Contexto
+
+El formulario ofrece duraciones acotadas y la disponibilidad muestra una jornada aproximada de 08:00 a 22:00, pero la API solo valida que `durationMinutes` sea mayor que cero. Un cliente modificado puede crear reservas excesivamente largas, fuera de horario o cuyo termino exceda el cierre.
+
+### Objetivo
+
+Definir y aplicar en backend las reglas institucionales minimas de duracion e intervalo horario.
+
+### Alcance sugerido para Codex
+
+1. Confirmar y centralizar configuracion MVP 1: apertura `08:00`, cierre `22:00`, paso de 30 minutos y duraciones permitidas `30, 60, 90, 120, 150, 180`.
+2. Validar que inicio y termino completo queden dentro de la jornada de la fecha seleccionada.
+3. Rechazar duraciones fuera del catalogo, valores cero/negativos y overflow de fecha.
+4. Validar que la hora de inicio respete el paso institucional.
+5. Compartir las mismas constantes con el frontend mediante configuracion o contrato estable, evitando reglas divergentes.
+6. Devolver mensajes accionables sin exponer detalles internos.
+7. Agregar pruebas de limites: apertura, ultimo bloque valido, cierre excedido y duracion manipulada.
+
+### Criterios de aceptacion
+
+- [ ] Backend acepta el primer y ultimo rango validos de la jornada.
+- [ ] Backend rechaza inicio antes de apertura y termino despues del cierre.
+- [ ] Backend rechaza duracion no permitida aunque el frontend sea omitido.
+- [ ] Backend rechaza inicios fuera del paso institucional.
+- [ ] Frontend solo ofrece combinaciones que el backend acepta.
+- [ ] Los mensajes indican como corregir fecha, hora o duracion.
+- [ ] `go test ./...` y `npm run build` pasan.
+
+### Archivos relevantes
+
+- `backend/internal/services/reservations_service.go`
+- `backend/internal/handlers/reservations_handlers.go`
+- `frontend/src/components/forms/DateTimePicker.vue`
+- `frontend/src/components/forms/ReservationForm.vue`
+- `frontend/src/components/availability/ResourceTimeline.vue`
+
 ---
 
 # Hito 4 - Pantallas pendientes
@@ -1249,7 +1747,7 @@ Mostrar catalogo de recursos deportivos con datos reales.
 
 Prioridad: P2
 Labels: `frontend`, `reservas`, `feature`
-Estado sugerido: Ready for Codex
+Estado sugerido: Done para MVP 1
 
 ### Contexto
 
@@ -1262,7 +1760,7 @@ Mostrar informacion detallada de una reserva.
 ### Criterios de aceptacion
 
 - [x] Muestra recurso, actividad, usuario, fecha, hora, duracion y estado.
-- [ ] Muestra participantes si existen.
+- [x] No promete participantes mientras el dato no exista; su incorporacion queda en `RES-008`.
 - [x] Permite volver a Mis Reservas o Disponibilidad.
 - [x] Maneja reserva no encontrada.
 
@@ -1272,6 +1770,8 @@ Mostrar informacion detallada de una reserva.
 - La vista carga reservas reales desde `/api/reservations/mine` para usuario normal y desde `/api/reservations` para administrador.
 - Permite cancelar desde el detalle si la reserva corresponde.
 - Participantes queda pendiente porque el campo no esta persistido en el modelo actual.
+- 2026-07-14: se verifico en navegador el flujo `Historial -> Detalle -> Volver a Historial`.
+- La optimizacion para cargar una sola reserva por ID queda separada en `API-006` para MVP 2.
 
 ## UI-003 - Implementar Historial
 
@@ -1544,6 +2044,43 @@ Mostrar reportes iniciales desde vistas SQL.
 - Muestra reservas activas, horas reservadas, recursos con uso, uso por recurso, estados y horas punta.
 - Queda pendiente conectar infracciones y, si corresponde, vistas SQL analiticas dedicadas.
 
+## REP-003 - Corregir semantica y precision de indicadores
+
+Prioridad: P1
+Labels: `frontend`, `backend`, `reportes`, `bug`, `codex-ready`, `mvp3`
+Estado sugerido: Ready for Codex
+
+### Contexto
+
+La vista actual considera activa toda reserva cuyo estado no sea `CANCELLED`. Esto incluye reservas finalizadas, rechazadas o expiradas. Tambien redondea minutos con `Math.round`, por lo que 90 minutos se presentan como 2 horas y alteran los totales por recurso.
+
+### Objetivo
+
+Hacer que cada indicador tenga una definicion funcional explicita y represente los datos sin redondeos engañosos.
+
+### Alcance sugerido para Codex
+
+1. Definir `reservas activas` como estados activos y rango temporal vigente/futuro usando el helper temporal compartido.
+2. Separar, si aporta valor, reservas confirmadas historicas de reservas actualmente accionables.
+3. Calcular minutos como unidad base y formatear horas con una precision estable, por ejemplo `1 h 30 min`.
+4. Aplicar la misma poblacion a KPI, uso por recurso y horas punta, o nombrar cada metrica si usa otra poblacion.
+5. Agregar subtitulo o tooltip corto que explique periodo y criterio sin texto tecnico.
+6. Cubrir estados `CONFIRMED`, `CANCELLED`, `REJECTED`, `EXPIRED`, pasada, en curso y futura.
+
+### Criterios de aceptacion
+
+- [ ] Una reserva finalizada no aumenta `Reservas activas`.
+- [ ] Reservas canceladas, rechazadas y expiradas no cuentan como uso activo.
+- [ ] Noventa minutos no se muestran como dos horas completas.
+- [ ] Todos los widgets que dicen usar reservas activas comparten el mismo conjunto.
+- [ ] El periodo y criterio de cada KPI son comprensibles para administracion.
+- [ ] `npm run build` pasa.
+
+### Archivos relevantes
+
+- `frontend/src/views/ReportsView.vue`
+- `frontend/src/utils/reservationTime.js`
+
 ## REP-002 - Implementar infracciones
 
 Prioridad: P2
@@ -1565,12 +2102,21 @@ Permitir registrar infracciones de usuarios, asociadas opcionalmente a una reser
 ## NOTIF-001 - Conectar campana de notificaciones
 
 Prioridad: P2
-Labels: `frontend`, `backend`, `notificaciones`
-Estado sugerido: Backlog
+Labels: `frontend`, `backend`, `notificaciones`, `codex-ready`, `mvp2`
+Estado sugerido: Ready for Codex
 
 ### Objetivo
 
 Mostrar notificaciones reales al usuario desde Azure SQL.
+
+### Alcance sugerido para Codex
+
+1. Agregar endpoint autenticado para marcar una notificacion propia como leida.
+2. Rechazar IDs inexistentes o de otro usuario sin revelar informacion ajena.
+3. Diferenciar leidas/no leidas en store y campana sin depender solo del color.
+4. Marcar como leida al activar una notificacion o mediante una accion explicita consistente.
+5. Definir un destino real para `Ver todas`; si no se implementa una vista, mantener ese control fuera de la UI.
+6. Actualizar el contador sin recargar toda la aplicacion.
 
 ### Criterios de aceptacion
 
@@ -1579,6 +2125,9 @@ Mostrar notificaciones reales al usuario desde Azure SQL.
 - [x] Campana muestra contador real.
 - [ ] UI diferencia leidas/no leidas.
 - [x] Maneja estado vacio.
+- [ ] `Ver todas` navega a una vista funcional o no se muestra.
+- [ ] Usuario no puede marcar notificaciones ajenas.
+- [ ] `go test ./...` y `npm run build` pasan.
 
 ### Resultado parcial
 
@@ -1679,7 +2228,8 @@ Exponer un endpoint de disponibilidad por fecha o rango que entregue solo la inf
 - [ ] El endpoint acepta fecha o rango de fechas.
 - [x] Para usuario normal no expone `userId` de reservas ajenas.
 - [x] Devuelve recurso, inicio y duracion para pintar ocupacion.
-- [ ] Incluye reservas confirmadas, bloqueos y actividades programadas cuando esten disponibles.
+- [x] Incluye reservas y actividades programadas activas.
+- [ ] Incluye bloqueos de disponibilidad cuando esten disponibles.
 - [x] La vista de disponibilidad consume este endpoint en lugar de depender de todas las reservas.
 - [x] Admin mantiene acceso a detalle administrativo cuando corresponda.
 
@@ -1689,7 +2239,8 @@ Exponer un endpoint de disponibilidad por fecha o rango que entregue solo la inf
 - Para usuarios normales, el handler limpia `userId`, nombre, email y RUT antes de responder.
 - `GET /api/reservations` quedo protegido con `RequireAdmin`.
 - El store frontend separa `availabilityReservations` de las reservas administrativas.
-- Pendiente: agregar filtros por fecha/rango y unificar en el contrato bloqueos/actividades programadas.
+- `GetAvailabilityItems` unifica reservas y `scheduled_activities` con clave estable y sanitizacion para usuario normal.
+- Pendiente: agregar filtros por fecha/rango e incorporar `availability_blocks` al contrato.
 
 ## API-005 - Centralizar validacion de administrador
 
@@ -1721,19 +2272,70 @@ Crear middleware `RequireAdmin` y aplicarlo a rutas administrativas.
 - Las futuras rutas administrativas pueden colgar del grupo `admin` en `routes.go`.
 - `go test ./...` pasa.
 
+## API-006 - Crear endpoint de detalle de reserva por ID
+
+Prioridad: P2
+Labels: `backend`, `frontend`, `reservas`, `performance`, `security`, `codex-ready`, `mvp2`
+Estado sugerido: Ready for Codex
+
+### Contexto
+
+`ReservationDetailView.vue` carga la coleccion completa de reservas del usuario o del administrador y luego busca el ID en frontend. El costo y la exposicion de datos crecen con el historial aunque la pantalla solo necesita una reserva.
+
+### Objetivo
+
+Entregar el detalle minimo autorizado de una reserva mediante un endpoint dedicado.
+
+### Alcance sugerido para Codex
+
+1. Agregar `GET /api/reservations/:id` bajo autenticacion.
+2. Permitir acceso al propietario y a administradores; responder de forma estable para inexistente o no autorizado.
+3. Reutilizar una consulta de repositorio que incluya recurso, actividad y datos necesarios del usuario solo para admin.
+4. Evitar exponer email, RUT u otros datos personales al propietario cuando no aporten al detalle.
+5. Crear metodo de servicio/store frontend y migrar `ReservationDetailView.vue`.
+6. Mantener el parametro `from` solo para decidir el destino de regreso, no para autorizar.
+
+### Criterios de aceptacion
+
+- [ ] Propietario obtiene su reserva por ID.
+- [ ] Administrador obtiene cualquier reserva por ID.
+- [ ] Usuario normal no obtiene una reserva ajena.
+- [ ] La respuesta no incluye datos personales innecesarios.
+- [ ] La vista de detalle no descarga la coleccion completa.
+- [ ] Acceso desde Mis Reservas e Historial conserva el regreso correcto.
+- [ ] `go test ./...` y `npm run build` pasan.
+
+### Archivos relevantes
+
+- `backend/internal/routes/routes.go`
+- `backend/internal/handlers/reservations_handlers.go`
+- `backend/internal/services/reservations_service.go`
+- `backend/internal/repositories/reservations_repository.go`
+- `frontend/src/services/reservations.service.js`
+- `frontend/src/stores/reservations.js`
+- `frontend/src/views/ReservationDetailView.vue`
+
 ---
 
 # Hito 8 - Calidad, pruebas y seguridad
 
 ## QA-001 - Agregar pruebas backend para reglas de reservas
 
-Prioridad: P1
-Labels: `backend`, `testing`, `reservas`
-Estado sugerido: Backlog
+Prioridad: P0
+Labels: `backend`, `testing`, `reservas`, `security`, `codex-ready`, `mvp1`
+Estado sugerido: Ready for Codex
 
 ### Objetivo
 
-Crear pruebas de la capa servicio/repositorio para reglas criticas.
+Crear pruebas deterministas de la capa servicio para cerrar las reglas criticas del MVP 1. `go test ./...` actualmente finaliza sin fallos, pero todos los paquetes informan `[no test files]`.
+
+### Alcance sugerido para Codex
+
+1. Extraer interfaces pequenas o dependencias inyectables para repositorio y reloj solo donde las pruebas lo necesiten.
+2. Usar pruebas table-driven para validaciones puras y transiciones de estado.
+3. Mantener una cantidad acotada de pruebas de integracion para SQL si existe ambiente reproducible; no exigir Azure SQL para toda la suite unitaria.
+4. Cubrir primero `RES-009`, `RES-010` y `RES-011`.
+5. Evitar sleeps y dependencia de `time.Now()` real.
 
 ### Casos minimos
 
@@ -1745,6 +2347,10 @@ Crear pruebas de la capa servicio/repositorio para reglas criticas.
 - [ ] Rechazar recurso informativo.
 - [ ] Rechazar recurso solo admin para usuario normal.
 - [ ] Rechazar conflicto horario.
+- [ ] Rechazar `status` controlado por cliente o ignorarlo de forma segura segun contrato.
+- [ ] Crear siempre con estado inicial del servidor.
+- [ ] Rechazar duracion y horario operativo invalidos.
+- [ ] Clasificar y cancelar correctamente usando `APP_TIMEZONE` y reloj inyectable.
 - [ ] Rechazar usuario bloqueado.
 - [ ] Rechazar cruce con bloqueo.
 - [ ] Rechazar cruce con actividad programada.
@@ -1753,16 +2359,27 @@ Crear pruebas de la capa servicio/repositorio para reglas criticas.
 - [ ] Rechazar cancelacion sin permisos.
 - [ ] Rechazar cancelacion de reserva inexistente.
 - [ ] Rechazar cancelacion duplicada.
+- [ ] Rechazar cancelacion de estado no activo.
+- [ ] Usuario normal no accede a endpoints admin.
+- [ ] `go test ./...` ejecuta pruebas reales y reporta paquetes con casos de test.
 
 ## QA-002 - Agregar pruebas frontend basicas
 
-Prioridad: P2
-Labels: `frontend`, `testing`
-Estado sugerido: Backlog
+Prioridad: P1
+Labels: `frontend`, `testing`, `ux`, `accessibility`, `codex-ready`, `mvp1`
+Estado sugerido: Ready for Codex
 
 ### Objetivo
 
 Agregar pruebas o checklist automatizado para pantallas criticas.
+
+### Alcance sugerido para Codex
+
+1. Agregar Vitest, Vue Test Utils y entorno DOM al `frontend/package.json`.
+2. Crear scripts `test` y `test:run` compatibles con CI.
+3. Priorizar helpers temporales, store de autenticacion, formulario de reserva y guards del router.
+4. Simular servicios HTTP; las pruebas de componentes no deben depender del backend real.
+5. Mantener el checklist manual de navegador para responsive y foco como complemento, no sustituto permanente.
 
 ### Casos minimos
 
@@ -1770,10 +2387,15 @@ Agregar pruebas o checklist automatizado para pantallas criticas.
 - [ ] Estados de carga/error.
 - [ ] Formulario de reserva valida campos.
 - [ ] Router no entra en bucle.
+- [ ] Ruta desconocida muestra Not Found.
 - [ ] Usuario normal no entra a rutas administrativas.
+- [ ] Cargas concurrentes del usuario comparten una sola solicitud.
 - [ ] Usuario sin RUT no puede abrir creacion de reserva.
+- [ ] Recurso no reservable no abre el formulario.
 - [ ] Conflicto de horario mantiene error visible en el modal.
 - [ ] Cancelacion exige confirmacion antes de llamar a la API.
+- [ ] Helpers temporales cubren futura, en curso, finalizada y zona horaria definida.
+- [ ] `npm run test:run` y `npm run build` pasan.
 
 ## UX-001 - Profesionalizar experiencia de disponibilidad y reserva
 
@@ -1950,7 +2572,7 @@ Reemplazar logs de configuracion sensible por mensajes de estado seguros.
 
 Prioridad: P1
 Labels: `backend`, `deploy`, `security`
-Estado sugerido: Backlog
+Estado sugerido: Validado por usuario
 
 ### Objetivo
 
@@ -1958,10 +2580,56 @@ Evitar que `DEV_AUTH_ENABLED=true` quede activo en un ambiente publico.
 
 ### Criterios de aceptacion
 
-- [ ] La documentacion de despliegue exige `DEV_AUTH_ENABLED=false`.
-- [ ] Existe verificacion manual o automatizada antes de entrega.
-- [ ] Se evalua bloquear arranque si modo dev esta activo con origenes productivos.
-- [ ] El README explica que las cabeceras `X-Dev-Auth-*` son solo locales.
+- [x] La documentacion de despliegue exige `DEV_AUTH_ENABLED=false`.
+- [x] Existe verificacion manual antes de entrega.
+- [x] Se evalua bloquear arranque si modo dev esta activo con origenes productivos.
+- [x] El README explica que las cabeceras `X-Dev-Auth-*` son solo locales.
+
+### Resultado de validacion
+
+- El usuario confirmo que el checklist productivo de modo desarrollo esta validado para MVP 1.
+- Para MVP 1 se mantiene como control manual/documental; un bloqueo automatico de arranque puede evaluarse despues si la operacion pasa de demo a produccion institucional.
+
+## SEC-005 - No exponer errores internos en respuestas HTTP
+
+Prioridad: P1
+Labels: `backend`, `security`, `errors`, `observability`, `codex-ready`, `mvp1`
+Estado sugerido: Ready for Codex
+
+### Contexto
+
+Varios handlers y el middleware de autenticacion incluyen `err.Error()` en campos `detail` o `error` de la respuesta. Aunque el frontend no siempre lo muestre, cualquier cliente puede leer detalles de SQL, JWT o configuracion interna.
+
+### Objetivo
+
+Separar diagnostico interno de mensajes publicos, conservando respuestas utiles para el usuario y trazabilidad para desarrollo.
+
+### Alcance sugerido para Codex
+
+1. Crear un helper de respuesta de error con codigo HTTP, codigo publico estable y mensaje seguro.
+2. Registrar el error tecnico en backend con contexto minimo y sin tokens, passwords, RUT ni datos personales innecesarios.
+3. Reemplazar `err.Error()` en respuestas 500 de handlers y middleware.
+4. Mantener mensajes de negocio controlados para conflictos, RUT faltante, recurso no reservable y permisos.
+5. No diferenciar publicamente entre recurso privado inexistente y no autorizado cuando eso permita enumeracion.
+6. Permitir detalle tecnico solo bajo una bandera local explicita, desactivada por defecto y prohibida en Azure.
+7. Agregar pruebas que aseguren que respuestas 500 no contienen texto del error interno simulado.
+
+### Criterios de aceptacion
+
+- [ ] Ninguna respuesta 500 incluye `err.Error()` sin sanitizar.
+- [ ] Errores de negocio conservan mensajes accionables y codigos estables.
+- [ ] Logs internos permiten correlacionar el fallo sin exponer secretos.
+- [ ] Autenticacion no devuelve detalle de validacion JWT o JWKS al cliente.
+- [ ] Usuario normal no puede inferir existencia de datos ajenos por diferencias de error.
+- [ ] `go test ./...` pasa.
+
+### Archivos relevantes
+
+- `backend/internal/middleware/auth_middleware.go`
+- `backend/internal/handlers/reservations_handlers.go`
+- `backend/internal/handlers/resources_handlers.go`
+- `backend/internal/handlers/workshops_handlers.go`
+- `backend/internal/handlers/users_handlers.go`
 
 ---
 
@@ -2175,6 +2843,12 @@ Definir y ejecutar un plan minimo para mover la operacion desde Google Calendar 
 
 - Se creo `docs/11-plan-corte-google-calendar.md` con plan de corte operativo, riesgos y criterios de aceptacion.
 - La integracion automatica con Google Calendar queda fuera de MVP 1.
+- Se recibieron y analizaron cinco calendarios iCal unicos: Cancha 1, Cancha 2, Cancha 3, Sala Multiuso y Sala de Musculacion/Gimnasio.
+- Se detecto y excluyo una copia duplicada de Sala Multiuso.
+- Se propuso el mapeo de cada calendario recibido al recurso equivalente de Poli-REDI; falta validacion operativa del usuario.
+- Se adapto la disponibilidad para incluir `scheduled_activities`: el administrador ve el titulo original y el usuario normal ve un bloque institucional sin datos personales.
+- La expansion preliminar produjo 217 ocurrencias futuras y detecto 14 solapamientos heredados, ademas de talleres duplicados respecto de la planilla oficial.
+- La carga de eventos y el congelamiento del legado siguen pendientes; no se ha ejecutado importacion sobre Azure SQL.
 
 ### Archivos relevantes
 
@@ -2213,63 +2887,56 @@ Revision realizada durante la conexion de actividades reales.
 ## Datos estaticos que pueden mantenerse por ahora
 
 - `frontend/src/components/layout/Sidebar.vue`: menu de navegacion.
-- `frontend/src/components/dashboard/QuickActions.vue`: accesos rapidos de navegacion.
+- Accesos rapidos del dashboard: eliminados de la vista actual para simplificar el panel principal.
 - `frontend/src/components/availability/CalendarMini.vue`: nombres de meses y dias.
-- `frontend/src/components/forms/DateTimePicker.vue`: opciones de duracion; podrian pasar a configuracion en una tarea futura, pero no bloquean el MVP.
+- `frontend/src/components/forms/DateTimePicker.vue`: opciones de duracion estaticas; deben alinearse con la validacion backend de `RES-011` antes de cerrar MVP 1.
 
 ---
 
 # Orden recomendado de ejecucion
 
-## Sprint 1 - Estabilizar MVP tecnico
+## Bloque 1 - Reglas que bloquean el cierre de MVP 1
 
-1. `SEC-001` Revisar exposicion de secretos.
-2. `AUTH-001` Usar usuario autenticado al crear reservas.
-3. `API-003` Usar usuario autenticado en operaciones protegidas.
-4. `RES-002` Implementar `GET /api/activities`.
-5. `RES-001` Conectar actividad real al crear reserva.
-6. `BACK-002` Limpiar logs de depuracion del frontend.
+1. `RES-009` Definir zona horaria de negocio.
+2. `RES-010` Hacer que el servidor controle estados y transiciones.
+3. `RES-011` Validar duracion y horario operativo en backend.
+4. `QA-001` Agregar pruebas backend mientras se implementan las tres reglas anteriores.
 
-## Sprint 2 - Completar flujo usuario
+Estas tareas deben resolverse en ese orden o en una misma rama coordinada, porque las pruebas temporales dependen del contrato de zona horaria y las reglas de conflicto dependen del estado inicial.
 
-1. `RES-003` Mostrar reservas solo del dia seleccionado.
-2. `RES-005` Mejorar validaciones del formulario.
-3. `RES-006` Implementar Mis Reservas.
-4. `RES-007` Implementar cancelacion desde frontend.
-5. `UI-001` Implementar vista Recursos.
-6. `UI-004` Conectar Dashboard a datos reales.
+## Bloque 2 - Flujo visible y coherencia transversal MVP 1
 
-## Sprint 3 - Administracion y calendario completo
+1. `BACK-020` Impedir seleccion de instalaciones no reservables.
+2. `BACK-021` Corregir shell responsive y controles globales.
+3. `BACK-022` Completar accesibilidad de modales y calendario.
+4. `BACK-023` Estabilizar navegacion y carga de sesion.
+5. `SEC-005` No exponer errores internos en respuestas HTTP.
+6. `BACK-018` Terminar carrusel y dashboard.
+7. `BACK-024` Hacer reproducible la instalacion frontend y retirar duplicados muertos.
+8. `QA-002` Agregar regresion frontend automatizada para los flujos corregidos.
 
-1. `RES-004` Integrar bloqueos y actividades programadas.
-2. `ADMIN-001` Panel administrador base.
-3. `ADMIN-004` Bloqueos de disponibilidad.
-4. `ADMIN-003` Gestion de recursos.
-5. `ADMIN-002` Gestion de usuarios.
-6. `ADMIN-005` Programacion institucional.
+## Bloque 3 - Cierre de flujo usuario MVP 2
 
-## Sprint 4 - Reportes, calidad y documentacion
+1. `API-002` Filtrar reservas por fecha/rango/estado.
+2. `API-004` Filtrar disponibilidad e integrar ocupaciones institucionales.
+3. `API-006` Consultar detalle de reserva por ID.
+4. `UX-003` Prevenir conflictos antes de confirmar.
+5. `RES-008` Persistir participantes solo si producto confirma esa necesidad.
+6. `NOTIF-001` Completar leidas/no leidas y destino real de notificaciones.
 
-1. `REP-001` Reportes.
-2. `REP-002` Infracciones.
-3. `NOTIF-001` Notificaciones.
-4. `QA-001` Pruebas backend.
-5. `DOC-001` README.
-6. `DOC-002` Arquitectura.
-7. `DOC-003` Flujo de reservas.
-8. `DOC-004` Requisitos, historias y casos de uso.
-9. `DOC-005` Roadmap de MVPs.
+## Bloque 4 - Administracion y analitica
 
-# Tareas Codex-ready iniciales
+1. `RES-004` Completar integracion de bloqueos; actividades programadas ya estan incorporadas.
+2. `ADMIN-004` Crear bloqueos de disponibilidad.
+3. `ADMIN-003` Completar gestion de recursos.
+4. `ADMIN-002` Completar gestion de usuarios.
+5. `ADMIN-005` Programacion institucional.
+6. `REP-003` Corregir semantica y precision de indicadores.
+7. `REP-002` Completar infracciones.
 
-Estas son las mejores primeras tareas para delegar a Codex porque tienen bajo riesgo y alto impacto:
+# Tareas Codex-ready recomendadas
 
-1. `SEC-001` Revisar exposicion de secretos.
-2. `BACK-002` Limpiar logs de depuracion del frontend.
-3. `AUTH-001` Usar usuario autenticado al crear reservas.
-4. `RES-002` Implementar `GET /api/activities`.
-5. `RES-001` Conectar actividad real al crear reserva.
-6. `RES-006` Implementar vista Mis Reservas.
+La siguiente tarea para el agente de desarrollo debe ser `RES-009`. Al cerrarla, continuar con `RES-010` y `RES-011` antes de realizar mas pulido visual. Todas las tareas nuevas incluyen contexto, alcance, criterios, pruebas minimas y archivos relevantes.
 
 # Notas importantes
 

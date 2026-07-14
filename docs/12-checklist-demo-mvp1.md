@@ -90,6 +90,24 @@ Usar una fecha y recurso de prueba. Si la demo online apunta a datos reales, coo
 | Confirmar CORS online | Permite solo frontend online autorizado | Pendiente |  |
 | Confirmar modo desarrollo online | `DEV_AUTH_ENABLED` no esta activo en ambiente publico | Pendiente |  |
 
+## Regresion agregada tras revision exhaustiva
+
+Estas validaciones son obligatorias para el cierre definitivo reabierto del MVP 1.
+
+| Paso | Resultado esperado | Estado | Backlog |
+| --- | --- | --- | --- |
+| Crear una reserva con hora conocida en local y online | Inicio, termino y categoria temporal coinciden en Chile | Pendiente | `RES-009` |
+| Intentar enviar `status` manualmente al crear | El servidor lo rechaza o ignora sin alterar el estado inicial ni conflictos | Pendiente | `RES-010` |
+| Crear antes de apertura, despues de cierre o con duracion no permitida | Backend rechaza cada caso con mensaje seguro | Pendiente | `RES-011` |
+| Seleccionar recurso inactivo, informativo o solo admin como usuario normal | No abre formulario y explica el motivo | Pendiente | `BACK-020` |
+| Revisar header, campana y sidebar en 320/360 px | No hay superposicion, recorte ni foco fuera de pantalla | Pendiente | `BACK-021` |
+| Abrir/cerrar formulario y detalle con teclado | Foco entra, queda dentro, Escape cierra y foco vuelve al origen | Pendiente | `BACK-022` |
+| Abrir una URL inexistente | Muestra Not Found y permite volver | Pendiente | `BACK-023` |
+| Navegar entre tres vistas protegidas | No se repiten solicitudes simultaneas a `/api/me` | Pendiente | `BACK-023` |
+| Abrir Historial y luego Detalle | El detalle carga y volver regresa a Historial | Verificado 2026-07-14 | `UI-002`, `UI-003` |
+| Forzar un error interno controlado en ambiente local | La respuesta no expone SQL, JWT, JWKS ni `err.Error()` | Pendiente | `SEC-005` |
+| Activar reduccion de movimiento | El carrusel queda usable sin animacion continua | Pendiente | `BACK-018` |
+
 ## Resultado final
 
 | Item | Valor |
@@ -109,11 +127,12 @@ cd backend
 go test ./...
 
 cd ..\frontend
+npm run test:run
 npm run build
 ```
 
 | Comando | Fecha | Resultado | Observacion |
 | --- | --- | --- | --- |
-| `go test ./...` |  | Pendiente |  |
-| `npm run build` |  | Pendiente |  |
-
+| `go test ./...` | 2026-07-14 | Pasa sin pruebas reales | Todos los paquetes informan `[no test files]`; pendiente `QA-001` |
+| `npm run test:run` |  | No disponible | Pendiente configurar suite en `QA-002` |
+| `npm run build` | 2026-07-14 | Aprobado | Vite completa build de produccion |

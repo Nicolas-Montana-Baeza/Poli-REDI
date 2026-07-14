@@ -34,6 +34,46 @@ Antes del corte, registrar:
 - Eventos recurrentes o institucionales.
 - Responsables operativos de validar la migracion.
 
+## Inventario recibido el 14-07-2026
+
+Se analizaron cinco calendarios unicos exportados desde Google Calendar en formato iCal. La segunda copia de Sala Multiuso se excluye por ser un duplicado del mismo calendario.
+
+| Calendario legado | Recurso Poli-REDI propuesto | Eventos base | Cobertura detectada | Observaciones |
+| --- | --- | ---: | --- | --- |
+| CANCHA 1 - 2026 | Cancha 1, Centro Deportivo | 91 | 18-03-2026 a 05-09-2026 | Incluye series recurrentes y eventos futuros. |
+| CANCHA 2 - 2026 | Cancha 2, Centro Deportivo | 102 | 18-03-2026 a 15-07-2026 | Incluye series recurrentes hasta fines de julio. |
+| CANCHA 3 - 2026 | Cancha 3, Centro Deportivo | 54 | 18-03-2026 a 08-08-2026 | Contiene una serie sin termino explicito que debe limitarse al torneo del 4 al 8 de agosto. |
+| SALA MULTIUSO - 2026 | Sala Multiuso, Centro Deportivo | 13 | 06-04-2026 a 31-07-2026 | El ZIP fue recibido dos veces; solo se considera una copia. |
+| SALA DE MUSCULACION | Gimnasio, Centro Deportivo | 2 | 01-08-2026 a 05-09-2026 | La ocurrencia del 1 de septiembre fue reprogramada al 5 de septiembre. |
+
+No se recibieron exportaciones para Muro Escalada, Sala Spinning ni Piscina. Se debe confirmar si esos recursos no usaban calendario legado o si faltan archivos.
+
+Los eventos importados se modelaran como `scheduled_activities`, no como reservas personales. En Disponibilidad, los administradores podran ver el titulo original y los usuarios normales veran solamente `Actividad institucional`, evitando exponer nombres personales incluidos en algunos titulos del calendario legado.
+
+El corte propuesto para preparar la carga es el 14-07-2026. La fecha y hora oficial de congelamiento siguen pendientes de confirmacion operativa.
+
+### Resultado de expansion preliminar
+
+Al expandir las recurrencias entre el 14-07-2026 y el 30-09-2026 se obtienen 217 ocurrencias futuras:
+
+| Recurso | Ocurrencias |
+| --- | ---: |
+| Cancha 1, Centro Deportivo | 81 |
+| Cancha 2, Centro Deportivo | 52 |
+| Cancha 3, Centro Deportivo | 56 |
+| Sala Multiuso, Centro Deportivo | 26 |
+| Gimnasio, Centro Deportivo | 2 |
+
+La expansion detecto 14 solapamientos dentro del propio legado: 8 en Cancha 1 y 6 en Cancha 2. Tambien existen eventos que representan talleres ya cargados desde la planilla oficial, por ejemplo Judo, Esgrima, Pilates, Entrenamiento funcional y Aikido.
+
+Por estas razones no se debe importar el iCal completo sin depuracion. Antes de generar la carga final se debe:
+
+1. Excluir los talleres cuya fuente oficial ya es la planilla de talleres.
+2. Resolver o consolidar los 14 solapamientos legados.
+3. Confirmar el limite de la serie de voleibol del 4 al 8 de agosto.
+4. Confirmar la fecha y hora oficial de congelamiento.
+5. Generar una carga idempotente solo con las ocurrencias aprobadas.
+
 ## Estrategia recomendada
 
 ### 1. Inventario

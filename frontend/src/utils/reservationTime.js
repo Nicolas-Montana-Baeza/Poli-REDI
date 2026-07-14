@@ -171,6 +171,13 @@ export const isReservationCancelable = (reservation) => {
 }
 
 export const getReservationDisplayStatus = (reservation) => {
+  if (reservation?.isScheduledActivity) {
+    return {
+      label: 'Programación institucional',
+      className: 'scheduled'
+    }
+  }
+
   const temporalState = getReservationTemporalState(reservation)
 
   switch (reservation?.status) {

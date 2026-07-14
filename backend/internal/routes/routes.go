@@ -8,6 +8,11 @@ import (
 )
 
 func RegisterRoutes(app *fiber.App) {
+	app.Get("/", handlers.GetRoot)
+	app.Get("/favicon.ico", func(c *fiber.Ctx) error {
+		return c.SendStatus(fiber.StatusNoContent)
+	})
+
 	api := app.Group("/api")
 
 	api.Get("/health", handlers.GetHealth)

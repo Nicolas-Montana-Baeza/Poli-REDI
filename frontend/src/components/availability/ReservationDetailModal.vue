@@ -51,6 +51,13 @@ const reservationTime = computed(() => {
 })
 
 const displayStatus = computed(() => {
+  if (props.reservation?.isScheduledActivity) {
+    return {
+      label: 'Programación institucional',
+      className: 'scheduled'
+    }
+  }
+
   if (props.reservation?.isWorkshop) {
     return {
       label: 'Taller programado',
@@ -61,15 +68,43 @@ const displayStatus = computed(() => {
   return getReservationDisplayStatus(props.reservation)
 })
 
+const modalTitle = computed(() => {
+  if (props.reservation?.isScheduledActivity) {
+    return 'Detalle de programación'
+  }
+
+  if (props.reservation?.isWorkshop) {
+    return 'Detalle de taller'
+  }
+
+  return 'Detalle de reserva'
+})
+
+const modalDescription = computed(() => {
+  if (
+    props.reservation?.isScheduledActivity ||
+    props.reservation?.isWorkshop
+  ) {
+    return 'Información del bloque seleccionado.'
+  }
+
+  return 'Información de la reserva seleccionada.'
+})
+
 const showCancelAction = computed(() => {
   return (
     props.canCancel &&
     !props.reservation?.isWorkshop &&
+    !props.reservation?.isScheduledActivity &&
     isReservationCancelable(props.reservation)
   )
 })
 
 const warningMessage = computed(() => {
+  if (props.reservation?.isScheduledActivity) {
+    return 'Este bloque corresponde a programación institucional y ocupa la instalación durante ese horario.'
+  }
+
   if (props.reservation?.isWorkshop) {
     return 'Este bloque corresponde a un taller deportivo y ocupa la instalación durante ese horario.'
   }
@@ -88,7 +123,12 @@ const details = computed(() => {
 
   return [
     {
-      label: props.reservation.isWorkshop ? 'Taller' : 'Actividad',
+      label:
+        props.reservation.isScheduledActivity
+          ? 'Programación'
+          : props.reservation.isWorkshop
+            ? 'Taller'
+            : 'Actividad',
       value: props.reservation.title || 'Reserva'
     },
     {
@@ -137,11 +177,11 @@ const handleCancel = () => {
           <div>
 
             <h2>
-              Detalle de reserva
+              {{ modalTitle }}
             </h2>
 
             <p>
-              Información de la reserva seleccionada.
+              {{ modalDescription }}
             </p>
 
           </div>
@@ -385,7 +425,8 @@ const handleCancel = () => {
 }
 
 .status.pending,
-.status.workshop {
+.status.workshop,
+.status.scheduled {
   color: var(--color-warning);
 }
 

@@ -21,6 +21,8 @@ El MVP 1 cubre el flujo base de reservas deportivas:
 
 Quedan fuera del MVP 1 la gestion completa de bloqueos, CRUD avanzado de recursos, infracciones, programacion institucional y endurecimiento de despliegue productivo institucional.
 
+Estado de cierre: el MVP 1 esta funcional como demo, pero permanece reabierto para corregir zona horaria, estado controlado por servidor, limites de horario/duracion, pruebas reales y coherencia responsive/accesible. El orden vigente esta en `docs/09-mvps-roadmap.md`; los bloqueantes principales son `RES-009`, `RES-010`, `RES-011`, `QA-001` y `QA-002`.
+
 ## Stack
 
 ### Frontend
@@ -258,6 +260,9 @@ Antes de una demo local:
 9. Cancelar una reserva propia.
 10. Entrar como admin local y verificar acceso al panel administrador.
 11. Confirmar que usuario normal no ve ni accede a rutas administrativas.
+12. Confirmar que la hora de una reserva coincide entre local y demo online para `America/Santiago` una vez implementado `RES-009`.
+
+El checklist ampliado y la evidencia de la revision exhaustiva estan en `docs/12-checklist-demo-mvp1.md`. `go test ./...` actualmente finaliza sin errores, pero todavia no descubre archivos de pruebas; esa brecha se sigue en `QA-001`.
 
 ## Documentacion relacionada
 
