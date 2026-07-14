@@ -74,3 +74,51 @@ func TestCreateReservationAtRejectsPreviousBusinessDayNearMidnight(t *testing.T)
 		t.Fatalf("createReservationAt() error = %v, expected past reservation error", err)
 	}
 }
+
+func TestCreateReservationAtRejectsInvalidScheduleBeforeDatabase(t *testing.T) {
+	if err := businessclock.Configure(businessclock.DefaultLocationName); err != nil {
+		t.Fatalf("Configure() error = %v", err)
+	}
+
+	now := time.Date(2026, time.July, 20, 7, 0, 0, 0, businessclock.Location())
+	tests := []struct {
+		name     string
+		start    time.Time
+		duration int
+		wantErr  string
+	}{
+		{
+			name:     "before opening",
+			start:    time.Date(2026, time.July, 20, 7, 30, 0, 0, businessclock.Location()),
+			duration: 30,
+			wantErr:  "08:00",
+		},
+		{
+			name:     "manipulated duration",
+			start:    time.Date(2026, time.July, 20, 10, 0, 0, 0, businessclock.Location()),
+			duration: 45,
+			wantErr:  "duracion",
+		},
+		{
+			name:     "ends after closing",
+			start:    time.Date(2026, time.July, 20, 21, 30, 0, 0, businessclock.Location()),
+			duration: 60,
+			wantErr:  "finalizar",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			_, err := createReservationAt(models.Reservation{
+				UserID:          1,
+				ResourceID:      1,
+				StartTime:       test.start,
+				DurationMinutes: test.duration,
+			}, now)
+
+			if err == nil || !strings.Contains(err.Error(), test.wantErr) {
+				t.Fatalf("createReservationAt() error = %v, expected %q", err, test.wantErr)
+			}
+		})
+	}
+}

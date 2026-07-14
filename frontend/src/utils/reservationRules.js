@@ -1,6 +1,6 @@
 export const RESERVATION_OPENING_HOUR = 8
 export const RESERVATION_CLOSING_HOUR = 22
-export const RESERVATION_SLOT_MINUTES = 30
+export const RESERVATION_SLOT_MINUTES = 15
 export const RESERVATION_ALLOWED_DURATIONS = [30, 60, 90, 120, 150, 180]
 
 export const RESERVATION_DURATION_OPTIONS = [
@@ -19,6 +19,11 @@ export const formatScheduleMinute = (minuteOfDay) => {
   const minute = minuteOfDay % 60
 
   return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`
+}
+
+export const snapToReservationSlot = (minuteOfDay) => {
+  return Math.round(minuteOfDay / RESERVATION_SLOT_MINUTES) *
+    RESERVATION_SLOT_MINUTES
 }
 
 export const getLatestReservationStart = (durationMinutes) => {
@@ -53,7 +58,7 @@ export const getReservationScheduleError = ({ hour, durationMinutes }) => {
   if (startMinute % RESERVATION_SLOT_MINUTES !== 0) {
     return {
       field: 'hour',
-      message: 'La hora de inicio debe usar intervalos de 30 minutos.'
+      message: 'La hora de inicio debe usar intervalos de 15 minutos.'
     }
   }
 

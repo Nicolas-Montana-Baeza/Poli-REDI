@@ -1720,7 +1720,7 @@ Tratar el estado y sus transiciones como reglas exclusivas del servidor.
 
 Prioridad: P0
 Labels: `backend`, `frontend`, `reservas`, `validation`, `codex-ready`, `mvp1`
-Estado sugerido: Ready for Codex
+Estado actual: En revision
 
 ### Contexto
 
@@ -1732,7 +1732,7 @@ Definir y aplicar en backend las reglas institucionales minimas de duracion e in
 
 ### Alcance sugerido para Codex
 
-1. Confirmar y centralizar configuracion MVP 1: apertura `08:00`, cierre `22:00`, paso de 30 minutos y duraciones permitidas `30, 60, 90, 120, 150, 180`.
+1. Confirmar y centralizar configuracion MVP 1: apertura `08:00`, cierre `22:00`, paso de 15 minutos y duraciones permitidas `30, 60, 90, 120, 150, 180`.
 2. Validar que inicio y termino completo queden dentro de la jornada de la fecha seleccionada.
 3. Rechazar duraciones fuera del catalogo, valores cero/negativos y overflow de fecha.
 4. Validar que la hora de inicio respete el paso institucional.
@@ -1742,13 +1742,22 @@ Definir y aplicar en backend las reglas institucionales minimas de duracion e in
 
 ### Criterios de aceptacion
 
-- [ ] Backend acepta el primer y ultimo rango validos de la jornada.
-- [ ] Backend rechaza inicio antes de apertura y termino despues del cierre.
-- [ ] Backend rechaza duracion no permitida aunque el frontend sea omitido.
-- [ ] Backend rechaza inicios fuera del paso institucional.
-- [ ] Frontend solo ofrece combinaciones que el backend acepta.
-- [ ] Los mensajes indican como corregir fecha, hora o duracion.
-- [ ] `go test ./...` y `npm run build` pasan.
+- [x] Backend acepta el primer y ultimo rango validos de la jornada.
+- [x] Backend rechaza inicio antes de apertura y termino despues del cierre.
+- [x] Backend rechaza duracion no permitida aunque el frontend sea omitido.
+- [x] Backend rechaza inicios fuera del paso institucional.
+- [x] Frontend solo ofrece combinaciones que el backend acepta.
+- [x] Los mensajes indican como corregir fecha, hora o duracion.
+- [x] `go test ./...`, `npm test` y `npm run build` pasan localmente.
+
+### Resultado de implementacion
+
+- El backend centraliza apertura 08:00, cierre 22:00, paso de 15 minutos y duraciones `30, 60, 90, 120, 150, 180`.
+- La API valida inicio, segundos, paso, duracion y termino completo antes de consultar la base de datos.
+- El formulario usa el mismo catalogo, elimina 45 minutos y limita la ultima hora segun la duracion seleccionada.
+- La grilla y el mapa de uso comparten las constantes de jornada y segmento del formulario.
+- Se agregaron pruebas unitarias y de servicio para apertura, ultimo bloque, cierre excedido, paso y duracion manipulada.
+- No se requieren columnas nuevas ni migracion; falta probar los limites contra el despliegue antes de cerrar la tarea.
 
 ### Archivos relevantes
 

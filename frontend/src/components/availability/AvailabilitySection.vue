@@ -19,6 +19,10 @@ import {
   getBusinessDateKey,
   parseReservationDateTime
 } from '@/utils/reservationTime'
+import {
+  RESERVATION_CLOSING_HOUR,
+  RESERVATION_OPENING_HOUR
+} from '@/utils/reservationRules'
 
 const resourcesStore = useResourcesStore()
 const reservationsStore = useReservationsStore()
@@ -597,8 +601,8 @@ const goToday = () => {
             :resources="resourcesStore.resources"
             :reservations="availabilityItems"
             :selected-date="selectedDate"
-            :start-hour="8"
-            :end-hour="22"
+            :start-hour="RESERVATION_OPENING_HOUR"
+            :end-hour="RESERVATION_CLOSING_HOUR"
             :pixels-per-minute="1"
             @slot-selected="handleSlotSelected"
             @reservation-selected="handleReservationSelected"

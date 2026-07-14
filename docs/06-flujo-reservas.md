@@ -106,7 +106,9 @@ Regla UX:
 - Usuario normal con RUT obligatorio para crear reservas.
 - `resourceId` obligatorio.
 - `startTime` obligatorio y parseable.
-- `durationMinutes` mayor a cero.
+- `durationMinutes` en `30, 60, 90, 120, 150, 180`.
+- Inicio entre 08:00 y 21:30, en intervalos de 15 minutos.
+- Termino completo de la reserva a mas tardar a las 22:00.
 - El payload publico no acepta `status`; el servidor asigna `CONFIRMED`.
 - Cancelacion solo por propietario o administrador.
 - Cancelacion permitida unicamente desde `CONFIRMED` o `PENDING`.
@@ -115,7 +117,7 @@ Validaciones backend requeridas antes de cerrar MVP 1:
 
 - Zona horaria institucional explicita y compartida (`RES-009`).
 - Verificacion desplegada del estado inicial y transiciones controlados por servidor (`RES-010`, en revision).
-- Duraciones permitidas, paso de inicio y jornada operativa (`RES-011`).
+- Verificacion desplegada de duraciones, paso de inicio y jornada operativa (`RES-011`, en revision).
 
 ### Base de datos
 

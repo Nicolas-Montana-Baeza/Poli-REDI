@@ -21,13 +21,15 @@ func TestValidateScheduleBoundaries(t *testing.T) {
 		wantErr  string
 	}{
 		{name: "opening", hour: 8, duration: 30},
+		{name: "valid quarter hour", hour: 10, minute: 15, duration: 30},
+		{name: "valid three-quarter hour", hour: 10, minute: 45, duration: 30},
 		{name: "last valid block", hour: 21, minute: 30, duration: 30},
 		{name: "three hours ending at close", hour: 19, duration: 180},
 		{name: "before opening", hour: 7, minute: 30, duration: 30, wantErr: "08:00"},
 		{name: "starts at close", hour: 22, duration: 30, wantErr: "anterior a las 22:00"},
 		{name: "ends after close", hour: 21, minute: 30, duration: 60, wantErr: "finalizar"},
 		{name: "invalid duration", hour: 10, duration: 45, wantErr: "duracion"},
-		{name: "invalid minute step", hour: 10, minute: 15, duration: 30, wantErr: "intervalos"},
+		{name: "invalid minute step", hour: 10, minute: 10, duration: 30, wantErr: "intervalos"},
 		{name: "invalid seconds", hour: 10, second: 30, duration: 30, wantErr: "intervalos"},
 	}
 

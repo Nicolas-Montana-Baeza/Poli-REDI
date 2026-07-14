@@ -110,7 +110,7 @@ Bloqueantes funcionales y de integridad:
 
 - Verificar online la zona horaria de negocio ya implementada en frontend y backend (`RES-009`, en revision).
 - Verificar desplegada la proteccion que impide al cliente controlar estados y transiciones (`RES-010`, en revision).
-- Aplicar duracion y horario operativo en backend, no solo en UI (`RES-011`).
+- Verificar desplegadas las reglas de duracion y horario operativo ya compartidas por API y UI (`RES-011`, en revision).
 - Ampliar las pruebas backend reales iniciadas con el reloj de negocio hacia estados, duracion y horario operativo (`QA-001`).
 
 Pulido visible y estabilidad transversal:

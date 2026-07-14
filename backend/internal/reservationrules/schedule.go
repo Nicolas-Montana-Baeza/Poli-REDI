@@ -6,9 +6,9 @@ import (
 )
 
 const (
-	OpeningHour  = 8
-	ClosingHour  = 22
-	SlotMinutes  = 30
+	OpeningHour = 8
+	ClosingHour = 22
+	SlotMinutes = 15
 )
 
 var allowedDurations = map[int]struct{}{
@@ -26,7 +26,7 @@ func ValidateSchedule(start time.Time, durationMinutes int) error {
 	}
 
 	if start.Second() != 0 || start.Nanosecond() != 0 || start.Minute()%SlotMinutes != 0 {
-		return errors.New("la hora de inicio debe usar intervalos de 30 minutos")
+		return errors.New("la hora de inicio debe usar intervalos de 15 minutos")
 	}
 
 	opening := time.Date(
@@ -55,8 +55,5 @@ func ValidateSchedule(start time.Time, durationMinutes int) error {
 }
 
 func sameDate(left time.Time, right time.Time) bool {
-	leftYear, leftDay := left.ISOWeek()
-	rightYear, rightDay := right.ISOWeek()
-
-	return leftYear == rightYear && leftDay == rightDay && left.Weekday() == right.Weekday()
+	return left.Year() == right.Year() && left.YearDay() == right.YearDay()
 }

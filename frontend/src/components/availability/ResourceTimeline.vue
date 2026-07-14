@@ -9,7 +9,8 @@ import {
 import {
   RESERVATION_CLOSING_HOUR,
   RESERVATION_OPENING_HOUR,
-  RESERVATION_SLOT_MINUTES
+  RESERVATION_SLOT_MINUTES,
+  snapToReservationSlot
 } from '@/utils/reservationRules'
 
 const props = defineProps({
@@ -283,8 +284,9 @@ const handleTimelineClick = (event) => {
   const y =
     event.clientY - rect.top - timelineTopPadding
 
-  const minutesFromStart =
-    Math.round(y / props.pixelsPerMinute)
+  const minutesFromStart = snapToReservationSlot(
+    y / props.pixelsPerMinute
+  )
 
   const minuteOfDay =
     props.startHour * 60 +
