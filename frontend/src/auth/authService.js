@@ -6,7 +6,40 @@ import {
 } from './msalConfig'
 
 const DEV_ACCOUNT_KEY = 'poli_redi_dev_account'
+const AUTH_PUBLIC_PATHS = [
+  '/login',
+  '/auth/callback',
+  '/blocked'
+]
 let initPromise = null
+
+export function getSafeRedirectPath(value) {
+  const candidate = String(value || '').trim()
+
+  if (!candidate || !candidate.startsWith('/') || candidate.startsWith('//')) {
+    return '/'
+  }
+
+  try {
+    const parsed = new URL(candidate, 'https://poliredi.local')
+
+    if (parsed.origin !== 'https://poliredi.local') {
+      return '/'
+    }
+
+    const isAuthPublicPath = AUTH_PUBLIC_PATHS.some((path) => {
+      return parsed.pathname === path || parsed.pathname.startsWith(`${path}/`)
+    })
+
+    if (isAuthPublicPath) {
+      return '/'
+    }
+
+    return `${parsed.pathname}${parsed.search}${parsed.hash}`
+  } catch {
+    return '/'
+  }
+}
 
 export function isDevAuthEnabled() {
   return import.meta.env.DEV || import.meta.env.VITE_DEV_AUTH_ENABLED === 'true'
@@ -100,7 +133,10 @@ export async function login(redirectPath = '/') {
     return account
   }
 
-  sessionStorage.setItem('redirectAfterLogin', redirectPath)
+  sessionStorage.setItem(
+    'redirectAfterLogin',
+    getSafeRedirectPath(redirectPath)
+  )
 
   return msalInstance.loginRedirect(loginRequest)
 }

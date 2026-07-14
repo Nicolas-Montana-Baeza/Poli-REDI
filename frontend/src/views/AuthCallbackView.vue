@@ -1,7 +1,10 @@
 <script setup>
 import { onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { initializeAuth } from '../auth/authService'
+import {
+  getSafeRedirectPath,
+  initializeAuth
+} from '../auth/authService'
 
 const router = useRouter()
 
@@ -9,8 +12,9 @@ onMounted(async () => {
   try {
     await initializeAuth()
 
-    const redirectPath =
-      sessionStorage.getItem('redirectAfterLogin') || '/'
+    const redirectPath = getSafeRedirectPath(
+      sessionStorage.getItem('redirectAfterLogin')
+    )
 
     sessionStorage.removeItem('redirectAfterLogin')
 

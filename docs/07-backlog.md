@@ -1276,6 +1276,38 @@ Guardar RUT en `users`, validarlo en frontend/backend y bloquear reservas de usu
 - La app muestra un modal obligatorio a usuarios normales sin RUT antes de permitir reservas.
 - En modo desarrollo, el login local no-admin puede resetear RUT para probar el flujo de registro y confirmar cambios en base de datos.
 
+## AUTH-005 - Corregir retorno posterior al login Microsoft
+
+Prioridad: P0
+Labels: `frontend`, `auth`, `entra`, `mvp1`
+Estado sugerido: En revision
+
+### Contexto
+
+Despues de autenticarse con Microsoft, MSAL podia devolver al usuario a `/login?...` porque conservaba la pagina desde la que comenzo el flujo. La sesion quedaba activa, pero era necesario quitar manualmente `/login` de la URL para entrar a la aplicacion.
+
+### Criterios de aceptacion
+
+- [ ] El callback de Microsoft termina en la ruta interna solicitada o en `/`.
+- [ ] Nunca se conserva `/login`, `/auth/callback` ni `/blocked` como destino posterior al login.
+- [ ] Un usuario autenticado que abre `/login` es redirigido automaticamente.
+- [ ] El flujo funciona en Azure Static Web Apps con un usuario real de Entra ID.
+
+### Resultado parcial
+
+- Se configuro MSAL con `navigateToLoginRequestUrl: false` para mantener el control en `/auth/callback`.
+- Se agrego sanitizacion del destino guardado en `redirectAfterLogin`.
+- `LoginView` detecta una sesion valida y abandona automaticamente la pantalla de acceso.
+- 2026-07-14: `npm run build` pasa.
+- Pendiente: redeploy del frontend y validacion del flujo Microsoft por el usuario.
+
+### Archivos relevantes
+
+- `frontend/src/auth/msalConfig.js`
+- `frontend/src/auth/authService.js`
+- `frontend/src/views/LoginView.vue`
+- `frontend/src/views/AuthCallbackView.vue`
+
 ---
 
 # Hito 3 - Disponibilidad y reservas
