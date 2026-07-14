@@ -97,7 +97,7 @@ Estas validaciones son obligatorias para el cierre definitivo reabierto del MVP 
 | Paso | Resultado esperado | Estado | Backlog |
 | --- | --- | --- | --- |
 | Crear una reserva con hora conocida en local y online | Inicio, termino y categoria temporal coinciden en Chile | En revision; falta prueba online | `RES-009` |
-| Intentar enviar `status` manualmente al crear | El servidor lo rechaza o ignora sin alterar el estado inicial ni conflictos | Pendiente | `RES-010` |
+| Intentar enviar `status` manualmente al crear | El servidor lo rechaza sin alterar el estado inicial ni conflictos | En revision; falta prueba desplegada | `RES-010` |
 | Crear antes de apertura, despues de cierre o con duracion no permitida | Backend rechaza cada caso con mensaje seguro | Pendiente | `RES-011` |
 | Seleccionar recurso inactivo, informativo o solo admin como usuario normal | No abre formulario y explica el motivo | Pendiente | `BACK-020` |
 | Revisar header, campana y sidebar en 320/360 px | No hay superposicion, recorte ni foco fuera de pantalla | Pendiente | `BACK-021` |

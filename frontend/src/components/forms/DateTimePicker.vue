@@ -1,6 +1,13 @@
 ﻿<script setup>
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { getBusinessDateKey } from '@/utils/reservationTime'
+import {
+  RESERVATION_ALLOWED_DURATIONS,
+  RESERVATION_DURATION_OPTIONS,
+  RESERVATION_OPENING_HOUR,
+  RESERVATION_SLOT_MINUTES,
+  getLatestReservationStart
+} from '@/utils/reservationRules'
 
 const props = defineProps({
   initialDate: {
@@ -31,32 +38,11 @@ const todayDate = () => {
   return getBusinessDateKey()
 }
 
-const durationOptions = [
-  {
-    label: '30 minutos',
-    value: 30
-  },
-  {
-    label: '45 minutos',
-    value: 45
-  },
-  {
-    label: '1 hora',
-    value: 60
-  },
-  {
-    label: '1 hora 30 min',
-    value: 90
-  },
-  {
-    label: '2 horas',
-    value: 120
-  },
-  {
-    label: '3 horas',
-    value: 180
-  }
-]
+const durationOptions = RESERVATION_DURATION_OPTIONS
+const minimumHour = `${String(RESERVATION_OPENING_HOUR).padStart(2, '0')}:00`
+const maximumHour = computed(() =>
+  getLatestReservationStart(durationMinutes.value)
+)
 
 watch(
   () => [
@@ -71,8 +57,10 @@ watch(
     selectedHour.value =
       props.initialHour || ''
 
-    durationMinutes.value =
-      props.initialDuration || 60
+    const initialDuration = Number(props.initialDuration)
+    durationMinutes.value = RESERVATION_ALLOWED_DURATIONS.includes(initialDuration)
+      ? initialDuration
+      : 60
   },
   {
     immediate: true
@@ -130,13 +118,11 @@ const updateValues = () => {
       <input
         v-model="selectedHour"
         type="time"
-        step="60"
+        :min="minimumHour"
+        :max="maximumHour"
+        :step="RESERVATION_SLOT_MINUTES * 60"
         @change="updateValues"
       />
-
-      <small>
-        Puedes ajustar por minuto si es necesario.
-      </small>
 
     </div>
 

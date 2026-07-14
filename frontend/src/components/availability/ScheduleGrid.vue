@@ -1,6 +1,10 @@
 ﻿<script setup>
 import ResourceTimeline from './ResourceTimeline.vue'
 import { getReservationDateKey } from '@/utils/reservationTime'
+import {
+  RESERVATION_CLOSING_HOUR,
+  RESERVATION_OPENING_HOUR
+} from '@/utils/reservationRules'
 
 const props = defineProps({
   resources: {
@@ -20,12 +24,12 @@ const props = defineProps({
 
   startHour: {
     type: Number,
-    default: 8
+    default: RESERVATION_OPENING_HOUR
   },
 
   endHour: {
     type: Number,
-    default: 22
+    default: RESERVATION_CLOSING_HOUR
   },
 
   pixelsPerMinute: {

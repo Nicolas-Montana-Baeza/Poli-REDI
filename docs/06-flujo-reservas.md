@@ -107,12 +107,14 @@ Regla UX:
 - `resourceId` obligatorio.
 - `startTime` obligatorio y parseable.
 - `durationMinutes` mayor a cero.
+- El payload publico no acepta `status`; el servidor asigna `CONFIRMED`.
 - Cancelacion solo por propietario o administrador.
+- Cancelacion permitida unicamente desde `CONFIRMED` o `PENDING`.
 
 Validaciones backend requeridas antes de cerrar MVP 1:
 
 - Zona horaria institucional explicita y compartida (`RES-009`).
-- Estado inicial y transiciones controlados por servidor (`RES-010`).
+- Verificacion desplegada del estado inicial y transiciones controlados por servidor (`RES-010`, en revision).
 - Duraciones permitidas, paso de inicio y jornada operativa (`RES-011`).
 
 ### Base de datos

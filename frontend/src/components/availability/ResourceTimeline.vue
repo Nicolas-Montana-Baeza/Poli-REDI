@@ -6,6 +6,11 @@ import {
   getBusinessDateKey,
   getReservationStartMinutes as getReservationStartMinutesFromTime
 } from '@/utils/reservationTime'
+import {
+  RESERVATION_CLOSING_HOUR,
+  RESERVATION_OPENING_HOUR,
+  RESERVATION_SLOT_MINUTES
+} from '@/utils/reservationRules'
 
 const props = defineProps({
   resource: {
@@ -20,12 +25,12 @@ const props = defineProps({
 
   startHour: {
     type: Number,
-    default: 8
+    default: RESERVATION_OPENING_HOUR
   },
 
   endHour: {
     type: Number,
-    default: 22
+    default: RESERVATION_CLOSING_HOUR
   },
 
   selectedDate: {
@@ -205,7 +210,7 @@ const heatmapSegments = computed(() => {
     return []
   }
 
-  const segmentMinutes = 30
+  const segmentMinutes = RESERVATION_SLOT_MINUTES
   const segments = []
   const startMinute = props.startHour * 60
   const endMinute = props.endHour * 60

@@ -1619,7 +1619,7 @@ Guardar la cantidad de participantes de una reserva y validar que no supere la c
 
 Prioridad: P0
 Labels: `backend`, `frontend`, `database`, `reservas`, `timezone`, `bug`, `codex-ready`, `mvp1`
-Estado sugerido: Ready for Codex
+Estado actual: En revision
 
 ### Contexto
 
@@ -1671,7 +1671,7 @@ Aplicar una unica zona horaria de negocio, explicita y comprobable, en creacion,
 
 Prioridad: P0
 Labels: `backend`, `reservas`, `security`, `integrity`, `codex-ready`, `mvp1`
-Estado sugerido: Ready for Codex
+Estado actual: En revision
 
 ### Contexto
 
@@ -1693,12 +1693,21 @@ Tratar el estado y sus transiciones como reglas exclusivas del servidor.
 
 ### Criterios de aceptacion
 
-- [ ] El cliente no puede decidir el estado inicial de una reserva.
-- [ ] Toda reserva creada por el endpoint publico queda en el estado inicial esperado.
-- [ ] No se puede cancelar una reserva `REJECTED`, `EXPIRED` o ya `CANCELLED`.
-- [ ] Propietario/admin y ventana temporal siguen validandose.
-- [ ] Un intento de enviar `status` no permite evitar conflictos ni reglas de recurso.
-- [ ] `go test ./...` pasa con casos positivos y negativos.
+- [x] El cliente no puede decidir el estado inicial de una reserva.
+- [x] Toda reserva creada por el endpoint publico fuerza el estado inicial esperado en el servicio.
+- [x] No se puede cancelar una reserva `REJECTED`, `EXPIRED` o ya `CANCELLED`.
+- [x] Propietario/admin y ventana temporal siguen validandose.
+- [x] Un intento de enviar `status` se rechaza antes de acceder a la base de datos.
+- [x] `go test ./...` pasa localmente con casos positivos y negativos.
+
+### Resultado de implementacion
+
+- `CreateReservationRequest` ya no expone `status` y el endpoint rechaza campos JSON desconocidos.
+- El servicio fuerza `CONFIRMED` aunque otro llamador interno entregue un estado distinto.
+- Solo `CONFIRMED` y `PENDING` pueden transicionar a `CANCELLED`.
+- La condicion se repite en el `UPDATE` SQL para proteger el cambio frente a concurrencia.
+- Se agregaron pruebas del endpoint manipulado, estado inicial y transiciones validas e invalidas.
+- Falta desplegar y ejecutar la prueba manual del checklist antes de cerrar la tarea.
 
 ### Archivos relevantes
 

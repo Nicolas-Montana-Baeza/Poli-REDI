@@ -7,6 +7,7 @@ import {
   getBusinessDateKey,
   parseReservationDateTime
 } from '@/utils/reservationTime'
+import { getReservationScheduleError } from '@/utils/reservationRules'
 
 const props = defineProps({
   visible: {
@@ -190,8 +191,15 @@ const validateForm = () => {
     errors.hour = 'Selecciona una hora de inicio.'
   }
 
-  if (Number(form.value.durationMinutes) <= 0) {
-    errors.durationMinutes = 'La duración debe ser mayor a 0.'
+  if (form.value.hour) {
+    const scheduleError = getReservationScheduleError({
+      hour: form.value.hour,
+      durationMinutes: form.value.durationMinutes
+    })
+
+    if (scheduleError) {
+      errors[scheduleError.field] = scheduleError.message
+    }
   }
 
   if (

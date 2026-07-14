@@ -12,6 +12,7 @@ import (
 	"poli-redi-api/internal/businessclock"
 	"poli-redi-api/internal/models"
 	"poli-redi-api/internal/repositories"
+	"poli-redi-api/internal/reservationrules"
 
 	mssql "github.com/microsoft/go-mssqldb"
 )
@@ -127,12 +128,15 @@ func createReservationAt(
 		return models.Reservation{}, errors.New("selecciona una fecha y hora de inicio")
 	}
 
-	if reservation.DurationMinutes <= 0 {
-		return models.Reservation{}, errors.New("la duraci\u00f3n debe ser mayor a 0")
-	}
-
 	if reservation.StartTime.Before(now) {
 		return models.Reservation{}, errors.New("no puedes crear reservas en el pasado")
+	}
+
+	if err := reservationrules.ValidateSchedule(
+		reservation.StartTime,
+		reservation.DurationMinutes,
+	); err != nil {
+		return models.Reservation{}, err
 	}
 
 	resource, err := repositories.GetResourceByID(reservation.ResourceID)

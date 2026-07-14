@@ -109,7 +109,7 @@ El MVP 1 ya esta funcional y desplegado como demo online, pero se reabre para ap
 Bloqueantes funcionales y de integridad:
 
 - Verificar online la zona horaria de negocio ya implementada en frontend y backend (`RES-009`, en revision).
-- Impedir que el cliente controle el estado inicial o transiciones de reserva (`RES-010`).
+- Verificar desplegada la proteccion que impide al cliente controlar estados y transiciones (`RES-010`, en revision).
 - Aplicar duracion y horario operativo en backend, no solo en UI (`RES-011`).
 - Ampliar las pruebas backend reales iniciadas con el reloj de negocio hacia estados, duracion y horario operativo (`QA-001`).
 
