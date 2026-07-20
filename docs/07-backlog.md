@@ -1570,12 +1570,12 @@ Permitir cancelar reservas desde la interfaz usando el usuario autenticado.
 ## RES-008 - Persistir participantes de reserva y validar capacidad
 
 Prioridad: P0
-Labels: `frontend`, `backend`, `database`, `reservas`, `ux`, `codex-ready`, `mvp2`
-Estado sugerido: Ready for Codex
+Labels: `frontend`, `backend`, `database`, `reservas`, `ux`, `needs-architecture`, `mvp2`
+Estado sugerido: Ready for Architecture
 
 ### Contexto
 
-El usuario confirmo el 2026-07-20 que los participantes son obligatorios. Para recursos grupales, como multicancha, la solicitud debe reunir al menos 10 participantes confirmados antes de pasar a reserva confirmada. Los recursos `OPEN_USE` no requieren esta confirmacion grupal.
+El usuario confirmo el 2026-07-20 que Cancha 1, 2 y 3 corresponden formalmente a multicancha 1, 2 y 3. Cada solicitud requiere al menos 10 usuarios con cuenta, incluido el solicitante. La solicitud `PENDING` bloquea el horario y consume la oportunidad semanal. Las confirmaciones pueden registrarse o retirarse hasta exactamente una hora antes inclusive, valor configurable. Si vence bajo el minimo, se cancela, libera el horario y deja de consumir la oportunidad.
 
 El flujo actual no registra participantes y crea toda reserva directamente como `CONFIRMED`, por lo que no cumple la regla aprobada.
 
@@ -1585,14 +1585,19 @@ Registrar confirmaciones de participantes unicos, mantener la solicitud grupal e
 
 ### Alcance funcional aprobado
 
-1. Aplicar la regla solo a los recursos cuya politica exija confirmacion grupal.
-2. Registrar cada participante de forma identificable y sin duplicados.
+1. Aplicar la regla a multicancha 1, 2 y 3, identificadas como Cancha 1, 2 y 3 en el inventario.
+2. Registrar cada participante mediante su cuenta, sin duplicados, incluyendo al solicitante dentro del conteo.
 3. Mostrar al solicitante el estado y avance hacia el minimo.
 4. Mantener `PENDING` con menos de 10 confirmaciones vigentes.
 5. Al registrar la decima confirmacion, volver a validar las demas reglas y cambiar una sola vez a `CONFIRMED`.
 6. Mantener el servidor como autoridad del estado y del conteo.
 7. No exigir este flujo a `OPEN_USE`.
 8. Respetar la capacidad maxima cuando el recurso la defina.
+9. Permitir retirar una confirmacion hasta el limite configurable y devolver la reserva a `PENDING` si el conteo vigente baja de 10.
+10. Con la configuracion inicial, aceptar cambios hasta exactamente una hora antes inclusive y rechazarlos despues.
+11. Mientras este `PENDING`, bloquear el horario para solicitudes incompatibles.
+12. Al llegar al limite bajo el minimo, cambiar a `CANCELLED`, liberar el horario y liberar la oportunidad semanal.
+13. Restringir a administradores los cambios de recursos sujetos a la regla y del plazo previo.
 
 ### Criterios de aceptacion
 
@@ -1604,18 +1609,21 @@ Registrar confirmaciones de participantes unicos, mantener la solicitud grupal e
 - [ ] El cliente no puede forzar `CONFIRMED` ni declarar un conteo arbitrario.
 - [ ] Se rechaza una confirmacion que supere la capacidad del recurso cuando corresponda.
 - [ ] El solicitante puede ver el avance y los errores recuperables.
+- [ ] Si una retirada valida reduce el conteo de 10 a 9 antes del limite, la reserva vuelve a `PENDING`.
+- [ ] Confirmar o retirar despues del limite configurado se rechaza sin cambiar el conteo.
+- [ ] El valor inicial del limite es una hora antes del inicio y un cambio autorizado se refleja en las solicitudes posteriores aplicables.
+- [ ] El solicitante cuenta una vez entre los 10 y toda confirmacion corresponde a una cuenta autenticada.
+- [ ] Mientras esta `PENDING`, el horario aparece ocupado para solicitudes incompatibles.
+- [ ] Exactamente una hora antes se admite el ultimo cambio; despues se rechaza.
+- [ ] Al vencer bajo el minimo cambia a `CANCELLED`, libera horario y oportunidad semanal.
+- [ ] Un usuario normal no puede cambiar el plazo ni los recursos sujetos a confirmacion.
 - [ ] `go test ./...` pasa.
 - [ ] `npm test` pasa.
 - [ ] `npm run build` pasa.
 
-### Decisiones pendientes antes de implementacion
+### Decision de producto cerrada
 
-- Si el solicitante cuenta dentro de los 10.
-- Como confirma su identidad cada participante.
-- Plazo de vigencia de una solicitud `PENDING`.
-- Si la solicitud pendiente bloquea el horario.
-- Que ocurre cuando se retira una confirmacion.
-- Que recursos oficiales, ademas de multicancha, aplican la regla.
+Las reglas necesarias para arquitectura estan aprobadas. Como propuesta no bloqueante, los cambios administrativos posteriores se aplican solo a solicitudes nuevas.
 
 ## RES-009 - Definir zona horaria de negocio para reservas
 
@@ -1728,13 +1736,15 @@ Estado actual: En revision
 
 El formulario ofrece duraciones acotadas y la disponibilidad muestra una jornada aproximada de 08:00 a 22:00, pero la API solo valida que `durationMinutes` sea mayor que cero. Un cliente modificado puede crear reservas excesivamente largas, fuera de horario o cuyo termino exceda el cierre.
 
+El usuario aprobo el 2026-07-20 el catalogo de 30, 60, 90, 120, 150 y 180 minutos para todos los recursos. La implementacion local coincide; falta su verificacion integrada/online.
+
 ### Objetivo
 
 Definir y aplicar en backend las reglas institucionales minimas de duracion e intervalo horario.
 
 ### Alcance sugerido para Codex
 
-1. Confirmar y centralizar configuracion MVP 1: apertura `08:00`, cierre `22:00`, paso de 15 minutos y duraciones permitidas `30, 60, 90, 120, 150, 180`.
+1. Aplicar la configuracion MVP 1: apertura `08:00`, cierre `22:00`, paso de 15 minutos y duraciones aprobadas `30, 60, 90, 120, 150, 180`.
 2. Validar que inicio y termino completo queden dentro de la jornada de la fecha seleccionada.
 3. Rechazar duraciones fuera del catalogo, valores cero/negativos y overflow de fecha.
 4. Validar que la hora de inicio respete el paso institucional.
@@ -1774,30 +1784,34 @@ Definir y aplicar en backend las reglas institucionales minimas de duracion e in
 ## RES-012 - Aplicar restriccion semanal de reservas particulares
 
 Prioridad: P0
-Labels: `reservas`, `reglas-negocio`, `backend`, `frontend`, `mvp2`, `blocked-product`
-Estado sugerido: Blocked by product detail
+Labels: `reservas`, `reglas-negocio`, `backend`, `frontend`, `mvp2`, `needs-architecture`
+Estado sugerido: Ready for Architecture
 
 ### Contexto
 
-El usuario confirmo el 2026-07-20 que una persona particular no puede volver a reservar antes de cumplir una semana desde su reserva anterior. El sistema actual no aplica esta regla.
+El usuario confirmo el 2026-07-20 que la regla vigente usa un periodo configurable de siete dias. En `America/Santiago`, un martes se pueden elegir fechas desde ese martes hasta el lunes siguiente. Si la solicitud se crea ese martes, el usuario puede volver a crear otra desde el martes siguiente, aunque la primera reserva sea para el miercoles. El sistema actual no aplica ninguna de estas restricciones.
 
 ### Objetivo
 
-Rechazar nuevas solicitudes dentro del intervalo semanal aplicable y comunicar la proxima fecha en que el usuario puede volver a solicitar una reserva.
+Limitar las fechas reservables al periodo institucional configurado y rechazar nuevas solicitudes antes del siguiente periodo contado desde la fecha local de creacion de la solicitud anterior, comunicando la proxima fecha permitida.
 
 ### Criterios de aceptacion
 
 - [ ] La regla usa exclusivamente la identidad autenticada.
-- [ ] Una solicitud anterior relevante dentro del intervalo impide una nueva solicitud.
-- [ ] Al alcanzar exactamente el limite aprobado, la nueva solicitud puede continuar.
-- [ ] El rechazo comunica la proxima fecha y hora permitida en `America/Santiago`.
+- [ ] Con el valor vigente de siete dias, un martes admite fechas desde ese martes hasta el lunes siguiente inclusive y rechaza el martes posterior.
+- [ ] Una solicitud relevante creada un martes impide crear otra hasta el lunes siguiente inclusive, con independencia de la fecha reservada.
+- [ ] Una solicitud `PENDING` consume la oportunidad desde su creacion.
+- [ ] Al pasar a `CANCELLED`, deja de consumirla y la proxima fecha permitida se recalcula con las demas solicitudes vigentes.
+- [ ] Desde el martes siguiente, la nueva solicitud puede continuar si cumple las demas reglas.
+- [ ] El rechazo comunica la proxima fecha permitida en `America/Santiago`.
 - [ ] Solicitudes de otro usuario no afectan el resultado.
 - [ ] El servidor mantiene la regla aunque el cliente sea manipulado.
-- [ ] Existen pruebas del limite, cambio de fecha y horario de verano.
+- [ ] Un cambio autorizado del numero de dias modifica tanto la ventana reservable como la siguiente fecha permitida sin reinterpretar reservas historicas.
+- [ ] Existen pruebas del limite inclusivo por fecha, cambio de fecha y horario de verano.
 
-### Decision pendiente antes de implementacion
+### Decision de producto cerrada
 
-Definir si la semana se cuenta desde creacion, inicio o termino y que estados anteriores cuentan, especialmente `PENDING`, `CANCELLED` y `REJECTED`.
+`PENDING` y `CONFIRMED` consumen la oportunidad; `CANCELLED` no la consume. Una solicitud rechazada que nunca fue creada tampoco la consume.
 
 ---
 
@@ -2054,7 +2068,7 @@ Permitir crear, editar, activar o desactivar recursos deportivos, usando los och
 - [x] Permite actualizar la imagen del recurso desde una ruta administrativa.
 - [ ] Recurso pertenece a una sede.
 - [ ] Valida `reservation_mode`.
-- [ ] Permite definir o modificar la politica que determina si el recurso requiere confirmacion grupal, una vez aprobada D-09.
+- [ ] Solo un administrador puede definir o modificar la politica que determina si el recurso requiere confirmacion grupal.
 - [ ] No permite eliminar recursos con reservas historicas sin criterio definido.
 - [ ] Refresca disponibilidad luego de cambios.
 
@@ -2106,7 +2120,7 @@ Permitir registrar clases, talleres, eventos, campeonatos o entrenamientos insti
 - [ ] Soporta descripcion y tipo.
 - [ ] La decision y las cancelaciones quedan trazables.
 - [ ] El administrador ve un resumen de reservas y actividades afectadas.
-- [ ] La comunicacion al usuario cancelado se aplica conforme a la decision pendiente D-10.
+- [ ] El usuario cuya reserva particular se cancela automaticamente recibe una notificacion del cambio sin exponer datos de otras personas.
 - [ ] Define comportamiento futuro de recurrencia.
 
 ---
@@ -3037,7 +3051,7 @@ Estas tareas ya tienen implementacion inicial. Antes de cerrar el MVP 1 falta ev
 
 ## Bloque 3 - Cierre de flujo usuario MVP 2
 
-1. Resolver D-06 a D-09 para cerrar limites de semana, participantes, vigencia y politica por recurso.
+1. Resolver las precisiones restantes sobre estados que consumen la frecuencia, conteo del solicitante, efecto de `PENDING` y denominacion/autoridad de las multicanchas.
 2. `RES-012` Aplicar la restriccion semanal aprobada.
 3. `RES-008` Registrar confirmaciones de participantes y confirmar solicitudes grupales al alcanzar el minimo.
 4. `API-002` Filtrar reservas por fecha/rango/estado.

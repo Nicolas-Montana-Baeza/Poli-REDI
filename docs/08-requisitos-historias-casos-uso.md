@@ -93,9 +93,9 @@ Pendiente relacionado: `RES-004`.
 
 ### RF-006 - Creacion de reservas
 
-El sistema debe permitir crear solicitudes de reserva sobre recursos disponibles, asociadas al usuario autenticado y, opcionalmente, a una actividad. El servidor debe asignar el estado segun la politica del recurso, aplicar la restriccion semanal y rechazar fecha, horario o duracion fuera de las reglas institucionales.
+El sistema debe permitir crear solicitudes de reserva sobre recursos disponibles, asociadas al usuario autenticado y, opcionalmente, a una actividad. El servidor debe asignar el estado segun la politica del recurso, aplicar la restriccion semanal y aceptar para todos los recursos solo duraciones de 30, 60, 90, 120, 150 o 180 minutos dentro de la jornada institucional.
 
-Estado actual: Implementado parcialmente. La asociacion al usuario, el estado controlado por servidor, la zona `America/Santiago` y los limites operativos tienen pruebas locales; falta la restriccion semanal y la confirmacion condicional por participantes aprobadas el 2026-07-20.
+Estado actual: Implementado parcialmente. La asociacion al usuario, el estado controlado por servidor, la zona `America/Santiago` y el catalogo de duraciones aprobado tienen pruebas locales; falta la restriccion semanal y la confirmacion condicional por participantes aprobadas el 2026-07-20.
 
 Pendiente relacionado: `RES-008`, `RES-009`, `RES-010`, `RES-011`.
 
@@ -195,15 +195,15 @@ Estado actual: Implementado.
 
 ### RF-020 - Restriccion semanal de reservas particulares
 
-El sistema debe impedir que un usuario alcanzado por la regla semanal cree una nueva reserva antes de cumplir el intervalo institucional desde su reserva anterior y debe comunicar la proxima fecha permitida.
+El sistema debe limitar las fechas reservables al periodo institucional configurado y evitar que un usuario cree mas de una solicitud dentro del periodo contado desde la fecha local de creacion de su solicitud anterior. Con el valor vigente de siete dias, un martes permite elegir hasta el lunes siguiente y una solicitud creada ese martes permite volver a solicitar desde el martes siguiente. El rechazo debe comunicar la proxima fecha permitida.
 
-Estado actual: APROBADO el 2026-07-20; no implementado. Falta definir evento de referencia, estados que cuentan e inclusividad del limite.
+Estado actual: APROBADO el 2026-07-20; no implementado. La fecha de creacion y el limite inclusivo por dia estan definidos; falta precisar que estados creados consumen la frecuencia.
 
 Pendiente relacionado: `RES-012`.
 
 ### RF-021 - Confirmacion de participantes minimos
 
-El sistema debe registrar confirmaciones de participantes unicos y exigir al menos 10 para confirmar solicitudes sobre recursos grupales, como multicancha.
+El sistema debe registrar confirmaciones de participantes unicos y exigir al menos 10 para confirmar solicitudes sobre Cancha 1, Cancha 2 y Cancha 3. Las confirmaciones pueden registrarse o retirarse hasta un limite configurable, inicialmente una hora antes del inicio.
 
 Estado actual: APROBADO el 2026-07-20; no implementado.
 
@@ -211,7 +211,7 @@ Pendiente relacionado: `RES-008`.
 
 ### RF-022 - Estado condicionado por politica del recurso
 
-El sistema debe mantener `PENDING` una solicitud de recurso grupal hasta alcanzar el minimo de participantes confirmados y cambiarla automaticamente a `CONFIRMED` al cumplirlo. Los recursos `OPEN_USE` no requieren confirmacion grupal.
+El sistema debe mantener `PENDING` una solicitud sujeta a confirmacion grupal hasta alcanzar el minimo, cambiarla automaticamente a `CONFIRMED` al cumplirlo y devolverla a `PENDING` si una retirada valida reduce el conteo por debajo del minimo. Los recursos `OPEN_USE` no requieren confirmacion grupal.
 
 Estado actual: APROBADO el 2026-07-20; no implementado. El flujo actual confirma todas las reservas al crearlas.
 
@@ -219,7 +219,7 @@ Pendiente relacionado: `RES-008`, `RES-010`.
 
 ### RF-023 - Resolucion de conflictos institucionales
 
-El sistema debe cancelar automaticamente una reserva particular cuando entra en conflicto con una actividad institucional. Si el conflicto es entre dos actividades, debe informar al administrador y permitirle cancelar cualquiera de ellas o mantener ambas.
+El sistema debe cancelar automaticamente una reserva particular cuando entra en conflicto con una actividad institucional y notificar al usuario afectado. Si el conflicto es entre dos actividades, debe informar al administrador y permitirle cancelar cualquiera de ellas o mantener ambas.
 
 Estado actual: APROBADO el 2026-07-20; no implementado. Las restricciones actuales rechazan el solapamiento antes de permitir la decision.
 
@@ -483,6 +483,8 @@ Criterios de aceptacion:
 - Se cuentan participantes unicos con confirmacion vigente.
 - Con menos de 10 confirmaciones no se presenta como reserva confirmada.
 - La decima confirmacion cambia automaticamente la solicitud a `CONFIRMED` si las demas reglas siguen vigentes.
+- Si una retirada valida reduce el conteo por debajo de 10, la reserva vuelve a `PENDING`.
+- Las confirmaciones y retiradas solo se aceptan hasta el limite configurable, inicialmente una hora antes del inicio.
 - El cliente no puede forzar el estado ni el conteo.
 
 ### HU-016 - Resolver conflictos institucionales
@@ -492,6 +494,7 @@ Como administrador, quiero conocer los conflictos de una actividad institucional
 Criterios de aceptacion:
 
 - Un conflicto con reserva particular cancela automaticamente esa reserva y muestra el efecto al administrador.
+- El usuario afectado recibe una notificacion de la cancelacion automatica.
 - Un conflicto entre actividades permite cancelar cualquiera de ellas o mantener ambas.
 - Mantener ambas requiere una decision administrativa explicita.
 - La decision queda trazable.
@@ -723,6 +726,8 @@ Flujo principal:
 3. El sistema valida identidad y duplicado.
 4. El sistema actualiza el conteo de confirmaciones vigentes.
 5. Al alcanzar 10 confirmaciones, vuelve a validar las demas reglas y cambia la solicitud a `CONFIRMED`.
+6. Hasta el limite configurable, una persona puede retirar su confirmacion.
+7. Si el conteo vigente baja de 10, el sistema devuelve la reserva a `PENDING`.
 
 Postcondiciones:
 
@@ -732,6 +737,7 @@ Postcondiciones:
 Flujos alternativos:
 
 - Con menos de 10 confirmaciones, permanece `PENDING`.
+- Una confirmacion o retirada posterior al limite se rechaza sin cambiar el conteo.
 - Si la solicitud deja de ser valida antes de alcanzar el minimo, no se confirma automaticamente.
 
 ### CU-010 - Resolver conflicto de actividad institucional

@@ -23,7 +23,7 @@ Quedan fuera del MVP 1 la gestion completa de bloqueos, CRUD avanzado de recurso
 
 Estado de cierre: el MVP 1 esta funcional como demo. Zona horaria, estado controlado por servidor y limites de horario/duracion estan implementados y tienen pruebas locales, pero falta verificarlos en el ambiente integrado/online. Tambien permanecen pendientes la ampliacion de cobertura, la seguridad de errores y la coherencia responsive/accesible. El estado de producto vigente y sus contradicciones de alcance estan en `docs/00-resumen-proyecto.md` y `docs/13-estado-actual-producto.md`.
 
-Para MVP 2 y MVP 3 se aprobaron el 2026-07-20 reglas aun no implementadas: restriccion semanal, minimo de 10 participantes confirmados en recursos grupales, confirmacion condicionada por recurso, prioridad institucional con cancelacion automatica de reservas particulares, resolucion administrativa entre actividades e inventario oficial administrable de ocho recursos.
+Para MVP 2 y MVP 3 se aprobaron el 2026-07-20 reglas aun no implementadas: ventana y frecuencia semanal configurables; `PENDING` consume la oportunidad desde su creacion y `CANCELLED` la libera; Cancha 1, 2 y 3 corresponden a multicancha 1, 2 y 3 y requieren 10 usuarios con cuenta, incluido el solicitante; la solicitud bloquea el horario, admite cambios hasta una hora antes inclusive y se cancela si vence bajo el minimo; solo administradores pueden modificar recursos, periodos o plazos. Tambien se aprobo el catalogo ya implementado de 30 a 180 minutos en incrementos de 30, junto con la prioridad institucional y el aviso al usuario cancelado.
 
 ## Stack
 

@@ -35,7 +35,7 @@ Un elemento puede estar implementado sin estar aprobado y puede estar implementa
 | Recursos | IMPLEMENTADO PARCIAL | Catalogo y cambio administrativo de imagen; no existe gestion completa de altas, datos, modos y activacion. |
 | Disponibilidad | IMPLEMENTADO PARCIAL | Integra reservas y actividades programadas; la interfaz agrega talleres recurrentes. Los bloqueos no se muestran y no hay filtros de rango en el servidor. |
 | Creacion de reservas | IMPLEMENTADO PARCIAL | Propietario, zona horaria, jornada y duraciones son controlados por servidor; falta aplicar la confirmacion condicional aprobada segun tipo de recurso. |
-| Reglas institucionales | APROBADO / PENDIENTE DE IMPLEMENTACION | La espera semanal y el minimo de 10 participantes fueron confirmados el 2026-07-20. La duracion puede variar; falta precisar si se mantiene exactamente el rango actual de 30 a 180 minutos. |
+| Reglas institucionales | APROBADO / IMPLEMENTACION PARCIAL | Se aprobaron ventana y frecuencia de siete dias configurables, minimo de 10 usuarios con cuenta para las tres multicanchas, bloqueo del horario, limite inclusivo de una hora, cancelacion por falta de minimo y administracion exclusiva de politicas. Solo la regla de duracion esta implementada y verificada localmente. |
 | Cancelacion | IMPLEMENTADO PARCIAL | Propietario o administrador pueden cancelar estados activos no finalizados; la confirmacion visible no es consistente en todos los accesos. |
 | Talleres | IMPLEMENTADO | Consulta e inscripcion con RUT, cupo y duplicado controlados; no existe desinscripcion. |
 | Notificaciones | IMPLEMENTADO PARCIAL | Consulta y contador existen; no se marcan como leidas y la generacion cubre solo eventos limitados. |
@@ -57,11 +57,10 @@ Un elemento puede estar implementado sin estar aprobado y puede estar implementa
 ## Brechas y contradicciones que impiden declarar cierre
 
 1. El alcance academico definitivo excluye autenticacion institucional real y despliegue productivo, pero el repositorio documenta Entra ID y una demo Azure ya implementados.
-2. Se aprobo que la duracion no tiene que ser exactamente una hora, pero falta confirmar si el catalogo actual de 30 a 180 minutos es definitivo o si depende del recurso.
-3. La espera semanal y el minimo de 10 participantes son obligatorios, pero el flujo actual no los solicita ni valida.
-4. El estado debe depender del recurso: `OPEN_USE` no requiere confirmacion de participantes; recursos grupales como multicancha deben quedar pendientes hasta alcanzar el minimo. El flujo actual confirma todas las reservas inmediatamente.
-5. Ante actividad institucional versus reserva particular, la reserva debe cancelarse automaticamente; ante dos actividades, el administrador debe poder cancelar una o mantener ambas. El esquema actual rechaza esos conflictos.
-6. Los ocho recursos del seed representan el inventario oficial, pero el administrador aun no puede mantenerlo de forma completa.
+2. La ventana reservable de siete dias, la frecuencia semanal y el minimo de 10 participantes son obligatorios y configurables, pero el flujo actual no los solicita ni valida.
+3. El estado debe depender del recurso: `OPEN_USE` no requiere confirmacion de participantes; Cancha 1, 2 y 3 deben quedar pendientes hasta alcanzar el minimo y volver a `PENDING` si una retirada reduce el conteo. El flujo actual confirma todas las reservas inmediatamente.
+4. Ante actividad institucional versus reserva particular, la reserva debe cancelarse automaticamente y notificarse al usuario; ante dos actividades, el administrador debe poder cancelar una o mantener ambas. El esquema actual rechaza esos conflictos.
+5. Los ocho recursos del seed representan el inventario oficial, pero el administrador aun no puede mantenerlo de forma completa.
 
 Estas diferencias no se resuelven en este documento. Requieren decision del Orquestador y, cuando corresponda, confirmacion institucional.
 
@@ -86,20 +85,20 @@ No usar `docs/00-revision-inicial.md` como estado vigente; es un registro histor
 
 ## Decisiones aprobadas el 2026-07-20
 
-1. La espera semanal y el minimo de 10 participantes son obligatorios.
-2. La duracion de una reserva no tiene que ser necesariamente una hora.
-3. `OPEN_USE` no requiere confirmacion de integrantes; recursos grupales como multicancha se confirman automaticamente al alcanzar el minimo de integrantes confirmados.
-4. Un conflicto entre actividad institucional y reserva particular cancela automaticamente la reserva particular.
-5. Un conflicto entre dos actividades debe informarse al administrador, quien puede cancelar una de ellas o mantener ambas.
-6. Los ocho recursos actuales constituyen el inventario oficial y deben ser administrables en un MVP posterior.
+1. Con la configuracion vigente, un usuario solo puede elegir fechas desde el dia actual hasta el dia anterior al mismo dia de la semana siguiente; por ejemplo, un martes puede reservar hasta el lunes siguiente.
+2. Al crear una solicitud, el usuario no puede crear otra hasta el mismo dia de la semana siguiente; por ejemplo, si la crea un martes para el miercoles, vuelve a poder solicitar desde el martes siguiente. La duracion de este periodo debe ser configurable.
+3. Una solicitud `PENDING` consume la oportunidad desde su creacion; al pasar a `CANCELLED` deja de consumirla.
+4. El minimo de 10 participantes es obligatorio para Cancha 1, Cancha 2 y Cancha 3, que corresponden formalmente a multicancha 1, 2 y 3. El solicitante cuenta y todos los participantes deben tener cuenta.
+5. La solicitud `PENDING` bloquea el horario. Las confirmaciones pueden registrarse o retirarse hasta exactamente una hora antes del inicio, inclusive, con plazo configurable. Si una retirada deja menos de 10, vuelve a `PENDING`; si llega al limite bajo el minimo, cambia a `CANCELLED` y libera la oportunidad semanal.
+6. Para todos los recursos se aprueban duraciones de 30, 60, 90, 120, 150 y 180 minutos.
+7. `OPEN_USE` no requiere confirmacion de integrantes; los recursos grupales indicados se confirman automaticamente al alcanzar el minimo.
+8. Un conflicto entre actividad institucional y reserva particular cancela automaticamente la reserva particular y debe notificar al usuario afectado.
+9. Un conflicto entre dos actividades debe informarse al administrador, quien puede cancelar una de ellas o mantener ambas.
+10. Los ocho recursos actuales constituyen el inventario oficial. Solo usuarios con rol administrador pueden modificar recursos, periodos, plazos o recursos sujetos a la politica.
 
-## Precisiones pendientes
+## Propuesta no bloqueante pendiente de aprobacion del Orquestador
 
-1. Definir el limite exacto de la semana y que estados de reserva cuentan para la restriccion.
-2. Definir si el solicitante cuenta entre los 10 integrantes y el plazo para reunir confirmaciones.
-3. Identificar en el inventario cuales recursos, ademas de multicancha, requieren confirmacion grupal.
-4. Confirmar el catalogo exacto de duraciones por recurso.
-5. Definir la notificacion al usuario cuya reserva particular sea cancelada automaticamente.
+Los cambios administrativos de periodos, plazos o recursos sujetos a confirmacion deberian aplicarse a solicitudes creadas despues del cambio. Las solicitudes existentes conservarian las condiciones vigentes al crearse para evitar efectos retroactivos inesperados.
 
 ## Evidencia local del corte
 

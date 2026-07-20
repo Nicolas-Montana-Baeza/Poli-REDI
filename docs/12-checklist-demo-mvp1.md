@@ -114,11 +114,14 @@ Estas filas registran decisiones del 2026-07-20. No forman parte de la evidencia
 
 | Paso | Resultado esperado | Estado | Backlog |
 | --- | --- | --- | --- |
-| Solicitar una nueva reserva dentro del intervalo semanal | El servidor rechaza y comunica la proxima fecha permitida | Pendiente de precision e implementacion | `RES-012` |
+| Un martes, elegir una fecha posterior al lunes siguiente con periodo de siete dias | El servidor rechaza por quedar fuera de la ventana configurable | Pendiente | `RES-012` |
+| Crear una solicitud un martes y volver a solicitar antes del martes siguiente | El servidor rechaza y comunica el martes siguiente como proxima fecha permitida | Pendiente de estados e implementacion | `RES-012` |
 | Confirmar 9 participantes unicos en un recurso grupal | La solicitud permanece `PENDING` | Pendiente | `RES-008` |
 | Registrar la decima confirmacion valida | La solicitud cambia una sola vez a `CONFIRMED` si sigue siendo valida | Pendiente | `RES-008`, `RES-010` |
+| Retirar una confirmacion vigente y bajar de 10 antes del limite | La reserva vuelve a `PENDING` | Pendiente | `RES-008`, `RES-010` |
+| Confirmar o retirar a menos de una hora del inicio con la configuracion vigente | La operacion se rechaza sin alterar el conteo | Pendiente | `RES-008` |
 | Usar un recurso `OPEN_USE` | No se exige confirmacion grupal | Pendiente | `RES-008` |
-| Programar actividad institucional sobre reserva particular | La reserva particular se cancela automaticamente y el administrador ve el efecto | Pendiente | `ADMIN-005` |
+| Programar actividad institucional sobre reserva particular | La reserva se cancela, el administrador ve el efecto y el usuario recibe una notificacion | Pendiente | `ADMIN-005`, `NOTIF-001` |
 | Programar actividad sobre otra actividad | El administrador puede cancelar una o mantener ambas | Pendiente | `ADMIN-005` |
 | Modificar un recurso oficial como administrador | Catalogo y disponibilidad reflejan el cambio sin perder historial | Pendiente | `ADMIN-003` |
 

@@ -33,21 +33,18 @@ Este flujo describe el comportamiento implementado, no el flujo objetivo complet
 ## Flujo objetivo aprobado de solicitud y confirmacion
 
 1. El usuario autenticado y con RUT selecciona recurso, fecha, hora y duracion.
-2. El servidor valida la restriccion semanal antes de aceptar la solicitud.
-3. El sistema consulta la politica del recurso.
-4. Si el recurso es `OPEN_USE`, no exige confirmacion grupal.
-5. Si el recurso requiere uso grupal, como multicancha, registra la solicitud como `PENDING`.
-6. Participantes unicos confirman su participacion.
-7. Con menos de 10 confirmaciones vigentes, la solicitud permanece pendiente.
-8. Al alcanzar 10 confirmaciones, el sistema vuelve a validar las demas reglas y cambia automaticamente la solicitud a `CONFIRMED`.
+2. El servidor valida que la fecha elegida este dentro de la ventana configurable; con el valor vigente de siete dias, un martes se puede elegir desde ese martes hasta el lunes siguiente.
+3. El servidor valida la frecuencia configurable desde la fecha de creacion de la solicitud anterior. Una solicitud `PENDING` consume la oportunidad desde que se crea; una solicitud `CANCELLED` deja de consumirla.
+4. El sistema consulta la politica del recurso.
+5. Si el recurso es `OPEN_USE`, no exige confirmacion grupal.
+6. Para multicancha 1, 2 y 3, identificadas en el inventario como Cancha 1, 2 y 3, registra la solicitud como `PENDING` y bloquea el horario.
+7. El solicitante cuenta entre los 10. Los participantes, todos con cuenta, confirman hasta el limite configurable, inicialmente una hora antes del inicio e inclusivo en el instante exacto.
+8. Con menos de 10 confirmaciones vigentes, la solicitud permanece pendiente.
+9. Al alcanzar 10 confirmaciones, el sistema vuelve a validar las demas reglas y cambia automaticamente la solicitud a `CONFIRMED`.
+10. Si una persona retira su confirmacion dentro del plazo y el conteo baja de 10, la reserva vuelve a `PENDING`.
+11. Si al alcanzar el limite la solicitud tiene menos de 10 confirmaciones, cambia automaticamente a `CANCELLED`, libera el horario y deja de consumir la oportunidad semanal.
 
-Precisiones pendientes:
-
-- Evento y limite exacto para calcular la semana.
-- Si el solicitante cuenta entre los 10 participantes.
-- Vigencia de la solicitud pendiente y efecto sobre disponibilidad.
-- Recursos oficiales sujetos a confirmacion grupal.
-- Efecto de retirar una confirmacion.
+Solo un usuario con rol administrador puede modificar los recursos sujetos a confirmacion, el periodo semanal o el plazo previo. Como propuesta no bloqueante, los cambios se aplican a solicitudes creadas despues de la modificacion.
 
 ## Flujo objetivo aprobado de prioridad institucional
 
@@ -55,9 +52,8 @@ Precisiones pendientes:
 2. El sistema detecta ocupaciones solapadas y las presenta al administrador.
 3. Si existe una reserva particular, el sistema la cancela automaticamente al confirmar la actividad institucional.
 4. Si existe otra actividad institucional, el administrador puede cancelar cualquiera de las dos o mantener ambas cuando compartan validamente el espacio.
-5. El sistema registra la decision y actualiza la agenda.
-
-La notificacion obligatoria al usuario cuya reserva fue cancelada permanece pendiente de confirmacion de producto.
+5. El sistema notifica al usuario cuya reserva particular fue cancelada automaticamente.
+6. El sistema registra la decision y actualiza la agenda.
 
 ## Flujo actual de cancelacion
 
@@ -195,9 +191,13 @@ sequenceDiagram
 
 - Crear reserva valida.
 - Crear reserva sin RUT debe fallar para usuario normal.
-- Crear una nueva solicitud dentro de la restriccion semanal debe fallar en el limite aprobado.
+- Elegir una fecha posterior al ultimo dia de la ventana configurable debe fallar; con siete dias, un martes permite hasta el lunes siguiente inclusive.
+- Crear una nueva solicitud antes del mismo dia de la semana siguiente debe fallar; al llegar a ese dia debe permitirse, salvo otro impedimento.
 - Una solicitud grupal con 9 participantes confirmados debe permanecer `PENDING`.
 - La decima confirmacion valida debe cambiarla a `CONFIRMED` si las demas reglas siguen vigentes.
+- Retirar una confirmacion y bajar de 10 antes del limite debe devolverla a `PENDING` sin liberar el horario.
+- Confirmar o retirar exactamente una hora antes debe permitirse; cualquier intento posterior debe rechazarse.
+- Una solicitud que llega al limite con menos de 10 confirmaciones debe cancelarse, liberar el horario y liberar la oportunidad semanal.
 - Un recurso `OPEN_USE` no debe exigir confirmaciones grupales.
 - Crear reserva con conflicto debe fallar y mantener modal abierto.
 - Enviar un estado manipulado no debe alterar el estado inicial ni evitar conflictos.

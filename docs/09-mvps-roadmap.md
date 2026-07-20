@@ -254,9 +254,10 @@ Incluye tambien una primera version funcional de talleres deportivos: listado de
 - Completar filtros por fecha/rango y sumar bloqueos al endpoint de disponibilidad; las actividades programadas ya estan integradas (`API-004`, `ADMIN-004`).
 - Cargar el detalle por ID sin descargar colecciones completas (`API-006`).
 - Agregar confirmacion fuerte antes de cancelar reservas (`RES-007`).
-- Aplicar la restriccion semanal aprobada y comunicar la proxima fecha permitida (`RES-012`).
-- Registrar confirmaciones de participantes unicos y exigir al menos 10 en recursos grupales (`RES-008`).
-- Mantener solicitudes grupales en `PENDING` y confirmarlas automaticamente al alcanzar el minimo; `OPEN_USE` no requiere este proceso (`RES-008`, `RES-010`).
+- Aplicar la ventana y frecuencia configurables aprobadas; con siete dias, un martes permite fechas hasta el lunes siguiente y una nueva solicitud desde el martes posterior (`RES-012`).
+- Registrar confirmaciones de participantes unicos y exigir al menos 10 para Cancha 1, 2 y 3 (`RES-008`).
+- Mantener solicitudes grupales en `PENDING`, confirmarlas al alcanzar el minimo y devolverlas a `PENDING` si una retirada valida reduce el conteo; `OPEN_USE` no requiere este proceso (`RES-008`, `RES-010`).
+- Aceptar cambios de confirmacion hasta el limite configurable, inicialmente una hora antes del inicio (`RES-008`).
 - Profesionalizar la seleccion de horario, capacidad, etiquetas humanas y experiencia movil (`UX-001`).
 - Mostrar feedback preventivo de conflicto antes de confirmar una reserva (`UX-003`).
 - Completar notificaciones: marcar como leida y diferenciar leidas/no leidas (`NOTIF-001`).
@@ -264,7 +265,7 @@ Incluye tambien una primera version funcional de talleres deportivos: listado de
 
 ### Criterio de cierre
 
-El MVP 2 se considera cerrado cuando un usuario normal puede autenticarse, completar su perfil, consultar disponibilidad, superar la regla semanal, crear una solicitud con estado acorde al recurso, reunir 10 participantes confirmados cuando corresponda, cancelar una reserva propia, revisar reservas/historial/recursos, inscribirse en talleres deportivos disponibles y operar sin errores visibles en los flujos principales.
+El MVP 2 se considera cerrado cuando un usuario normal puede autenticarse, completar su perfil, consultar disponibilidad, cumplir la ventana y frecuencia configuradas, crear una solicitud con estado acorde al recurso, reunir y mantener 10 participantes confirmados dentro del plazo cuando corresponda, cancelar una reserva propia, revisar reservas/historial/recursos, inscribirse en talleres deportivos disponibles y operar sin errores visibles en los flujos principales.
 
 ## MVP 3 - Administracion institucional
 
