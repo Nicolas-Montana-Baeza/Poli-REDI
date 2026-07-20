@@ -108,6 +108,20 @@ Estas validaciones son obligatorias para el cierre definitivo reabierto del MVP 
 | Forzar un error interno controlado en ambiente local | La respuesta no expone SQL, JWT, JWKS ni `err.Error()` | Pendiente | `SEC-005` |
 | Activar reduccion de movimiento | El carrusel queda usable sin animacion continua | Pendiente | `BACK-018` |
 
+## Validaciones aprobadas para MVP 2 y MVP 3
+
+Estas filas registran decisiones del 2026-07-20. No forman parte de la evidencia de cierre del MVP 1 y permanecen pendientes de implementacion.
+
+| Paso | Resultado esperado | Estado | Backlog |
+| --- | --- | --- | --- |
+| Solicitar una nueva reserva dentro del intervalo semanal | El servidor rechaza y comunica la proxima fecha permitida | Pendiente de precision e implementacion | `RES-012` |
+| Confirmar 9 participantes unicos en un recurso grupal | La solicitud permanece `PENDING` | Pendiente | `RES-008` |
+| Registrar la decima confirmacion valida | La solicitud cambia una sola vez a `CONFIRMED` si sigue siendo valida | Pendiente | `RES-008`, `RES-010` |
+| Usar un recurso `OPEN_USE` | No se exige confirmacion grupal | Pendiente | `RES-008` |
+| Programar actividad institucional sobre reserva particular | La reserva particular se cancela automaticamente y el administrador ve el efecto | Pendiente | `ADMIN-005` |
+| Programar actividad sobre otra actividad | El administrador puede cancelar una o mantener ambas | Pendiente | `ADMIN-005` |
+| Modificar un recurso oficial como administrador | Catalogo y disponibilidad reflejan el cambio sin perder historial | Pendiente | `ADMIN-003` |
+
 ## Resultado final
 
 | Item | Valor |
@@ -127,7 +141,7 @@ cd backend
 go test ./...
 
 cd ..\frontend
-npm run test:run
+npm test
 npm run build
 ```
 
@@ -135,5 +149,9 @@ npm run build
 | --- | --- | --- | --- |
 | `go test ./...` | 2026-07-14 | Aprobado local | Incluye pruebas iniciales de reloj de negocio y reservas; pendiente ampliar `QA-001` |
 | `npm test` | 2026-07-14 | Aprobado local | Tres casos de zona horaria: invierno, verano y cruce de medianoche |
-| `npm run test:run` |  | No disponible | Pendiente configurar suite en `QA-002` |
 | `npm run build` | 2026-07-14 | Aprobado | Vite completa build de produccion |
+| `go test ./...` | 2026-07-20 | Aprobado local | Pruebas en reloj, JSON, reglas de horario y servicio de reservas; no incluye Azure SQL integrada |
+| `npm test` | 2026-07-20 | Aprobado local | 9 pruebas aprobadas de zona horaria y reglas de agenda |
+| `npm run build` | 2026-07-20 | Aprobado | Vite 8 completa build de produccion |
+
+La evidencia del 2026-07-20 no verifica navegacion en navegador, responsive, accesibilidad, Microsoft Entra ID, Azure SQL en ejecucion ni el despliegue online.

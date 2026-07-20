@@ -28,6 +28,37 @@ Este documento describe el flujo funcional de reservas en Poli-REDI, sus validac
 13. Si la reserva se crea, la UI refresca disponibilidad y muestra mensaje de exito.
 14. Si existe conflicto, el formulario mantiene el error visible.
 
+Este flujo describe el comportamiento implementado, no el flujo objetivo completo aprobado el 2026-07-20. Actualmente no aplica la restriccion semanal, no registra confirmaciones de participantes y crea toda reserva como `CONFIRMED`.
+
+## Flujo objetivo aprobado de solicitud y confirmacion
+
+1. El usuario autenticado y con RUT selecciona recurso, fecha, hora y duracion.
+2. El servidor valida la restriccion semanal antes de aceptar la solicitud.
+3. El sistema consulta la politica del recurso.
+4. Si el recurso es `OPEN_USE`, no exige confirmacion grupal.
+5. Si el recurso requiere uso grupal, como multicancha, registra la solicitud como `PENDING`.
+6. Participantes unicos confirman su participacion.
+7. Con menos de 10 confirmaciones vigentes, la solicitud permanece pendiente.
+8. Al alcanzar 10 confirmaciones, el sistema vuelve a validar las demas reglas y cambia automaticamente la solicitud a `CONFIRMED`.
+
+Precisiones pendientes:
+
+- Evento y limite exacto para calcular la semana.
+- Si el solicitante cuenta entre los 10 participantes.
+- Vigencia de la solicitud pendiente y efecto sobre disponibilidad.
+- Recursos oficiales sujetos a confirmacion grupal.
+- Efecto de retirar una confirmacion.
+
+## Flujo objetivo aprobado de prioridad institucional
+
+1. El administrador registra o modifica una actividad institucional.
+2. El sistema detecta ocupaciones solapadas y las presenta al administrador.
+3. Si existe una reserva particular, el sistema la cancela automaticamente al confirmar la actividad institucional.
+4. Si existe otra actividad institucional, el administrador puede cancelar cualquiera de las dos o mantener ambas cuando compartan validamente el espacio.
+5. El sistema registra la decision y actualiza la agenda.
+
+La notificacion obligatoria al usuario cuya reserva fue cancelada permanece pendiente de confirmacion de producto.
+
 ## Flujo actual de cancelacion
 
 1. El usuario selecciona una reserva existente.
@@ -134,7 +165,7 @@ Validaciones backend pendientes antes de cerrar MVP 1:
 
 - Mostrar siempre el rango completo de la reserva antes de confirmar.
 - Redondear seleccion de horario a intervalos institucionales.
-- Mostrar capacidad como informacion. Validar participantes solo si el dato se incorpora de punta a punta en MVP 2 (`RES-008`).
+- Mostrar capacidad y avance de confirmaciones. Los participantes deben incorporarse de punta a punta para recursos grupales en MVP 2 (`RES-008`).
 - Diferenciar visualmente reserva, bloqueo, mantencion y actividad institucional.
 - No exponer informacion personal de reservas ajenas en disponibilidad.
 - Mantener errores recuperables dentro del mismo contexto visual.
@@ -164,6 +195,10 @@ sequenceDiagram
 
 - Crear reserva valida.
 - Crear reserva sin RUT debe fallar para usuario normal.
+- Crear una nueva solicitud dentro de la restriccion semanal debe fallar en el limite aprobado.
+- Una solicitud grupal con 9 participantes confirmados debe permanecer `PENDING`.
+- La decima confirmacion valida debe cambiarla a `CONFIRMED` si las demas reglas siguen vigentes.
+- Un recurso `OPEN_USE` no debe exigir confirmaciones grupales.
 - Crear reserva con conflicto debe fallar y mantener modal abierto.
 - Enviar un estado manipulado no debe alterar el estado inicial ni evitar conflictos.
 - Crear fuera de horario o con duracion no permitida debe fallar en backend.
@@ -174,6 +209,8 @@ sequenceDiagram
 - Admin puede cancelar reserva ajena.
 - Cambio de fecha no debe mostrar reservas de otro dia.
 - Reservas canceladas no deben bloquear disponibilidad activa.
+- Una actividad institucional en conflicto debe cancelar automaticamente la reserva particular.
+- Dos actividades institucionales en conflicto deben permitir al administrador cancelar una o mantener ambas.
 
 ## Politica temporal vigente
 

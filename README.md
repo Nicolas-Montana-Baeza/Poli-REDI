@@ -21,7 +21,9 @@ El MVP 1 cubre el flujo base de reservas deportivas:
 
 Quedan fuera del MVP 1 la gestion completa de bloqueos, CRUD avanzado de recursos, infracciones, programacion institucional y endurecimiento de despliegue productivo institucional.
 
-Estado de cierre: el MVP 1 esta funcional como demo, pero permanece reabierto para corregir zona horaria, estado controlado por servidor, limites de horario/duracion, pruebas reales y coherencia responsive/accesible. El orden vigente esta en `docs/09-mvps-roadmap.md`; los bloqueantes principales son `RES-009`, `RES-010`, `RES-011`, `QA-001` y `QA-002`.
+Estado de cierre: el MVP 1 esta funcional como demo. Zona horaria, estado controlado por servidor y limites de horario/duracion estan implementados y tienen pruebas locales, pero falta verificarlos en el ambiente integrado/online. Tambien permanecen pendientes la ampliacion de cobertura, la seguridad de errores y la coherencia responsive/accesible. El estado de producto vigente y sus contradicciones de alcance estan en `docs/00-resumen-proyecto.md` y `docs/13-estado-actual-producto.md`.
+
+Para MVP 2 y MVP 3 se aprobaron el 2026-07-20 reglas aun no implementadas: restriccion semanal, minimo de 10 participantes confirmados en recursos grupales, confirmacion condicionada por recurso, prioridad institucional con cancelacion automatica de reservas particulares, resolucion administrativa entre actividades e inventario oficial administrable de ocho recursos.
 
 ## Stack
 
@@ -207,6 +209,7 @@ Frontend:
 
 ```bash
 cd frontend
+npm test
 npm run build
 ```
 
@@ -262,19 +265,24 @@ Antes de una demo local:
 9. Cancelar una reserva propia.
 10. Entrar como admin local y verificar acceso al panel administrador.
 11. Confirmar que usuario normal no ve ni accede a rutas administrativas.
-12. Confirmar que la hora de una reserva coincide entre local y demo online para `America/Santiago` una vez implementado `RES-009`.
+12. Confirmar que la hora de una reserva coincide entre local y demo online para `America/Santiago`; la regla ya esta implementada y verificada localmente, pero falta evidencia online.
 
-El checklist ampliado y la evidencia de la revision exhaustiva estan en `docs/12-checklist-demo-mvp1.md`. `go test ./...` actualmente finaliza sin errores, pero todavia no descubre archivos de pruebas; esa brecha se sigue en `QA-001`.
+El checklist ampliado y la evidencia de la revision exhaustiva estan en `docs/12-checklist-demo-mvp1.md`. Al corte del 2026-07-20, `go test ./...`, `npm test` y `npm run build` finalizan sin errores. La cobertura sigue siendo parcial y no reemplaza la validacion integrada, manual ni online.
 
 ## Documentacion relacionada
 
+- `docs/00-resumen-proyecto.md`: resumen vigente y paquete inicial para compartir.
 - `docs/01-instalacion-y-ejecucion.md`: preparacion y ejecucion local.
 - `docs/02-arquitectura.md`: arquitectura general.
 - `docs/03-base-de-datos.md`: modelo Azure SQL Database.
 - `docs/06-flujo-reservas.md`: flujo funcional de reservas.
 - `docs/07-backlog.md`: backlog maestro y estado de tareas.
+- `docs/08-requisitos-historias-casos-uso.md`: requisitos y casos de uso vigentes.
+- `docs/09-mvps-roadmap.md`: estado y criterio de cierre por incremento.
 - `docs/10-guia-redeploy.md`: ejecucion local y redeploy en Azure.
 - `docs/11-plan-corte-google-calendar.md`: plan de transicion desde Google Calendar legado.
+- `docs/12-checklist-demo-mvp1.md`: validacion manual y evidencia automatizada.
+- `docs/13-estado-actual-producto.md`: analisis de producto, contradicciones y decisiones pendientes.
 
 ## Seguridad
 

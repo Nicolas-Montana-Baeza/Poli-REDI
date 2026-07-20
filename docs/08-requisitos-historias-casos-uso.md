@@ -69,9 +69,7 @@ Estado actual: Implementado.
 
 El sistema debe obtener o crear el usuario local asociado a la identidad autenticada.
 
-Estado actual: Implementado parcialmente.
-
-Pendiente relacionado: `AUTH-002`.
+Estado actual: Implementado. La identidad Entra se asocia al usuario local y se sincronizan `oid` y tenant; falta validacion integrada/online del corte actual.
 
 ### RF-003 - Registro y validacion de RUT
 
@@ -95,17 +93,17 @@ Pendiente relacionado: `RES-004`.
 
 ### RF-006 - Creacion de reservas
 
-El sistema debe permitir crear reservas sobre recursos disponibles, asociadas al usuario autenticado y, opcionalmente, a una actividad. El servidor debe asignar el estado inicial y rechazar fecha, horario o duracion fuera de las reglas institucionales.
+El sistema debe permitir crear solicitudes de reserva sobre recursos disponibles, asociadas al usuario autenticado y, opcionalmente, a una actividad. El servidor debe asignar el estado segun la politica del recurso, aplicar la restriccion semanal y rechazar fecha, horario o duracion fuera de las reglas institucionales.
 
-Estado actual: Implementado parcialmente. La asociacion al usuario y la creacion funcionan; falta cerrar estado controlado por servidor, zona horaria y limites operativos.
+Estado actual: Implementado parcialmente. La asociacion al usuario, el estado controlado por servidor, la zona `America/Santiago` y los limites operativos tienen pruebas locales; falta la restriccion semanal y la confirmacion condicional por participantes aprobadas el 2026-07-20.
 
-Pendiente relacionado: `RES-009`, `RES-010`, `RES-011`.
+Pendiente relacionado: `RES-008`, `RES-009`, `RES-010`, `RES-011`.
 
 ### RF-007 - Validacion de conflictos de reserva
 
 El sistema debe rechazar reservas que se solapen con otras reservas confirmadas, talleres activos o reglas de disponibilidad. Los recursos `OPEN_USE` permiten concurrencia y no bloquean por reserva existente.
 
-Estado actual: Implementado parcialmente para reservas y talleres activos. Debe impedirse que un estado enviado por cliente eluda las reglas activas.
+Estado actual: Implementado parcialmente para reservas, talleres activos, bloqueos y actividades programadas. El servidor controla el estado inicial y la base protege conflictos concurrentes; falta mostrar bloqueos en disponibilidad y ampliar pruebas integradas.
 
 Pendiente relacionado: `RES-004`, `RES-010`, `ADMIN-004`.
 
@@ -113,7 +111,7 @@ Pendiente relacionado: `RES-004`, `RES-010`, `ADMIN-004`.
 
 El sistema debe permitir cancelar reservas propias y permitir que administradores cancelen reservas segun permisos, siempre que el estado admita cancelacion y la reserva no haya finalizado segun la zona horaria institucional.
 
-Estado actual: Implementado parcialmente. Propiedad, rol y reserva finalizada ya se validan; falta restringir transiciones por estado y unificar zona horaria.
+Estado actual: Implementado parcialmente. Propiedad, rol, estados cancelables, reserva finalizada y zona horaria ya se validan; falta una confirmacion consistente en todos los puntos de acceso y verificacion integrada/online.
 
 Pendiente relacionado: `RES-009`, `RES-010`.
 
@@ -135,8 +133,6 @@ El sistema debe mostrar recursos deportivos con datos reales e imagen configurab
 
 Estado actual: Implementado.
 
-Pendiente relacionado: `UI-001`.
-
 ### RF-012 - Panel administrador
 
 El sistema debe mostrar un panel administrativo solo a usuarios administradores.
@@ -153,7 +149,7 @@ Pendiente relacionado: `ADMIN-002`.
 
 ### RF-014 - Gestion de recursos
 
-El sistema debe permitir crear, editar, activar o desactivar recursos deportivos.
+El sistema debe permitir que administradores creen, editen, activen o desactiven los recursos del inventario oficial. Los ocho recursos actuales constituyen la linea base aprobada y los cambios deben reflejarse en catalogo y disponibilidad.
 
 Estado actual: Implementado parcialmente. Administradores ya pueden actualizar la imagen del recurso; falta CRUD completo, sede, modo de reserva y activacion/desactivacion.
 
@@ -197,7 +193,45 @@ El sistema debe permitir que usuarios autenticados consulten talleres activos e 
 
 Estado actual: Implementado.
 
-Pendiente relacionado: `UI-006`.
+### RF-020 - Restriccion semanal de reservas particulares
+
+El sistema debe impedir que un usuario alcanzado por la regla semanal cree una nueva reserva antes de cumplir el intervalo institucional desde su reserva anterior y debe comunicar la proxima fecha permitida.
+
+Estado actual: APROBADO el 2026-07-20; no implementado. Falta definir evento de referencia, estados que cuentan e inclusividad del limite.
+
+Pendiente relacionado: `RES-012`.
+
+### RF-021 - Confirmacion de participantes minimos
+
+El sistema debe registrar confirmaciones de participantes unicos y exigir al menos 10 para confirmar solicitudes sobre recursos grupales, como multicancha.
+
+Estado actual: APROBADO el 2026-07-20; no implementado.
+
+Pendiente relacionado: `RES-008`.
+
+### RF-022 - Estado condicionado por politica del recurso
+
+El sistema debe mantener `PENDING` una solicitud de recurso grupal hasta alcanzar el minimo de participantes confirmados y cambiarla automaticamente a `CONFIRMED` al cumplirlo. Los recursos `OPEN_USE` no requieren confirmacion grupal.
+
+Estado actual: APROBADO el 2026-07-20; no implementado. El flujo actual confirma todas las reservas al crearlas.
+
+Pendiente relacionado: `RES-008`, `RES-010`.
+
+### RF-023 - Resolucion de conflictos institucionales
+
+El sistema debe cancelar automaticamente una reserva particular cuando entra en conflicto con una actividad institucional. Si el conflicto es entre dos actividades, debe informar al administrador y permitirle cancelar cualquiera de ellas o mantener ambas.
+
+Estado actual: APROBADO el 2026-07-20; no implementado. Las restricciones actuales rechazan el solapamiento antes de permitir la decision.
+
+Pendiente relacionado: `ADMIN-005`, `RES-004`, `NOTIF-001`.
+
+### RF-024 - Inventario oficial administrable
+
+El sistema debe permitir que el administrador mantenga el inventario oficial inicial de ocho recursos en el MVP administrativo correspondiente, conservando el historial aplicable.
+
+Estado actual: APROBADO el 2026-07-20; implementado parcialmente mediante lectura y cambio de imagen.
+
+Pendiente relacionado: `ADMIN-003`.
 
 ## Requisitos no funcionales
 
@@ -226,11 +260,11 @@ cd backend
 go test ./...
 
 cd ../frontend
-npm run test:run
+npm test
 npm run build
 ```
 
-Mientras `QA-002` no este implementada, `npm run test:run` puede registrarse como pendiente. Un comando que finaliza sin descubrir archivos de prueba no constituye evidencia de cobertura. Si no se pueden ejecutar pruebas, debe registrarse el motivo.
+Las pruebas actuales cubren reglas temporales y de agenda, pero no constituyen cobertura completa de componentes, permisos ni integracion. Si no se pueden ejecutar pruebas, debe registrarse el motivo y no declararse el requisito como verificado.
 
 ### RNF-006 - Compatibilidad local
 
@@ -252,7 +286,7 @@ Los flujos criticos deben poder operarse con controles claros, mensajes de estad
 
 Frontend, backend y base de datos deben aplicar una unica zona horaria de negocio y un contrato explicito de serializacion. Las reglas de pasado, en curso, futuro y cancelacion no deben depender de la zona local del servidor.
 
-Pendiente relacionado: `RES-009`.
+Estado actual: Implementado y verificado localmente; pendiente validacion integrada/online.
 
 ### RNF-011 - Errores publicos seguros
 
@@ -305,9 +339,12 @@ Como usuario normal, quiero crear una reserva sobre un recurso disponible para a
 Criterios de aceptacion:
 
 - La reserva se asocia a mi usuario autenticado.
-- El servidor asigna el estado inicial.
+- El servidor asigna el estado segun la politica del recurso.
 - Fecha, hora y duracion cumplen la jornada institucional.
 - El sistema rechaza conflictos de horario.
+- Si el recurso es grupal, la solicitud permanece pendiente hasta reunir 10 participantes confirmados.
+- Si el recurso es `OPEN_USE`, no se exige confirmacion grupal.
+- La restriccion semanal se aplica antes de aceptar una nueva solicitud.
 - El sistema muestra exito o error.
 
 ### HU-005 - Cancelar reserva propia
@@ -398,7 +435,7 @@ Como administrador, quiero mantener el catalogo de recursos deportivos para que 
 Criterios de aceptacion:
 
 - Puedo actualizar la imagen de un recurso existente.
-- En una iteracion futura, podre crear, editar, activar o desactivar recursos completos.
+- En el MVP administrativo podre crear, editar, activar o desactivar los ocho recursos oficiales y sus futuras modificaciones.
 - No se eliminan recursos con historial sin criterio definido.
 - Los cambios se reflejan en disponibilidad.
 
@@ -435,6 +472,40 @@ Criterios de aceptacion:
 - Si ya estoy inscrito, el sistema lo indica y no duplica la inscripcion.
 - Si no tengo RUT, el backend rechaza la inscripcion.
 - Si no hay cupos, el sistema impide la inscripcion.
+
+### HU-015 - Reunir participantes para una reserva grupal
+
+Como solicitante de un recurso grupal, quiero que los integrantes confirmen su participacion para que la solicitud se confirme al alcanzar el minimo institucional.
+
+Criterios de aceptacion:
+
+- La solicitud comienza en estado `PENDING`.
+- Se cuentan participantes unicos con confirmacion vigente.
+- Con menos de 10 confirmaciones no se presenta como reserva confirmada.
+- La decima confirmacion cambia automaticamente la solicitud a `CONFIRMED` si las demas reglas siguen vigentes.
+- El cliente no puede forzar el estado ni el conteo.
+
+### HU-016 - Resolver conflictos institucionales
+
+Como administrador, quiero conocer los conflictos de una actividad institucional para aplicar la prioridad institucional sin impedir usos compartidos validos.
+
+Criterios de aceptacion:
+
+- Un conflicto con reserva particular cancela automaticamente esa reserva y muestra el efecto al administrador.
+- Un conflicto entre actividades permite cancelar cualquiera de ellas o mantener ambas.
+- Mantener ambas requiere una decision administrativa explicita.
+- La decision queda trazable.
+
+### HU-017 - Mantener inventario oficial
+
+Como administrador, quiero modificar el inventario oficial de recursos para mantener el sistema alineado con los espacios disponibles.
+
+Criterios de aceptacion:
+
+- Los ocho recursos actuales forman la linea base.
+- El administrador puede mantener datos, modo y estado operativo en el MVP correspondiente.
+- Los cambios se reflejan en catalogo y disponibilidad.
+- El historial no se pierde por desactivar o modificar un recurso.
 
 ## Casos de uso
 
@@ -496,14 +567,16 @@ Flujo principal:
 
 1. El usuario abre disponibilidad.
 2. El usuario selecciona fecha, recurso, hora, duracion y actividad.
-3. El usuario confirma la reserva.
-4. El backend valida usuario, recurso, estado inicial, zona horaria, jornada, duracion y conflicto horario.
-5. El sistema crea la reserva con estado asignado por servidor.
-6. La disponibilidad se actualiza.
+3. El usuario envia la solicitud.
+4. El backend valida usuario, recurso, restriccion semanal, zona horaria, jornada, duracion y conflicto horario.
+5. El sistema asigna el estado segun la politica del recurso.
+6. Si el recurso requiere grupo, la solicitud queda `PENDING` hasta alcanzar 10 participantes confirmados.
+7. Si el recurso no requiere confirmacion grupal, se aplica directamente su comportamiento aprobado.
+8. La disponibilidad se actualiza.
 
 Postcondiciones:
 
-- La reserva queda asociada al usuario autenticado.
+- La solicitud queda asociada al usuario autenticado con el estado controlado por servidor.
 
 Flujos alternativos:
 
@@ -511,6 +584,7 @@ Flujos alternativos:
 - Si el horario o duracion estan fuera de regla, el sistema rechaza la reserva con mensaje accionable.
 - Si un cliente intenta enviar un estado, no puede modificar el estado inicial ni evitar validaciones.
 - Si falta RUT, el sistema bloquea la creacion.
+- Si no se cumple la restriccion semanal, el sistema rechaza la solicitud y comunica la proxima fecha permitida.
 - Si falta un dato obligatorio, el frontend muestra error.
 
 ### CU-004 - Cancelar una reserva
@@ -633,6 +707,59 @@ Flujos alternativos:
 - Si el taller esta lleno, el sistema muestra error.
 - Si el usuario ya estaba inscrito, el sistema evita duplicar la inscripcion.
 
+### CU-009 - Confirmar participantes de una solicitud grupal
+
+Actor principal: Participante.
+
+Precondiciones:
+
+- Existe una solicitud `PENDING` sobre un recurso grupal.
+- El participante puede ser identificado y aun no ha confirmado.
+
+Flujo principal:
+
+1. El participante revisa la solicitud correspondiente.
+2. El participante confirma su participacion.
+3. El sistema valida identidad y duplicado.
+4. El sistema actualiza el conteo de confirmaciones vigentes.
+5. Al alcanzar 10 confirmaciones, vuelve a validar las demas reglas y cambia la solicitud a `CONFIRMED`.
+
+Postcondiciones:
+
+- La confirmacion queda registrada una sola vez.
+- La reserva solo queda confirmada al alcanzar el minimo.
+
+Flujos alternativos:
+
+- Con menos de 10 confirmaciones, permanece `PENDING`.
+- Si la solicitud deja de ser valida antes de alcanzar el minimo, no se confirma automaticamente.
+
+### CU-010 - Resolver conflicto de actividad institucional
+
+Actor principal: Administrador.
+
+Precondiciones:
+
+- Existe una actividad institucional nueva o modificada.
+- El mismo recurso presenta al menos una ocupacion solapada.
+
+Flujo principal:
+
+1. El sistema detecta y muestra todas las ocupaciones en conflicto.
+2. Para cada reserva particular, el sistema aplica cancelacion automatica por prioridad institucional.
+3. Para cada actividad institucional, el administrador elige cancelar una de las dos o mantener ambas.
+4. El sistema registra la decision y actualiza la agenda.
+
+Postcondiciones:
+
+- Las reservas particulares en conflicto quedan canceladas.
+- Las actividades conservadas reflejan la decision administrativa.
+
+Flujos alternativos:
+
+- Si el administrador cancela la nueva actividad, las otras actividades se mantienen.
+- Si decide mantener ambas, el sistema conserva el solapamiento institucional de forma explicita.
+
 ## Matriz de trazabilidad inicial
 
 | Requisito | Historias relacionadas | Backlog relacionado |
@@ -642,8 +769,8 @@ Flujos alternativos:
 | RF-003 | HU-002 | AUTH-004 |
 | RF-004 | HU-002, HU-004 | AUTH-004 |
 | RF-005 | HU-003 | RES-003, RES-004 |
-| RF-006 | HU-004 | RES-001, RES-002, RES-005, RES-009, RES-010, RES-011 |
-| RF-007 | HU-004, HU-012 | RES-004, RES-010, ADMIN-004, QA-001 |
+| RF-006 | HU-004, HU-015 | RES-001, RES-002, RES-005, RES-008, RES-009, RES-010, RES-011, RES-012 |
+| RF-007 | HU-004, HU-012, HU-016 | RES-004, RES-010, ADMIN-004, ADMIN-005, QA-001 |
 | RF-008 | HU-005 | RES-007, RES-009, RES-010, API-003 |
 | RF-009 | HU-006, HU-006A | RES-006 |
 | RF-010 | HU-007, HU-007A | UI-003 |
@@ -656,6 +783,11 @@ Flujos alternativos:
 | RF-017 | HU-008 | NOTIF-001 |
 | RF-018 | HU-013 | REP-001, REP-002, REP-003 |
 | RF-019 | HU-014 | UI-006 |
+| RF-020 | HU-004 | RES-012 |
+| RF-021 | HU-015 | RES-008 |
+| RF-022 | HU-004, HU-015 | RES-008, RES-010 |
+| RF-023 | HU-016 | ADMIN-005, RES-004, NOTIF-001 |
+| RF-024 | HU-011, HU-017 | ADMIN-003 |
 | RNF-008 | HU-003, HU-004 | API-004 |
 | RNF-009 | HU-003, HU-004, HU-005 | UX-001, UX-002 |
 

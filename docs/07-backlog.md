@@ -7,7 +7,7 @@ La idea es usar este documento como base para crear issues en GitHub Projects o 
 
 ## Estado base verificado
 
-Fecha de referencia: 2026-07-14
+Fecha base funcional: 2026-07-14. Evidencia automatizada actualizada: 2026-07-20.
 
 Estado actual:
 
@@ -24,7 +24,7 @@ Estado actual:
 - El flujo `Historial -> Detalle` funciona para usuario y administrador segun permisos.
 - `npm run build` pasa en frontend.
 - `go test ./...` finaliza correctamente y ya incluye cobertura inicial del reloj de negocio; `QA-001` sigue abierto para ampliar los casos de reservas.
-- El MVP 1 permanece reabierto por zona horaria, estado controlado por servidor, horario/duracion, pruebas reales y coherencia responsive/accesible.
+- El MVP 1 permanece reabierto: zona horaria, estado y horario/duracion estan implementados y probados localmente, pero requieren verificacion integrada/online; tambien faltan cobertura, seguridad de errores y coherencia responsive/accesible.
 
 ## Convenciones sugeridas
 
@@ -619,7 +619,7 @@ Evitar que el formulario capture datos que no forman parte del contrato real de 
 
 - El formulario de MVP 1 ya no solicita participantes ni conserva validaciones asociadas.
 - El payload visible coincide con el contrato actual de creacion.
-- La persistencia de participantes se mantiene separada en `RES-008` para MVP 2, si producto confirma que el dato es necesario.
+- La confirmacion de participantes es obligatoria para recursos grupales por decision del 2026-07-20 y se mantiene separada en `RES-008` para MVP 2.
 - 2026-07-14: `npm run build` ejecutado correctamente.
 
 ### Archivos relevantes
@@ -704,7 +704,7 @@ Hacer que la regla "no se cancelan reservas ya finalizadas" exista en backend, n
 - `GetReservationCancellationSnapshot` obtiene propietario, estado, inicio y duracion de la reserva.
 - `CancelReservation` calcula el termino de la reserva y retorna `no puedes cancelar una reserva finalizada` si ya paso.
 - La regla aplica tanto a usuarios normales como a administradores; los permisos existentes se mantienen.
-- 2026-07-14: `go test ./...` finaliza correctamente. Actualmente no existen archivos de pruebas, por lo que la cobertura real queda pendiente en `QA-001`.
+- 2026-07-14: `go test ./...` finalizo correctamente sin pruebas descubiertas. Evidencia superada el 2026-07-20: ya existen casos reales; la ampliacion de cobertura continua en `QA-001`.
 
 ### Archivos relevantes
 
@@ -1446,7 +1446,7 @@ Mostrar en disponibilidad reservas, bloqueos y actividades institucionales.
 - Para usuarios normales, las actividades ocultan creador y titulo interno bajo `Actividad institucional`.
 - Frontend diferencia `Programacion institucional`, muestra detalle y evita cancelarla como reserva.
 - Pendiente: `availability_blocks`, filtros backend por fecha/rango y pruebas automatizadas.
-- 2026-07-14: `go test ./...` y `npm run build` pasan; backend continua sin archivos de prueba.
+- 2026-07-14: `go test ./...` y `npm run build` pasaron sin pruebas backend descubiertas. Evidencia superada el 2026-07-20: backend ya ejecuta casos reales.
 
 ### Archivos relevantes
 
@@ -1493,7 +1493,7 @@ Agregar validaciones visibles antes de enviar reserva.
 - `ReservationForm.vue` evita confirmar reservas con fecha u hora pasada aunque el usuario edite manualmente.
 - `reservations_service.go` rechaza reservas en el pasado desde backend.
 - 2026-07-08: `npm run build` pasa.
-- 2026-07-08: `go test ./...` pasa; la revision de 2026-07-14 confirma que aun no existen archivos de prueba.
+- 2026-07-08: `go test ./...` paso; al 2026-07-14 aun no existian archivos de prueba. Evidencia superada el 2026-07-20: backend ya ejecuta casos reales.
 - La politica completa de zona horaria, duraciones permitidas y jornada se separa en `RES-009` y `RES-011`.
 
 ## RES-006 - Implementar vista Mis Reservas
@@ -1569,52 +1569,53 @@ Permitir cancelar reservas desde la interfaz usando el usuario autenticado.
 
 ## RES-008 - Persistir participantes de reserva y validar capacidad
 
-Prioridad: P2
+Prioridad: P0
 Labels: `frontend`, `backend`, `database`, `reservas`, `ux`, `codex-ready`, `mvp2`
 Estado sugerido: Ready for Codex
 
 ### Contexto
 
-Para MVP 1 se debe evitar capturar participantes si no se persisten (`BACK-012`). Si el producto confirma que el numero de participantes es parte del flujo usuario completo, MVP 2 debe implementarlo de punta a punta.
+El usuario confirmo el 2026-07-20 que los participantes son obligatorios. Para recursos grupales, como multicancha, la solicitud debe reunir al menos 10 participantes confirmados antes de pasar a reserva confirmada. Los recursos `OPEN_USE` no requieren esta confirmacion grupal.
 
-La base ya tiene capacidad por recurso (`resources.capacity`) y una tabla `participants`, pero el formulario actual solo captura un numero simple. Para MVP 2 se recomienda implementar primero `participants_count` como dato numerico de la reserva, sin modelar asistentes individualizados.
+El flujo actual no registra participantes y crea toda reserva directamente como `CONFIRMED`, por lo que no cumple la regla aprobada.
 
 ### Objetivo
 
-Guardar la cantidad de participantes de una reserva y validar que no supere la capacidad del recurso cuando exista.
+Registrar confirmaciones de participantes unicos, mantener la solicitud grupal en `PENDING` bajo el minimo y confirmarla automaticamente al alcanzar 10 confirmaciones validas, sin permitir que el cliente controle el estado o el conteo.
 
-### Alcance sugerido para Codex
+### Alcance funcional aprobado
 
-1. Agregar columna `participants_count` a `dbo.reservations` con default `1` y `CHECK (participants_count > 0)`.
-2. Actualizar `database/schema.sql` y, si corresponde, `database/seed.sql`.
-3. Agregar `ParticipantsCount` al modelo `Reservation` y a `CreateReservationRequest`.
-4. Leer/escribir el campo en `reservations_repository.go`.
-5. Validar en `CreateReservation` que el valor sea mayor a cero.
-6. Validar contra `resources.capacity` cuando no sea `NULL`.
-7. Enviar `participantsCount` desde `ReservationForm.vue` y `AvailabilitySection.vue`.
-8. Mostrar participantes en detalle y listas solo si aporta valor visual.
+1. Aplicar la regla solo a los recursos cuya politica exija confirmacion grupal.
+2. Registrar cada participante de forma identificable y sin duplicados.
+3. Mostrar al solicitante el estado y avance hacia el minimo.
+4. Mantener `PENDING` con menos de 10 confirmaciones vigentes.
+5. Al registrar la decima confirmacion, volver a validar las demas reglas y cambiar una sola vez a `CONFIRMED`.
+6. Mantener el servidor como autoridad del estado y del conteo.
+7. No exigir este flujo a `OPEN_USE`.
+8. Respetar la capacidad maxima cuando el recurso la defina.
 
 ### Criterios de aceptacion
 
-- [ ] Crear reserva guarda `participantsCount`.
-- [ ] Backend rechaza valores menores o iguales a cero.
-- [ ] Backend rechaza participantes sobre capacidad cuando el recurso tenga capacidad definida.
-- [ ] Frontend muestra error claro si se supera capacidad.
-- [ ] El detalle de reserva muestra participantes si el dato existe.
+- [ ] Una solicitud grupal nueva comienza en `PENDING`.
+- [ ] Un mismo participante no puede aumentar dos veces el conteo vigente.
+- [ ] Con 9 confirmaciones la solicitud permanece `PENDING`.
+- [ ] La decima confirmacion valida cambia la solicitud a `CONFIRMED` si las demas reglas siguen cumpliendose.
+- [ ] `OPEN_USE` no solicita confirmaciones de participantes.
+- [ ] El cliente no puede forzar `CONFIRMED` ni declarar un conteo arbitrario.
+- [ ] Se rechaza una confirmacion que supere la capacidad del recurso cuando corresponda.
+- [ ] El solicitante puede ver el avance y los errores recuperables.
 - [ ] `go test ./...` pasa.
+- [ ] `npm test` pasa.
 - [ ] `npm run build` pasa.
 
-### Archivos relevantes
+### Decisiones pendientes antes de implementacion
 
-- `database/schema.sql`
-- `database/seed.sql`
-- `backend/internal/models/reservation.go`
-- `backend/internal/repositories/reservations_repository.go`
-- `backend/internal/services/reservations_service.go`
-- `backend/internal/handlers/reservations_handlers.go`
-- `frontend/src/components/forms/ReservationForm.vue`
-- `frontend/src/components/availability/AvailabilitySection.vue`
-- `frontend/src/views/ReservationDetailView.vue`
+- Si el solicitante cuenta dentro de los 10.
+- Como confirma su identidad cada participante.
+- Plazo de vigencia de una solicitud `PENDING`.
+- Si la solicitud pendiente bloquea el horario.
+- Que ocurre cuando se retira una confirmacion.
+- Que recursos oficiales, ademas de multicancha, aplican la regla.
 
 ## RES-009 - Definir zona horaria de negocio para reservas
 
@@ -1767,6 +1768,36 @@ Definir y aplicar en backend las reglas institucionales minimas de duracion e in
 - `frontend/src/components/forms/DateTimePicker.vue`
 - `frontend/src/components/forms/ReservationForm.vue`
 - `frontend/src/components/availability/ResourceTimeline.vue`
+
+---
+
+## RES-012 - Aplicar restriccion semanal de reservas particulares
+
+Prioridad: P0
+Labels: `reservas`, `reglas-negocio`, `backend`, `frontend`, `mvp2`, `blocked-product`
+Estado sugerido: Blocked by product detail
+
+### Contexto
+
+El usuario confirmo el 2026-07-20 que una persona particular no puede volver a reservar antes de cumplir una semana desde su reserva anterior. El sistema actual no aplica esta regla.
+
+### Objetivo
+
+Rechazar nuevas solicitudes dentro del intervalo semanal aplicable y comunicar la proxima fecha en que el usuario puede volver a solicitar una reserva.
+
+### Criterios de aceptacion
+
+- [ ] La regla usa exclusivamente la identidad autenticada.
+- [ ] Una solicitud anterior relevante dentro del intervalo impide una nueva solicitud.
+- [ ] Al alcanzar exactamente el limite aprobado, la nueva solicitud puede continuar.
+- [ ] El rechazo comunica la proxima fecha y hora permitida en `America/Santiago`.
+- [ ] Solicitudes de otro usuario no afectan el resultado.
+- [ ] El servidor mantiene la regla aunque el cliente sea manipulado.
+- [ ] Existen pruebas del limite, cambio de fecha y horario de verano.
+
+### Decision pendiente antes de implementacion
+
+Definir si la semana se cuenta desde creacion, inicio o termino y que estados anteriores cuentan, especialmente `PENDING`, `CANCELLED` y `REJECTED`.
 
 ---
 
@@ -2015,7 +2046,7 @@ Estado sugerido: Partially Done
 
 ### Objetivo
 
-Permitir crear, editar, activar o desactivar recursos deportivos.
+Permitir crear, editar, activar o desactivar recursos deportivos, usando los ocho recursos actuales como inventario oficial inicial.
 
 ### Criterios de aceptacion
 
@@ -2023,6 +2054,7 @@ Permitir crear, editar, activar o desactivar recursos deportivos.
 - [x] Permite actualizar la imagen del recurso desde una ruta administrativa.
 - [ ] Recurso pertenece a una sede.
 - [ ] Valida `reservation_mode`.
+- [ ] Permite definir o modificar la politica que determina si el recurso requiere confirmacion grupal, una vez aprobada D-09.
 - [ ] No permite eliminar recursos con reservas historicas sin criterio definido.
 - [ ] Refresca disponibilidad luego de cambios.
 
@@ -2033,7 +2065,7 @@ Permitir crear, editar, activar o desactivar recursos deportivos.
 - Se agrego `PATCH /api/resources/:id/image`, protegido con `RequireAdmin`.
 - El backend valida ID, largo maximo de URL y acepta solo `http://`, `https://` o rutas locales iniciadas en `/`.
 - `ResourcesView.vue` permite a administradores editar o limpiar la imagen del recurso y actualiza el store sin recargar toda la pagina.
-- Pendiente: CRUD completo de recursos, sede, modo de reserva, activacion/desactivacion y criterio de eliminacion.
+- Pendiente: CRUD completo del inventario oficial, sede, modo de reserva, politica de confirmacion grupal, activacion/desactivacion y criterio de eliminacion.
 
 ## ADMIN-004 - Implementar bloqueos de disponibilidad
 
@@ -2055,20 +2087,26 @@ Permitir que admin cree bloqueos por mantencion, cierre, evento u otro motivo.
 
 ## ADMIN-005 - Implementar programacion institucional
 
-Prioridad: P2
+Prioridad: P0
 Labels: `frontend`, `backend`, `admin`, `disponibilidad`
 Estado sugerido: Backlog
 
 ### Objetivo
 
-Permitir registrar clases, talleres, eventos, campeonatos o entrenamientos institucionales.
+Permitir registrar clases, talleres, eventos, campeonatos o entrenamientos institucionales y resolver sus conflictos segun la prioridad aprobada.
 
 ### Criterios de aceptacion
 
 - [ ] Admin crea actividad programada sobre un recurso.
-- [ ] Backend valida solapamientos.
+- [ ] El sistema detecta y muestra todas las ocupaciones solapadas antes de aplicar efectos.
+- [ ] Si existe una reserva particular, se cancela automaticamente al confirmar la actividad institucional.
+- [ ] Si existen dos actividades en conflicto, el administrador puede cancelar cualquiera de ellas o mantener ambas.
+- [ ] Mantener ambas requiere una decision administrativa explicita y no se rechaza solo por compartir recurso y horario.
 - [ ] Actividades aparecen en calendario.
 - [ ] Soporta descripcion y tipo.
+- [ ] La decision y las cancelaciones quedan trazables.
+- [ ] El administrador ve un resumen de reservas y actividades afectadas.
+- [ ] La comunicacion al usuario cancelado se aplica conforme a la decision pendiente D-10.
 - [ ] Define comportamiento futuro de recurrencia.
 
 ---
@@ -2382,7 +2420,7 @@ Entregar el detalle minimo autorizado de una reserva mediante un endpoint dedica
 
 Prioridad: P0
 Labels: `backend`, `testing`, `reservas`, `security`, `codex-ready`, `mvp1`
-Estado sugerido: Ready for Codex
+Estado sugerido: Partially Done
 
 ### Objetivo
 
@@ -2426,7 +2464,7 @@ Crear pruebas deterministas de la capa servicio para cerrar las reglas criticas 
 
 Prioridad: P1
 Labels: `frontend`, `testing`, `ux`, `accessibility`, `codex-ready`, `mvp1`
-Estado sugerido: Ready for Codex
+Estado sugerido: Partially Done
 
 ### Objetivo
 
@@ -2435,7 +2473,7 @@ Agregar pruebas o checklist automatizado para pantallas criticas.
 ### Alcance sugerido para Codex
 
 1. Agregar Vitest, Vue Test Utils y entorno DOM al `frontend/package.json`.
-2. Crear scripts `test` y `test:run` compatibles con CI.
+2. Mantener un script `test` reproducible y definir su ejecucion no interactiva para CI cuando corresponda.
 3. Priorizar helpers temporales, store de autenticacion, formulario de reserva y guards del router.
 4. Simular servicios HTTP; las pruebas de componentes no deben depender del backend real.
 5. Mantener el checklist manual de navegador para responsive y foco como complemento, no sustituto permanente.
@@ -2454,7 +2492,7 @@ Agregar pruebas o checklist automatizado para pantallas criticas.
 - [ ] Conflicto de horario mantiene error visible en el modal.
 - [ ] Cancelacion exige confirmacion antes de llamar a la API.
 - [ ] Helpers temporales cubren futura, en curso, finalizada y zona horaria definida.
-- [ ] `npm run test:run` y `npm run build` pasan.
+- [x] `npm test` y `npm run build` pasan para la base actual; falta ampliar los casos anteriores.
 
 ## UX-001 - Profesionalizar experiencia de disponibilidad y reserva
 
@@ -2999,20 +3037,22 @@ Estas tareas ya tienen implementacion inicial. Antes de cerrar el MVP 1 falta ev
 
 ## Bloque 3 - Cierre de flujo usuario MVP 2
 
-1. `API-002` Filtrar reservas por fecha/rango/estado.
-2. `API-004` Filtrar disponibilidad e integrar ocupaciones institucionales.
-3. `API-006` Consultar detalle de reserva por ID.
-4. `UX-003` Prevenir conflictos antes de confirmar.
-5. `RES-008` Persistir participantes solo si producto confirma esa necesidad.
-6. `NOTIF-001` Completar leidas/no leidas y destino real de notificaciones.
+1. Resolver D-06 a D-09 para cerrar limites de semana, participantes, vigencia y politica por recurso.
+2. `RES-012` Aplicar la restriccion semanal aprobada.
+3. `RES-008` Registrar confirmaciones de participantes y confirmar solicitudes grupales al alcanzar el minimo.
+4. `API-002` Filtrar reservas por fecha/rango/estado.
+5. `API-004` Filtrar disponibilidad e integrar ocupaciones institucionales.
+6. `API-006` Consultar detalle de reserva por ID.
+7. `UX-003` Prevenir conflictos antes de confirmar.
+8. `NOTIF-001` Completar leidas/no leidas y destino real de notificaciones.
 
 ## Bloque 4 - Administracion y analitica
 
 1. `RES-004` Completar integracion de bloqueos; actividades programadas ya estan incorporadas.
 2. `ADMIN-004` Crear bloqueos de disponibilidad.
-3. `ADMIN-003` Completar gestion de recursos.
+3. `ADMIN-003` Completar gestion del inventario oficial de ocho recursos.
 4. `ADMIN-002` Completar gestion de usuarios.
-5. `ADMIN-005` Programacion institucional.
+5. `ADMIN-005` Programacion institucional y resolucion de conflictos aprobada.
 6. `REP-003` Corregir semantica y precision de indicadores.
 7. `REP-002` Completar infracciones.
 
@@ -3033,6 +3073,7 @@ cd backend
 go test ./...
 
 cd ../frontend
+npm test
 npm run build
 ```
 

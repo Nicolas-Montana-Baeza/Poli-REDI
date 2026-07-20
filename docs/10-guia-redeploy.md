@@ -205,14 +205,16 @@ cd backend
 go test ./...
 
 cd ../frontend
+npm test
 npm run build
 ```
 
-Estado 2026-07-14:
+Estado actualizado 2026-07-20:
 
-- `go test ./...` finaliza correctamente, pero aun no descubre archivos de prueba; no debe interpretarse como cobertura hasta cerrar `QA-001`.
-- El frontend todavia no tiene `npm run test:run`; se agregara en `QA-002`.
+- `go test ./...` finaliza correctamente y ejecuta pruebas de reloj, JSON, agenda y servicio de reservas; la cobertura sigue parcial en `QA-001`.
+- `npm test` finaliza correctamente con 9 pruebas de zona horaria y agenda; faltan componentes, permisos y navegacion en `QA-002`.
 - `npm run build` completa el build de produccion.
+- Esta evidencia es local y no sustituye la prueba manual ni la verificacion online posterior al redeploy.
 
 ## 4. Base de datos
 

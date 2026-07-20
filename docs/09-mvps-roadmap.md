@@ -11,7 +11,7 @@ Los MVPs organizan el proyecto desde una base tecnica funcional hasta una versio
 | MVP | Nombre | Proposito | Estado |
 | --- | --- | --- | --- |
 | MVP 1 | Base tecnica funcional | Dejar frontend, backend, base de datos, autenticacion, seguridad minima y demo online operando con datos reales. | Reabierto para pulido final |
-| MVP 2 | Flujo usuario completo | Permitir que un usuario normal consulte disponibilidad, reserve, cancele y revise su informacion. | Muy avanzado |
+| MVP 2 | Flujo usuario completo | Permitir que un usuario normal consulte disponibilidad, solicite, confirme por participantes cuando corresponda, cancele y revise su informacion. | Avanzado con brechas obligatorias |
 | MVP 3 | Administracion institucional | Completar calendario institucional, bloqueos, recursos y gestion administrativa. | Parcial |
 | MVP 4 | Entrega, calidad y soporte | Completar reportes, notificaciones, pruebas, documentacion y despliegue. | En desarrollo |
 
@@ -111,7 +111,7 @@ Bloqueantes funcionales y de integridad:
 - Verificar online la zona horaria de negocio ya implementada en frontend y backend (`RES-009`, en revision).
 - Verificar desplegada la proteccion que impide al cliente controlar estados y transiciones (`RES-010`, en revision).
 - Verificar desplegadas las reglas de duracion y horario operativo ya compartidas por API y UI (`RES-011`, en revision).
-- Ampliar las pruebas backend reales iniciadas con el reloj de negocio hacia estados, duracion y horario operativo (`QA-001`).
+- Ampliar las pruebas backend actuales mas alla de reloj, estado, duracion y horario hacia permisos, conflictos y persistencia (`QA-001`).
 
 Pulido visible y estabilidad transversal:
 
@@ -122,7 +122,7 @@ Pulido visible y estabilidad transversal:
 - Sanitizar respuestas de error internas (`SEC-005`).
 - Terminar el carrusel sin cortes, duplicacion accesible ni movimiento forzado (`BACK-018`).
 - Hacer reproducible la instalacion limpia de `frontend/` y retirar duplicados muertos (`BACK-024`).
-- Agregar una base minima de regresion frontend (`QA-002`).
+- Ampliar la base de regresion frontend, hoy limitada a 9 pruebas de tiempo y agenda, hacia componentes, permisos y navegacion (`QA-002`).
 - Automatizar despliegue del backend Docker si se mantiene App Service con contenedor.
 - Mantener el plan de corte desde Google Calendar antes de mover operacion real (`OPS-001`).
 
@@ -147,6 +147,7 @@ Pulido visible y estabilidad transversal:
 - Sincronizacion del mini calendario (`BACK-016`).
 - Seleccion de instalacion operable con teclado (`BACK-017`).
 - Verificacion 2026-07-14 de build frontend, autorizacion basica y flujo Historial -> Detalle.
+- Verificacion local 2026-07-20 de pruebas backend, 9 pruebas frontend de tiempo/agenda y build de produccion.
 
 ### Criterio de cierre
 
@@ -191,6 +192,7 @@ Entregar una experiencia usable para el usuario normal, desde login hasta reserv
 - `RES-006`
 - `RES-007`
 - `RES-008`
+- `RES-012`
 - `UI-001`
 - `UI-002`
 - `UI-003`
@@ -218,6 +220,9 @@ Entregar una experiencia usable para el usuario normal, desde login hasta reserv
 - `RF-011`
 - `RF-017`
 - `RF-019`
+- `RF-020`
+- `RF-021`
+- `RF-022`
 - `HU-001`
 - `HU-002`
 - `HU-003`
@@ -227,6 +232,7 @@ Entregar una experiencia usable para el usuario normal, desde login hasta reserv
 - `HU-007`
 - `HU-008`
 - `HU-014`
+- `HU-015`
 - `CU-001`
 - `CU-002`
 - `CU-003`
@@ -234,10 +240,11 @@ Entregar una experiencia usable para el usuario normal, desde login hasta reserv
 - `CU-005`
 - `CU-007`
 - `CU-008`
+- `CU-009`
 
 ### Estado actual
 
-Muy avanzado.
+Avanzado con brechas obligatorias aprobadas.
 
 Incluye tambien una primera version funcional de talleres deportivos: listado de talleres activos, busqueda, cupos, estado de inscripcion e inscripcion protegida por RUT. La disponibilidad ya consume un endpoint sanitizado y muestra talleres como ocupacion recurrente; los recursos `OPEN_USE` operan como uso libre con intensidad de uso. El catalogo y dashboard ya pueden mostrar imagenes configuradas para recursos.
 
@@ -247,15 +254,17 @@ Incluye tambien una primera version funcional de talleres deportivos: listado de
 - Completar filtros por fecha/rango y sumar bloqueos al endpoint de disponibilidad; las actividades programadas ya estan integradas (`API-004`, `ADMIN-004`).
 - Cargar el detalle por ID sin descargar colecciones completas (`API-006`).
 - Agregar confirmacion fuerte antes de cancelar reservas (`RES-007`).
-- Persistir participantes y validar capacidad si el campo vuelve al formulario (`RES-008`).
+- Aplicar la restriccion semanal aprobada y comunicar la proxima fecha permitida (`RES-012`).
+- Registrar confirmaciones de participantes unicos y exigir al menos 10 en recursos grupales (`RES-008`).
+- Mantener solicitudes grupales en `PENDING` y confirmarlas automaticamente al alcanzar el minimo; `OPEN_USE` no requiere este proceso (`RES-008`, `RES-010`).
 - Profesionalizar la seleccion de horario, capacidad, etiquetas humanas y experiencia movil (`UX-001`).
 - Mostrar feedback preventivo de conflicto antes de confirmar una reserva (`UX-003`).
 - Completar notificaciones: marcar como leida y diferenciar leidas/no leidas (`NOTIF-001`).
-- Confirmar si el detalle de reserva requiere participantes persistidos (`UI-002`).
+- Mostrar en detalle el estado de la solicitud y el avance de confirmaciones cuando corresponda (`UI-002`).
 
 ### Criterio de cierre
 
-El MVP 2 se considera cerrado cuando un usuario normal puede autenticarse, completar su perfil, consultar disponibilidad, crear una reserva valida, cancelar una reserva propia, revisar reservas/historial/recursos, inscribirse en talleres deportivos disponibles y operar sin errores visibles en los flujos principales.
+El MVP 2 se considera cerrado cuando un usuario normal puede autenticarse, completar su perfil, consultar disponibilidad, superar la regla semanal, crear una solicitud con estado acorde al recurso, reunir 10 participantes confirmados cuando corresponda, cancelar una reserva propia, revisar reservas/historial/recursos, inscribirse en talleres deportivos disponibles y operar sin errores visibles en los flujos principales.
 
 ## MVP 3 - Administracion institucional
 
@@ -297,12 +306,17 @@ Convertir Poli-REDI en una herramienta administrable por la institucion, con cal
 - `RF-015`
 - `RF-016`
 - `RF-018`
+- `RF-023`
+- `RF-024`
 - `HU-009`
 - `HU-010`
 - `HU-011`
 - `HU-012`
 - `HU-013`
+- `HU-016`
+- `HU-017`
 - `CU-006`
+- `CU-010`
 
 ### Estado actual
 
@@ -312,9 +326,9 @@ Parcial.
 
 - Completar la integracion de bloqueos en el calendario unificado; reservas y actividades programadas ya comparten contrato (`RES-004`).
 - Crear bloqueos de disponibilidad desde administracion (`ADMIN-004`).
-- Completar CRUD basico de recursos; la actualizacion de imagen ya esta implementada (`ADMIN-003`).
+- Completar la gestion del inventario oficial de ocho recursos; la actualizacion de imagen ya esta implementada (`ADMIN-003`).
 - Bloquear y desbloquear usuarios con auditoria (`ADMIN-002`).
-- Registrar programacion institucional (`ADMIN-005`).
+- Registrar programacion institucional, cancelar automaticamente reservas particulares en conflicto y permitir que el administrador cancele una actividad o mantenga ambas cuando el conflicto sea institucional (`ADMIN-005`).
 - Agregar filtros backend de recursos por sede, tipo y estado (`API-001`).
 - Centralizar validacion de administrador con middleware (`API-005`).
 - Completar reportes desde vistas SQL e infracciones si corresponde (`REP-001`).
@@ -322,7 +336,7 @@ Parcial.
 
 ### Criterio de cierre
 
-El MVP 3 se considera cerrado cuando un administrador puede controlar disponibilidad institucional, administrar recursos y usuarios, y visualizar informacion operacional sin modificar datos directamente en base de datos.
+El MVP 3 se considera cerrado cuando un administrador puede controlar disponibilidad institucional, resolver conflictos entre actividades, mantener el inventario oficial, administrar usuarios y visualizar informacion operacional sin modificar datos directamente en base de datos.
 
 ## MVP 4 - Entrega, calidad y soporte
 
@@ -335,7 +349,7 @@ Completar los elementos de soporte necesarios para entregar, defender, probar y 
 - Reportes administrativos.
 - Infracciones.
 - Notificaciones completas.
-- Ampliacion de pruebas backend y frontend mas alla de la base critica del MVP 1.
+- Pruebas unitarias iniciales backend y frontend para reloj, agenda, contrato JSON y reglas de reserva.
 - README actualizado.
 - Arquitectura documentada.
 - Flujo de reservas documentado.
@@ -382,7 +396,7 @@ En desarrollo.
 - Completar README principal (`DOC-001`).
 - Completar arquitectura con diagrama (`DOC-002`).
 - Completar flujo de reservas con diagramas (`DOC-003`).
-- Ampliar cobertura automatizada una vez cerrada la base critica exigida por MVP 1.
+- Ampliar cobertura automatizada hacia componentes, permisos, persistencia e integracion.
 - Limpiar logs de configuracion de autenticacion (`SEC-003`).
 - Completar infracciones (`REP-002`).
 - Mantener y completar la guia de despliegue y operacion (`docs/10-guia-redeploy.md`).

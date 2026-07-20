@@ -136,10 +136,10 @@ La demo online inicial usa:
 ## Riesgos y mejoras recomendadas
 
 - Extender el endpoint de disponibilidad para aceptar fecha o rango y sumar bloqueos; las actividades programadas activas ya forman parte del contrato.
-- Definir un contrato temporal unico entre `DATETIME2`, API y frontend mediante `APP_TIMEZONE` (`RES-009`).
-- Hacer que estado inicial y transiciones de reserva pertenezcan exclusivamente al servidor (`RES-010`).
-- Aplicar jornada y duraciones permitidas en backend (`RES-011`).
-- Agregar pruebas backend reales para reglas criticas; `go test ./...` actualmente no descubre archivos de test (`QA-001`).
+- Verificar en el ambiente integrado/online el contrato temporal ya implementado entre `DATETIME2`, API y frontend mediante `APP_TIMEZONE` (`RES-009`).
+- Verificar desplegado que estado inicial y transiciones de reserva pertenecen exclusivamente al servidor (`RES-010`).
+- Verificar desplegadas la jornada y las duraciones permitidas que ya aplica el backend (`RES-011`).
+- Ampliar las pruebas backend actuales hacia permisos, conflictos y persistencia; `go test ./...` ya ejecuta casos reales (`QA-001`).
 - Agregar regresion frontend automatizada para router, formulario, recursos no reservables y helpers temporales (`QA-002`).
 - Evitar detalles internos en respuestas HTTP y conservarlos solo en logs sanitizados (`SEC-005`).
 - Mantener `RequireAdmin` para nuevas rutas administrativas y `DEV_AUTH_ENABLED=false` en despliegues publicos; ambas bases ya estan implementadas/documentadas.
