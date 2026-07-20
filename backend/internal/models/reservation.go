@@ -12,6 +12,7 @@ const (
 
 type Reservation struct {
 	ID              int       `json:"id"`
+	PolicyID        int       `json:"policyId"`
 	UserID          int       `json:"userId"`
 	ResourceID      int       `json:"resourceId"`
 	ActivityID      *int      `json:"activityId"`

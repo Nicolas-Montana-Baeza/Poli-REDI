@@ -195,15 +195,15 @@ Estado actual: Implementado.
 
 ### RF-020 - Restriccion semanal de reservas particulares
 
-El sistema debe limitar las fechas reservables al periodo institucional configurado y evitar que un usuario cree mas de una solicitud dentro del periodo contado desde la fecha local de creacion de su solicitud anterior. Con el valor vigente de siete dias, un martes permite elegir hasta el lunes siguiente y una solicitud creada ese martes permite volver a solicitar desde el martes siguiente. El rechazo debe comunicar la proxima fecha permitida.
+El sistema debe limitar las fechas reservables al periodo institucional configurado y evitar que un usuario cree mas de una solicitud dentro del periodo contado desde la fecha local de creacion de su solicitud anterior. `PENDING` y `CONFIRMED` consumen la oportunidad; `CANCELLED` deja de consumirla. Con siete dias, un martes permite elegir hasta el lunes siguiente y una solicitud creada ese martes permite volver a solicitar desde el martes posterior.
 
-Estado actual: APROBADO el 2026-07-20; no implementado. La fecha de creacion y el limite inclusivo por dia estan definidos; falta precisar que estados creados consumen la frecuencia.
+Estado actual: APROBADO el 2026-07-20; no implementado. La fecha de creacion, el limite inclusivo y los estados que consumen la oportunidad estan definidos.
 
 Pendiente relacionado: `RES-012`.
 
 ### RF-021 - Confirmacion de participantes minimos
 
-El sistema debe registrar confirmaciones de participantes unicos y exigir al menos 10 para confirmar solicitudes sobre Cancha 1, Cancha 2 y Cancha 3. Las confirmaciones pueden registrarse o retirarse hasta un limite configurable, inicialmente una hora antes del inicio.
+El sistema debe registrar confirmaciones de usuarios unicos y exigir al menos 10, incluido el solicitante, para multicancha 1, 2 y 3, identificadas en el inventario como Cancha 1, 2 y 3. Todos los participantes deben tener cuenta. Las confirmaciones pueden registrarse o retirarse hasta exactamente una hora antes inclusive, plazo configurable.
 
 Estado actual: APROBADO el 2026-07-20; no implementado.
 
@@ -211,7 +211,7 @@ Pendiente relacionado: `RES-008`.
 
 ### RF-022 - Estado condicionado por politica del recurso
 
-El sistema debe mantener `PENDING` una solicitud sujeta a confirmacion grupal hasta alcanzar el minimo, cambiarla automaticamente a `CONFIRMED` al cumplirlo y devolverla a `PENDING` si una retirada valida reduce el conteo por debajo del minimo. Los recursos `OPEN_USE` no requieren confirmacion grupal.
+El sistema debe mantener `PENDING` y bloquear el horario hasta alcanzar el minimo, cambiar automaticamente a `CONFIRMED` al cumplirlo y devolverla a `PENDING` si una retirada valida reduce el conteo. Si llega al limite con menos de 10, debe cambiar a `CANCELLED`, liberar el horario y dejar de consumir la oportunidad semanal. Los recursos `OPEN_USE` no requieren confirmacion grupal.
 
 Estado actual: APROBADO el 2026-07-20; no implementado. El flujo actual confirma todas las reservas al crearlas.
 
@@ -232,6 +232,14 @@ El sistema debe permitir que el administrador mantenga el inventario oficial ini
 Estado actual: APROBADO el 2026-07-20; implementado parcialmente mediante lectura y cambio de imagen.
 
 Pendiente relacionado: `ADMIN-003`.
+
+### RF-025 - Configuracion administrativa de politicas de reserva
+
+El sistema debe permitir exclusivamente a usuarios con rol administrador publicar nuevas versiones del periodo de reserva, el plazo previo de confirmacion y los recursos sujetos a confirmacion grupal. Los cambios normales son prospectivos y cada solicitud conserva la version vigente al crearse. Excepcionalmente, el administrador puede migrar solicitudes futuras `PENDING` o `CONFIRMED` seleccionadas a otra version mediante simulacion, motivo obligatorio, confirmacion, aplicacion atomica y auditoria; la operacion no edita versiones historicas ni cancela solicitudes implicitamente.
+
+Estado actual: APROBADO el 2026-07-20; arquitectura aprobada y no implementada.
+
+Pendiente relacionado: `ADMIN-006`.
 
 ## Requisitos no funcionales
 
@@ -480,11 +488,13 @@ Como solicitante de un recurso grupal, quiero que los integrantes confirmen su p
 Criterios de aceptacion:
 
 - La solicitud comienza en estado `PENDING`.
-- Se cuentan participantes unicos con confirmacion vigente.
+- El solicitante cuenta una vez y todos los participantes se identifican mediante una cuenta.
+- La solicitud `PENDING` bloquea el horario para usos incompatibles.
 - Con menos de 10 confirmaciones no se presenta como reserva confirmada.
 - La decima confirmacion cambia automaticamente la solicitud a `CONFIRMED` si las demas reglas siguen vigentes.
 - Si una retirada valida reduce el conteo por debajo de 10, la reserva vuelve a `PENDING`.
-- Las confirmaciones y retiradas solo se aceptan hasta el limite configurable, inicialmente una hora antes del inicio.
+- Las confirmaciones y retiradas se aceptan hasta exactamente una hora antes inclusive y se rechazan despues.
+- Si vence bajo el minimo, cambia a `CANCELLED`, libera el horario y la oportunidad semanal.
 - El cliente no puede forzar el estado ni el conteo.
 
 ### HU-016 - Resolver conflictos institucionales
@@ -509,6 +519,21 @@ Criterios de aceptacion:
 - El administrador puede mantener datos, modo y estado operativo en el MVP correspondiente.
 - Los cambios se reflejan en catalogo y disponibilidad.
 - El historial no se pierde por desactivar o modificar un recurso.
+
+### HU-018 - Configurar politicas de reserva
+
+Como administrador, quiero modificar el periodo de reserva, el plazo previo y los recursos sujetos a confirmacion para ajustar las reglas institucionales sin otorgar esta facultad a usuarios normales.
+
+Criterios de aceptacion:
+
+- Solo usuarios con rol administrador pueden modificar las politicas.
+- Los valores iniciales son siete dias y una hora antes del inicio.
+- Cancha 1, 2 y 3 corresponden a multicancha 1, 2 y 3 y comienzan sujetas a confirmacion grupal.
+- El cambio informa desde cuando rige.
+- Los cambios normales se aplican prospectivamente y las solicitudes conservan su version.
+- Una correccion excepcional exige seleccionar solicitudes futuras activas, previsualizar el resultado, informar un motivo y confirmar la aplicacion.
+- Si una solicitud es incompatible, el lote completo se rechaza sin cancelaciones implicitas.
+- La correccion y cualquier reversion quedan auditadas.
 
 ## Casos de uso
 
@@ -717,7 +742,8 @@ Actor principal: Participante.
 Precondiciones:
 
 - Existe una solicitud `PENDING` sobre un recurso grupal.
-- El participante puede ser identificado y aun no ha confirmado.
+- El participante tiene cuenta, puede ser identificado y aun no ha confirmado; el solicitante ya cuenta una vez.
+- La solicitud pendiente bloquea el horario.
 
 Flujo principal:
 
@@ -726,8 +752,9 @@ Flujo principal:
 3. El sistema valida identidad y duplicado.
 4. El sistema actualiza el conteo de confirmaciones vigentes.
 5. Al alcanzar 10 confirmaciones, vuelve a validar las demas reglas y cambia la solicitud a `CONFIRMED`.
-6. Hasta el limite configurable, una persona puede retirar su confirmacion.
+6. Hasta exactamente el limite configurable inclusive, una persona puede retirar su confirmacion.
 7. Si el conteo vigente baja de 10, el sistema devuelve la reserva a `PENDING`.
+8. Si la solicitud llega al limite bajo el minimo, el sistema la cambia a `CANCELLED`, libera el horario y la oportunidad semanal.
 
 Postcondiciones:
 
@@ -737,7 +764,7 @@ Postcondiciones:
 Flujos alternativos:
 
 - Con menos de 10 confirmaciones, permanece `PENDING`.
-- Una confirmacion o retirada posterior al limite se rechaza sin cambiar el conteo.
+- Una confirmacion o retirada exactamente una hora antes se acepta; una posterior se rechaza sin cambiar el conteo.
 - Si la solicitud deja de ser valida antes de alcanzar el minimo, no se confirma automaticamente.
 
 ### CU-010 - Resolver conflicto de actividad institucional
@@ -765,6 +792,32 @@ Flujos alternativos:
 
 - Si el administrador cancela la nueva actividad, las otras actividades se mantienen.
 - Si decide mantener ambas, el sistema conserva el solapamiento institucional de forma explicita.
+
+### CU-011 - Configurar politicas de reserva
+
+Actor principal: Administrador.
+
+Precondiciones:
+
+- El usuario tiene una cuenta vigente con rol administrador.
+
+Flujo principal:
+
+1. El administrador consulta las politicas institucionales vigentes.
+2. Modifica el periodo de reserva, el plazo previo o los recursos sujetos a confirmacion grupal.
+3. El sistema valida su rol y los nuevos valores.
+4. El sistema muestra el valor anterior, el nuevo valor y desde cuando rige.
+5. El administrador confirma el cambio.
+
+Postcondiciones:
+
+- La politica queda disponible para las solicitudes a las que corresponda.
+- El cambio queda atribuible al administrador.
+
+Flujos alternativos:
+
+- Un usuario normal no puede modificar las politicas.
+- Un valor invalido se rechaza sin alterar la politica vigente.
 
 ## Matriz de trazabilidad inicial
 
@@ -794,6 +847,7 @@ Flujos alternativos:
 | RF-022 | HU-004, HU-015 | RES-008, RES-010 |
 | RF-023 | HU-016 | ADMIN-005, RES-004, NOTIF-001 |
 | RF-024 | HU-011, HU-017 | ADMIN-003 |
+| RF-025 | HU-018 | ADMIN-006 |
 | RNF-008 | HU-003, HU-004 | API-004 |
 | RNF-009 | HU-003, HU-004, HU-005 | UX-001, UX-002 |
 

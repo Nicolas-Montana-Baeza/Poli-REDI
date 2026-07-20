@@ -8,7 +8,7 @@ Fecha de corte: 2026-07-20
 - **Objetivo — APROBADO:** validar un prototipo que centralice recursos, disponibilidad, reservas y reglas institucionales basicas sin presentarlo como plataforma productiva completa.
 - **Usuarios afectados — HECHO:** usuarios normales, administradores y personal institucional encargado de la operacion deportiva.
 - **Resultado esperado — PROPUESTA:** disponer de una demo verificable cuyo alcance implementado, faltante y futuro pueda comunicarse sin confundir codigo, aprobacion y validacion.
-- **Estado actual — HECHO:** existe una demo funcional con identidad, reservas y consulta operacional; las reglas aprobadas de ventana/frecuencia configurable, participantes, retiro de confirmaciones, plazo previo y prioridad institucional aun no estan implementadas, por lo que el MVP 2 no puede declararse cerrado.
+- **Estado actual — HECHO:** existe una demo funcional con identidad, reservas y consulta operacional; las reglas aprobadas de ventana/frecuencia, participantes, bloqueo `PENDING`, vencimiento y administracion de politicas aun no estan implementadas, por lo que el MVP 2 no puede declararse cerrado.
 
 ### 2. Evidencia revisada
 
@@ -16,14 +16,14 @@ Fecha de corte: 2026-07-20
 | --- | --- | --- |
 | `../Documentos/levantamiento_poli_redi.txt` | Gestion manual; jornada 08:00-22:00; reserva aproximada de una hora; espera semanal; minimo de 10 participantes; prioridad institucional y decisiones administrativas. | HECHO documental; requiere confirmar vigencia institucional |
 | `../Documentos/alcance_definitivo_prototipo_poli_redi.txt` | MVP 1 y 2 son el nucleo; participantes, restriccion semanal y bloqueos forman parte del alcance; Entra real y despliegue productivo aparecen fuera de alcance. | APROBADO segun nombre del documento, pero contradicho por documentacion posterior |
-| `docs/08-requisitos-historias-casos-uso.md` | Consolida 24 requisitos funcionales, incluidos los acuerdos del 2026-07-20 y su estado pendiente de implementacion. | ACTUALIZADO |
+| `docs/08-requisitos-historias-casos-uso.md` | Consolida 25 requisitos funcionales, incluidos los acuerdos del 2026-07-20 y su estado pendiente de implementacion. | ACTUALIZADO |
 | `backend/internal/routes/routes.go` | Existen rutas de identidad, RUT, lectura de recursos/actividades/notificaciones/talleres, inscripcion, disponibilidad, reservas y lectura administrativa. No existen rutas de gestion completa de usuarios, bloqueos, programacion, infracciones o reportes. | IMPLEMENTADO |
 | `backend/internal/middleware/auth_middleware.go` | La identidad se valida en servidor; rol, bloqueo y RUT provienen del usuario local; `DEV_AUTH_ENABLED` selecciona el modo local. | IMPLEMENTADO |
 | `backend/internal/services/reservations_service.go` | La reserva usa el usuario autenticado, fuerza estado `CONFIRMED`, valida pasado, jornada, duracion, talleres y cancelacion. | IMPLEMENTADO |
 | `database/schema.sql` | El esquema incluye entidades completas y protege conflictos de recurso, usuario, bloqueos y actividades programadas; contiene auditoria de reservas. | IMPLEMENTADO en script; no verificado contra una base ejecutandose en este corte |
 | `frontend/src/components/availability/AvailabilitySection.vue` | La interfaz combina reservas, actividades programadas y talleres; no incorpora bloqueos visibles y permite abrir seleccion sobre recursos que despues puede rechazar el servidor. | IMPLEMENTADO PARCIAL |
 | `database/seed.sql` | Contiene los ocho recursos confirmados como inventario oficial inicial. | APROBADO como linea base; gestion completa PENDIENTE |
-| Decisiones explicitas del usuario del 2026-07-20 | Confirman ventana y frecuencia de siete dias configurables, duraciones de 30 a 180 minutos para todos los recursos, minimo de 10 integrantes en Cancha 1, 2 y 3, retorno a `PENDING` al perder el minimo, cambios hasta una hora antes configurable, aviso por cancelacion automatica, prioridad institucional e inventario oficial. | APROBADO |
+| Decisiones explicitas del usuario del 2026-07-20 | Confirman que `PENDING` consume y `CANCELLED` libera la oportunidad; el solicitante cuenta y todos los participantes tienen cuenta; la solicitud bloquea, admite cambios en el limite exacto y se cancela al vencer bajo el minimo; las tres canchas son multicanchas y solo administradores modifican politicas. | APROBADO |
 | Pruebas locales 2026-07-20 | `go test ./...`, `npm test` y `npm run build` aprobaron; frontend reporto 9 pruebas. | VERIFICADO LOCAL |
 | `docs/12-checklist-demo-mvp1.md` | La mayor parte de la prueba manual e integrada sigue pendiente; no hay verificacion online actual registrada. | PENDIENTE |
 
@@ -48,7 +48,7 @@ Fecha de corte: 2026-07-20
 - Diseñar o implementar cambios de frontend, backend, base de datos o despliegue.
 - Declarar aprobadas las reglas que solo aparecen implementadas.
 - Declarar el sistema listo para operacion institucional o produccion.
-- Resolver sin autorizacion los detalles aun pendientes sobre estados que consumen la frecuencia, conteo de participantes, vencimiento de solicitudes y autoridad sobre politicas.
+- Implementar la decision aprobada sobre versiones prospectivas y correcciones retroactivas excepcionales controladas.
 - Certificar el ambiente online sin una ejecucion verificable.
 
 #### Futuro posible
@@ -64,7 +64,8 @@ Fecha de corte: 2026-07-20
 | Actor | Necesidad | Permisos o restricciones |
 | --- | --- | --- |
 | Usuario normal | Consultar disponibilidad, reservar, cancelar lo propio, revisar historial e inscribirse en talleres. | Debe autenticarse; el servidor determina su identidad; necesita RUT; no accede a datos personales ajenos ni acciones administrativas. |
-| Administrador | Supervisar reservas, mantener el inventario, programar actividades y resolver conflictos institucionales. | Debe tener rol validado por el servidor; la gestion completa todavia no esta disponible. |
+| Participante | Confirmar o retirar participacion en una solicitud grupal. | Debe tener cuenta autenticada; el solicitante cuenta una vez; no puede duplicar su confirmacion. |
+| Administrador | Supervisar reservas, mantener inventario y politicas, programar actividades y resolver conflictos. | Debe tener rol validado por el servidor; es el unico actor que puede modificar periodos, plazos o recursos sujetos a confirmacion. |
 | Personal institucional | Mantener programacion, bloqueos y criterios operativos. | Actor levantado, pero sin flujo propio completo en el sistema actual. |
 | Microsoft Entra ID | Acreditar identidad institucional. | Entrega identidad; Poli-REDI conserva el control de roles, bloqueo y RUT. |
 | Soporte u operacion | Preparar y verificar ambientes de demo. | Debe impedir `DEV_AUTH_ENABLED` en el ambiente publico y no exponer secretos. |
@@ -159,7 +160,7 @@ Fecha de corte: 2026-07-20
 
 **ID:** RF-020  
 **Titulo:** Restriccion semanal de reserva particular  
-**Descripcion:** El sistema debe limitar las fechas reservables al periodo institucional configurado e impedir mas de una solicitud del mismo usuario dentro del periodo contado desde la fecha local de creacion de la solicitud anterior. Con el valor vigente de siete dias, un martes permite elegir hasta el lunes siguiente y volver a solicitar desde el martes posterior.<br>
+**Descripcion:** El sistema debe limitar las fechas reservables al periodo institucional configurado e impedir mas de una solicitud vigente del mismo usuario dentro del periodo contado desde la fecha local de creacion de la solicitud anterior. `PENDING` y `CONFIRMED` consumen la oportunidad; `CANCELLED` deja de consumirla.<br>
 **Actor:** Usuario normal.  
 **Precondiciones:** Usuario identificado e historial consultable.  
 **Comportamiento esperado:** Evaluar la fecha institucional, la configuracion vigente y el historial aplicable; rechazar fechas fuera de ventana o solicitudes prematuras y comunicar la proxima fecha permitida.<br>
@@ -167,11 +168,11 @@ Fecha de corte: 2026-07-20
 **Prioridad:** MUST.  
 **Fuente:** Alcance definitivo, levantamiento y decision explicita del usuario del 2026-07-20.  
 **Estado:** APROBADO; no IMPLEMENTADO.  
-**Dependencias:** Precisar que estados creados consumen la frecuencia y quien puede cambiar el periodo institucional.
+**Dependencias:** RF-025 para modificar el periodo institucional.
 
 **ID:** RF-021  
 **Titulo:** Confirmacion de participantes minimos  
-**Descripcion:** Para Cancha 1, Cancha 2 y Cancha 3, el sistema debe registrar confirmaciones de participantes unicos, exigir al menos 10 antes de confirmar la reserva y aceptar cambios solo hasta el limite configurable, inicialmente una hora antes del inicio.<br>
+**Descripcion:** Para multicancha 1, 2 y 3, registradas como Cancha 1, 2 y 3, el sistema debe exigir al menos 10 usuarios unicos con cuenta, incluido el solicitante, y aceptar cambios hasta exactamente una hora antes inclusive, plazo configurable.<br>
 **Actor:** Solicitante y participantes.  
 **Precondiciones:** Reserva grupal pendiente y participantes identificables.  
 **Comportamiento esperado:** Contabilizar confirmaciones validas sin duplicados y comparar con el minimo.  
@@ -179,19 +180,19 @@ Fecha de corte: 2026-07-20
 **Prioridad:** MUST.  
 **Fuente:** Alcance definitivo, levantamiento y decision explicita del usuario del 2026-07-20.  
 **Estado:** APROBADO; no IMPLEMENTADO.  
-**Dependencias:** Definir si el solicitante cuenta, como confirma cada persona y el estado al vencer el plazo bajo el minimo.
+**Dependencias:** Identidad autenticada de cada participante y RF-025 para modificar el plazo o los recursos sujetos.
 
 **ID:** RF-022  
 **Titulo:** Confirmacion condicionada por recurso  
 **Descripcion:** El sistema debe determinar el estado inicial y la confirmacion de una solicitud segun la politica del recurso.  
 **Actor:** Usuario normal.  
 **Precondiciones:** Recurso activo con politica de reserva definida.  
-**Comportamiento esperado:** Un recurso `OPEN_USE` no exige confirmacion de integrantes; Cancha 1, 2 y 3 mantienen la solicitud pendiente hasta reunir el minimo, se confirman automaticamente al alcanzarlo y vuelven a `PENDING` si una retirada valida reduce el conteo.<br>
-**Resultado:** El estado refleja las condiciones reales del recurso sin aprobacion manual ordinaria.  
+**Comportamiento esperado:** `OPEN_USE` no exige integrantes; las tres multicanchas quedan `PENDING` y bloquean el horario, se confirman al alcanzar 10, vuelven a `PENDING` al perder el minimo y se cancelan al llegar al limite bajo el minimo.<br>
+**Resultado:** El estado refleja el conteo; la cancelacion por vencimiento libera horario y oportunidad semanal.<br>
 **Prioridad:** MUST.  
 **Fuente:** Decision explicita del usuario del 2026-07-20.  
 **Estado:** APROBADO; no IMPLEMENTADO. El sistema actual confirma toda reserva al crearla.  
-**Dependencias:** RF-021, correspondencia entre nombres de Cancha 1, 2 y 3 y "multicancha 1, 2 y 3", y autoridad sobre la politica.
+**Dependencias:** RF-020, RF-021 y RF-025.
 
 **ID:** RF-023  
 **Titulo:** Resolver conflictos de actividades institucionales  
@@ -216,6 +217,18 @@ Fecha de corte: 2026-07-20
 **Fuente:** Decision explicita del usuario del 2026-07-20 y RF-014.  
 **Estado:** APROBADO; lectura e imagen IMPLEMENTADAS, gestion completa PENDIENTE.  
 **Dependencias:** Politica de conservacion de recursos con historial.
+
+**ID:** RF-025<br>
+**Titulo:** Configurar politicas institucionales de reserva<br>
+**Descripcion:** Solo usuarios con rol administrador deben poder modificar el periodo de reserva, el plazo previo y los recursos sujetos a confirmacion grupal.<br>
+**Actor:** Administrador.<br>
+**Precondiciones:** Cuenta vigente con rol administrador.<br>
+**Comportamiento esperado:** Mostrar valores vigentes, aceptar cambios autorizados e indicar desde cuando rigen.<br>
+**Resultado:** Politica institucional actualizada sin facultades equivalentes para usuarios normales.<br>
+**Prioridad:** SHOULD para MVP 3.<br>
+**Fuente:** Decision explicita del usuario del 2026-07-20.<br>
+**Estado:** APROBADO; no IMPLEMENTADO.<br>
+**Dependencias:** RF-002, RF-020 a RF-022 y arquitectura aprobada de versionado prospectivo con correcciones excepcionales.
 
 #### Requisitos no funcionales
 
@@ -326,14 +339,14 @@ Fecha de corte: 2026-07-20
 **Excepciones:** Ninguna.
 
 **RN-009 — Frecuencia semanal**  
-**Regla:** La longitud del periodo es configurable y actualmente corresponde a siete dias calendario en `America/Santiago`. Un usuario puede elegir fechas desde el dia actual hasta el dia anterior al mismo dia de la semana siguiente. Cuando crea una solicitud, no puede crear otra hasta el mismo dia de la semana siguiente, con independencia de la fecha reservada.<br>
+**Regla:** La longitud del periodo es configurable y actualmente corresponde a siete dias calendario en `America/Santiago`. `PENDING` consume la oportunidad desde su creacion; `CONFIRMED` la mantiene consumida; al pasar a `CANCELLED` deja de consumirla y se recalcula la proxima fecha permitida.<br>
 **Justificacion:** Regla levantada para distribuir acceso.  
 **Fuente:** Levantamiento, alcance definitivo y decision explicita del usuario del 2026-07-20.  
-**Estado:** APROBADO; no IMPLEMENTADO; estados que consumen la frecuencia PENDIENTES.<br>
-**Excepciones:** Una solicitud rechazada que no llega a crearse no consume la frecuencia; falta decidir el efecto de una cancelacion posterior.
+**Estado:** APROBADO; no IMPLEMENTADO.<br>
+**Excepciones:** Una solicitud rechazada que no llega a crearse no consume la frecuencia.
 
 **RN-010 — Participantes minimos**  
-**Regla:** Una reserva de Cancha 1, Cancha 2 o Cancha 3 requiere al menos 10 participantes unicos con confirmacion vigente para permanecer `CONFIRMED`. Las confirmaciones y retiradas se aceptan hasta el limite configurable, inicialmente una hora antes del inicio.<br>
+**Regla:** Multicancha 1, 2 y 3, identificadas como Cancha 1, 2 y 3, requieren al menos 10 usuarios unicos con cuenta y confirmacion vigente. El solicitante cuenta una vez dentro del minimo.<br>
 **Justificacion:** Regla levantada para justificar el uso del espacio.  
 **Fuente:** Levantamiento, alcance definitivo y decision explicita del usuario del 2026-07-20.  
 **Estado:** APROBADO; no IMPLEMENTADO de punta a punta.  
@@ -360,6 +373,20 @@ Fecha de corte: 2026-07-20
 **Estado:** APROBADO; lectura IMPLEMENTADA y gestion completa PENDIENTE.  
 **Excepciones:** Eliminacion de recursos con historial requiere politica de conservacion.
 
+**RN-014 — Bloqueo y vencimiento de solicitud grupal**<br>
+**Regla:** Una solicitud grupal `PENDING` bloquea el horario. Se admiten confirmaciones o retiradas hasta exactamente el limite, inicialmente una hora antes inclusive. Si llega al limite bajo 10 confirmaciones, cambia a `CANCELLED` y libera horario y oportunidad semanal.<br>
+**Justificacion:** Evita doble asignacion y solicitudes pendientes sin salida.<br>
+**Fuente:** Decision explicita del usuario del 2026-07-20.<br>
+**Estado:** APROBADO; no IMPLEMENTADO.<br>
+**Excepciones:** `OPEN_USE` no aplica confirmacion grupal.
+
+**RN-015 — Administracion exclusiva de politicas**<br>
+**Regla:** Solo usuarios con rol administrador pueden modificar el periodo de reserva, el plazo previo o los recursos sujetos a confirmacion grupal.<br>
+**Justificacion:** Evita que usuarios normales alteren reglas institucionales.<br>
+**Fuente:** Decision explicita del usuario del 2026-07-20.<br>
+**Estado:** APROBADO; no IMPLEMENTADO.<br>
+**Excepciones:** Ninguna.
+
 ### 7. Flujos
 
 #### Flujo principal: crear reserva actual
@@ -383,19 +410,16 @@ Alternativas y errores:
 
 #### Flujo objetivo aprobado: confirmacion por participantes
 
-1. El usuario solicita Cancha 1, Cancha 2 o Cancha 3 dentro de la ventana configurable.
-2. El sistema valida la frecuencia desde la fecha de creacion de la solicitud anterior y registra la nueva solicitud como `PENDING`.
-3. Los participantes se identifican y confirman su participacion sin duplicados hasta el limite configurable, inicialmente una hora antes del inicio.
+1. El usuario solicita una de las tres multicanchas dentro de la ventana configurable.
+2. El sistema registra la solicitud como `PENDING`; desde ese momento consume la oportunidad semanal y bloquea el horario.
+3. El solicitante cuenta una vez. Los demas participantes se autentican con sus cuentas y confirman sin duplicados hasta exactamente una hora antes inclusive.
 4. Mientras existan menos de 10 confirmaciones validas, la solicitud no se presenta como reserva confirmada.
 5. Al alcanzar 10 confirmaciones, el sistema cambia automaticamente la solicitud a `CONFIRMED`, siempre que las demas reglas sigan cumpliendose.
 6. Si una persona retira su confirmacion dentro del plazo y quedan menos de 10, el sistema devuelve la reserva a `PENDING`.
-7. Para `OPEN_USE`, el sistema no exige este proceso de confirmacion grupal.
+7. Si llega al limite bajo el minimo, el sistema la cambia a `CANCELLED`, libera el horario y deja de consumir la oportunidad semanal.
+8. Para `OPEN_USE`, el sistema no exige este proceso de confirmacion grupal.
 
-Alternativas pendientes de precision:
-
-- Estado al vencer el limite de una solicitud que no alcance o deje de alcanzar el minimo.
-- Efecto de una solicitud `PENDING` sobre la disponibilidad.
-- Tratamiento de conflictos aparecidos mientras la solicitud esta pendiente.
+Alternativa: un intento de confirmacion posterior al limite se rechaza sin alterar el conteo ni el estado ya resuelto.
 
 #### Flujo objetivo aprobado: conflicto institucional
 
@@ -487,7 +511,19 @@ Dado un periodo vigente de siete dias y que hoy es martes en `America/Santiago`,
 Dada una reserva de Cancha 1, 2 o 3 con 10 confirmaciones y aun antes del limite, cuando una persona retira su confirmacion y quedan 9 vigentes, entonces la reserva vuelve a `PENDING` y el conteo visible se actualiza.
 
 **CA-023**<br>
-Dado que el limite vigente es una hora antes del inicio, cuando una persona intenta confirmar o retirar su participacion dentro de la ultima hora, entonces la operacion se rechaza y el estado y conteo no cambian.
+Dado que el limite vigente es una hora antes del inicio, cuando una persona confirma o retira exactamente en ese instante, entonces el cambio se acepta y se evalua inmediatamente el minimo; si queda bajo 10, se aplica la cancelacion de vencimiento. Cualquier intento posterior se rechaza.
+
+**CA-024**<br>
+Dada una solicitud `PENDING`, cuando se crea, entonces consume la oportunidad semanal; cuando cambia a `CANCELLED`, deja de consumirla y se recalcula la proxima fecha permitida.
+
+**CA-025**<br>
+Dada una solicitud de multicancha, cuando se inicia el conteo, entonces el solicitante cuenta una vez y solo cuentas autenticadas pueden agregar confirmaciones unicas.
+
+**CA-026**<br>
+Dada una solicitud grupal `PENDING`, cuando otro usuario consulta el mismo horario para un uso incompatible, entonces aparece ocupado; si llega al limite bajo 10 confirmaciones, cambia a `CANCELLED` y el horario queda disponible.
+
+**CA-027**<br>
+Dado un usuario normal y un administrador, cuando intentan modificar periodo, plazo o recursos sujetos a confirmacion, entonces solo el administrador puede completar el cambio y el sistema informa desde cuando rige.
 
 ### 9. Casos limite
 
@@ -502,9 +538,9 @@ Dado que el limite vigente es una hora antes del inicio, cuando una persona inte
 - Usuario bloqueado durante una sesion ya iniciada.
 - Taller que alcanza el ultimo cupo con solicitudes concurrentes.
 - Ventana semanal un martes, limite entre lunes y martes siguiente, cambio autorizado del periodo y horario de verano.
-- Solicitud creada un dia y reserva fijada para otro; cancelacion posterior y efecto sobre la siguiente fecha permitida.
-- Solicitante contado o no dentro del minimo; participante repetido, sin cuenta o que retira su confirmacion antes y despues del limite.
-- Retirada que reduce el conteo a 9 exactamente una hora antes del inicio y solicitud que llega al limite sin minimo.
+- Solicitud creada un dia y reserva fijada para otro; cancelacion posterior y recalculo de la siguiente fecha permitida.
+- Solicitante contado una sola vez; participante repetido, sin cuenta o que retira su confirmacion antes y despues del limite.
+- Retirada que reduce el conteo a 9 exactamente una hora antes del inicio y cancelacion inmediata por llegar al limite bajo el minimo.
 - Solicitud grupal que alcanza el minimo despues de que aparece otro conflicto.
 - Actividad institucional contra varias reservas particulares simultaneas.
 - Dos actividades que comparten solo una parte del horario o del espacio.
@@ -516,15 +552,16 @@ Dado que el limite vigente es una hora antes del inicio, cuando una persona inte
 | RF-001 | RN-001 | CA-001 | Middleware, rutas, RF-001 |
 | RF-002 | RN-002, RN-003 | CA-002, CA-003 | Middleware, usuarios, RF-002 a RF-004 |
 | RF-003 | RN-007, RN-012 | CA-007, CA-008, CA-009 | RF-005, disponibilidad, esquema |
-| RF-004 | RN-001, RN-004 a RN-007, RN-009, RN-010 | CA-003 a CA-008, CA-014 a CA-017, CA-021 a CA-023 | RF-006, RF-007, servicio, esquema y decisiones del 2026-07-20 |
+| RF-004 | RN-001, RN-004 a RN-007, RN-009, RN-010, RN-014 | CA-003 a CA-008, CA-014 a CA-017, CA-021 a CA-026 | RF-006, RF-007, servicio, esquema y decisiones del 2026-07-20 |
 | RF-005 | RN-008 | CA-010 | RF-008 y servicio |
 | RF-006 | RN-003 | CA-011 | RF-019 y talleres |
 | RF-007 | RN-002, RN-012, RN-013 | CA-002, CA-009, CA-020 | RF-012 a RF-018 y decision del 2026-07-20 |
-| RF-020 | RN-009 | CA-014, CA-021 | Levantamiento, alcance definitivo y decisiones del 2026-07-20 |
-| RF-021 | RN-010 | CA-015, CA-016, CA-022, CA-023 | Levantamiento, alcance definitivo y decisiones del 2026-07-20 |
-| RF-022 | RN-006, RN-007, RN-010 | CA-015 a CA-017, CA-022, CA-023 | Decisiones del 2026-07-20 |
+| RF-020 | RN-009 | CA-014, CA-021, CA-024 | Levantamiento, alcance definitivo y decisiones del 2026-07-20 |
+| RF-021 | RN-010, RN-014 | CA-015, CA-016, CA-022, CA-023, CA-025, CA-026 | Levantamiento, alcance definitivo y decisiones del 2026-07-20 |
+| RF-022 | RN-006, RN-007, RN-010, RN-014 | CA-015 a CA-017, CA-022 a CA-026 | Decisiones del 2026-07-20 |
 | RF-023 | RN-011 | CA-018, CA-019 | Decision del 2026-07-20 |
 | RF-024 | RN-013 | CA-020 | RF-014 y decision del 2026-07-20 |
+| RF-025 | RN-002, RN-015 | CA-027 | Decision del 2026-07-20 |
 | RNF-001 | RN-004 | CA-004, CA-013 | Reloj, pruebas y RNF-010 |
 | RNF-002 | RN-012 | CA-009 | Handler de disponibilidad |
 | RNF-003 | — | CA-012 | RNF-009, RNF-012 |
@@ -536,27 +573,26 @@ Dado que el limite vigente es una hora antes del inicio, cuando una persona inte
 | --- | --- | --- | --- |
 | C-01 | Alcance definitivo vs repositorio | Entra ID real y demo Azure estaban fuera del alcance original y hoy estan implementados/documentados. | El informe puede describir un alcance distinto del prototipo entregado. |
 | C-03 | Reglas aprobadas vs flujo actual | La ventana/frecuencia configurable y el minimo de 10 participantes son obligatorios, pero no se aplican. | MVP 2 no puede cerrarse. |
-| C-04 | Confirmacion aprobada vs flujo actual | Cancha 1, 2 y 3 requieren participantes, retorno a `PENDING` al perder el minimo y limite previo configurable; el sistema confirma toda reserva al crearla y no registra participantes. | Solicitudes grupales pueden quedar confirmadas sin cumplir ni conservar el minimo. |
+| C-04 | Confirmacion aprobada vs flujo actual | Las multicanchas requieren cuentas, bloqueo `PENDING`, estados reversibles y cancelacion al vencer; el sistema confirma toda reserva al crearla y no registra participantes. | Solicitudes grupales pueden quedar confirmadas sin cumplir las reglas. |
 | C-05 | Prioridad institucional aprobada vs esquema actual | Debe cancelarse y notificarse la reserva particular y permitirse decision entre actividades, pero el esquema rechaza el solapamiento al registrar la actividad. | El comportamiento aprobado no puede ejecutarse. |
-| C-06 | Inventario oficial vs administracion actual | Los ocho recursos son oficiales, pero solo puede modificarse su imagen. | La institucion no puede mantener autonomamente su inventario. |
+| C-06 | Inventario y politicas aprobadas vs administracion actual | Los ocho recursos son oficiales y solo administradores deben cambiar inventario o politicas, pero hoy solo puede modificarse la imagen. | La institucion no puede mantener autonomamente recursos, periodos ni plazos. |
 | C-07 | Disponibilidad visible vs regla de base | Bloqueos impiden reservar, pero no se muestran en el endpoint actual. | Un horario puede parecer libre y fallar al confirmar. |
 
 ### 12. Preguntas y decisiones pendientes
 
-1. **D-11 — Estados que consumen la frecuencia:** ¿Una solicitud creada y luego cancelada sigue usando la oportunidad del periodo, y una solicitud `PENDING` la consume desde su creacion? Importa para evitar resultados distintos ante cancelacion. Supuesto provisional: `PENDING` y `CONFIRMED` consumen al crearse; no asumir el efecto de `CANCELLED`.
-2. **D-12 — Conteo e identidad de participantes:** ¿El solicitante cuenta entre los 10 y como confirma una persona, especialmente si no tiene cuenta? Importa para que el minimo sea verificable y no duplicable. Supuesto provisional: contar solo identidades unicas con confirmacion vigente.
-3. **D-13 — Resultado al vencer el plazo:** ¿La solicitud `PENDING` bloquea el horario mientras reune integrantes, el instante exacto de una hora antes aun admite cambios y la solicitud se cancela, rechaza o permanece pendiente si llega a ese limite sin 10 confirmaciones? Importa para evitar acaparamiento y estados sin salida. Supuesto provisional: rechazar solo dentro de la ultima hora y no definir bloqueo ni estado final sin aprobacion.
-4. **D-14 — Nombre y autoridad de la politica:** ¿Cancha 1, 2 y 3 del inventario son exactamente las "multicanchas 1, 2 y 3" indicadas, y quien puede modificar que recursos o plazos exigen confirmacion? Importa para no aplicar la regla al recurso equivocado. Supuesto provisional: tratarlos como correspondientes solo para redactar el alcance, no para declarar verificacion.
-Preguntas secundarias agrupadas: politica de conservacion del inventario, conflicto entre actividad y bloqueo y efecto de cambiar configuraciones sobre solicitudes ya creadas.
+No quedan preguntas bloqueantes para el incremento analizado.
+
+**DECISION APROBADA el 2026-07-20:** los cambios administrativos normales crean versiones prospectivas y cada solicitud conserva la version vigente al crearse. Excepcionalmente, un administrador puede corregir solicitudes futuras activas seleccionadas mediante simulacion, motivo, aplicacion atomica y auditoria, sin editar versiones historicas ni cancelar solicitudes implicitamente.
 
 ### 13. Riesgos de producto
 
 | Riesgo | Probabilidad | Impacto | Mitigacion propuesta |
 | --- | --- | --- | --- |
-| Defender como cumplidas reglas aprobadas pero no implementadas | Alta | Alto | Mantener RF-020 a RF-023 como PENDIENTES hasta su verificacion. |
+| Defender como cumplidas reglas aprobadas pero no implementadas | Alta | Alto | Mantener RF-020 a RF-025 como PENDIENTES o PARCIALES hasta su verificacion. |
 | Mostrar disponibilidad incompleta por omitir bloqueos | Alta | Alto | Mantener el rechazo servidor y priorizar la visibilidad de bloqueos antes de operacion real. |
 | Cancelar automaticamente sin informar al usuario afectado | Media | Alto | Tratar el aviso ya aprobado como criterio obligatorio y verificar su entrega antes de habilitar prioridad institucional. |
-| Solicitudes pendientes que acaparen horarios | Alta | Alto | Resolver D-13 antes de definir el efecto de `PENDING` sobre disponibilidad. |
+| Solicitudes pendientes que acaparen horarios | Media | Alto | Aplicar el bloqueo aprobado y cancelacion automatica al vencer bajo el minimo. |
+| Cambiar politicas de forma retroactiva y sorprender a usuarios | Media | Alto | Aplicar versiones prospectivas; limitar excepciones a solicitudes seleccionadas con simulacion, motivo, atomicidad y auditoria. |
 | Confundir demo Azure con sistema productivo | Media | Alto | Etiquetar el ambiente como demo y exigir checklist online antes de presentarlo como disponible. |
 | Exponer datos o detalles internos en errores | Media | Alto | Completar criterios de minimizacion y mensajes seguros antes de usuarios reales. |
 | Experiencia inconsistente en movil o teclado | Alta | Medio | Evaluacion UI/UX y validacion manual en anchos y flujos criticos definidos. |
@@ -567,25 +603,25 @@ Preguntas secundarias agrupadas: politica de conservacion del inventario, confli
 
 ```text
 Estado de la entrega:
-REQUIERE_INFORMACIÓN
+APROBABLE
 
 Siguiente rol recomendado:
-NINGUNO
+DESARROLLADOR
 
 Motivo:
-Las decisiones nucleares ya fueron aprobadas, incluidos los limites actuales de siete dias y una hora, su caracter configurable, el catalogo de duraciones, el retorno a `PENDING`, los tres recursos grupales y la notificacion automatica. Aun faltan cuatro precisiones de producto que cambian estados y criterios verificables.
+Los requisitos y la arquitectura quedaron aprobados. La implementacion debe comenzar por el versionado compatible y las reglas de solicitud, seguida por participantes, vencimiento y administracion.
 
 Contexto que debería recibir:
 docs/00-resumen-proyecto.md, este informe, docs/08-requisitos-historias-casos-uso.md, docs/09-mvps-roadmap.md, docs/12-checklist-demo-mvp1.md y los documentos historicos de levantamiento/alcance.
 
-Decisiones que requieren aprobación:
-D-11 estados que consumen la frecuencia; D-12 conteo e identidad; D-13 efecto de `PENDING` y vencimiento; D-14 correspondencia de nombres y autoridad de configuracion.
+Decisiones aprobadas:
+Aplicacion prospectiva, correcciones retroactivas excepcionales controladas, cuatro incrementos tecnicos, prohibicion de retiro del solicitante y entrega posterior de ADMIN-005.
 ```
 
 ### 15. Cambios propuestos a fuentes de verdad
 
 | Documento | Seccion | Cambio propuesto | Motivo |
 | --- | --- | --- | --- |
-| `../Documentos/alcance_definitivo_prototipo_poli_redi.txt` | Alcance y reglas | Incorporar el catalogo de duraciones aprobado, la ventana/frecuencia configurable, confirmaciones hasta una hora antes, retorno a `PENDING`, recursos afectados y aviso obligatorio una vez resueltas D-11 a D-14. | Mantener el alcance academico alineado con el producto. |
+| `../Documentos/alcance_definitivo_prototipo_poli_redi.txt` | Alcance y reglas | Incorporar estados que consumen oportunidad, participantes con cuenta, bloqueo `PENDING`, vencimiento, nombres oficiales y administracion exclusiva. | Mantener el alcance academico alineado con el producto. |
 | Informe de tesis | Problema, alcance, requisitos y resultados | Incorporar ventana configurable, confirmacion condicional reversible, prioridad institucional con aviso e inventario oficial, distinguiendo aprobado de implementado. | Mantener una defensa coherente y comprobable. |
-| Documento institucional de operacion | Frecuencia, participantes y conflictos | Formalizar valores iniciales, autoridad de configuracion, estados que consumen cupo y resultado al vencer el plazo despues de D-11 a D-14. | Evitar que reglas criticas dependan solo del codigo o del informe. |
+| Documento institucional de operacion | Frecuencia, participantes y conflictos | Formalizar valores iniciales, administracion exclusiva, cancelacion por vencimiento, versionado prospectivo y correcciones excepcionales auditadas. | Evitar que reglas criticas dependan solo del codigo o del informe. |

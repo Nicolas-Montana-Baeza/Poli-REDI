@@ -133,6 +133,27 @@ La demo online inicial usa:
 - Variables frontend `VITE_*` desde GitHub Actions.
 - Variables backend en App Service.
 
+## Arquitectura aprobada para politicas de reserva
+
+Estado: APROBADA el 2026-07-20; pendiente de implementacion.
+
+- Las politicas de ventana, frecuencia, plazo, minimo y recursos grupales se almacenan como versiones inmutables.
+- Cada solicitud referencia la version vigente al crearse y conserva sus condiciones.
+- El solicitante se registra como participante, no puede retirar su participacion y debe cancelar la solicitud completa si desea abandonarla.
+- Confirmar o retirar participacion, recalcular el estado y resolver el vencimiento forman una sola operacion transaccional por reserva.
+- Los vencimientos se resuelven antes de consultar o modificar las reservas relevantes. Un ejecutor programado queda como mejora futura si se exige notificacion exactamente al minuto sin actividad del sistema.
+- Una correccion retroactiva es excepcional: un administrador selecciona solicitudes futuras activas, previsualiza el efecto, declara un motivo y aplica el lote de forma atomica y auditada. Si alguna solicitud queda invalida, no se aplica ninguna ni se cancela implicitamente.
+- `ADMIN-005`, incluida la prioridad de actividades institucionales, se disenara en una entrega arquitectonica posterior.
+
+### Contratos previstos
+
+- `GET /api/reservation-policies/current`: consultar la politica vigente.
+- `POST /api/admin/reservation-policies`: publicar una nueva version prospectiva.
+- `PUT /api/reservations/:id/participants/me`: confirmar participacion propia.
+- `DELETE /api/reservations/:id/participants/me`: retirar participacion propia; el solicitante recibe rechazo y debe cancelar.
+- `POST /api/admin/reservation-policy-corrections/preview`: simular una correccion excepcional.
+- `POST /api/admin/reservation-policy-corrections/apply`: aplicar una simulacion vigente con idempotencia por lote.
+
 ## Riesgos y mejoras recomendadas
 
 - Extender el endpoint de disponibilidad para aceptar fecha o rango y sumar bloqueos; las actividades programadas activas ya forman parte del contrato.

@@ -254,10 +254,10 @@ Incluye tambien una primera version funcional de talleres deportivos: listado de
 - Completar filtros por fecha/rango y sumar bloqueos al endpoint de disponibilidad; las actividades programadas ya estan integradas (`API-004`, `ADMIN-004`).
 - Cargar el detalle por ID sin descargar colecciones completas (`API-006`).
 - Agregar confirmacion fuerte antes de cancelar reservas (`RES-007`).
-- Aplicar la ventana y frecuencia configurables aprobadas; con siete dias, un martes permite fechas hasta el lunes siguiente y una nueva solicitud desde el martes posterior (`RES-012`).
-- Registrar confirmaciones de participantes unicos y exigir al menos 10 para Cancha 1, 2 y 3 (`RES-008`).
-- Mantener solicitudes grupales en `PENDING`, confirmarlas al alcanzar el minimo y devolverlas a `PENDING` si una retirada valida reduce el conteo; `OPEN_USE` no requiere este proceso (`RES-008`, `RES-010`).
-- Aceptar cambios de confirmacion hasta el limite configurable, inicialmente una hora antes del inicio (`RES-008`).
+- Aplicar la ventana y frecuencia configurables; `PENDING` consume desde su creacion y `CANCELLED` libera la oportunidad (`RES-012`).
+- Registrar al solicitante y participantes mediante cuentas unicas, exigiendo al menos 10 para las tres multicanchas (`RES-008`).
+- Mantener solicitudes grupales en `PENDING`, bloquear el horario, confirmar al alcanzar el minimo y volver a `PENDING` si una retirada reduce el conteo (`RES-008`, `RES-010`).
+- Aceptar cambios hasta exactamente una hora antes inclusive y cancelar al vencer bajo el minimo, liberando horario y oportunidad (`RES-008`, `RES-012`).
 - Profesionalizar la seleccion de horario, capacidad, etiquetas humanas y experiencia movil (`UX-001`).
 - Mostrar feedback preventivo de conflicto antes de confirmar una reserva (`UX-003`).
 - Completar notificaciones: marcar como leida y diferenciar leidas/no leidas (`NOTIF-001`).
@@ -265,7 +265,7 @@ Incluye tambien una primera version funcional de talleres deportivos: listado de
 
 ### Criterio de cierre
 
-El MVP 2 se considera cerrado cuando un usuario normal puede autenticarse, completar su perfil, consultar disponibilidad, cumplir la ventana y frecuencia configuradas, crear una solicitud con estado acorde al recurso, reunir y mantener 10 participantes confirmados dentro del plazo cuando corresponda, cancelar una reserva propia, revisar reservas/historial/recursos, inscribirse en talleres deportivos disponibles y operar sin errores visibles en los flujos principales.
+El MVP 2 se considera cerrado cuando un usuario normal puede autenticarse, completar su perfil, consultar disponibilidad, cumplir la ventana y frecuencia, crear una solicitud con estado acorde al recurso, reunir mediante cuentas y mantener 10 participantes dentro del plazo, observar el bloqueo `PENDING` y su cancelacion al vencer, cancelar una reserva propia, revisar reservas/historial/recursos, inscribirse en talleres y operar sin errores visibles en los flujos principales.
 
 ## MVP 3 - Administracion institucional
 
@@ -291,6 +291,7 @@ Convertir Poli-REDI en una herramienta administrable por la institucion, con cal
 - `ADMIN-003`
 - `ADMIN-004`
 - `ADMIN-005`
+- `ADMIN-006`
 - `RES-004`
 - `API-001`
 - `API-005`
@@ -309,6 +310,7 @@ Convertir Poli-REDI en una herramienta administrable por la institucion, con cal
 - `RF-018`
 - `RF-023`
 - `RF-024`
+- `RF-025`
 - `HU-009`
 - `HU-010`
 - `HU-011`
@@ -316,8 +318,10 @@ Convertir Poli-REDI en una herramienta administrable por la institucion, con cal
 - `HU-013`
 - `HU-016`
 - `HU-017`
+- `HU-018`
 - `CU-006`
 - `CU-010`
+- `CU-011`
 
 ### Estado actual
 
@@ -328,6 +332,7 @@ Parcial.
 - Completar la integracion de bloqueos en el calendario unificado; reservas y actividades programadas ya comparten contrato (`RES-004`).
 - Crear bloqueos de disponibilidad desde administracion (`ADMIN-004`).
 - Completar la gestion del inventario oficial de ocho recursos; la actualizacion de imagen ya esta implementada (`ADMIN-003`).
+- Permitir solo a administradores modificar el periodo, el plazo previo y los recursos sujetos a confirmacion grupal (`ADMIN-006`).
 - Bloquear y desbloquear usuarios con auditoria (`ADMIN-002`).
 - Registrar programacion institucional, cancelar automaticamente reservas particulares en conflicto y permitir que el administrador cancele una actividad o mantenga ambas cuando el conflicto sea institucional (`ADMIN-005`).
 - Agregar filtros backend de recursos por sede, tipo y estado (`API-001`).
@@ -337,7 +342,7 @@ Parcial.
 
 ### Criterio de cierre
 
-El MVP 3 se considera cerrado cuando un administrador puede controlar disponibilidad institucional, resolver conflictos entre actividades, mantener el inventario oficial, administrar usuarios y visualizar informacion operacional sin modificar datos directamente en base de datos.
+El MVP 3 se considera cerrado cuando un administrador puede controlar disponibilidad institucional, resolver conflictos entre actividades, mantener el inventario oficial y sus politicas de reserva, administrar usuarios y visualizar informacion operacional sin modificar datos directamente en base de datos.
 
 ## MVP 4 - Entrega, calidad y soporte
 
@@ -410,6 +415,17 @@ En desarrollo.
 El MVP 4 se considera cerrado cuando el proyecto tiene evidencia de pruebas, documentacion suficiente para instalacion/arquitectura/flujo/requisitos, reportes y notificaciones completas, y una estrategia clara de despliegue.
 
 ## Dependencias entre MVPs
+
+## Cuatro incrementos tecnicos aprobados para politicas y solicitudes grupales
+
+Estos incrementos no reemplazan los cuatro MVPs generales; ordenan `RES-012`, `RES-008` y `ADMIN-006` dentro de ellos:
+
+1. **Versionado y reglas de solicitud:** politica inicial e inmutable por solicitud, ventana, frecuencia y liberacion al cancelar.
+2. **Participantes y estado condicionado:** solicitante contado sin posibilidad de retiro, confirmaciones de terceros, bloqueo `PENDING` y transiciones por minimo.
+3. **Plazo y vencimiento:** limite inclusivo, cancelacion bajo el minimo y resolucion antes de consultas o escrituras relevantes.
+4. **Administracion y correcciones excepcionales:** nuevas versiones prospectivas, previsualizacion, aplicacion atomica auditada y reversion mediante una nueva correccion.
+
+`ADMIN-005` queda expresamente para una entrega arquitectonica posterior y no bloquea estos cuatro incrementos.
 
 ```mermaid
 flowchart LR

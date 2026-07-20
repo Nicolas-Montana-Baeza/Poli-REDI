@@ -504,6 +504,21 @@ erDiagram
 - Definir politicas de auditoria completas para mas entidades, no solo reservas.
 - Definir politicas de retencion para `notifications` y `audit_logs`.
 
+## Modelo aprobado pendiente de implementacion: politicas versionadas
+
+La implementacion debe agregar:
+
+- `reservation_policies`: versiones inmutables con ventana reservable, frecuencia, plazo, minimo, `effective_from` y `effective_to`.
+- `reservation_policy_resources`: relacion unica entre version y recursos sujetos a confirmacion grupal.
+- `reservations.policy_id`: version aplicada a la solicitud; se agrega nullable, se completa con la version inicial y luego pasa a `NOT NULL`.
+- `reservation_policy_corrections`: historial con reserva, version anterior, version nueva, administrador, motivo, fecha UTC y `batch_id`.
+
+Debe existir una sola version vigente. Publicar una politica cierra la anterior y activa la nueva dentro de una transaccion. Las versiones utilizadas no se editan ni eliminan.
+
+Las correcciones excepcionales solo admiten solicitudes futuras `PENDING` o `CONFIRMED`. El lote bloquea y revalida todas las reservas, cambia `policy_id` y registra el historial de forma atomica. Una incompatibilidad rechaza el lote completo; no se producen cancelaciones implicitas. Una reversion se registra como otra correccion hacia la version anterior.
+
+Los conflictos de recursos grupales deben considerar `PENDING` y `CONFIRMED`. Confirmacion, retiro, cancelacion y vencimiento deben serializarse por reserva mediante transaccion y bloqueos compatibles con Azure SQL, por ejemplo `UPDLOCK, HOLDLOCK`.
+
 ## Recomendacion siguiente
 
 Continuar con una revision funcional de pantallas:

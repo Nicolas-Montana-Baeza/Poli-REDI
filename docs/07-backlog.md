@@ -1571,7 +1571,7 @@ Permitir cancelar reservas desde la interfaz usando el usuario autenticado.
 
 Prioridad: P0
 Labels: `frontend`, `backend`, `database`, `reservas`, `ux`, `needs-architecture`, `mvp2`
-Estado sugerido: Ready for Architecture
+Estado sugerido: Ready for Development
 
 ### Contexto
 
@@ -1785,7 +1785,7 @@ Definir y aplicar en backend las reglas institucionales minimas de duracion e in
 
 Prioridad: P0
 Labels: `reservas`, `reglas-negocio`, `backend`, `frontend`, `mvp2`, `needs-architecture`
-Estado sugerido: Ready for Architecture
+Estado sugerido: Ready for Development
 
 ### Contexto
 
@@ -2122,6 +2122,39 @@ Permitir registrar clases, talleres, eventos, campeonatos o entrenamientos insti
 - [ ] El administrador ve un resumen de reservas y actividades afectadas.
 - [ ] El usuario cuya reserva particular se cancela automaticamente recibe una notificacion del cambio sin exponer datos de otras personas.
 - [ ] Define comportamiento futuro de recurrencia.
+
+## ADMIN-006 - Configurar politicas institucionales de reserva
+
+Prioridad: P1
+Labels: `admin`, `reservas`, `reglas-negocio`, `architecture-approved`, `mvp3`
+Estado sugerido: Ready for Development
+
+### Objetivo
+
+Permitir que solo usuarios con rol administrador modifiquen el periodo de reserva, el plazo previo de confirmacion y los recursos sujetos a confirmacion grupal.
+
+### Criterios de aceptacion
+
+- [ ] Un administrador puede modificar el periodo cuyo valor inicial es siete dias.
+- [ ] Un administrador puede modificar el plazo previo cuyo valor inicial es una hora.
+- [ ] Un administrador puede modificar que recursos requieren confirmacion grupal.
+- [ ] Un usuario normal no puede consultar controles administrativos ni modificar estas politicas.
+- [ ] Cada cambio muestra el valor anterior, el nuevo valor y el momento desde el cual rige.
+- [ ] El cambio normal crea una version inmutable y se aplica a solicitudes creadas posteriormente.
+- [ ] Cada solicitud conserva la version vigente al crearse.
+- [ ] Un administrador puede previsualizar una correccion excepcional sobre solicitudes futuras `PENDING` o `CONFIRMED` seleccionadas.
+- [ ] La correccion exige motivo, confirmacion explicita, auditoria e idempotencia por lote.
+- [ ] La aplicacion revalida todas las solicitudes y es atomica: si una es incompatible, no cambia ninguna.
+- [ ] La correccion no edita versiones historicas ni cancela solicitudes implicitamente.
+- [ ] Una reversion se registra como una nueva correccion hacia la version anterior.
+
+### Arquitectura aprobada
+
+- Persistir versiones en `reservation_policies` y sus recursos en `reservation_policy_resources`.
+- Asociar cada reserva mediante `reservations.policy_id`.
+- Registrar excepciones en `reservation_policy_corrections` con version anterior/nueva, administrador, motivo, fecha UTC y lote.
+- Separar `preview` y `apply` en rutas administrativas protegidas.
+- Mantener `ADMIN-005` fuera de esta entrega y disenarlo posteriormente.
 
 ---
 
@@ -3051,14 +3084,13 @@ Estas tareas ya tienen implementacion inicial. Antes de cerrar el MVP 1 falta ev
 
 ## Bloque 3 - Cierre de flujo usuario MVP 2
 
-1. Resolver las precisiones restantes sobre estados que consumen la frecuencia, conteo del solicitante, efecto de `PENDING` y denominacion/autoridad de las multicanchas.
-2. `RES-012` Aplicar la restriccion semanal aprobada.
-3. `RES-008` Registrar confirmaciones de participantes y confirmar solicitudes grupales al alcanzar el minimo.
-4. `API-002` Filtrar reservas por fecha/rango/estado.
-5. `API-004` Filtrar disponibilidad e integrar ocupaciones institucionales.
-6. `API-006` Consultar detalle de reserva por ID.
-7. `UX-003` Prevenir conflictos antes de confirmar.
-8. `NOTIF-001` Completar leidas/no leidas y destino real de notificaciones.
+1. `RES-012` Aplicar la ventana, frecuencia y liberacion de oportunidad aprobadas.
+2. `RES-008` Registrar participantes con cuenta, bloquear `PENDING` y cancelar al vencer bajo el minimo.
+3. `API-002` Filtrar reservas por fecha/rango/estado.
+4. `API-004` Filtrar disponibilidad e integrar ocupaciones institucionales.
+5. `API-006` Consultar detalle de reserva por ID.
+6. `UX-003` Prevenir conflictos antes de confirmar.
+7. `NOTIF-001` Completar leidas/no leidas y destino real de notificaciones.
 
 ## Bloque 4 - Administracion y analitica
 
@@ -3067,8 +3099,9 @@ Estas tareas ya tienen implementacion inicial. Antes de cerrar el MVP 1 falta ev
 3. `ADMIN-003` Completar gestion del inventario oficial de ocho recursos.
 4. `ADMIN-002` Completar gestion de usuarios.
 5. `ADMIN-005` Programacion institucional y resolucion de conflictos aprobada.
-6. `REP-003` Corregir semantica y precision de indicadores.
-7. `REP-002` Completar infracciones.
+6. `ADMIN-006` Configurar politicas de reserva exclusivamente como administrador.
+7. `REP-003` Corregir semantica y precision de indicadores.
+8. `REP-002` Completar infracciones.
 
 # Tareas Codex-ready recomendadas
 

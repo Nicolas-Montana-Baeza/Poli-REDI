@@ -196,6 +196,7 @@ sequenceDiagram
 - Una solicitud grupal con 9 participantes confirmados debe permanecer `PENDING`.
 - La decima confirmacion valida debe cambiarla a `CONFIRMED` si las demas reglas siguen vigentes.
 - Retirar una confirmacion y bajar de 10 antes del limite debe devolverla a `PENDING` sin liberar el horario.
+- El solicitante cuenta una vez y no puede retirar su participacion; si desea abandonar debe cancelar la solicitud completa.
 - Confirmar o retirar exactamente una hora antes debe permitirse; cualquier intento posterior debe rechazarse.
 - Una solicitud que llega al limite con menos de 10 confirmaciones debe cancelarse, liberar el horario y liberar la oportunidad semanal.
 - Un recurso `OPEN_USE` no debe exigir confirmaciones grupales.
@@ -211,6 +212,15 @@ sequenceDiagram
 - Reservas canceladas no deben bloquear disponibilidad activa.
 - Una actividad institucional en conflicto debe cancelar automaticamente la reserva particular.
 - Dos actividades institucionales en conflicto deben permitir al administrador cancelar una o mantener ambas.
+
+## Cambios administrativos de politica
+
+- Una version nueva se aplica a solicitudes creadas desde su vigencia; las existentes conservan su version.
+- Una correccion retroactiva es excepcional y solo puede afectar solicitudes futuras `PENDING` o `CONFIRMED` seleccionadas expresamente.
+- El administrador debe previsualizar diferencias, informar un motivo y confirmar el lote.
+- La aplicacion vuelve a validar tiempo, estado, participantes y version dentro de una transaccion.
+- Si una solicitud resulta incompatible o cambia desde la previsualizacion, se rechaza el lote completo sin cancelaciones implicitas.
+- La correccion y cualquier reversion quedan auditadas y notifican al solicitante cuando cambian sus condiciones.
 
 ## Politica temporal vigente
 

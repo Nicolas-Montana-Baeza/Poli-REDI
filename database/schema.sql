@@ -160,6 +160,51 @@ END;
 GO
 
 -- ============================================================
+-- TABLE: reservation_policies
+-- Versiones prospectivas e inmutables de las reglas de solicitud.
+-- effective_from/effective_to son timestamps tecnicos UTC.
+-- ============================================================
+
+IF OBJECT_ID('dbo.reservation_policies', 'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.reservation_policies (
+        id INT IDENTITY(1,1) NOT NULL CONSTRAINT pk_reservation_policies PRIMARY KEY,
+        reservable_window_days INT NOT NULL,
+        request_frequency_days INT NOT NULL,
+        confirmation_deadline_minutes INT NOT NULL,
+        minimum_participants INT NOT NULL,
+        effective_from DATETIME2(0) NOT NULL,
+        effective_to DATETIME2(0) NULL,
+        created_by_user_id INT NULL,
+        created_at DATETIME2(0) NOT NULL CONSTRAINT df_reservation_policies_created_at DEFAULT (SYSUTCDATETIME()),
+        CONSTRAINT fk_reservation_policies_created_by FOREIGN KEY (created_by_user_id) REFERENCES dbo.users(id) ON DELETE NO ACTION,
+        CONSTRAINT ck_reservation_policies_window CHECK (reservable_window_days > 0),
+        CONSTRAINT ck_reservation_policies_frequency CHECK (request_frequency_days > 0),
+        CONSTRAINT ck_reservation_policies_deadline CHECK (confirmation_deadline_minutes >= 0),
+        CONSTRAINT ck_reservation_policies_minimum CHECK (minimum_participants > 0),
+        CONSTRAINT ck_reservation_policies_effective_range CHECK (effective_to IS NULL OR effective_to > effective_from)
+    );
+END;
+GO
+
+IF NOT EXISTS (SELECT 1 FROM dbo.reservation_policies)
+BEGIN
+    INSERT INTO dbo.reservation_policies (
+        reservable_window_days,
+        request_frequency_days,
+        confirmation_deadline_minutes,
+        minimum_participants,
+        effective_from
+    )
+    VALUES (7, 7, 60, 10, '19000101');
+END;
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'uq_reservation_policies_current' AND object_id = OBJECT_ID('dbo.reservation_policies'))
+    CREATE UNIQUE INDEX uq_reservation_policies_current ON dbo.reservation_policies(effective_to) WHERE effective_to IS NULL;
+GO
+
+-- ============================================================
 -- TABLE: reservations
 -- Reservas realizadas por usuarios.
 -- start_time usa DATETIME2 como hora institucional de muro
@@ -170,6 +215,7 @@ IF OBJECT_ID('dbo.reservations', 'U') IS NULL
 BEGIN
     CREATE TABLE dbo.reservations (
         id INT IDENTITY(1,1) NOT NULL CONSTRAINT pk_reservations PRIMARY KEY,
+        policy_id INT NOT NULL,
         user_id INT NOT NULL,
         resource_id INT NULL,
         activity_id INT NULL,
@@ -180,12 +226,63 @@ BEGIN
         created_at DATETIME2(0) NOT NULL CONSTRAINT df_reservations_created_at DEFAULT (SYSUTCDATETIME()),
         updated_at DATETIME2(0) NOT NULL CONSTRAINT df_reservations_updated_at DEFAULT (SYSUTCDATETIME()),
         CONSTRAINT fk_reservations_user FOREIGN KEY (user_id) REFERENCES dbo.users(id) ON DELETE NO ACTION,
+        CONSTRAINT fk_reservations_policy FOREIGN KEY (policy_id) REFERENCES dbo.reservation_policies(id) ON DELETE NO ACTION,
         CONSTRAINT fk_reservations_resource FOREIGN KEY (resource_id) REFERENCES dbo.resources(id) ON DELETE NO ACTION,
         CONSTRAINT fk_reservations_activity FOREIGN KEY (activity_id) REFERENCES dbo.activities(id) ON DELETE SET NULL,
         CONSTRAINT ck_reservations_duration CHECK (duration_minutes > 0),
         CONSTRAINT ck_reservations_status CHECK (status IN ('PENDING', 'CONFIRMED', 'CANCELLED', 'REJECTED', 'EXPIRED'))
     );
 END;
+GO
+
+IF COL_LENGTH('dbo.reservations', 'policy_id') IS NULL
+BEGIN
+    ALTER TABLE dbo.reservations ADD policy_id INT NULL;
+END;
+GO
+
+UPDATE dbo.reservations
+SET policy_id = (SELECT TOP (1) id FROM dbo.reservation_policies ORDER BY effective_from ASC, id ASC)
+WHERE policy_id IS NULL;
+GO
+
+IF EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('dbo.reservations') AND name = 'policy_id' AND is_nullable = 1)
+BEGIN
+    ALTER TABLE dbo.reservations ALTER COLUMN policy_id INT NOT NULL;
+END;
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = 'fk_reservations_policy' AND parent_object_id = OBJECT_ID('dbo.reservations'))
+BEGIN
+    ALTER TABLE dbo.reservations ADD CONSTRAINT fk_reservations_policy FOREIGN KEY (policy_id) REFERENCES dbo.reservation_policies(id) ON DELETE NO ACTION;
+END;
+GO
+
+-- Recursos que requieren confirmacion grupal. El consumo de esta relacion se
+-- incorpora en el incremento tecnico de participantes y estados.
+IF OBJECT_ID('dbo.reservation_policy_resources', 'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.reservation_policy_resources (
+        policy_id INT NOT NULL,
+        resource_id INT NOT NULL,
+        CONSTRAINT pk_reservation_policy_resources PRIMARY KEY (policy_id, resource_id),
+        CONSTRAINT fk_reservation_policy_resources_policy FOREIGN KEY (policy_id) REFERENCES dbo.reservation_policies(id) ON DELETE CASCADE,
+        CONSTRAINT fk_reservation_policy_resources_resource FOREIGN KEY (resource_id) REFERENCES dbo.resources(id) ON DELETE NO ACTION
+    );
+END;
+GO
+
+INSERT INTO dbo.reservation_policy_resources (policy_id, resource_id)
+SELECT p.id, r.id
+FROM dbo.reservation_policies p
+INNER JOIN dbo.resources r ON r.id IN (1, 2, 7)
+WHERE p.effective_to IS NULL
+  AND NOT EXISTS (
+      SELECT 1
+      FROM dbo.reservation_policy_resources existing
+      WHERE existing.policy_id = p.id
+        AND existing.resource_id = r.id
+  );
 GO
 
 -- ============================================================

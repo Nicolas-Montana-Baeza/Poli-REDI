@@ -399,6 +399,10 @@ func mapDatabaseReservationError(err error) error {
 			return errors.New("el recurso est\u00e1 bloqueado en ese horario")
 		case 51007:
 			return errors.New("el recurso tiene una actividad programada en ese horario")
+		case 51008:
+			return errors.New("no existe una pol\u00edtica de reservas vigente")
+		case 51009, 51010:
+			return errors.New(sqlErr.Message)
 		case 547:
 			return errors.New("usuario, recurso o actividad no existe, o los datos no cumplen restricciones")
 		case 2601, 2627:

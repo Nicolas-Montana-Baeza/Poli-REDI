@@ -16,6 +16,7 @@ func GetAllReservations() ([]models.Reservation, error) {
 		`
 		SELECT
 			r.id,
+			r.policy_id,
 			r.user_id,
 			r.resource_id,
 			r.activity_id,
@@ -55,6 +56,7 @@ func GetReservationsByUserID(userID int) ([]models.Reservation, error) {
 		`
 		SELECT
 			r.id,
+			r.policy_id,
 			r.user_id,
 			r.resource_id,
 			r.activity_id,
@@ -103,6 +105,7 @@ func scanReservationRows(rows *sql.Rows) ([]models.Reservation, error) {
 
 		err := rows.Scan(
 			&reservation.ID,
+			&reservation.PolicyID,
 			&reservation.UserID,
 			&reservation.ResourceID,
 			&reservation.ActivityID,
@@ -154,8 +157,18 @@ func AddReservation(reservation models.Reservation) (models.Reservation, error) 
 		context.Background(),
 		`
 		DECLARE @created TABLE (id INT);
+		DECLARE @policy_id INT;
+
+		SELECT @policy_id = id
+		FROM dbo.reservation_policies WITH (UPDLOCK, HOLDLOCK)
+		WHERE effective_from <= SYSUTCDATETIME()
+		  AND (effective_to IS NULL OR effective_to > SYSUTCDATETIME());
+
+		IF @policy_id IS NULL
+			THROW 51008, 'No existe una politica de reservas vigente.', 1;
 
 		INSERT INTO dbo.reservations (
+			policy_id,
 			user_id,
 			resource_id,
 			activity_id,
@@ -164,10 +177,11 @@ func AddReservation(reservation models.Reservation) (models.Reservation, error) 
 			status
 		)
 		OUTPUT INSERTED.id INTO @created
-		VALUES (@p1, @p2, @p3, @p4, @p5, @p6);
+		VALUES (@policy_id, @p1, @p2, @p3, @p4, @p5, @p6);
 
 		SELECT
 			r.id,
+			r.policy_id,
 			r.user_id,
 			r.resource_id,
 			r.activity_id,
@@ -201,6 +215,7 @@ func AddReservation(reservation models.Reservation) (models.Reservation, error) 
 		reservation.Status,
 	).Scan(
 		&reservation.ID,
+		&reservation.PolicyID,
 		&reservation.UserID,
 		&reservation.ResourceID,
 		&reservation.ActivityID,
@@ -300,6 +315,7 @@ func CancelReservation(id int) (models.Reservation, error) {
 
 		SELECT
 			r.id,
+			r.policy_id,
 			r.user_id,
 			r.resource_id,
 			r.activity_id,
@@ -326,6 +342,7 @@ func CancelReservation(id int) (models.Reservation, error) {
 		id,
 	).Scan(
 		&reservation.ID,
+		&reservation.PolicyID,
 		&reservation.UserID,
 		&reservation.ResourceID,
 		&reservation.ActivityID,

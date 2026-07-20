@@ -96,9 +96,13 @@ No usar `docs/00-revision-inicial.md` como estado vigente; es un registro histor
 9. Un conflicto entre dos actividades debe informarse al administrador, quien puede cancelar una de ellas o mantener ambas.
 10. Los ocho recursos actuales constituyen el inventario oficial. Solo usuarios con rol administrador pueden modificar recursos, periodos, plazos o recursos sujetos a la politica.
 
-## Propuesta no bloqueante pendiente de aprobacion del Orquestador
+11. Los cambios administrativos de politicas se aplican prospectivamente: cada solicitud conserva la version vigente al crearse.
+12. Excepcionalmente, un administrador puede corregir solicitudes futuras `PENDING` o `CONFIRMED` mediante seleccion explicita, simulacion previa, motivo obligatorio, aplicacion atomica y auditoria. La correccion no edita versiones historicas ni cancela solicitudes implicitamente.
+13. El solicitante cuenta como participante y no puede retirar su participacion; para salir debe cancelar la solicitud completa.
 
-Los cambios administrativos de periodos, plazos o recursos sujetos a confirmacion deberian aplicarse a solicitudes creadas despues del cambio. Las solicitudes existentes conservarian las condiciones vigentes al crearse para evitar efectos retroactivos inesperados.
+## Arquitectura aprobada pendiente de implementacion
+
+La politica se versionara y cada solicitud referenciara la version aplicable. El trabajo se divide en cuatro incrementos tecnicos: versionado y reglas de solicitud; participantes y estados; plazo y vencimiento; administracion y correcciones excepcionales. `ADMIN-005` se mantiene para una entrega arquitectonica posterior.
 
 ## Evidencia local del corte
 
