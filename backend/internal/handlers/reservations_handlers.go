@@ -41,6 +41,9 @@ func GetAvailabilityReservations(c *fiber.Ctx) error {
 	}
 
 	if !user.IsAdmin {
+		// La disponibilidad es compartida, pero los datos personales de reservas
+		// no. Admin ve detalle operacional; usuario normal solo ve ocupacion y
+		// bloques institucionales necesarios para decidir disponibilidad.
 		for index := range items {
 			items[index].UserID = 0
 			items[index].UserFullName = ""
@@ -109,6 +112,8 @@ func CreateReservation(c *fiber.Ctx) error {
 	}
 
 	reservation := models.Reservation{
+		// El usuario local autenticado es el unico propietario aceptado. Cualquier
+		// userId/status controlado por cliente se rechaza antes de este punto.
 		UserID:          user.ID,
 		ResourceID:      request.ResourceID,
 		ActivityID:      request.ActivityID,

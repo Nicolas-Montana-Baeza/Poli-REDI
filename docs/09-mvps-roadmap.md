@@ -341,6 +341,7 @@ Completar los elementos de soporte necesarios para entregar, defender, probar y 
 - Flujo de reservas documentado.
 - Requisitos, historias de usuario y casos de uso.
 - Roadmap de MVPs.
+- Guia de documentacion tecnica y legibilidad.
 - Estrategia de despliegue.
 - Preparacion backend para produccion.
 - Demo online inicial en Azure.
@@ -355,6 +356,7 @@ Completar los elementos de soporte necesarios para entregar, defender, probar y 
 - `DOC-003`
 - `DOC-004`
 - `DOC-005`
+- `DOC-006`
 - `DEPLOY-001`
 - `DEPLOY-002`
 - `SEC-002`

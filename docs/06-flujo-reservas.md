@@ -23,7 +23,7 @@ Este documento describe el flujo funcional de reservas en Poli-REDI, sus validac
 8. El frontend valida campos obligatorios.
 9. El backend toma el usuario desde la sesion autenticada.
 10. El backend rechaza usuarios normales sin RUT.
-11. El servicio valida datos minimos de reserva. La validacion completa de zona horaria, duraciones permitidas y horario operativo queda priorizada en `RES-009` y `RES-011`.
+11. El servicio valida zona horaria de negocio, fecha/hora, duracion permitida, paso de inicio y jornada operativa.
 12. La base de datos valida conflictos de recurso, usuario, bloqueos y actividades programadas.
 13. Si la reserva se crea, la UI refresca disponibilidad y muestra mensaje de exito.
 14. Si existe conflicto, el formulario mantiene el error visible.
@@ -39,10 +39,10 @@ Este documento describe el flujo funcional de reservas en Poli-REDI, sus validac
 7. Si la reserva existe, no esta cancelada y su termino no ha pasado, cambia su estado a `CANCELLED`.
 8. La UI refresca disponibilidad y muestra mensaje de exito.
 
-Brecha abierta para MVP 1:
+Estado de integridad MVP 1:
 
-- El servidor debe permitir la transicion solo desde estados activos y no confiar en estados enviados por el cliente (`RES-010`).
-- Todas las comparaciones de inicio/termino deben usar una zona horaria de negocio explicita (`RES-009`).
+- El servidor permite la transicion solo desde estados activos y no confia en estados enviados por el cliente (`RES-010`, en revision por despliegue).
+- Todas las comparaciones de inicio/termino usan la zona de negocio definida por `APP_TIMEZONE` (`RES-009`, en revision por despliegue).
 
 ## Mejora requerida en cancelacion
 
@@ -67,7 +67,7 @@ Estado real persistido:
 - `REJECTED`: rechazada.
 - `EXPIRED`: expirada, si se usa en futuras iteraciones.
 
-Regla de integridad objetivo para MVP 1:
+Regla de integridad MVP 1:
 
 - El endpoint publico de creacion no acepta un estado decidido por el cliente.
 - El backend asigna el estado inicial.
@@ -113,9 +113,9 @@ Regla UX:
 - Cancelacion solo por propietario o administrador.
 - Cancelacion permitida unicamente desde `CONFIRMED` o `PENDING`.
 
-Validaciones backend requeridas antes de cerrar MVP 1:
+Validaciones backend pendientes antes de cerrar MVP 1:
 
-- Zona horaria institucional explicita y compartida (`RES-009`).
+- Verificacion desplegada de la zona horaria institucional compartida (`RES-009`, en revision).
 - Verificacion desplegada del estado inicial y transiciones controlados por servidor (`RES-010`, en revision).
 - Verificacion desplegada de duraciones, paso de inicio y jornada operativa (`RES-011`, en revision).
 
@@ -175,6 +175,6 @@ sequenceDiagram
 - Cambio de fecha no debe mostrar reservas de otro dia.
 - Reservas canceladas no deben bloquear disponibilidad activa.
 
-## Politica temporal pendiente de implementacion
+## Politica temporal vigente
 
-La regla propuesta para `RES-009` es usar `APP_TIMEZONE=America/Santiago` como zona de negocio y un reloj inyectable en pruebas. La implementacion debe decidir y documentar una sola estrategia de persistencia para `DATETIME2`: UTC normalizado o hora local institucional. Hasta cerrar esa tarea, no debe asumirse que `Z` recibido desde la API representa correctamente la intencion horaria guardada.
+Poli-REDI usa `APP_TIMEZONE=America/Santiago` como zona de negocio y un reloj inyectable en pruebas. La estrategia vigente mantiene `DATETIME2` como hora local institucional: un valor `2026-07-14 10:30:00` significa 10:30 de Chile. Requests con offset se convierten a Santiago antes de persistir; requests sin offset se interpretan directamente en la zona institucional. La API responde fechas RFC 3339 con el offset real de Chile para evitar que frontend y backend clasifiquen reservas con horas distintas.

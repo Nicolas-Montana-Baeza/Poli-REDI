@@ -132,6 +132,9 @@ func createReservationAt(
 		return models.Reservation{}, errors.New("no puedes crear reservas en el pasado")
 	}
 
+	// La validacion de horario entrega errores de dominio antes del INSERT. Los
+	// triggers de SQL Server siguen protegiendo conflictos entre filas porque dos
+	// requests concurrentes pueden saltarse cualquier chequeo solo en memoria.
 	if err := reservationrules.ValidateSchedule(
 		reservation.StartTime,
 		reservation.DurationMinutes,
@@ -378,6 +381,8 @@ func mapDatabaseReservationError(err error) error {
 
 	if errors.As(err, &sqlErr) {
 		switch sqlErr.Number {
+		// 51000-51007 son reglas de negocio emitidas por
+		// trg_reservations_validate_conflicts en database/schema.sql.
 		case 51000:
 			return errors.New("el usuario se encuentra bloqueado y no puede crear reservas")
 		case 51001:

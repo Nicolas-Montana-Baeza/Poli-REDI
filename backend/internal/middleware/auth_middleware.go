@@ -136,6 +136,9 @@ func RequireAuth() fiber.Handler {
 			fullName = authUser.Email
 		}
 
+		// Entra ID prueba la identidad externa, pero la autorizacion de Poli-REDI
+		// se basa en el usuario local para mantener admins, bloqueos y reglas de
+		// RUT bajo control institucional.
 		localUser, err := repositories.GetOrCreateUserByEmail(authUser.Email, fullName)
 
 		if err != nil {
@@ -204,6 +207,8 @@ func requireDevAuth() fiber.Handler {
 			})
 		}
 
+		// X-Dev-Reset-Rut existe solo para probar localmente el flujo de RUT
+		// obligatorio. Depende de DEV_AUTH_ENABLED y nunca aplica a administradores.
 		if !localUser.IsAdmin && strings.EqualFold(c.Get("X-Dev-Reset-Rut"), "true") {
 			localUser, err = repositories.UpdateUserRUT(localUser.ID, "")
 

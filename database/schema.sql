@@ -162,6 +162,8 @@ GO
 -- ============================================================
 -- TABLE: reservations
 -- Reservas realizadas por usuarios.
+-- start_time usa DATETIME2 como hora institucional de muro
+-- (America/Santiago); no representa un instante UTC.
 -- ============================================================
 
 IF OBJECT_ID('dbo.reservations', 'U') IS NULL
@@ -492,6 +494,8 @@ GO
 -- ============================================================
 -- BUSINESS RULE TRIGGERS
 -- Reemplazan las restricciones EXCLUDE de PostgreSQL.
+-- Estos triggers son parte del contrato de concurrencia: evitan que dos
+-- clientes creen conflictos entre el chequeo de disponibilidad y el INSERT.
 -- ============================================================
 
 CREATE OR ALTER TRIGGER dbo.trg_reservations_validate_conflicts

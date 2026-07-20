@@ -94,23 +94,23 @@ Estado:
 - La guia de despliegue exige desactivarlo en Azure y el checklist fue validado (`SEC-004`).
 - Un bloqueo automatico de arranque queda como endurecimiento posterior si el sistema pasa de demo a operacion institucional.
 
-### Contrato temporal inconsistente
+### Contrato temporal de reservas
 
-Azure SQL guarda reservas en `DATETIME2`, mientras frontend y backend interpretan fechas sin una politica unica de zona horaria. El uso de `time.Local`, `time.Now()` y valores serializados con `Z` puede producir diferencias entre desarrollo local y el contenedor Azure.
+Azure SQL guarda reservas en `DATETIME2` como hora local institucional. Backend y frontend usan `APP_TIMEZONE=America/Santiago`; los requests con offset se convierten a la zona de negocio y los requests sin offset se interpretan directamente en esa zona. La API serializa respuestas RFC 3339 con el offset real de Chile.
 
-Accion requerida para MVP 1:
+Estado para MVP 1:
 
-- Implementar `RES-009` con `APP_TIMEZONE`, estrategia de persistencia documentada y reloj inyectable.
-- Cubrir medianoche y cambios de horario de Chile con pruebas deterministas.
+- `RES-009` esta implementado y en revision por despliegue.
+- Queda comparar una reserva de hora conocida en local y online antes de cerrar definitivamente la tarea.
 
-### Estado y limites controlados parcialmente por cliente
+### Estado y limites controlados por servidor
 
-El contrato de creacion acepta `status` y la validacion de duracion solo exige un valor positivo. La UI limita opciones, pero una llamada directa puede intentar estados, duraciones u horarios no previstos.
+El contrato publico de creacion ya no acepta `status`; el servicio fuerza el estado inicial `CONFIRMED` y la cancelacion solo permite transiciones desde estados activos. La API valida duraciones permitidas, paso de 15 minutos, apertura 08:00, cierre 22:00 y termino completo dentro de la jornada.
 
-Accion requerida para MVP 1:
+Estado para MVP 1:
 
-- Retirar `status` del request publico y validar transiciones (`RES-010`).
-- Validar jornada, paso y duraciones permitidas en backend (`RES-011`).
+- `RES-010` y `RES-011` estan implementados y en revision por despliegue.
+- Queda ejecutar la prueba manual desplegada de request manipulado, limites de jornada y ultima reserva valida.
 
 ### Detalles internos en respuestas HTTP
 
@@ -184,9 +184,7 @@ La prioridad debe estar en reglas de negocio y permisos.
 
 ## Prioridades sugeridas
 
-1. `RES-009`: contrato temporal y zona horaria.
-2. `RES-010`: estado y transiciones controlados por servidor.
-3. `RES-011`: jornada y duraciones validadas en backend.
-4. `QA-001`: pruebas reales de esas reglas y permisos.
-5. `SEC-005`: respuestas publicas sin detalles internos.
-6. `API-004`: filtros de fecha/rango para disponibilidad.
+1. Verificar online `RES-009`, `RES-010` y `RES-011` con una reserva de hora conocida, request manipulado y limites de jornada.
+2. `QA-001`: ampliar pruebas reales de reglas de reservas y permisos mas alla de los casos ya cubiertos.
+3. `SEC-005`: respuestas publicas sin detalles internos.
+4. `API-004`: filtros de fecha/rango para disponibilidad.

@@ -54,6 +54,9 @@ func Now() time.Time {
 	return time.Now().In(Location())
 }
 
+// ParseDateTime normaliza fechas de agenda enviadas por el cliente hacia la zona
+// institucional. Los valores con offset explicito se convierten a APP_TIMEZONE;
+// los valores sin offset se interpretan como hora de muro en esa misma zona.
 func ParseDateTime(value string) (time.Time, error) {
 	value = strings.TrimSpace(value)
 	if value == "" {
@@ -76,8 +79,9 @@ func ParseDateTime(value string) (time.Time, error) {
 	return time.Time{}, errors.New("fecha de inicio invalida")
 }
 
-// FromDatabaseWallTime assigns the institutional zone without moving the
-// date or clock fields stored in SQL Server DATETIME2.
+// FromDatabaseWallTime asigna la zona institucional sin mover la fecha ni la
+// hora almacenadas en SQL Server DATETIME2. Los DATETIME2 de reservas representan
+// hora de muro chilena, no instantes UTC.
 func FromDatabaseWallTime(value time.Time) time.Time {
 	return time.Date(
 		value.Year(),
@@ -91,8 +95,9 @@ func FromDatabaseWallTime(value time.Time) time.Time {
 	)
 }
 
-// ToDatabaseWallTime strips the zone while preserving the institutional
-// wall-clock fields expected by SQL Server DATETIME2.
+// ToDatabaseWallTime quita la zona manteniendo los campos de hora institucional
+// esperados por SQL Server DATETIME2. La zona UTC retornada solo transporta el
+// valor para database/sql; no debe interpretarse como instante UTC de agenda.
 func ToDatabaseWallTime(value time.Time) time.Time {
 	localValue := value.In(Location())
 

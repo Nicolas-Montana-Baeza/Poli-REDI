@@ -122,6 +122,8 @@ func scanReservationRows(rows *sql.Rows) ([]models.Reservation, error) {
 			return nil, err
 		}
 
+		// SQL Server DATETIME2 no tiene zona. start_time se guarda como hora de
+		// muro institucional y recibe APP_TIMEZONE solo despues de escanearlo.
 		reservation.StartTime = businessclock.FromDatabaseWallTime(reservation.StartTime)
 		reservation.Hour = reservation.StartTime.Format("15:04")
 		reservation.Title = activityName
@@ -192,6 +194,8 @@ func AddReservation(reservation models.Reservation) (models.Reservation, error) 
 		reservation.UserID,
 		reservation.ResourceID,
 		reservation.ActivityID,
+		// Persistimos los campos de hora chilena que esperan los triggers de
+		// reserva; timestamps como updated_at siguen usando SYSUTCDATETIME().
 		businessclock.ToDatabaseWallTime(reservation.StartTime),
 		reservation.DurationMinutes,
 		reservation.Status,

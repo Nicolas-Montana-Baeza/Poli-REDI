@@ -1415,7 +1415,8 @@ Asegurar que la disponibilidad muestre solo los items recibidos para el dia sele
 - `frontend/src/components/availability/ScheduleGrid.vue`
 - `frontend/src/components/availability/ReservationBlock.vue`
 - `frontend/src/components/availability/AvailabilitySection.vue`
-- `frontend/src/utils/dateUtils.js`
+- `frontend/src/utils/businessTime.js`
+- `frontend/src/utils/reservationRules.js`
 
 ## RES-004 - Integrar bloqueos y actividades programadas en calendario
 
@@ -2385,7 +2386,7 @@ Estado sugerido: Ready for Codex
 
 ### Objetivo
 
-Crear pruebas deterministas de la capa servicio para cerrar las reglas criticas del MVP 1. `go test ./...` actualmente finaliza sin fallos, pero todos los paquetes informan `[no test files]`.
+Crear pruebas deterministas de la capa servicio para cerrar las reglas criticas del MVP 1. `go test ./...` ya ejecuta pruebas reales de reloj de negocio, parsing JSON, reglas de horario y casos iniciales del servicio de reservas; falta ampliar cobertura sobre permisos, conflictos y rutas admin.
 
 ### Alcance sugerido para Codex
 
@@ -2405,10 +2406,10 @@ Crear pruebas deterministas de la capa servicio para cerrar las reglas criticas 
 - [ ] Rechazar recurso informativo.
 - [ ] Rechazar recurso solo admin para usuario normal.
 - [ ] Rechazar conflicto horario.
-- [ ] Rechazar `status` controlado por cliente o ignorarlo de forma segura segun contrato.
-- [ ] Crear siempre con estado inicial del servidor.
-- [ ] Rechazar duracion y horario operativo invalidos.
-- [ ] Clasificar y cancelar correctamente usando `APP_TIMEZONE` y reloj inyectable.
+- [x] Rechazar `status` controlado por cliente o ignorarlo de forma segura segun contrato.
+- [x] Crear siempre con estado inicial del servidor.
+- [x] Rechazar duracion y horario operativo invalidos.
+- [x] Clasificar y cancelar correctamente usando `APP_TIMEZONE` y reloj inyectable.
 - [ ] Rechazar usuario bloqueado.
 - [ ] Rechazar cruce con bloqueo.
 - [ ] Rechazar cruce con actividad programada.
@@ -2808,6 +2809,29 @@ Formalizar los MVPs incrementales de Poli-REDI, indicando que implementa cada un
 - Se creo `docs/09-mvps-roadmap.md`.
 - El proyecto queda organizado en cuatro MVPs: base tecnica funcional, flujo usuario completo, administracion institucional, y entrega/calidad/soporte.
 
+## DOC-006 - Documentar guia de documentacion y legibilidad
+
+Prioridad: P1
+Labels: `documentacion`, `calidad`, `codigo`
+Estado sugerido: Done
+
+### Objetivo
+
+Formalizar criterios para documentar codigo, SQL y Markdown sin agregar comentarios redundantes ni alterar comportamiento.
+
+### Criterios de aceptacion
+
+- [x] Existe documento dedicado en `docs/`.
+- [x] Define que comentar y que evitar.
+- [x] Cubre Go, Vue/JavaScript, SQL Server y Markdown.
+- [x] Registra contratos criticos de Poli-REDI.
+- [x] Indica validaciones esperadas segun tipo de cambio.
+
+### Resultado de implementacion
+
+- Se creo `docs/12-guia-documentacion-legibilidad.md`.
+- Se agregaron comentarios de alto valor en autenticacion, reservas, manejo temporal y triggers SQL.
+
 ---
 
 # Hito 10 - Despliegue
@@ -2947,20 +2971,20 @@ Revision realizada durante la conexion de actividades reales.
 - `frontend/src/components/layout/Sidebar.vue`: menu de navegacion.
 - Accesos rapidos del dashboard: eliminados de la vista actual para simplificar el panel principal.
 - `frontend/src/components/availability/CalendarMini.vue`: nombres de meses y dias.
-- `frontend/src/components/forms/DateTimePicker.vue`: opciones de duracion estaticas; deben alinearse con la validacion backend de `RES-011` antes de cerrar MVP 1.
+- `frontend/src/components/forms/DateTimePicker.vue`: opciones de duracion centralizadas en `frontend/src/utils/reservationRules.js` y alineadas con la validacion backend de `RES-011`.
 
 ---
 
 # Orden recomendado de ejecucion
 
-## Bloque 1 - Reglas que bloquean el cierre de MVP 1
+## Bloque 1 - Verificacion final de reglas MVP 1
 
-1. `RES-009` Definir zona horaria de negocio.
-2. `RES-010` Hacer que el servidor controle estados y transiciones.
-3. `RES-011` Validar duracion y horario operativo en backend.
-4. `QA-001` Agregar pruebas backend mientras se implementan las tres reglas anteriores.
+1. Verificar online `RES-009` con una reserva de hora conocida en local y Azure.
+2. Verificar online `RES-010` con request manipulado y transiciones invalidas.
+3. Verificar online `RES-011` con apertura, ultimo bloque valido, cierre excedido y duracion invalida.
+4. `QA-001` Ampliar pruebas backend para permisos, conflictos y casos aun no cubiertos.
 
-Estas tareas deben resolverse en ese orden o en una misma rama coordinada, porque las pruebas temporales dependen del contrato de zona horaria y las reglas de conflicto dependen del estado inicial.
+Estas tareas ya tienen implementacion inicial. Antes de cerrar el MVP 1 falta evidencia desplegada y ampliar cobertura de permisos/conflictos que no queda cubierta por las pruebas unitarias actuales.
 
 ## Bloque 2 - Flujo visible y coherencia transversal MVP 1
 
@@ -2994,7 +3018,7 @@ Estas tareas deben resolverse en ese orden o en una misma rama coordinada, porqu
 
 # Tareas Codex-ready recomendadas
 
-La siguiente tarea para el agente de desarrollo debe ser `RES-009`. Al cerrarla, continuar con `RES-010` y `RES-011` antes de realizar mas pulido visual. Todas las tareas nuevas incluyen contexto, alcance, criterios, pruebas minimas y archivos relevantes.
+La siguiente tarea para el agente de desarrollo debe ser la verificacion desplegada de `RES-009`, `RES-010` y `RES-011`. Si esa evidencia pasa, continuar con `QA-001` para ampliar cobertura de permisos/conflictos y luego `SEC-005`.
 
 # Notas importantes
 
