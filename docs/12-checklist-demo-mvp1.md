@@ -26,27 +26,28 @@ Completar antes de cada validacion.
 
 | Paso | Resultado esperado | Estado | Evidencia / observacion |
 | --- | --- | --- | --- |
-| Levantar backend con Go directo desde `backend` | Backend responde en `http://localhost:3000` | Pendiente |  |
-| Levantar frontend desde `frontend` | Frontend responde en `http://localhost:5173` | Pendiente |  |
-| Confirmar variables locales del backend | `DEV_AUTH_ENABLED` y CORS corresponden al ambiente de prueba | Pendiente |  |
-| Confirmar variables locales del frontend | `VITE_API_BASE_URL` apunta al backend correcto | Pendiente |  |
+| Levantar backend con Go directo desde `backend` | Backend responde en `http://localhost:3000` | Aprobado |<img width="990" height="280" alt="image" src="https://github.com/user-attachments/assets/a688c63b-d3ad-4095-a089-0691ec99b127" />|
+| Levantar frontend desde `frontend` | Frontend responde en `http://localhost:5173` | Aprobado |<img width="623" height="224" alt="image" src="https://github.com/user-attachments/assets/6bcc66c4-289a-436c-bdf2-c8185a622203" />|
+| Confirmar variables locales del backend | `DEV_AUTH_ENABLED` y CORS corresponden al ambiente de prueba | Aprobado |  |
+| Confirmar variables locales del frontend | `VITE_API_BASE_URL` apunta al backend correcto | Aprobado |  |
 
 ## Validacion tecnica base
 
 | Paso | Resultado esperado | Estado | Evidencia / observacion |
 | --- | --- | --- | --- |
-| Abrir `GET http://localhost:3000/api/health` | Respuesta publica saludable | Pendiente |  |
-| Abrir health online del backend | Respuesta publica saludable | Pendiente |  |
-| Abrir frontend local | La pantalla de login carga sin errores criticos | Pendiente |  |
-| Abrir frontend online | La pantalla de login carga sin errores criticos | Pendiente |  |
-| Revisar consola del navegador | No hay errores bloqueantes durante carga inicial | Pendiente |  |
+| Abrir `GET http://localhost:3000/api/health` | Respuesta publica saludable | Aprobado | <img width="1327" height="613" alt="image" src="https://github.com/user-attachments/assets/9e4648e4-405e-42eb-a36e-cf45e27fc919" /> |
+| Abrir health online del backend | Respuesta publica saludable | Aprobado | <img width="1320" height="562" alt="image" src="https://github.com/user-attachments/assets/c3217ba8-61dc-4ed1-8357-e6790417e5ab" /> |
+| Abrir frontend local | La pantalla de login carga sin errores criticos | Aprobado | <img width="1359" height="716" alt="image" src="https://github.com/user-attachments/assets/497a0d5a-7ee4-4c90-af97-5dadda2e567c" /> |
+| Abrir frontend online | La pantalla de login carga sin errores criticos | Aprobado |<img width="1365" height="716" alt="image" src="https://github.com/user-attachments/assets/7b8e3ce3-9933-41c0-a0ef-f1b96b02e8e4" /> |
+| Revisar consola del navegador | No hay errores bloqueantes durante carga inicial | Aprobado |  |
 
 ## Autenticacion y permisos
 
 | Paso | Resultado esperado | Estado | Evidencia / observacion |
 | --- | --- | --- | --- |
-| Iniciar sesion como usuario normal | Entra a la aplicacion y muestra datos del usuario | Pendiente |  |
-| Iniciar sesion como administrador | Entra a la aplicacion y muestra menu administrativo | Pendiente |  |
+| Iniciar sesion como usuario normal | Entra a la aplicacion y muestra datos del usuario | Aprobado | <img width="1361" height="678" alt="image" src="https://github.com/user-attachments/assets/7ba5697d-8c37-46e3-bb92-648267474791" /> <img width="1300" height="560" alt="image" src="https://github.com/user-attachments/assets/335e0991-e930-4e95-b0ac-a3d2a096f757" />
+ |
+| Iniciar sesion como administrador | Entra a la aplicacion y muestra menu administrativo | Pendiente | <img width="1356" height="656" alt="image" src="https://github.com/user-attachments/assets/1a173db6-0a60-49dc-9fb9-8859e055c0a5" /> |
 | Probar usuario normal contra ruta admin | No ve menu admin y no accede a vistas protegidas | Pendiente |  |
 | Cerrar sesion | Redirige a `/login` | Pendiente |  |
 | Si se usa modo local, probar usuario normal | Carga `/api/me` con cabeceras de prueba | Pendiente |  |
