@@ -117,3 +117,18 @@ func TestDefaultScheduleRejectsInvalidValues(t *testing.T) {
 		})
 	}
 }
+
+func TestValidateReservationPolicySnapshotUsesSuppliedVersion(t *testing.T) {
+	location := time.FixedZone("America/Santiago", -4*60*60)
+	now := time.Date(2026, 7, 20, 8, 0, 0, 0, location)
+	reservation := models.Reservation{StartTime: time.Date(2026, 7, 24, 10, 0, 0, 0, location), DurationMinutes: 45}
+	accepted := models.ReservationPolicy{ReservableWindowDays: 7, OpeningMinute: 8 * 60, ClosingMinute: 20 * 60, SlotIntervalMinutes: 15, AllowedDurations: []int{45}}
+	if err := validateReservationPolicySnapshot(reservation, now, accepted); err != nil {
+		t.Fatalf("supplied snapshot rejected reservation: %v", err)
+	}
+	rejected := accepted
+	rejected.AllowedDurations = []int{30}
+	if err := validateReservationPolicySnapshot(reservation, now, rejected); err == nil {
+		t.Fatal("validation ignored the supplied policy snapshot")
+	}
+}

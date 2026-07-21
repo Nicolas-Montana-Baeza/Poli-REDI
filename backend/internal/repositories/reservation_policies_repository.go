@@ -17,6 +17,9 @@ const policyColumns = `id, reservable_window_days, request_frequency_days,
 
 type policyScanner interface{ Scan(...any) error }
 
+var ErrIdempotencyPayloadConflict = errors.New("idempotency payload conflict")
+var ErrInvalidPolicyResource = errors.New("invalid policy resource")
+
 func scanPolicy(row policyScanner) (models.ReservationPolicy, error) {
 	var p models.ReservationPolicy
 	var effectiveTo sql.NullTime
@@ -42,7 +45,6 @@ func loadPolicyCollections(ctx context.Context, q interface {
 	if err != nil {
 		return err
 	}
-	defer rows.Close()
 	for rows.Next() {
 		var value int
 		if err := rows.Scan(&value); err != nil {
@@ -53,6 +55,7 @@ func loadPolicyCollections(ctx context.Context, q interface {
 	if err := rows.Err(); err != nil {
 		return err
 	}
+	rows.Close()
 	rows, err = q.QueryContext(ctx, `SELECT resource_id FROM dbo.reservation_policy_resources WHERE policy_id = @p1 ORDER BY resource_id`, p.ID)
 	if err != nil {
 		return err
@@ -105,7 +108,7 @@ func GetReservationPolicyHistory() ([]models.ReservationPolicy, error) {
 	return policies, nil
 }
 
-func PublishReservationPolicy(request models.PublishReservationPolicyRequest, createdBy int, key string) (models.ReservationPolicy, bool, error) {
+func PublishReservationPolicy(request models.PublishReservationPolicyRequest, createdBy int, key, payloadHash string) (models.ReservationPolicy, bool, error) {
 	ctx := context.Background()
 	tx, err := database.DB.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelSerializable})
 	if err != nil {
@@ -113,8 +116,16 @@ func PublishReservationPolicy(request models.PublishReservationPolicyRequest, cr
 	}
 	defer tx.Rollback()
 
-	existing, err := scanPolicy(tx.QueryRowContext(ctx, `SELECT `+policyColumns+` FROM dbo.reservation_policies WITH (UPDLOCK, HOLDLOCK) WHERE idempotency_key = @p1`, key))
+	var existingHash string
+	err = tx.QueryRowContext(ctx, `SELECT idempotency_payload_hash FROM dbo.reservation_policies WITH (UPDLOCK, HOLDLOCK) WHERE idempotency_key = @p1`, key).Scan(&existingHash)
 	if err == nil {
+		if existingHash != payloadHash {
+			return models.ReservationPolicy{}, false, ErrIdempotencyPayloadConflict
+		}
+		existing, err := scanPolicy(tx.QueryRowContext(ctx, `SELECT `+policyColumns+` FROM dbo.reservation_policies WHERE idempotency_key = @p1`, key))
+		if err != nil {
+			return models.ReservationPolicy{}, false, err
+		}
 		if err := loadPolicyCollections(ctx, tx, &existing); err != nil {
 			return models.ReservationPolicy{}, false, err
 		}
@@ -130,11 +141,11 @@ func PublishReservationPolicy(request models.PublishReservationPolicyRequest, cr
 		DECLARE @current_id INT;
 		SELECT @current_id = id FROM dbo.reservation_policies WITH (UPDLOCK, HOLDLOCK) WHERE effective_to IS NULL;
 		IF @current_id IS NOT NULL UPDATE dbo.reservation_policies SET effective_to = @now WHERE id = @current_id;
-		INSERT INTO dbo.reservation_policies (reservable_window_days, request_frequency_days, confirmation_deadline_minutes, minimum_participants, opening_minute, closing_minute, slot_interval_minutes, effective_from, created_by_user_id, idempotency_key, is_published)
-		OUTPUT INSERTED.id VALUES (@p1,@p2,@p3,@p4,@p5,@p6,@p7,@now,@p8,@p9,0);`,
+		INSERT INTO dbo.reservation_policies (reservable_window_days, request_frequency_days, confirmation_deadline_minutes, minimum_participants, opening_minute, closing_minute, slot_interval_minutes, effective_from, created_by_user_id, idempotency_key, idempotency_payload_hash, is_published)
+		OUTPUT INSERTED.id VALUES (@p1,@p2,@p3,@p4,@p5,@p6,@p7,@now,@p8,@p9,@p10,0);`,
 		request.ReservableWindowDays, request.RequestFrequencyDays, request.ConfirmationDeadlineMinutes,
 		request.MinimumParticipants, request.OpeningMinute, request.ClosingMinute,
-		request.SlotIntervalMinutes, createdBy, key).Scan(&id)
+		request.SlotIntervalMinutes, createdBy, key, payloadHash).Scan(&id)
 	if err != nil {
 		return models.ReservationPolicy{}, false, err
 	}
@@ -150,7 +161,7 @@ func PublishReservationPolicy(request models.PublishReservationPolicyRequest, cr
 		}
 		count, _ := result.RowsAffected()
 		if count != 1 {
-			return models.ReservationPolicy{}, false, fmt.Errorf("recurso %d no existe o no esta activo", value)
+			return models.ReservationPolicy{}, false, fmt.Errorf("%w: recurso %d no existe o no esta activo", ErrInvalidPolicyResource, value)
 		}
 	}
 	if _, err := tx.ExecContext(ctx, `UPDATE dbo.reservation_policies SET is_published = 1 WHERE id = @p1 AND is_published = 0`, id); err != nil {

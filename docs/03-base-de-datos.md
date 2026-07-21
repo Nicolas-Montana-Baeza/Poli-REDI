@@ -504,18 +504,24 @@ erDiagram
 - Definir politicas de auditoria completas para mas entidades, no solo reservas.
 - Definir politicas de retencion para `notifications` y `audit_logs`.
 
-## Modelo aprobado pendiente de implementacion: politicas versionadas
+## Politicas versionadas
 
-La implementacion debe agregar:
+Estado: APROBADO e IMPLEMENTADO en los scripts; VERIFICADO LOCALMENTE por pruebas de contrato. La ejecucion del esquema actualizado sobre SQL Server/Azure SQL real sigue PENDIENTE.
+
+El modelo agrega:
 
 - `reservation_policies`: versiones inmutables con ventana reservable, frecuencia, plazo, minimo, `effective_from` y `effective_to`.
-- `reservation_policy_resources`: relacion unica entre version y recursos sujetos a confirmacion grupal.
+- `reservation_policy_resources`: relacion unica entre version y recursos permitidos para reservar bajo esa politica. No clasifica recursos para confirmacion grupal.
+- `reservation_policy_durations`: snapshot de duraciones permitidas por version.
 - `reservations.policy_id`: version aplicada a la solicitud; se agrega nullable, se completa con la version inicial y luego pasa a `NOT NULL`.
-- `reservation_policy_corrections`: historial con reserva, version anterior, version nueva, administrador, motivo, fecha UTC y `batch_id`.
+- Jornada, intervalo, clave/hash de idempotencia, autoria, vigencias UTC y estado de publicacion por version.
+- `reservation_policy_scope_migrations`: marca el bootstrap tecnico, unico y acotado, del alcance heredado de la politica inicial.
 
-Debe existir una sola version vigente. Publicar una politica cierra la anterior y activa la nueva dentro de una transaccion. Las versiones utilizadas no se editan ni eliminan.
+Debe existir una sola version vigente. Publicar una politica cierra la anterior y activa inmediatamente la nueva dentro de una transaccion serializable. Indices filtrados impiden dos versiones vigentes y claves de idempotencia duplicadas. Triggers protegen de edicion o eliminacion las politicas publicadas y sus colecciones. Las reservas conservan `policy_id`; las claves foraneas impiden eliminar su politica mientras exista historial relacionado.
 
-Las correcciones excepcionales solo admiten solicitudes futuras `PENDING` o `CONFIRMED`. El lote bloquea y revalida todas las reservas, cambia `policy_id` y registra el historial de forma atomica. Una incompatibilidad rechaza el lote completo; no se producen cancelaciones implicitas. Una reversion se registra como otra correccion hacia la version anterior.
+`schema.sql` crea la estructura, la tabla de marca y los triggers que admiten exclusivamente el bootstrap tecnico controlado. Despues, `seed.sql` carga primero los recursos y, dentro de una transaccion, completa una sola vez los recursos permitidos de la politica inicial y registra la marca de migracion. Este flujo `schema.sql` -> `seed.sql` no es el mecanismo de publicacion administrativa.
+
+La persistencia y los endpoints de correcciones excepcionales no estan implementados en este incremento. Su contrato aprobado exige solicitudes futuras activas, vista previa temporal de un solo uso vinculada al administrador, motivo, revalidacion y aplicacion atomica auditada, sin cancelaciones implicitas.
 
 Los conflictos de recursos grupales deben considerar `PENDING` y `CONFIRMED`. Confirmacion, retiro, cancelacion y vencimiento deben serializarse por reserva mediante transaccion y bloqueos compatibles con Azure SQL, por ejemplo `UPDLOCK, HOLDLOCK`.
 

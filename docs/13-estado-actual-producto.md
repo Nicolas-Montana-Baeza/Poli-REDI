@@ -8,7 +8,7 @@ Fecha de corte: 2026-07-21
 - **Objetivo — APROBADO:** validar un prototipo que centralice recursos, disponibilidad, reservas y reglas institucionales basicas sin presentarlo como plataforma productiva completa.
 - **Usuarios afectados — HECHO:** usuarios normales, administradores y personal institucional encargado de la operacion deportiva.
 - **Resultado esperado — PROPUESTA:** disponer de una demo verificable cuyo alcance implementado, faltante y futuro pueda comunicarse sin confundir codigo, aprobacion y validacion.
-- **Estado actual — HECHO:** existe una demo funcional con identidad, reservas y consulta operacional; la ventana y frecuencia versionadas estan implementadas y verificadas localmente, pero no en Azure SQL. Participantes, bloqueo `PENDING`, vencimiento y administracion de politicas aun no estan implementados, por lo que el MVP 2 no puede declararse cerrado.
+- **Estado actual — HECHO:** existe una demo funcional con identidad, reservas y consulta operacional; la ventana, frecuencia y administracion backend de politicas prospectivas estan implementadas y verificadas localmente, pero no en SQL Server/Azure SQL real. Participantes, bloqueo `PENDING`, vencimiento, interfaz administrativa y correccion excepcional aun no estan implementados, por lo que el MVP 2 no puede declararse cerrado.
 
 ### 2. Evidencia revisada
 
@@ -16,7 +16,7 @@ Fecha de corte: 2026-07-21
 | --- | --- | --- |
 | `../Documentos/levantamiento_poli_redi.txt` | Gestion manual; jornada 08:00-22:00; reserva aproximada de una hora; espera semanal; minimo de 10 participantes; prioridad institucional y decisiones administrativas. | HECHO documental; requiere confirmar vigencia institucional |
 | `../Documentos/alcance_definitivo_prototipo_poli_redi.txt` | MVP 1 y 2 son el nucleo; participantes, restriccion semanal y bloqueos forman parte del alcance; Entra real y despliegue productivo aparecen fuera de alcance. | APROBADO segun nombre del documento, pero contradicho por documentacion posterior |
-| `docs/08-requisitos-historias-casos-uso.md` | Consolida 25 requisitos funcionales, incluidos los acuerdos del 2026-07-20 y su estado pendiente de implementacion. | ACTUALIZADO |
+| `docs/08-requisitos-historias-casos-uso.md` | Consolida 25 requisitos funcionales, incluidos los acuerdos del 2026-07-20 y el estado parcial verificado localmente de las politicas prospectivas. | ACTUALIZADO |
 | `backend/internal/routes/routes.go` | Existen rutas de identidad, RUT, lectura de recursos/actividades/notificaciones/talleres, inscripcion, disponibilidad, reservas y lectura administrativa. No existen rutas de gestion completa de usuarios, bloqueos, programacion, infracciones o reportes. | IMPLEMENTADO |
 | `backend/internal/middleware/auth_middleware.go` | La identidad se valida en servidor; rol, bloqueo y RUT provienen del usuario local; `DEV_AUTH_ENABLED` selecciona el modo local. | IMPLEMENTADO |
 | `backend/internal/services/reservations_service.go` | La reserva usa el usuario autenticado, fuerza estado `CONFIRMED` y valida pasado, jornada, duracion, ventana, frecuencia, talleres y cancelacion. | IMPLEMENTADO y VERIFICADO LOCAL para ventana/frecuencia |
@@ -24,7 +24,7 @@ Fecha de corte: 2026-07-21
 | `frontend/src/components/availability/AvailabilitySection.vue` | La interfaz combina reservas, actividades programadas y talleres; no incorpora bloqueos visibles y permite abrir seleccion sobre recursos que despues puede rechazar el servidor. | IMPLEMENTADO PARCIAL |
 | `database/seed.sql` | Contiene los ocho recursos confirmados como inventario oficial inicial. | APROBADO como linea base; gestion completa PENDIENTE |
 | Decisiones explicitas del usuario del 2026-07-20 | Confirman que `PENDING` consume y `CANCELLED` libera la oportunidad; el solicitante cuenta y todos los participantes tienen cuenta; la solicitud bloquea, admite cambios en el limite exacto y se cancela al vencer bajo el minimo; las tres canchas son multicanchas y solo administradores modifican politicas. | APROBADO |
-| Pruebas locales 2026-07-21 | `go test ./...`, `go vet ./...`, `npm test` y `npm run build` aprobaron; frontend reporto 9 pruebas. | VERIFICADO LOCAL |
+| Pruebas locales 2026-07-21 | El incremento de politicas fue aceptado tras cuatro rondas QA con pruebas Go y validaciones de contrato; `npm test` y `npm run build` aprobaron. `go vet` no se ejecuto en la ronda final por cuota. | VERIFICADO LOCAL; SQL/Azure PENDIENTE |
 | `docs/12-checklist-demo-mvp1.md` | La mayor parte de la prueba manual e integrada sigue pendiente; no hay verificacion online actual registrada. | PENDIENTE |
 
 ### 3. Alcance
@@ -227,7 +227,7 @@ Fecha de corte: 2026-07-21
 **Resultado:** Politica institucional actualizada sin facultades equivalentes para usuarios normales.<br>
 **Prioridad:** SHOULD para MVP 3.<br>
 **Fuente:** Decision explicita del usuario del 2026-07-20.<br>
-**Estado:** APROBADO; no IMPLEMENTADO.<br>
+**Estado:** APROBADO e IMPLEMENTADO PARCIAL; VERIFICADO LOCAL para publicacion prospectiva de condiciones y recursos permitidos, historial, DTO minimo, permisos e idempotencia. La clasificacion de confirmacion grupal, participantes, minimo, transiciones, interfaz y correccion excepcional permanecen PENDIENTES; SQL/Azure no verificado.<br>
 **Dependencias:** RF-002, RF-020 a RF-022 y arquitectura aprobada de versionado prospectivo con correcciones excepcionales.
 
 #### Requisitos no funcionales
@@ -575,14 +575,14 @@ Dado un usuario normal y un administrador, cuando intentan modificar periodo, pl
 | C-03 | Reglas aprobadas vs flujo actual | La ventana/frecuencia versionadas ya se aplican localmente, pero falta verificarlas en Azure SQL; el minimo de 10 participantes aun no se aplica. | MVP 2 no puede cerrarse. |
 | C-04 | Confirmacion aprobada vs flujo actual | Las multicanchas requieren cuentas, bloqueo `PENDING`, estados reversibles y cancelacion al vencer; el sistema confirma toda reserva al crearla y no registra participantes. | Solicitudes grupales pueden quedar confirmadas sin cumplir las reglas. |
 | C-05 | Prioridad institucional aprobada vs esquema actual | Debe cancelarse y notificarse la reserva particular y permitirse decision entre actividades, pero el esquema rechaza el solapamiento al registrar la actividad. | El comportamiento aprobado no puede ejecutarse. |
-| C-06 | Inventario y politicas aprobadas vs administracion actual | Los ocho recursos son oficiales y solo administradores deben cambiar inventario o politicas, pero hoy solo puede modificarse la imagen. | La institucion no puede mantener autonomamente recursos, periodos ni plazos. |
+| C-06 | Inventario y politicas aprobadas vs administracion actual | Los ocho recursos son oficiales; la API administrativa ya publica politicas prospectivas, pero faltan interfaz y gestion completa del inventario. | La operacion institucional aun no puede mantenerse completamente desde la interfaz. |
 | C-07 | Disponibilidad visible vs regla de base | Bloqueos impiden reservar, pero no se muestran en el endpoint actual. | Un horario puede parecer libre y fallar al confirmar. |
 
 ### 12. Preguntas y decisiones pendientes
 
 No quedan preguntas bloqueantes para el incremento analizado.
 
-**DECISION APROBADA el 2026-07-20:** los cambios administrativos normales crean versiones prospectivas y cada solicitud conserva la version vigente al crearse. Excepcionalmente, un administrador puede corregir solicitudes futuras activas seleccionadas mediante simulacion, motivo, aplicacion atomica y auditoria, sin editar versiones historicas ni cancelar solicitudes implicitamente.
+**DECISION APROBADA el 2026-07-20 y detallada el 2026-07-21:** los cambios administrativos normales crean snapshots completos con vigencia inmediata y cada solicitud conserva la version obtenida por su transaccion al adquirir primero el bloqueo. El historial completo es administrativo y el usuario recibe solo condiciones operativas. La correccion excepcional permanece fuera de este incremento y requerira vista previa temporal de un solo uso vinculada al administrador, motivo, aplicacion atomica y auditoria, sin editar versiones historicas ni cancelar solicitudes implicitamente. La retencion institucional definitiva sigue pendiente; no se elimina auditoria mientras existan reservas relacionadas.
 
 ### 13. Riesgos de producto
 

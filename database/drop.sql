@@ -44,6 +44,7 @@ IF OBJECT_ID('dbo.participants', 'U') IS NOT NULL DROP TABLE dbo.participants;
 IF OBJECT_ID('dbo.reservations', 'U') IS NOT NULL DROP TABLE dbo.reservations;
 IF OBJECT_ID('dbo.reservation_policy_resources', 'U') IS NOT NULL DROP TABLE dbo.reservation_policy_resources;
 IF OBJECT_ID('dbo.reservation_policy_durations', 'U') IS NOT NULL DROP TABLE dbo.reservation_policy_durations;
+IF OBJECT_ID('dbo.reservation_policy_scope_migrations', 'U') IS NOT NULL DROP TABLE dbo.reservation_policy_scope_migrations;
 IF OBJECT_ID('dbo.reservation_policies', 'U') IS NOT NULL DROP TABLE dbo.reservation_policies;
 IF OBJECT_ID('dbo.activities', 'U') IS NOT NULL DROP TABLE dbo.activities;
 IF OBJECT_ID('dbo.resources', 'U') IS NOT NULL DROP TABLE dbo.resources;

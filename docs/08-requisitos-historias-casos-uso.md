@@ -197,7 +197,7 @@ Estado actual: Implementado.
 
 El sistema debe limitar las fechas reservables al periodo institucional configurado y evitar que un usuario cree mas de una solicitud dentro del periodo contado desde la fecha local de creacion de su solicitud anterior. `PENDING` y `CONFIRMED` consumen la oportunidad; `CANCELLED` deja de consumirla. Con siete dias, un martes permite elegir hasta el lunes siguiente y una solicitud creada ese martes permite volver a solicitar desde el martes posterior.
 
-Estado actual: APROBADO el 2026-07-20; no implementado. La fecha de creacion, el limite inclusivo y los estados que consumen la oportunidad estan definidos.
+Estado actual: APROBADO e IMPLEMENTADO; VERIFICADO LOCALMENTE el 2026-07-21. Verificacion contra SQL Server/Azure SQL y concurrencia real PENDIENTES.
 
 Pendiente relacionado: `RES-012`.
 
@@ -237,7 +237,7 @@ Pendiente relacionado: `ADMIN-003`.
 
 El sistema debe permitir exclusivamente a usuarios con rol administrador publicar nuevas versiones del periodo de reserva, el plazo previo de confirmacion y los recursos sujetos a confirmacion grupal. Los cambios normales son prospectivos y cada solicitud conserva la version vigente al crearse. Excepcionalmente, el administrador puede migrar solicitudes futuras `PENDING` o `CONFIRMED` seleccionadas a otra version mediante simulacion, motivo obligatorio, confirmacion, aplicacion atomica y auditoria; la operacion no edita versiones historicas ni cancela solicitudes implicitamente.
 
-Estado actual: APROBADO el 2026-07-20; arquitectura aprobada y no implementada.
+Estado actual: APROBADO e IMPLEMENTADO PARCIAL; VERIFICADO LOCALMENTE el 2026-07-21 para publicacion prospectiva de condiciones y recursos permitidos, historial administrativo, DTO publico minimo, permisos e idempotencia. La clasificacion de recursos sujetos a confirmacion grupal, participantes, minimo, transiciones, interfaz administrativa y correcciones excepcionales siguen PENDIENTES; no se verifico contra SQL Server/Azure SQL real.
 
 Pendiente relacionado: `ADMIN-006`.
 

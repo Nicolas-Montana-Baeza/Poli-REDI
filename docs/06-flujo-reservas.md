@@ -215,12 +215,11 @@ sequenceDiagram
 
 ## Cambios administrativos de politica
 
-- Una version nueva se aplica a solicitudes creadas desde su vigencia; las existentes conservan su version.
-- Una correccion retroactiva es excepcional y solo puede afectar solicitudes futuras `PENDING` o `CONFIRMED` seleccionadas expresamente.
-- El administrador debe previsualizar diferencias, informar un motivo y confirmar el lote.
-- La aplicacion vuelve a validar tiempo, estado, participantes y version dentro de una transaccion.
-- Si una solicitud resulta incompatible o cambia desde la previsualizacion, se rechaza el lote completo sin cancelaciones implicitas.
-- La correccion y cualquier reversion quedan auditadas y notifican al solicitante cuando cambian sus condiciones.
+- Una publicacion administrativa crea un snapshot completo e inmutable con vigencia inmediata; las solicitudes existentes conservan su `policy_id`.
+- La publicacion exige `Idempotency-Key`: un replay identico devuelve la misma version y uno divergente se rechaza.
+- La reserva selecciona la politica dentro de la transaccion; entre operaciones concurrentes, la primera que obtiene el bloqueo determina la version aplicable.
+- El usuario autenticado consulta solo condiciones operativas; el historial con identificadores, autoria y vigencias exige rol administrador.
+- La correccion excepcional no esta implementada en este incremento. El diseno aprobado exige vista previa temporal de un solo uso vinculada al administrador, seleccion de solicitudes futuras activas, motivo y aplicacion atomica auditada, sin cancelaciones implicitas.
 
 ## Politica temporal vigente
 

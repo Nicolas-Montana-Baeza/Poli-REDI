@@ -120,6 +120,16 @@ Accion requerida para MVP 1:
 
 - Implementar respuestas publicas estables y logs internos sanitizados (`SEC-005`).
 
+## API de politicas de reserva
+
+Estado: IMPLEMENTADA y VERIFICADA LOCALMENTE. Todas las rutas exigen autenticacion y las dos rutas bajo `/api/admin` tambien pasan por `RequireAdmin`.
+
+- `GET /api/reservation-policy/current`: DTO publico minimo de condiciones operativas, sin identificador, autoria, vigencias ni fechas de auditoria.
+- `GET /api/admin/reservation-policies`: historial completo para administradores.
+- `POST /api/admin/reservation-policies`: snapshot completo con vigencia inmediata. Exige `Idempotency-Key`; devuelve `201` para publicacion nueva, `200` para replay identico y `409` para replay divergente.
+
+El repositorio publica con aislamiento serializable y bloqueos `UPDLOCK, HOLDLOCK`. Esta garantia fue cubierta localmente y por inspeccion estatica, pero no se sometio a carga concurrente contra SQL Server/Azure SQL real. La correccion excepcional permanece fuera de alcance y no tiene rutas implementadas.
+
 ## Pruebas backend recomendadas
 
 La prioridad debe estar en reglas de negocio y permisos.

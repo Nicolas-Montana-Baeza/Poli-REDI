@@ -46,17 +46,45 @@ VALUES
 SET IDENTITY_INSERT dbo.resources OFF;
 GO
 
-INSERT INTO dbo.reservation_policy_resources (policy_id, resource_id)
-SELECT p.id, r.id
-FROM dbo.reservation_policies p
-INNER JOIN dbo.resources r ON r.id IN (1, 2, 7)
-WHERE p.effective_to IS NULL
-  AND NOT EXISTS (
-      SELECT 1
-      FROM dbo.reservation_policy_resources existing
-      WHERE existing.policy_id = p.id
-        AND existing.resource_id = r.id
-  );
+-- Bootstrap tecnico unico de la politica creada por schema.sql. La excepcion
+-- del trigger exige simultaneamente: politica inicial, sin huella y sin marca.
+BEGIN TRY
+    BEGIN TRANSACTION;
+    EXEC sys.sp_set_session_context @key=N'legacy_policy_scope_bootstrap', @value=1;
+
+    DECLARE @bootstrap_policy_id INT = (
+        SELECT TOP (1) p.id
+        FROM dbo.reservation_policies p WITH (UPDLOCK, HOLDLOCK)
+        WHERE p.idempotency_key IS NULL
+          AND p.id = (SELECT TOP (1) id FROM dbo.reservation_policies ORDER BY effective_from, id)
+          AND NOT EXISTS (SELECT 1 FROM dbo.reservation_policy_scope_migrations m WHERE m.policy_id = p.id)
+    );
+
+    IF @bootstrap_policy_id IS NOT NULL
+    BEGIN
+        INSERT INTO dbo.reservation_policy_resources (policy_id, resource_id)
+        SELECT @bootstrap_policy_id, r.id
+        FROM dbo.resources r
+        WHERE r.is_active = 1
+		  AND r.reservation_mode <> 'INFORMATIVE'
+		  AND NOT EXISTS (
+		      SELECT 1 FROM dbo.reservation_policy_resources existing
+		      WHERE existing.policy_id = @bootstrap_policy_id
+		        AND existing.resource_id = r.id
+		  );
+
+        INSERT INTO dbo.reservation_policy_scope_migrations (policy_id)
+        VALUES (@bootstrap_policy_id);
+    END;
+
+    EXEC sys.sp_set_session_context @key=N'legacy_policy_scope_bootstrap', @value=NULL;
+    COMMIT TRANSACTION;
+END TRY
+BEGIN CATCH
+    IF XACT_STATE() <> 0 ROLLBACK TRANSACTION;
+    EXEC sys.sp_set_session_context @key=N'legacy_policy_scope_bootstrap', @value=NULL;
+    THROW;
+END CATCH;
 GO
 
 -- ACTIVITIES

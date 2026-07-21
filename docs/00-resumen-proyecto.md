@@ -1,6 +1,6 @@
 # Poli-REDI - Resumen vigente para compartir
 
-Fecha de corte: 2026-07-20
+Fecha de corte: 2026-07-21
 
 ## Proposito
 
@@ -35,7 +35,7 @@ Un elemento puede estar implementado sin estar aprobado y puede estar implementa
 | Recursos | IMPLEMENTADO PARCIAL | Catalogo y cambio administrativo de imagen; no existe gestion completa de altas, datos, modos y activacion. |
 | Disponibilidad | IMPLEMENTADO PARCIAL | Integra reservas y actividades programadas; la interfaz agrega talleres recurrentes. Los bloqueos no se muestran y no hay filtros de rango en el servidor. |
 | Creacion de reservas | IMPLEMENTADO PARCIAL | Propietario, zona horaria, jornada y duraciones son controlados por servidor; falta aplicar la confirmacion condicional aprobada segun tipo de recurso. |
-| Reglas institucionales | APROBADO / IMPLEMENTACION PARCIAL | Se aprobaron ventana y frecuencia de siete dias configurables, minimo de 10 usuarios con cuenta para las tres multicanchas, bloqueo del horario, limite inclusivo de una hora, cancelacion por falta de minimo y administracion exclusiva de politicas. Solo la regla de duracion esta implementada y verificada localmente. |
+| Reglas institucionales | APROBADO / IMPLEMENTACION PARCIAL | Ventana, frecuencia y versionado prospectivo estan implementados y verificados localmente, junto con API administrativa, snapshot completo e idempotencia. Participantes, vencimiento, interfaz administrativa y correccion excepcional siguen pendientes; no se verifico el incremento en SQL Server/Azure SQL real. |
 | Cancelacion | IMPLEMENTADO PARCIAL | Propietario o administrador pueden cancelar estados activos no finalizados; la confirmacion visible no es consistente en todos los accesos. |
 | Talleres | IMPLEMENTADO | Consulta e inscripcion con RUT, cupo y duplicado controlados; no existe desinscripcion. |
 | Notificaciones | IMPLEMENTADO PARCIAL | Consulta y contador existen; no se marcan como leidas y la generacion cubre solo eventos limitados. |
@@ -57,7 +57,7 @@ Un elemento puede estar implementado sin estar aprobado y puede estar implementa
 ## Brechas y contradicciones que impiden declarar cierre
 
 1. El alcance academico definitivo excluye autenticacion institucional real y despliegue productivo, pero el repositorio documenta Entra ID y una demo Azure ya implementados.
-2. La ventana reservable de siete dias, la frecuencia semanal y el minimo de 10 participantes son obligatorios y configurables, pero el flujo actual no los solicita ni valida.
+2. La ventana y frecuencia versionadas ya se validan en servidor; falta integracion visible y verificacion SQL/Azure. El minimo de 10 participantes sigue sin implementarse.
 3. El estado debe depender del recurso: `OPEN_USE` no requiere confirmacion de participantes; Cancha 1, 2 y 3 deben quedar pendientes hasta alcanzar el minimo y volver a `PENDING` si una retirada reduce el conteo. El flujo actual confirma todas las reservas inmediatamente.
 4. Ante actividad institucional versus reserva particular, la reserva debe cancelarse automaticamente y notificarse al usuario; ante dos actividades, el administrador debe poder cancelar una o mantener ambas. El esquema actual rechaza esos conflictos.
 5. Los ocho recursos del seed representan el inventario oficial, pero el administrador aun no puede mantenerlo de forma completa.
@@ -100,9 +100,9 @@ No usar `docs/00-revision-inicial.md` como estado vigente; es un registro histor
 12. Excepcionalmente, un administrador puede corregir solicitudes futuras `PENDING` o `CONFIRMED` mediante seleccion explicita, simulacion previa, motivo obligatorio, aplicacion atomica y auditoria. La correccion no edita versiones historicas ni cancela solicitudes implicitamente.
 13. El solicitante cuenta como participante y no puede retirar su participacion; para salir debe cancelar la solicitud completa.
 
-## Arquitectura aprobada pendiente de implementacion
+## Arquitectura de politicas: estado de implementacion
 
-La politica se versionara y cada solicitud referenciara la version aplicable. El trabajo se divide en cuatro incrementos tecnicos: versionado y reglas de solicitud; participantes y estados; plazo y vencimiento; administracion y correcciones excepcionales. `ADMIN-005` se mantiene para una entrega arquitectonica posterior.
+La politica se versiona y cada solicitud referencia la version aplicable. Publicacion inmediata, snapshot completo, permisos, historial e idempotencia estan implementados y verificados localmente. Participantes/estados, plazo/vencimiento, interfaz administrativa y correcciones excepcionales siguen pendientes. `ADMIN-005` se mantiene para una entrega arquitectonica posterior.
 
 ## Evidencia local del corte
 

@@ -133,29 +133,6 @@ func createReservationAt(
 		return models.Reservation{}, errors.New("no puedes crear reservas en el pasado")
 	}
 
-	policy, err := repositories.GetCurrentReservationPolicy()
-	if errors.Is(err, sql.ErrNoRows) {
-		return models.Reservation{}, errors.New("no existe una pol\u00edtica de reservas vigente")
-	}
-	if err != nil {
-		return models.Reservation{}, err
-	}
-
-	if err := reservationrules.ValidateScheduleWithPolicy(
-		reservation.StartTime, reservation.DurationMinutes, policy.OpeningMinute,
-		policy.ClosingMinute, policy.SlotIntervalMinutes, policy.AllowedDurations,
-	); err != nil {
-		return models.Reservation{}, err
-	}
-
-	if err := reservationrules.ValidateReservableWindow(
-		now,
-		reservation.StartTime,
-		policy.ReservableWindowDays,
-	); err != nil {
-		return models.Reservation{}, err
-	}
-
 	previousCreatedAt, frequencyDays, err := repositories.GetLatestConsumingReservation(reservation.UserID)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return models.Reservation{}, err
@@ -189,13 +166,23 @@ func createReservationAt(
 		return models.Reservation{}, err
 	}
 
-	createdReservation, err := repositories.AddReservation(reservation)
+	createdReservation, err := repositories.AddReservationWithPolicy(reservation, func(policy models.ReservationPolicy) error {
+		return validateReservationPolicySnapshot(reservation, now, policy)
+	})
 
 	if err != nil {
 		return models.Reservation{}, mapDatabaseReservationError(err)
 	}
 
 	return createdReservation, nil
+}
+
+func validateReservationPolicySnapshot(reservation models.Reservation, now time.Time, policy models.ReservationPolicy) error {
+	if err := reservationrules.ValidateScheduleWithPolicy(reservation.StartTime, reservation.DurationMinutes,
+		policy.OpeningMinute, policy.ClosingMinute, policy.SlotIntervalMinutes, policy.AllowedDurations); err != nil {
+		return err
+	}
+	return reservationrules.ValidateReservableWindow(now, reservation.StartTime, policy.ReservableWindowDays)
 }
 
 func enforceInitialReservationStatus(
@@ -410,6 +397,12 @@ func normalizeWorkshopText(value string) string {
 }
 
 func mapDatabaseReservationError(err error) error {
+	if errors.Is(err, sql.ErrNoRows) {
+		return errors.New("no existe una pol\u00edtica de reservas vigente")
+	}
+	if errors.Is(err, repositories.ErrResourceNotAllowedByPolicy) {
+		return err
+	}
 	var sqlErr mssql.Error
 
 	if errors.As(err, &sqlErr) {
@@ -438,6 +431,8 @@ func mapDatabaseReservationError(err error) error {
 			return errors.New(sqlErr.Message)
 		case 51015:
 			return errors.New("el horario o la duracion no estan permitidos por la politica vigente")
+		case 51016:
+			return errors.New("el recurso no esta permitido por la politica vigente")
 		case 547:
 			return errors.New("usuario, recurso o actividad no existe, o los datos no cumplen restricciones")
 		case 2601, 2627:

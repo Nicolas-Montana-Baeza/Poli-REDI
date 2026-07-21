@@ -3,12 +3,15 @@ package repositories
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"time"
 
 	"poli-redi-api/internal/businessclock"
 	"poli-redi-api/internal/database"
 	"poli-redi-api/internal/models"
 )
+
+var ErrResourceNotAllowedByPolicy = errors.New("el recurso no esta permitido por la politica vigente")
 
 func GetAllReservations() ([]models.Reservation, error) {
 	rows, err := database.DB.QueryContext(
@@ -176,27 +179,37 @@ func scanReservationRows(rows *sql.Rows) ([]models.Reservation, error) {
 	return reservations, nil
 }
 
-func AddReservation(reservation models.Reservation) (models.Reservation, error) {
+func AddReservationWithPolicy(reservation models.Reservation, validate func(models.ReservationPolicy) error) (models.Reservation, error) {
+	ctx := context.Background()
+	tx, err := database.DB.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelSerializable})
+	if err != nil {
+		return models.Reservation{}, err
+	}
+	defer tx.Rollback()
+	policy, err := scanPolicy(tx.QueryRowContext(ctx, `SELECT TOP (1) `+policyColumns+` FROM dbo.reservation_policies WITH (UPDLOCK, HOLDLOCK) WHERE is_published = 1 AND effective_from <= SYSUTCDATETIME() AND (effective_to IS NULL OR effective_to > SYSUTCDATETIME()) ORDER BY effective_from DESC, id DESC`))
+	if err != nil {
+		return models.Reservation{}, err
+	}
+	if err := loadPolicyCollections(ctx, tx, &policy); err != nil {
+		return models.Reservation{}, err
+	}
+	if !policyAllowsResource(policy, reservation.ResourceID) {
+		return models.Reservation{}, ErrResourceNotAllowedByPolicy
+	}
+	if err := validate(policy); err != nil {
+		return models.Reservation{}, err
+	}
+
 	var activityName string
 	var resourceName string
 	var userFullName string
 	var userEmail string
 	var userRUT string
 
-	err := database.DB.QueryRowContext(
-		context.Background(),
+	err = tx.QueryRowContext(
+		ctx,
 		`
 		DECLARE @created TABLE (id INT);
-		DECLARE @policy_id INT;
-
-		SELECT @policy_id = id
-		FROM dbo.reservation_policies WITH (UPDLOCK, HOLDLOCK)
-		WHERE effective_from <= SYSUTCDATETIME()
-		  AND (effective_to IS NULL OR effective_to > SYSUTCDATETIME());
-
-		IF @policy_id IS NULL
-			THROW 51008, 'No existe una politica de reservas vigente.', 1;
-
 		INSERT INTO dbo.reservations (
 			policy_id,
 			user_id,
@@ -207,7 +220,7 @@ func AddReservation(reservation models.Reservation) (models.Reservation, error) 
 			status
 		)
 		OUTPUT INSERTED.id INTO @created
-		VALUES (@policy_id, @p1, @p2, @p3, @p4, @p5, @p6);
+		VALUES (@p1, @p2, @p3, @p4, @p5, @p6, @p7);
 
 		SELECT
 			r.id,
@@ -235,6 +248,7 @@ func AddReservation(reservation models.Reservation) (models.Reservation, error) 
 		LEFT JOIN dbo.activities a
 			ON a.id = r.activity_id;
 		`,
+		policy.ID,
 		reservation.UserID,
 		reservation.ResourceID,
 		reservation.ActivityID,
@@ -264,6 +278,9 @@ func AddReservation(reservation models.Reservation) (models.Reservation, error) 
 	if err != nil {
 		return models.Reservation{}, err
 	}
+	if err := tx.Commit(); err != nil {
+		return models.Reservation{}, err
+	}
 
 	reservation.StartTime = businessclock.FromDatabaseWallTime(reservation.StartTime)
 	reservation.Hour = reservation.StartTime.Format("15:04")
@@ -275,6 +292,15 @@ func AddReservation(reservation models.Reservation) (models.Reservation, error) 
 	reservation.UserRUT = userRUT
 
 	return reservation, nil
+}
+
+func policyAllowsResource(policy models.ReservationPolicy, resourceID int) bool {
+	for _, allowedID := range policy.ResourceIDs {
+		if allowedID == resourceID {
+			return true
+		}
+	}
+	return false
 }
 
 func mapReservationType(status string) string {

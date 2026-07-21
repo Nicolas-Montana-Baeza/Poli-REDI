@@ -1785,7 +1785,7 @@ Definir y aplicar en backend las reglas institucionales minimas de duracion e in
 
 Prioridad: P0
 Labels: `reservas`, `reglas-negocio`, `backend`, `frontend`, `mvp2`, `needs-architecture`
-Estado sugerido: Implemented; QA integrada parcial
+Estado sugerido: Implemented; VERIFICADO LOCALMENTE, integracion SQL/Azure pendiente
 
 ### Contexto
 
@@ -1813,7 +1813,11 @@ Limitar las fechas reservables al periodo institucional configurado y rechazar n
 
 `PENDING` y `CONFIRMED` consumen la oportunidad; `CANCELLED` no la consume. Una solicitud rechazada que nunca fue creada tampoco la consume.
 
-### Evidencia QA integrada del 2026-07-21
+### Evidencia QA del 2026-07-21
+
+- [x] La reserva obtiene y persiste la politica vigente dentro de la transaccion que adquiere los bloqueos; ventana y frecuencia se evaluan con el snapshot referenciado.
+- [x] Pruebas locales de servicio y contrato SQL cubren version historica, cancelacion y seleccion de politica.
+- [ ] Falta ejecutar el esquema actualizado contra SQL Server/Azure SQL real y validar concurrencia con transacciones simultaneas.
 
 - [x] Dos solicitudes concurrentes del mismo usuario fueron ejecutadas contra Azure SQL: una se creo y la otra fue rechazada por la proteccion de frecuencia, conservando una sola solicitud activa.
 - [x] La reserva activa fue cancelada desde el frontend y una nueva solicitud del mismo usuario pudo crearse, verificando de punta a punta que `CANCELLED` libera la oportunidad.
@@ -2133,7 +2137,7 @@ Permitir registrar clases, talleres, eventos, campeonatos o entrenamientos insti
 
 Prioridad: P1
 Labels: `admin`, `reservas`, `reglas-negocio`, `architecture-approved`, `mvp3`
-Estado sugerido: Ready for Development
+Estado sugerido: Implemented parcial; VERIFICADO LOCALMENTE
 
 ### Objetivo
 
@@ -2141,13 +2145,14 @@ Permitir que solo usuarios con rol administrador modifiquen el periodo de reserv
 
 ### Criterios de aceptacion
 
-- [ ] Un administrador puede modificar el periodo cuyo valor inicial es siete dias.
-- [ ] Un administrador puede modificar el plazo previo cuyo valor inicial es una hora.
-- [ ] Un administrador puede modificar que recursos requieren confirmacion grupal.
-- [ ] Un usuario normal no puede consultar controles administrativos ni modificar estas politicas.
-- [ ] Cada cambio muestra el valor anterior, el nuevo valor y el momento desde el cual rige.
-- [ ] El cambio normal crea una version inmutable y se aplica a solicitudes creadas posteriormente.
-- [ ] Cada solicitud conserva la version vigente al crearse.
+- [x] Un administrador puede publicar una nueva version del periodo cuyo valor inicial es siete dias.
+- [x] Un administrador puede publicar una nueva version del plazo previo cuyo valor inicial es una hora.
+- [x] Un administrador puede versionar recursos permitidos, jornada, intervalo y duraciones permitidas.
+- [ ] La politica clasifica que recursos requieren confirmacion grupal; participantes, minimo y transiciones asociadas siguen pendientes.
+- [x] Un usuario normal no puede consultar el historial ni modificar estas politicas; solo recibe el DTO operativo minimo vigente.
+- [x] El historial administrativo conserva valores, autoria y vigencias; la interfaz para mostrarlos sigue pendiente.
+- [x] El cambio normal crea una version inmutable con vigencia inmediata y se aplica a solicitudes creadas posteriormente.
+- [x] Cada solicitud conserva la version vigente al crearse.
 - [ ] Un administrador puede previsualizar una correccion excepcional sobre solicitudes futuras `PENDING` o `CONFIRMED` seleccionadas.
 - [ ] La correccion exige motivo, confirmacion explicita, auditoria e idempotencia por lote.
 - [ ] La aplicacion revalida todas las solicitudes y es atomica: si una es incompatible, no cambia ninguna.
@@ -2156,11 +2161,19 @@ Permitir que solo usuarios con rol administrador modifiquen el periodo de reserv
 
 ### Arquitectura aprobada
 
-- Persistir versiones en `reservation_policies` y sus recursos en `reservation_policy_resources`.
+- Persistir versiones en `reservation_policies` y sus recursos permitidos en `reservation_policy_resources`; la clasificacion de confirmacion grupal requiere implementacion posterior.
 - Asociar cada reserva mediante `reservations.policy_id`.
 - Registrar excepciones en `reservation_policy_corrections` con version anterior/nueva, administrador, motivo, fecha UTC y lote.
 - Separar `preview` y `apply` en rutas administrativas protegidas.
 - Mantener `ADMIN-005` fuera de esta entrega y disenarlo posteriormente.
+
+### Resultado implementado y evidencia
+
+- Contratos: `GET /api/reservation-policy/current`, `GET /api/admin/reservation-policies` y `POST /api/admin/reservation-policies`.
+- La publicacion exige `Idempotency-Key`: `201` nuevo, `200` replay identico y `409` replay divergente.
+- El esquema protege version vigente unica, idempotencia, snapshot completo e inmutabilidad; el seed completa y marca una sola vez el bootstrap tecnico de recursos permitidos despues de cargar el catalogo.
+- QA acepto/verifico localmente tras cuatro rondas. No se ejecuto el esquema actualizado en SQL Server/Azure SQL real; concurrencia fue validada estaticamente y `go vet` no se ejecuto en la ronda final por cuota.
+- La vista previa/aplicacion de correcciones excepcionales y su auditoria permanecen pendientes y fuera de este incremento. La retencion institucional definitiva tambien sigue pendiente; las politicas referenciadas por reservas no pueden eliminarse.
 
 ---
 

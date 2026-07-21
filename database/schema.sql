@@ -181,6 +181,7 @@ BEGIN
         created_by_user_id INT NULL,
         created_at DATETIME2(0) NOT NULL CONSTRAINT df_reservation_policies_created_at DEFAULT (SYSUTCDATETIME()),
 		idempotency_key NVARCHAR(100) NULL,
+		idempotency_payload_hash CHAR(64) NULL,
 		is_published BIT NOT NULL CONSTRAINT df_reservation_policies_published DEFAULT (1),
         CONSTRAINT fk_reservation_policies_created_by FOREIGN KEY (created_by_user_id) REFERENCES dbo.users(id) ON DELETE NO ACTION,
         CONSTRAINT ck_reservation_policies_window CHECK (reservable_window_days > 0),
@@ -201,6 +202,7 @@ IF COL_LENGTH('dbo.reservation_policies', 'opening_minute') IS NULL ALTER TABLE 
 IF COL_LENGTH('dbo.reservation_policies', 'closing_minute') IS NULL ALTER TABLE dbo.reservation_policies ADD closing_minute INT NOT NULL CONSTRAINT df_reservation_policies_closing DEFAULT (1320);
 IF COL_LENGTH('dbo.reservation_policies', 'slot_interval_minutes') IS NULL ALTER TABLE dbo.reservation_policies ADD slot_interval_minutes INT NOT NULL CONSTRAINT df_reservation_policies_slot DEFAULT (15);
 IF COL_LENGTH('dbo.reservation_policies', 'idempotency_key') IS NULL ALTER TABLE dbo.reservation_policies ADD idempotency_key NVARCHAR(100) NULL;
+IF COL_LENGTH('dbo.reservation_policies', 'idempotency_payload_hash') IS NULL ALTER TABLE dbo.reservation_policies ADD idempotency_payload_hash CHAR(64) NULL;
 IF COL_LENGTH('dbo.reservation_policies', 'is_published') IS NULL ALTER TABLE dbo.reservation_policies ADD is_published BIT NOT NULL CONSTRAINT df_reservation_policies_published DEFAULT (1);
 GO
 
@@ -309,19 +311,24 @@ BEGIN
 END;
 GO
 
+-- Migracion unica desde la semantica historica (recursos de confirmacion) a
+-- una lista completa de recursos permitidos. La marca evita ampliar versiones
+-- antiguas cuando se agreguen recursos en ejecuciones futuras del esquema.
+IF OBJECT_ID('dbo.reservation_policy_scope_migrations', 'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.reservation_policy_scope_migrations (
+        policy_id INT NOT NULL CONSTRAINT pk_reservation_policy_scope_migrations PRIMARY KEY,
+        migrated_at DATETIME2(0) NOT NULL CONSTRAINT df_reservation_policy_scope_migrations_at DEFAULT (SYSUTCDATETIME()),
+        CONSTRAINT fk_reservation_policy_scope_migrations_policy FOREIGN KEY (policy_id) REFERENCES dbo.reservation_policies(id) ON DELETE NO ACTION
+    );
+END;
+GO
+
 INSERT INTO dbo.reservation_policy_durations (policy_id, duration_minutes)
 SELECT p.id, d.duration_minutes
 FROM dbo.reservation_policies p
 CROSS JOIN (VALUES (30), (60), (90), (120), (150), (180)) d(duration_minutes)
 WHERE NOT EXISTS (SELECT 1 FROM dbo.reservation_policy_durations);
-GO
-
-INSERT INTO dbo.reservation_policy_resources (policy_id, resource_id)
-SELECT p.id, r.id
-FROM dbo.reservation_policies p
-INNER JOIN dbo.resources r ON r.id IN (1, 2, 7)
-WHERE p.id = (SELECT TOP (1) id FROM dbo.reservation_policies ORDER BY effective_from, id)
-  AND NOT EXISTS (SELECT 1 FROM dbo.reservation_policy_resources);
 GO
 
 -- ============================================================
@@ -652,6 +659,7 @@ BEGIN
            OR ISNULL(i.created_by_user_id, -1) <> ISNULL(d.created_by_user_id, -1)
            OR i.created_at <> d.created_at
 		   OR ISNULL(i.idempotency_key, N'') <> ISNULL(d.idempotency_key, N'')
+		   OR ISNULL(i.idempotency_payload_hash, '') <> ISNULL(d.idempotency_payload_hash, '')
 		   OR (i.is_published <> d.is_published AND NOT (d.is_published = 0 AND i.is_published = 1))
     )
         THROW 51012, 'Una version de politica publicada es inmutable.', 1;
@@ -665,7 +673,17 @@ AS
 BEGIN
     SET NOCOUNT ON;
     IF EXISTS (SELECT 1 FROM deleted)
-	   OR EXISTS (SELECT 1 FROM inserted i INNER JOIN dbo.reservation_policies p ON p.id = i.policy_id WHERE p.is_published = 1)
+	   OR EXISTS (
+	       SELECT 1 FROM inserted i
+	       INNER JOIN dbo.reservation_policies p ON p.id = i.policy_id
+	       WHERE p.is_published = 1
+	         AND NOT (
+	             TRY_CONVERT(INT, SESSION_CONTEXT(N'legacy_policy_scope_bootstrap')) = 1
+	             AND p.idempotency_key IS NULL
+	             AND p.id = (SELECT TOP (1) id FROM dbo.reservation_policies ORDER BY effective_from, id)
+	             AND NOT EXISTS (SELECT 1 FROM dbo.reservation_policy_scope_migrations m WHERE m.policy_id = p.id)
+	         )
+	   )
         THROW 51013, 'Los recursos de una version publicada son inmutables.', 1;
 END;
 GO
@@ -707,6 +725,14 @@ BEGIN
 		   OR CONVERT(DATE, i.start_time) <> CONVERT(DATE, DATEADD(MINUTE, i.duration_minutes, i.start_time))
 	)
 		THROW 51015, 'El horario o la duracion no estan permitidos por la politica asociada.', 1;
+
+	IF EXISTS (
+		SELECT 1 FROM inserted i
+		INNER JOIN dbo.reservation_policies p ON p.id = i.policy_id
+		WHERE (p.idempotency_key IS NOT NULL OR EXISTS (SELECT 1 FROM dbo.reservation_policy_scope_migrations m WHERE m.policy_id = p.id))
+		  AND NOT EXISTS (SELECT 1 FROM dbo.reservation_policy_resources pr WHERE pr.policy_id = i.policy_id AND pr.resource_id = i.resource_id)
+	)
+		THROW 51016, 'El recurso no esta permitido por la politica asociada.', 1;
 
     IF EXISTS (
         SELECT 1

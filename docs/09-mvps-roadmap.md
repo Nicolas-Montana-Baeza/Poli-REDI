@@ -254,7 +254,7 @@ Incluye tambien una primera version funcional de talleres deportivos: listado de
 - Completar filtros por fecha/rango y sumar bloqueos al endpoint de disponibilidad; las actividades programadas ya estan integradas (`API-004`, `ADMIN-004`).
 - Cargar el detalle por ID sin descargar colecciones completas (`API-006`).
 - Agregar confirmacion fuerte antes de cancelar reservas (`RES-007`).
-- Aplicar la ventana y frecuencia configurables; `PENDING` consume desde su creacion y `CANCELLED` libera la oportunidad (`RES-012`).
+- Integrar en frontend y verificar en SQL Server/Azure SQL la ventana y frecuencia versionadas ya implementadas localmente; `PENDING` consume desde su creacion y `CANCELLED` libera la oportunidad (`RES-012`).
 - Registrar al solicitante y participantes mediante cuentas unicas, exigiendo al menos 10 para las tres multicanchas (`RES-008`).
 - Mantener solicitudes grupales en `PENDING`, bloquear el horario, confirmar al alcanzar el minimo y volver a `PENDING` si una retirada reduce el conteo (`RES-008`, `RES-010`).
 - Aceptar cambios hasta exactamente una hora antes inclusive y cancelar al vencer bajo el minimo, liberando horario y oportunidad (`RES-008`, `RES-012`).
@@ -332,7 +332,7 @@ Parcial.
 - Completar la integracion de bloqueos en el calendario unificado; reservas y actividades programadas ya comparten contrato (`RES-004`).
 - Crear bloqueos de disponibilidad desde administracion (`ADMIN-004`).
 - Completar la gestion del inventario oficial de ocho recursos; la actualizacion de imagen ya esta implementada (`ADMIN-003`).
-- Permitir solo a administradores modificar el periodo, el plazo previo y los recursos sujetos a confirmacion grupal (`ADMIN-006`).
+- Completar la interfaz administrativa y verificar en SQL Server/Azure SQL la publicacion prospectiva ya implementada para periodo, frecuencia, plazo, jornada, duraciones y recursos (`ADMIN-006`). Las correcciones excepcionales quedan para un incremento posterior.
 - Bloquear y desbloquear usuarios con auditoria (`ADMIN-002`).
 - Registrar programacion institucional, cancelar automaticamente reservas particulares en conflicto y permitir que el administrador cancele una actividad o mantenga ambas cuando el conflicto sea institucional (`ADMIN-005`).
 - Agregar filtros backend de recursos por sede, tipo y estado (`API-001`).
@@ -423,7 +423,7 @@ Estos incrementos no reemplazan los cuatro MVPs generales; ordenan `RES-012`, `R
 1. **Versionado y reglas de solicitud:** politica inicial e inmutable por solicitud, ventana, frecuencia y liberacion al cancelar.
 2. **Participantes y estado condicionado:** solicitante contado sin posibilidad de retiro, confirmaciones de terceros, bloqueo `PENDING` y transiciones por minimo.
 3. **Plazo y vencimiento:** limite inclusivo, cancelacion bajo el minimo y resolucion antes de consultas o escrituras relevantes.
-4. **Administracion y correcciones excepcionales:** nuevas versiones prospectivas, previsualizacion, aplicacion atomica auditada y reversion mediante una nueva correccion.
+4. **Administracion:** la API de nuevas versiones prospectivas, historial, permisos e idempotencia esta implementada y verificada localmente; faltan interfaz y verificacion SQL/Azure. Las correcciones excepcionales quedan fuera del incremento actual.
 
 `ADMIN-005` queda expresamente para una entrega arquitectonica posterior y no bloquea estos cuatro incrementos.
 
