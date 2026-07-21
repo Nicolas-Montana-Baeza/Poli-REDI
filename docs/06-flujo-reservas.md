@@ -23,12 +23,12 @@ Este documento describe el flujo funcional de reservas en Poli-REDI, sus validac
 8. El frontend valida campos obligatorios.
 9. El backend toma el usuario desde la sesion autenticada.
 10. El backend rechaza usuarios normales sin RUT.
-11. El servicio valida zona horaria de negocio, fecha/hora, duracion permitida, paso de inicio y jornada operativa.
-12. La base de datos valida conflictos de recurso, usuario, bloqueos y actividades programadas.
+11. El servicio valida zona horaria de negocio, fecha/hora, duracion permitida, paso de inicio, jornada operativa, ventana reservable y frecuencia desde la creacion de la solicitud activa anterior.
+12. La base de datos vuelve a proteger ventana y frecuencia ante concurrencia, ademas de validar conflictos de recurso, usuario, bloqueos y actividades programadas.
 13. Si la reserva se crea, la UI refresca disponibilidad y muestra mensaje de exito.
 14. Si existe conflicto, el formulario mantiene el error visible.
 
-Este flujo describe el comportamiento implementado, no el flujo objetivo completo aprobado el 2026-07-20. Actualmente no aplica la restriccion semanal, no registra confirmaciones de participantes y crea toda reserva como `CONFIRMED`.
+Este flujo describe el comportamiento implementado, no el flujo objetivo completo aprobado el 2026-07-20. La ventana y la frecuencia versionadas estan implementadas y verificadas localmente, pero aun no se han verificado en Azure SQL. Todavia no se registran confirmaciones de participantes y toda reserva se crea como `CONFIRMED`.
 
 ## Flujo objetivo aprobado de solicitud y confirmacion
 

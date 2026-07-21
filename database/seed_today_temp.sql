@@ -13,16 +13,17 @@ DELETE FROM dbo.reservations WHERE id IN (1, 2, 3, 4, 5, 6, 7, 8);
 GO
 
 SET IDENTITY_INSERT dbo.reservations ON;
-INSERT INTO dbo.reservations (id, user_id, resource_id, activity_id, start_time, duration_minutes, status, cancellation_reason)
+DECLARE @initial_policy_id INT = (SELECT TOP (1) id FROM dbo.reservation_policies ORDER BY effective_from ASC, id ASC);
+INSERT INTO dbo.reservations (id, policy_id, user_id, resource_id, activity_id, start_time, duration_minutes, status, cancellation_reason, created_at)
 VALUES
-(1, 2, 1, 1, '2026-07-14T08:30:00', 60, 'CONFIRMED', NULL),
-(2, 3, 2, 2, '2026-07-14T09:45:00', 90, 'CONFIRMED', NULL),
-(3, 4, 3, 6, '2026-07-14T11:30:00', 60, 'CONFIRMED', NULL),
-(4, 5, 4, 5, '2026-07-14T13:00:00', 60, 'CONFIRMED', NULL),
-(5, 2, 5, NULL, '2026-07-14T15:00:00', 60, 'CONFIRMED', NULL),
-(6, 7, 8, NULL, '2026-07-14T16:30:00', 90, 'CONFIRMED', NULL),
-(7, 8, 1, 1, '2026-07-14T18:30:00', 60, 'CONFIRMED', NULL),
-(8, 9, 7, 2, '2026-07-14T20:00:00', 60, 'CONFIRMED', NULL);
+(1, @initial_policy_id, 2, 1, 1, '2026-07-14T08:30:00', 60, 'CONFIRMED', NULL, '2026-07-13T12:00:00'),
+(2, @initial_policy_id, 3, 2, 2, '2026-07-14T09:45:00', 90, 'CONFIRMED', NULL, '2026-07-13T12:00:00'),
+(3, @initial_policy_id, 4, 3, 6, '2026-07-14T11:30:00', 60, 'CONFIRMED', NULL, '2026-07-13T12:00:00'),
+(4, @initial_policy_id, 5, 4, 5, '2026-07-14T13:00:00', 60, 'CONFIRMED', NULL, '2026-07-13T12:00:00'),
+(5, @initial_policy_id, 6, 5, NULL, '2026-07-14T15:00:00', 60, 'CONFIRMED', NULL, '2026-07-13T12:00:00'),
+(6, @initial_policy_id, 7, 8, NULL, '2026-07-14T16:30:00', 90, 'CONFIRMED', NULL, '2026-07-13T12:00:00'),
+(7, @initial_policy_id, 8, 1, 1, '2026-07-14T18:30:00', 60, 'CONFIRMED', NULL, '2026-07-13T12:00:00'),
+(8, @initial_policy_id, 9, 7, 2, '2026-07-14T20:00:00', 60, 'CONFIRMED', NULL, '2026-07-13T12:00:00');
 SET IDENTITY_INSERT dbo.reservations OFF;
 GO
 

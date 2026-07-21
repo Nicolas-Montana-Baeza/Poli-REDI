@@ -1,6 +1,6 @@
 # Poli-REDI - Estado actual de producto
 
-Fecha de corte: 2026-07-20
+Fecha de corte: 2026-07-21
 
 ### 1. Resumen
 
@@ -8,7 +8,7 @@ Fecha de corte: 2026-07-20
 - **Objetivo — APROBADO:** validar un prototipo que centralice recursos, disponibilidad, reservas y reglas institucionales basicas sin presentarlo como plataforma productiva completa.
 - **Usuarios afectados — HECHO:** usuarios normales, administradores y personal institucional encargado de la operacion deportiva.
 - **Resultado esperado — PROPUESTA:** disponer de una demo verificable cuyo alcance implementado, faltante y futuro pueda comunicarse sin confundir codigo, aprobacion y validacion.
-- **Estado actual — HECHO:** existe una demo funcional con identidad, reservas y consulta operacional; las reglas aprobadas de ventana/frecuencia, participantes, bloqueo `PENDING`, vencimiento y administracion de politicas aun no estan implementadas, por lo que el MVP 2 no puede declararse cerrado.
+- **Estado actual — HECHO:** existe una demo funcional con identidad, reservas y consulta operacional; la ventana y frecuencia versionadas estan implementadas y verificadas localmente, pero no en Azure SQL. Participantes, bloqueo `PENDING`, vencimiento y administracion de politicas aun no estan implementados, por lo que el MVP 2 no puede declararse cerrado.
 
 ### 2. Evidencia revisada
 
@@ -19,12 +19,12 @@ Fecha de corte: 2026-07-20
 | `docs/08-requisitos-historias-casos-uso.md` | Consolida 25 requisitos funcionales, incluidos los acuerdos del 2026-07-20 y su estado pendiente de implementacion. | ACTUALIZADO |
 | `backend/internal/routes/routes.go` | Existen rutas de identidad, RUT, lectura de recursos/actividades/notificaciones/talleres, inscripcion, disponibilidad, reservas y lectura administrativa. No existen rutas de gestion completa de usuarios, bloqueos, programacion, infracciones o reportes. | IMPLEMENTADO |
 | `backend/internal/middleware/auth_middleware.go` | La identidad se valida en servidor; rol, bloqueo y RUT provienen del usuario local; `DEV_AUTH_ENABLED` selecciona el modo local. | IMPLEMENTADO |
-| `backend/internal/services/reservations_service.go` | La reserva usa el usuario autenticado, fuerza estado `CONFIRMED`, valida pasado, jornada, duracion, talleres y cancelacion. | IMPLEMENTADO |
-| `database/schema.sql` | El esquema incluye entidades completas y protege conflictos de recurso, usuario, bloqueos y actividades programadas; contiene auditoria de reservas. | IMPLEMENTADO en script; no verificado contra una base ejecutandose en este corte |
+| `backend/internal/services/reservations_service.go` | La reserva usa el usuario autenticado, fuerza estado `CONFIRMED` y valida pasado, jornada, duracion, ventana, frecuencia, talleres y cancelacion. | IMPLEMENTADO y VERIFICADO LOCAL para ventana/frecuencia |
+| `database/schema.sql` | El esquema versiona politicas por solicitud y protege ventana, frecuencia y conflictos de recurso, usuario, bloqueos y actividades programadas; contiene auditoria de reservas. | IMPLEMENTADO en script; ventana/frecuencia no verificadas contra Azure SQL en este corte |
 | `frontend/src/components/availability/AvailabilitySection.vue` | La interfaz combina reservas, actividades programadas y talleres; no incorpora bloqueos visibles y permite abrir seleccion sobre recursos que despues puede rechazar el servidor. | IMPLEMENTADO PARCIAL |
 | `database/seed.sql` | Contiene los ocho recursos confirmados como inventario oficial inicial. | APROBADO como linea base; gestion completa PENDIENTE |
 | Decisiones explicitas del usuario del 2026-07-20 | Confirman que `PENDING` consume y `CANCELLED` libera la oportunidad; el solicitante cuenta y todos los participantes tienen cuenta; la solicitud bloquea, admite cambios en el limite exacto y se cancela al vencer bajo el minimo; las tres canchas son multicanchas y solo administradores modifican politicas. | APROBADO |
-| Pruebas locales 2026-07-20 | `go test ./...`, `npm test` y `npm run build` aprobaron; frontend reporto 9 pruebas. | VERIFICADO LOCAL |
+| Pruebas locales 2026-07-21 | `go test ./...`, `go vet ./...`, `npm test` y `npm run build` aprobaron; frontend reporto 9 pruebas. | VERIFICADO LOCAL |
 | `docs/12-checklist-demo-mvp1.md` | La mayor parte de la prueba manual e integrada sigue pendiente; no hay verificacion online actual registrada. | PENDIENTE |
 
 ### 3. Alcance
@@ -167,7 +167,7 @@ Fecha de corte: 2026-07-20
 **Resultado:** Reserva aceptada o rechazada de forma verificable.  
 **Prioridad:** MUST.  
 **Fuente:** Alcance definitivo, levantamiento y decision explicita del usuario del 2026-07-20.  
-**Estado:** APROBADO; no IMPLEMENTADO.  
+**Estado:** APROBADO e IMPLEMENTADO; VERIFICADO local, verificacion en Azure SQL PENDIENTE.<br>
 **Dependencias:** RF-025 para modificar el periodo institucional.
 
 **ID:** RF-021  
@@ -342,7 +342,7 @@ Fecha de corte: 2026-07-20
 **Regla:** La longitud del periodo es configurable y actualmente corresponde a siete dias calendario en `America/Santiago`. `PENDING` consume la oportunidad desde su creacion; `CONFIRMED` la mantiene consumida; al pasar a `CANCELLED` deja de consumirla y se recalcula la proxima fecha permitida.<br>
 **Justificacion:** Regla levantada para distribuir acceso.  
 **Fuente:** Levantamiento, alcance definitivo y decision explicita del usuario del 2026-07-20.  
-**Estado:** APROBADO; no IMPLEMENTADO.<br>
+**Estado:** APROBADO e IMPLEMENTADO; VERIFICADO local, verificacion en Azure SQL PENDIENTE.<br>
 **Excepciones:** Una solicitud rechazada que no llega a crearse no consume la frecuencia.
 
 **RN-010 — Participantes minimos**  
@@ -572,7 +572,7 @@ Dado un usuario normal y un administrador, cuando intentan modificar periodo, pl
 | ID | Fuentes en conflicto | Diferencia | Efecto |
 | --- | --- | --- | --- |
 | C-01 | Alcance definitivo vs repositorio | Entra ID real y demo Azure estaban fuera del alcance original y hoy estan implementados/documentados. | El informe puede describir un alcance distinto del prototipo entregado. |
-| C-03 | Reglas aprobadas vs flujo actual | La ventana/frecuencia configurable y el minimo de 10 participantes son obligatorios, pero no se aplican. | MVP 2 no puede cerrarse. |
+| C-03 | Reglas aprobadas vs flujo actual | La ventana/frecuencia versionadas ya se aplican localmente, pero falta verificarlas en Azure SQL; el minimo de 10 participantes aun no se aplica. | MVP 2 no puede cerrarse. |
 | C-04 | Confirmacion aprobada vs flujo actual | Las multicanchas requieren cuentas, bloqueo `PENDING`, estados reversibles y cancelacion al vencer; el sistema confirma toda reserva al crearla y no registra participantes. | Solicitudes grupales pueden quedar confirmadas sin cumplir las reglas. |
 | C-05 | Prioridad institucional aprobada vs esquema actual | Debe cancelarse y notificarse la reserva particular y permitirse decision entre actividades, pero el esquema rechaza el solapamiento al registrar la actividad. | El comportamiento aprobado no puede ejecutarse. |
 | C-06 | Inventario y politicas aprobadas vs administracion actual | Los ocho recursos son oficiales y solo administradores deben cambiar inventario o politicas, pero hoy solo puede modificarse la imagen. | La institucion no puede mantener autonomamente recursos, periodos ni plazos. |
@@ -588,7 +588,7 @@ No quedan preguntas bloqueantes para el incremento analizado.
 
 | Riesgo | Probabilidad | Impacto | Mitigacion propuesta |
 | --- | --- | --- | --- |
-| Defender como cumplidas reglas aprobadas pero no implementadas | Alta | Alto | Mantener RF-020 a RF-025 como PENDIENTES o PARCIALES hasta su verificacion. |
+| Defender como cumplidas reglas aprobadas pero no verificadas | Alta | Alto | Presentar RF-020 como implementado y verificado localmente, pendiente en Azure SQL; mantener RF-021 a RF-025 como pendientes o parciales segun corresponda. |
 | Mostrar disponibilidad incompleta por omitir bloqueos | Alta | Alto | Mantener el rechazo servidor y priorizar la visibilidad de bloqueos antes de operacion real. |
 | Cancelar automaticamente sin informar al usuario afectado | Media | Alto | Tratar el aviso ya aprobado como criterio obligatorio y verificar su entrega antes de habilitar prioridad institucional. |
 | Solicitudes pendientes que acaparen horarios | Media | Alto | Aplicar el bloqueo aprobado y cancelacion automatica al vencer bajo el minimo. |
