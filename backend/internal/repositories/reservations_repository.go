@@ -93,40 +93,7 @@ func GetReservationsByUserID(userID int) ([]models.Reservation, error) {
 }
 
 func GetCurrentReservationPolicy() (models.ReservationPolicy, error) {
-	var policy models.ReservationPolicy
-	var effectiveTo sql.NullTime
-
-	err := database.DB.QueryRowContext(
-		context.Background(),
-		`
-		SELECT TOP (1)
-			id,
-			reservable_window_days,
-			request_frequency_days,
-			confirmation_deadline_minutes,
-			minimum_participants,
-			effective_from,
-			effective_to
-		FROM dbo.reservation_policies
-		WHERE effective_from <= SYSUTCDATETIME()
-		  AND (effective_to IS NULL OR effective_to > SYSUTCDATETIME())
-		ORDER BY effective_from DESC, id DESC;
-		`,
-	).Scan(
-		&policy.ID,
-		&policy.ReservableWindowDays,
-		&policy.RequestFrequencyDays,
-		&policy.ConfirmationDeadlineMinutes,
-		&policy.MinimumParticipants,
-		&policy.EffectiveFrom,
-		&effectiveTo,
-	)
-
-	if effectiveTo.Valid {
-		policy.EffectiveTo = &effectiveTo.Time
-	}
-
-	return policy, err
+	return GetCurrentReservationPolicyComplete()
 }
 
 func GetLatestConsumingReservation(userID int) (time.Time, int, error) {

@@ -1785,7 +1785,7 @@ Definir y aplicar en backend las reglas institucionales minimas de duracion e in
 
 Prioridad: P0
 Labels: `reservas`, `reglas-negocio`, `backend`, `frontend`, `mvp2`, `needs-architecture`
-Estado sugerido: Ready for Development
+Estado sugerido: Implemented; QA integrada parcial
 
 ### Contexto
 
@@ -1801,7 +1801,7 @@ Limitar las fechas reservables al periodo institucional configurado y rechazar n
 - [ ] Con el valor vigente de siete dias, un martes admite fechas desde ese martes hasta el lunes siguiente inclusive y rechaza el martes posterior.
 - [ ] Una solicitud relevante creada un martes impide crear otra hasta el lunes siguiente inclusive, con independencia de la fecha reservada.
 - [ ] Una solicitud `PENDING` consume la oportunidad desde su creacion.
-- [ ] Al pasar a `CANCELLED`, deja de consumirla y la proxima fecha permitida se recalcula con las demas solicitudes vigentes.
+- [x] Al pasar a `CANCELLED`, deja de consumirla y la proxima fecha permitida se recalcula con las demas solicitudes vigentes.
 - [ ] Desde el martes siguiente, la nueva solicitud puede continuar si cumple las demas reglas.
 - [ ] El rechazo comunica la proxima fecha permitida en `America/Santiago`.
 - [ ] Solicitudes de otro usuario no afectan el resultado.
@@ -1812,6 +1812,12 @@ Limitar las fechas reservables al periodo institucional configurado y rechazar n
 ### Decision de producto cerrada
 
 `PENDING` y `CONFIRMED` consumen la oportunidad; `CANCELLED` no la consume. Una solicitud rechazada que nunca fue creada tampoco la consume.
+
+### Evidencia QA integrada del 2026-07-21
+
+- [x] Dos solicitudes concurrentes del mismo usuario fueron ejecutadas contra Azure SQL: una se creo y la otra fue rechazada por la proteccion de frecuencia, conservando una sola solicitud activa.
+- [x] La reserva activa fue cancelada desde el frontend y una nueva solicitud del mismo usuario pudo crearse, verificando de punta a punta que `CANCELLED` libera la oportunidad.
+- [ ] Falta verificar que una solicitud historica conserve `request_frequency_days` de su `policy_id` despues de publicar una politica nueva con una frecuencia diferente.
 
 ---
 
@@ -3025,6 +3031,41 @@ Definir y ejecutar un plan minimo para mover la operacion desde Google Calendar 
 
 ---
 
+## QA-003 - Hacer coherente el seed temporal con su fecha de uso
+
+**Estado:** Cerrado y verificado en Azure SQL el 2026-07-21
+
+**Severidad QA:** P2 - Medio
+
+**Responsable sugerido:** Desarrollador
+
+### Contexto
+
+QA detecto que `database/seed_today_temp.sql` se presentaba como un seed temporal para pruebas "de hoy", pero usaba fechas fijas del 2026-07-14. La correccion calcula una fecha base institucional mediante `Pacific SA Standard Time` y deriva desde ella reservas, participantes, bloqueos y actividades. El encadenamiento con `schema.sql` y `seed.sql` fue ejecutado correctamente en Azure SQL.
+
+### Correccion requerida
+
+- Verificar que la fecha base corresponde al dia institucional de `America/Santiago`.
+- Ejecutar el script corregido despues de `database/schema.sql` y `database/seed.sql` en una base descartable.
+
+No modificar requisitos, reglas de reserva ni el alcance de los incrementos posteriores para resolver esta tarea.
+
+### Criterios de aceptacion
+
+- [x] El nombre, encabezado y comportamiento del script describen el mismo proposito por inspeccion estatica.
+- [x] El script deriva sus fechas desde el dia institucional de ejecucion.
+- [x] Reservas, participantes, bloqueos y actividades usan una fecha base comun por inspeccion estatica.
+- [x] El script se ejecuta despues de `database/schema.sql` y `database/seed.sql` sin errores en una base descartable.
+- [x] `go test ./...`, `go vet ./...`, `npm test` y `npm run build` continúan aprobando.
+
+### Evidencia de QA
+
+- Detectado el 2026-07-21 durante la validacion del incremento tecnico 1 de politicas.
+- `database/schema.sql` y `database/seed.sql` fueron reportados como ejecutados correctamente sobre una base limpia.
+- El 2026-07-21 Azure SQL ejecuto todos los lotes de `seed_today_temp.sql` sin errores en 1,936 segundos: 8 reservas, 6 participantes, 2 bloqueos, 3 actividades programadas y 3 notificaciones insertadas; el lote finalizo con `Commands completed successfully`.
+
+---
+
 # Inventario actual de datos duros detectados
 
 Revision realizada durante la conexion de actividades reales.
@@ -3068,6 +3109,7 @@ Revision realizada durante la conexion de actividades reales.
 2. Verificar online `RES-010` con request manipulado y transiciones invalidas.
 3. Verificar online `RES-011` con apertura, ultimo bloque valido, cierre excedido y duracion invalida.
 4. `QA-001` Ampliar pruebas backend para permisos, conflictos y casos aun no cubiertos.
+5. `QA-003` Corregir o renombrar el seed temporal para que su fecha coincida con su proposito declarado.
 
 Estas tareas ya tienen implementacion inicial. Antes de cerrar el MVP 1 falta evidencia desplegada y ampliar cobertura de permisos/conflictos que no queda cubierta por las pruebas unitarias actuales.
 

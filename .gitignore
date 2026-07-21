@@ -30,7 +30,7 @@ Thumbs.db
 backend/bin
 backend/tmp
 .gocache/
-
+.qa-go-cache/
 # Build
 *.exe
 *.out

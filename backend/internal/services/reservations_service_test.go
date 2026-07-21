@@ -7,6 +7,7 @@ import (
 
 	"poli-redi-api/internal/businessclock"
 	"poli-redi-api/internal/models"
+	"poli-redi-api/internal/reservationrules"
 )
 
 func TestEnforceInitialReservationStatusIgnoresCallerStatus(t *testing.T) {
@@ -75,12 +76,11 @@ func TestCreateReservationAtRejectsPreviousBusinessDayNearMidnight(t *testing.T)
 	}
 }
 
-func TestCreateReservationAtRejectsInvalidScheduleBeforeDatabase(t *testing.T) {
+func TestDefaultScheduleRejectsInvalidValues(t *testing.T) {
 	if err := businessclock.Configure(businessclock.DefaultLocationName); err != nil {
 		t.Fatalf("Configure() error = %v", err)
 	}
 
-	now := time.Date(2026, time.July, 20, 7, 0, 0, 0, businessclock.Location())
 	tests := []struct {
 		name     string
 		start    time.Time
@@ -109,12 +109,7 @@ func TestCreateReservationAtRejectsInvalidScheduleBeforeDatabase(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			_, err := createReservationAt(models.Reservation{
-				UserID:          1,
-				ResourceID:      1,
-				StartTime:       test.start,
-				DurationMinutes: test.duration,
-			}, now)
+			err := reservationrules.ValidateSchedule(test.start, test.duration)
 
 			if err == nil || !strings.Contains(err.Error(), test.wantErr) {
 				t.Fatalf("createReservationAt() error = %v, expected %q", err, test.wantErr)

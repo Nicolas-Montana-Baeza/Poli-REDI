@@ -133,20 +133,18 @@ func createReservationAt(
 		return models.Reservation{}, errors.New("no puedes crear reservas en el pasado")
 	}
 
-	// La validacion de horario entrega errores de dominio antes de consultar la
-	// base. Los triggers siguen siendo la autoridad frente a concurrencia.
-	if err := reservationrules.ValidateSchedule(
-		reservation.StartTime,
-		reservation.DurationMinutes,
-	); err != nil {
-		return models.Reservation{}, err
-	}
-
 	policy, err := repositories.GetCurrentReservationPolicy()
 	if errors.Is(err, sql.ErrNoRows) {
 		return models.Reservation{}, errors.New("no existe una pol\u00edtica de reservas vigente")
 	}
 	if err != nil {
+		return models.Reservation{}, err
+	}
+
+	if err := reservationrules.ValidateScheduleWithPolicy(
+		reservation.StartTime, reservation.DurationMinutes, policy.OpeningMinute,
+		policy.ClosingMinute, policy.SlotIntervalMinutes, policy.AllowedDurations,
+	); err != nil {
 		return models.Reservation{}, err
 	}
 
@@ -438,6 +436,8 @@ func mapDatabaseReservationError(err error) error {
 			return errors.New("no existe una pol\u00edtica de reservas vigente")
 		case 51009, 51010:
 			return errors.New(sqlErr.Message)
+		case 51015:
+			return errors.New("el horario o la duracion no estan permitidos por la politica vigente")
 		case 547:
 			return errors.New("usuario, recurso o actividad no existe, o los datos no cumplen restricciones")
 		case 2601, 2627:

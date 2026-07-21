@@ -173,18 +173,39 @@ BEGIN
         request_frequency_days INT NOT NULL,
         confirmation_deadline_minutes INT NOT NULL,
         minimum_participants INT NOT NULL,
+		opening_minute INT NOT NULL CONSTRAINT df_reservation_policies_opening DEFAULT (480),
+		closing_minute INT NOT NULL CONSTRAINT df_reservation_policies_closing DEFAULT (1320),
+		slot_interval_minutes INT NOT NULL CONSTRAINT df_reservation_policies_slot DEFAULT (15),
         effective_from DATETIME2(0) NOT NULL,
         effective_to DATETIME2(0) NULL,
         created_by_user_id INT NULL,
         created_at DATETIME2(0) NOT NULL CONSTRAINT df_reservation_policies_created_at DEFAULT (SYSUTCDATETIME()),
+		idempotency_key NVARCHAR(100) NULL,
+		is_published BIT NOT NULL CONSTRAINT df_reservation_policies_published DEFAULT (1),
         CONSTRAINT fk_reservation_policies_created_by FOREIGN KEY (created_by_user_id) REFERENCES dbo.users(id) ON DELETE NO ACTION,
         CONSTRAINT ck_reservation_policies_window CHECK (reservable_window_days > 0),
         CONSTRAINT ck_reservation_policies_frequency CHECK (request_frequency_days > 0),
         CONSTRAINT ck_reservation_policies_deadline CHECK (confirmation_deadline_minutes >= 0),
         CONSTRAINT ck_reservation_policies_minimum CHECK (minimum_participants > 0),
-        CONSTRAINT ck_reservation_policies_effective_range CHECK (effective_to IS NULL OR effective_to > effective_from)
+		CONSTRAINT ck_reservation_policies_schedule CHECK (opening_minute >= 0 AND opening_minute < closing_minute AND closing_minute <= 1439 AND slot_interval_minutes > 0 AND slot_interval_minutes <= 1440),
+        CONSTRAINT ck_reservation_policies_effective_range CHECK (effective_to IS NULL OR effective_to >= effective_from)
     );
 END;
+GO
+
+IF OBJECT_ID('dbo.ck_reservation_policies_effective_range', 'C') IS NOT NULL ALTER TABLE dbo.reservation_policies DROP CONSTRAINT ck_reservation_policies_effective_range;
+ALTER TABLE dbo.reservation_policies ADD CONSTRAINT ck_reservation_policies_effective_range CHECK (effective_to IS NULL OR effective_to >= effective_from);
+GO
+
+IF COL_LENGTH('dbo.reservation_policies', 'opening_minute') IS NULL ALTER TABLE dbo.reservation_policies ADD opening_minute INT NOT NULL CONSTRAINT df_reservation_policies_opening DEFAULT (480);
+IF COL_LENGTH('dbo.reservation_policies', 'closing_minute') IS NULL ALTER TABLE dbo.reservation_policies ADD closing_minute INT NOT NULL CONSTRAINT df_reservation_policies_closing DEFAULT (1320);
+IF COL_LENGTH('dbo.reservation_policies', 'slot_interval_minutes') IS NULL ALTER TABLE dbo.reservation_policies ADD slot_interval_minutes INT NOT NULL CONSTRAINT df_reservation_policies_slot DEFAULT (15);
+IF COL_LENGTH('dbo.reservation_policies', 'idempotency_key') IS NULL ALTER TABLE dbo.reservation_policies ADD idempotency_key NVARCHAR(100) NULL;
+IF COL_LENGTH('dbo.reservation_policies', 'is_published') IS NULL ALTER TABLE dbo.reservation_policies ADD is_published BIT NOT NULL CONSTRAINT df_reservation_policies_published DEFAULT (1);
+GO
+
+IF OBJECT_ID('dbo.ck_reservation_policies_schedule', 'C') IS NULL
+    ALTER TABLE dbo.reservation_policies ADD CONSTRAINT ck_reservation_policies_schedule CHECK (opening_minute >= 0 AND opening_minute < closing_minute AND closing_minute <= 1439 AND slot_interval_minutes > 0 AND slot_interval_minutes <= 1440);
 GO
 
 IF NOT EXISTS (SELECT 1 FROM dbo.reservation_policies)
@@ -202,6 +223,10 @@ GO
 
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'uq_reservation_policies_current' AND object_id = OBJECT_ID('dbo.reservation_policies'))
     CREATE UNIQUE INDEX uq_reservation_policies_current ON dbo.reservation_policies(effective_to) WHERE effective_to IS NULL;
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'uq_reservation_policies_idempotency' AND object_id = OBJECT_ID('dbo.reservation_policies'))
+    CREATE UNIQUE INDEX uq_reservation_policies_idempotency ON dbo.reservation_policies(idempotency_key) WHERE idempotency_key IS NOT NULL;
 GO
 
 -- ============================================================
@@ -272,17 +297,31 @@ BEGIN
 END;
 GO
 
+IF OBJECT_ID('dbo.reservation_policy_durations', 'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.reservation_policy_durations (
+        policy_id INT NOT NULL,
+        duration_minutes INT NOT NULL,
+        CONSTRAINT pk_reservation_policy_durations PRIMARY KEY (policy_id, duration_minutes),
+        CONSTRAINT fk_reservation_policy_durations_policy FOREIGN KEY (policy_id) REFERENCES dbo.reservation_policies(id) ON DELETE CASCADE,
+        CONSTRAINT ck_reservation_policy_durations_value CHECK (duration_minutes > 0)
+    );
+END;
+GO
+
+INSERT INTO dbo.reservation_policy_durations (policy_id, duration_minutes)
+SELECT p.id, d.duration_minutes
+FROM dbo.reservation_policies p
+CROSS JOIN (VALUES (30), (60), (90), (120), (150), (180)) d(duration_minutes)
+WHERE NOT EXISTS (SELECT 1 FROM dbo.reservation_policy_durations);
+GO
+
 INSERT INTO dbo.reservation_policy_resources (policy_id, resource_id)
 SELECT p.id, r.id
 FROM dbo.reservation_policies p
 INNER JOIN dbo.resources r ON r.id IN (1, 2, 7)
-WHERE p.effective_to IS NULL
-  AND NOT EXISTS (
-      SELECT 1
-      FROM dbo.reservation_policy_resources existing
-      WHERE existing.policy_id = p.id
-        AND existing.resource_id = r.id
-  );
+WHERE p.id = (SELECT TOP (1) id FROM dbo.reservation_policies ORDER BY effective_from, id)
+  AND NOT EXISTS (SELECT 1 FROM dbo.reservation_policy_resources);
 GO
 
 -- ============================================================
@@ -606,11 +645,40 @@ BEGIN
            OR i.request_frequency_days <> d.request_frequency_days
            OR i.confirmation_deadline_minutes <> d.confirmation_deadline_minutes
            OR i.minimum_participants <> d.minimum_participants
+		   OR i.opening_minute <> d.opening_minute
+		   OR i.closing_minute <> d.closing_minute
+		   OR i.slot_interval_minutes <> d.slot_interval_minutes
            OR i.effective_from <> d.effective_from
            OR ISNULL(i.created_by_user_id, -1) <> ISNULL(d.created_by_user_id, -1)
            OR i.created_at <> d.created_at
+		   OR ISNULL(i.idempotency_key, N'') <> ISNULL(d.idempotency_key, N'')
+		   OR (i.is_published <> d.is_published AND NOT (d.is_published = 0 AND i.is_published = 1))
     )
         THROW 51012, 'Una version de politica publicada es inmutable.', 1;
+END;
+GO
+
+CREATE OR ALTER TRIGGER dbo.trg_reservation_policy_resources_immutable
+ON dbo.reservation_policy_resources
+AFTER INSERT, UPDATE, DELETE
+AS
+BEGIN
+    SET NOCOUNT ON;
+    IF EXISTS (SELECT 1 FROM deleted)
+	   OR EXISTS (SELECT 1 FROM inserted i INNER JOIN dbo.reservation_policies p ON p.id = i.policy_id WHERE p.is_published = 1)
+        THROW 51013, 'Los recursos de una version publicada son inmutables.', 1;
+END;
+GO
+
+CREATE OR ALTER TRIGGER dbo.trg_reservation_policy_durations_immutable
+ON dbo.reservation_policy_durations
+AFTER INSERT, UPDATE, DELETE
+AS
+BEGIN
+    SET NOCOUNT ON;
+    IF EXISTS (SELECT 1 FROM deleted)
+	   OR EXISTS (SELECT 1 FROM inserted i INNER JOIN dbo.reservation_policies p ON p.id = i.policy_id WHERE p.is_published = 1)
+        THROW 51014, 'Las duraciones de una version publicada son inmutables.', 1;
 END;
 GO
 
@@ -627,6 +695,18 @@ AFTER INSERT, UPDATE
 AS
 BEGIN
     SET NOCOUNT ON;
+
+	IF EXISTS (
+		SELECT 1 FROM inserted i
+		INNER JOIN dbo.reservation_policies p ON p.id = i.policy_id
+		WHERE NOT EXISTS (SELECT 1 FROM dbo.reservation_policy_durations d WHERE d.policy_id = i.policy_id AND d.duration_minutes = i.duration_minutes)
+		   OR (DATEPART(HOUR, i.start_time) * 60 + DATEPART(MINUTE, i.start_time)) < p.opening_minute
+		   OR (DATEPART(HOUR, i.start_time) * 60 + DATEPART(MINUTE, i.start_time)) >= p.closing_minute
+		   OR (DATEPART(HOUR, i.start_time) * 60 + DATEPART(MINUTE, i.start_time)) % p.slot_interval_minutes <> 0
+		   OR (DATEPART(HOUR, DATEADD(MINUTE, i.duration_minutes, i.start_time)) * 60 + DATEPART(MINUTE, DATEADD(MINUTE, i.duration_minutes, i.start_time))) > p.closing_minute
+		   OR CONVERT(DATE, i.start_time) <> CONVERT(DATE, DATEADD(MINUTE, i.duration_minutes, i.start_time))
+	)
+		THROW 51015, 'El horario o la duracion no estan permitidos por la politica asociada.', 1;
 
     IF EXISTS (
         SELECT 1

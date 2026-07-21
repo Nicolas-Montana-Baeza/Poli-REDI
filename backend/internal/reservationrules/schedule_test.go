@@ -48,3 +48,14 @@ func TestValidateScheduleBoundaries(t *testing.T) {
 		})
 	}
 }
+
+func TestValidateScheduleWithVersionedPolicy(t *testing.T) {
+	location := time.FixedZone("America/Santiago", -4*60*60)
+	start := time.Date(2026, 7, 20, 7, 30, 0, 0, location)
+	if err := ValidateScheduleWithPolicy(start, 45, 7*60, 20*60, 15, []int{45, 60}); err != nil {
+		t.Fatalf("versioned policy rejected valid schedule: %v", err)
+	}
+	if err := ValidateScheduleWithPolicy(start, 30, 7*60, 20*60, 15, []int{45, 60}); err == nil {
+		t.Fatal("versioned policy accepted a duration outside its snapshot")
+	}
+}

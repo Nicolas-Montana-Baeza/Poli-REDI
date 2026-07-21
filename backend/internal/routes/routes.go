@@ -33,6 +33,9 @@ func RegisterRoutes(app *fiber.App) {
 	protected.Get("/workshops", handlers.GetWorkshops)
 	protected.Post("/workshops/:id/enroll", handlers.EnrollInWorkshop)
 	protected.Get("/availability/reservations", handlers.GetAvailabilityReservations)
+	protected.Get("/reservation-policy/current", handlers.GetCurrentReservationPolicy)
+	protected.Get("/admin/reservation-policies", middleware.RequireAdmin(), handlers.GetReservationPolicyHistory)
+	protected.Post("/admin/reservation-policies", middleware.RequireAdmin(), handlers.PublishReservationPolicy)
 
 	protected.Get(
 		"/users",

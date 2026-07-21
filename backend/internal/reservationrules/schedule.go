@@ -2,6 +2,7 @@ package reservationrules
 
 import (
 	"errors"
+	"fmt"
 	"time"
 )
 
@@ -21,34 +22,50 @@ var allowedDurations = map[int]struct{}{
 }
 
 func ValidateSchedule(start time.Time, durationMinutes int) error {
-	if _, ok := allowedDurations[durationMinutes]; !ok {
+	durations := make([]int, 0, len(allowedDurations))
+	for duration := range allowedDurations {
+		durations = append(durations, duration)
+	}
+	return ValidateScheduleWithPolicy(start, durationMinutes, OpeningHour*60, ClosingHour*60, SlotMinutes, durations)
+}
+
+func ValidateScheduleWithPolicy(start time.Time, durationMinutes, openingMinute, closingMinute, slotMinutes int, allowedDurations []int) error {
+	allowed := false
+	for _, duration := range allowedDurations {
+		if duration == durationMinutes {
+			allowed = true
+			break
+		}
+	}
+	if !allowed {
 		return errors.New("selecciona una duracion de 30 a 180 minutos en intervalos de 30")
 	}
 
-	if start.Second() != 0 || start.Nanosecond() != 0 || start.Minute()%SlotMinutes != 0 {
-		return errors.New("la hora de inicio debe usar intervalos de 15 minutos")
+	minuteOfDay := start.Hour()*60 + start.Minute()
+	if slotMinutes <= 0 || start.Second() != 0 || start.Nanosecond() != 0 || minuteOfDay%slotMinutes != 0 {
+		return fmt.Errorf("la hora de inicio debe usar intervalos de %d minutos", slotMinutes)
 	}
 
 	opening := time.Date(
 		start.Year(), start.Month(), start.Day(),
-		OpeningHour, 0, 0, 0, start.Location(),
+		openingMinute/60, openingMinute%60, 0, 0, start.Location(),
 	)
 	closing := time.Date(
 		start.Year(), start.Month(), start.Day(),
-		ClosingHour, 0, 0, 0, start.Location(),
+		closingMinute/60, closingMinute%60, 0, 0, start.Location(),
 	)
 
 	if start.Before(opening) {
-		return errors.New("la jornada de reservas comienza a las 08:00")
+		return fmt.Errorf("la jornada de reservas comienza a las %02d:%02d", openingMinute/60, openingMinute%60)
 	}
 
 	if !start.Before(closing) {
-		return errors.New("la hora de inicio debe ser anterior a las 22:00")
+		return fmt.Errorf("la hora de inicio debe ser anterior a las %02d:%02d", closingMinute/60, closingMinute%60)
 	}
 
 	end := start.Add(time.Duration(durationMinutes) * time.Minute)
 	if end.After(closing) || !sameDate(start, end) {
-		return errors.New("la reserva debe finalizar a mas tardar a las 22:00")
+		return fmt.Errorf("la reserva debe finalizar a mas tardar a las %02d:%02d", closingMinute/60, closingMinute%60)
 	}
 
 	return nil
