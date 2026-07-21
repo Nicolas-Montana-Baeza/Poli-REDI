@@ -156,6 +156,11 @@ Campos temporales relevantes:
 - `start_time`: `DATETIME2`, sin zona horaria embebida.
 - `duration_minutes`: duracion numerica usada para calcular el termino.
 
+Campos grupales relevantes:
+
+- `join_code_hash`: SHA-256 unico del codigo compartible; el codigo en claro no se persiste.
+- `group_capacity_snapshot`: capacidad inmutable tomada al crear una solicitud grupal.
+
 Contrato temporal de reservas para MVP 1:
 
 - `start_time` y los rangos de disponibilidad guardan hora institucional de muro en `America/Santiago`.
@@ -176,6 +181,8 @@ Estados permitidos:
 - `CONFIRMED`
 - `REJECTED`
 - `CANCELLED`
+
+Cada reserva tiene como maximo una fila por usuario. `is_owner` identifica al solicitante, que se registra confirmado, cuenta dentro del minimo y no puede retirarse. `updated_at` permite conservar los cambios de confirmacion/retiro. `reservation_participant_audit` registra actor, participante, accion y estados anterior/nuevo de participante y reserva.
 
 ### `availability_blocks`
 
@@ -512,6 +519,7 @@ El modelo agrega:
 
 - `reservation_policies`: versiones inmutables con ventana reservable, frecuencia, plazo, minimo, `effective_from` y `effective_to`.
 - `reservation_policy_resources`: relacion unica entre version y recursos permitidos para reservar bajo esa politica. No clasifica recursos para confirmacion grupal.
+- `reservation_policy_group_resources`: subconjunto versionado e inmutable de recursos permitidos que requieren confirmacion grupal; rechaza `OPEN_USE` y capacidades inferiores al minimo.
 - `reservation_policy_durations`: snapshot de duraciones permitidas por version.
 - `reservations.policy_id`: version aplicada a la solicitud; se agrega nullable, se completa con la version inicial y luego pasa a `NOT NULL`.
 - Jornada, intervalo, clave/hash de idempotencia, autoria, vigencias UTC y estado de publicacion por version.
@@ -519,11 +527,11 @@ El modelo agrega:
 
 Debe existir una sola version vigente. Publicar una politica cierra la anterior y activa inmediatamente la nueva dentro de una transaccion serializable. Indices filtrados impiden dos versiones vigentes y claves de idempotencia duplicadas. Triggers protegen de edicion o eliminacion las politicas publicadas y sus colecciones. Las reservas conservan `policy_id`; las claves foraneas impiden eliminar su politica mientras exista historial relacionado.
 
-`schema.sql` crea la estructura, la tabla de marca y los triggers que admiten exclusivamente el bootstrap tecnico controlado. Despues, `seed.sql` carga primero los recursos y, dentro de una transaccion, completa una sola vez los recursos permitidos de la politica inicial y registra la marca de migracion. Este flujo `schema.sql` -> `seed.sql` no es el mecanismo de publicacion administrativa.
+Para una base limpia, `schema.sql` crea la estructura y `seed.sql` carga los recursos y completa el bootstrap tecnico controlado. Para una base MVP 1 existente se ejecuta despues `database/migrations/001_mvp2_group_participants.sql`: es prospectiva e idempotente, agrega estructura grupal y publica una nueva politica que clasifica los recursos 1, 2 y 7 sin modificar ni rellenar reservas historicas. Este flujo no es un mecanismo administrativo para editar versiones publicadas.
 
 La persistencia y los endpoints de correcciones excepcionales no estan implementados en este incremento. Su contrato aprobado exige solicitudes futuras activas, vista previa temporal de un solo uso vinculada al administrador, motivo, revalidacion y aplicacion atomica auditada, sin cancelaciones implicitas.
 
-Los conflictos de recursos grupales deben considerar `PENDING` y `CONFIRMED`. Confirmacion, retiro, cancelacion y vencimiento deben serializarse por reserva mediante transaccion y bloqueos compatibles con Azure SQL, por ejemplo `UPDLOCK, HOLDLOCK`.
+Los conflictos consideran `PENDING` y `CONFIRMED`. Confirmacion, reconfirmacion y retiro se serializan por reserva mediante transaccion y `UPDLOCK, HOLDLOCK`; recalculan `PENDING`/`CONFIRMED`, respetan el snapshot de capacidad y generan auditoria. El vencimiento temporal sigue pendiente. Estas garantias tienen pruebas locales y revision estatica, pero no prueba de concurrencia integrada contra SQL Server/Azure SQL real.
 
 ## Recomendacion siguiente
 

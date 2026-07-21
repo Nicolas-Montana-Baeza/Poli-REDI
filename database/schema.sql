@@ -249,6 +249,7 @@ BEGIN
         start_time DATETIME2(0) NOT NULL,
         duration_minutes INT NOT NULL,
         status NVARCHAR(30) NOT NULL CONSTRAINT df_reservations_status DEFAULT ('PENDING'),
+        group_capacity_snapshot INT NULL,
         cancellation_reason NVARCHAR(MAX) NULL,
         created_at DATETIME2(0) NOT NULL CONSTRAINT df_reservations_created_at DEFAULT (SYSUTCDATETIME()),
         updated_at DATETIME2(0) NOT NULL CONSTRAINT df_reservations_updated_at DEFAULT (SYSUTCDATETIME()),
@@ -257,6 +258,7 @@ BEGIN
         CONSTRAINT fk_reservations_resource FOREIGN KEY (resource_id) REFERENCES dbo.resources(id) ON DELETE NO ACTION,
         CONSTRAINT fk_reservations_activity FOREIGN KEY (activity_id) REFERENCES dbo.activities(id) ON DELETE SET NULL,
         CONSTRAINT ck_reservations_duration CHECK (duration_minutes > 0),
+        CONSTRAINT ck_reservations_group_capacity_snapshot CHECK (group_capacity_snapshot IS NULL OR group_capacity_snapshot > 0),
         CONSTRAINT ck_reservations_status CHECK (status IN ('PENDING', 'CONFIRMED', 'CANCELLED', 'REJECTED', 'EXPIRED'))
     );
 END;
@@ -266,6 +268,11 @@ IF COL_LENGTH('dbo.reservations', 'policy_id') IS NULL
 BEGIN
     ALTER TABLE dbo.reservations ADD policy_id INT NULL;
 END;
+GO
+
+IF COL_LENGTH('dbo.reservations', 'group_capacity_snapshot') IS NULL ALTER TABLE dbo.reservations ADD group_capacity_snapshot INT NULL;
+GO
+IF OBJECT_ID('dbo.ck_reservations_group_capacity_snapshot','C') IS NULL ALTER TABLE dbo.reservations ADD CONSTRAINT ck_reservations_group_capacity_snapshot CHECK(group_capacity_snapshot IS NULL OR group_capacity_snapshot>0);
 GO
 
 UPDATE dbo.reservations
@@ -311,6 +318,18 @@ BEGIN
 END;
 GO
 
+IF OBJECT_ID('dbo.reservation_policy_group_resources', 'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.reservation_policy_group_resources (
+        policy_id INT NOT NULL,
+        resource_id INT NOT NULL,
+        CONSTRAINT pk_reservation_policy_group_resources PRIMARY KEY (policy_id, resource_id),
+        CONSTRAINT fk_group_resources_allowed FOREIGN KEY (policy_id, resource_id) REFERENCES dbo.reservation_policy_resources(policy_id, resource_id),
+        CONSTRAINT fk_group_resources_resource FOREIGN KEY (resource_id) REFERENCES dbo.resources(id)
+    );
+END;
+GO
+
 -- Migracion unica desde la semantica historica (recursos de confirmacion) a
 -- una lista completa de recursos permitidos. La marca evita ampliar versiones
 -- antiguas cuando se agreguen recursos en ejecuciones futuras del esquema.
@@ -350,6 +369,29 @@ BEGIN
         CONSTRAINT ck_participants_status CHECK (status IN ('PENDING', 'CONFIRMED', 'REJECTED', 'CANCELLED')),
         CONSTRAINT uq_participants_reservation_user UNIQUE (reservation_id, user_id)
     );
+END;
+GO
+
+IF COL_LENGTH('dbo.reservations', 'join_code_hash') IS NULL ALTER TABLE dbo.reservations ADD join_code_hash CHAR(64) NULL;
+GO
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name='uq_reservations_join_code_hash' AND object_id=OBJECT_ID('dbo.reservations')) CREATE UNIQUE INDEX uq_reservations_join_code_hash ON dbo.reservations(join_code_hash) WHERE join_code_hash IS NOT NULL;
+GO
+IF COL_LENGTH('dbo.participants', 'is_owner') IS NULL ALTER TABLE dbo.participants ADD is_owner BIT NOT NULL CONSTRAINT df_participants_is_owner DEFAULT(0);
+IF COL_LENGTH('dbo.participants', 'updated_at') IS NULL ALTER TABLE dbo.participants ADD updated_at DATETIME2(0) NOT NULL CONSTRAINT df_participants_updated_at DEFAULT(SYSUTCDATETIME());
+GO
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name='uq_participants_owner' AND object_id=OBJECT_ID('dbo.participants')) CREATE UNIQUE INDEX uq_participants_owner ON dbo.participants(reservation_id) WHERE is_owner=1;
+GO
+
+IF OBJECT_ID('dbo.reservation_participant_audit', 'U') IS NULL
+BEGIN
+ CREATE TABLE dbo.reservation_participant_audit (
+  id BIGINT IDENTITY(1,1) PRIMARY KEY, reservation_id INT NOT NULL, actor_user_id INT NOT NULL,
+  participant_user_id INT NOT NULL, action NVARCHAR(30) NOT NULL, previous_status NVARCHAR(30) NULL,
+  new_status NVARCHAR(30) NOT NULL, previous_reservation_status NVARCHAR(30) NOT NULL,
+  new_reservation_status NVARCHAR(30) NOT NULL, created_at DATETIME2(0) NOT NULL DEFAULT SYSUTCDATETIME(),
+  FOREIGN KEY(reservation_id) REFERENCES dbo.reservations(id), FOREIGN KEY(actor_user_id) REFERENCES dbo.users(id),
+  FOREIGN KEY(participant_user_id) REFERENCES dbo.users(id)
+ );
 END;
 GO
 
@@ -620,6 +662,14 @@ BEGIN
 END;
 GO
 
+CREATE OR ALTER TRIGGER dbo.trg_reservations_group_snapshot_immutable ON dbo.reservations AFTER UPDATE AS
+BEGIN
+ SET NOCOUNT ON;
+ IF EXISTS(SELECT 1 FROM inserted i INNER JOIN deleted d ON d.id=i.id WHERE ISNULL(i.group_capacity_snapshot,-1)<>ISNULL(d.group_capacity_snapshot,-1) OR ISNULL(i.join_code_hash,'')<>ISNULL(d.join_code_hash,''))
+  THROW 51020,'El snapshot grupal de una solicitud es inmutable.',1;
+END;
+GO
+
 CREATE OR ALTER TRIGGER dbo.trg_scheduled_activities_updated_at ON dbo.scheduled_activities AFTER UPDATE AS
 BEGIN
     SET NOCOUNT ON; IF TRIGGER_NESTLEVEL() > 1 RETURN;
@@ -685,6 +735,19 @@ BEGIN
 	         )
 	   )
         THROW 51013, 'Los recursos de una version publicada son inmutables.', 1;
+END;
+GO
+
+CREATE OR ALTER TRIGGER dbo.trg_reservation_policy_group_resources_immutable
+ON dbo.reservation_policy_group_resources
+AFTER INSERT, UPDATE, DELETE
+AS
+BEGIN
+ IF EXISTS(SELECT 1 FROM deleted d INNER JOIN dbo.reservation_policies p ON p.id=d.policy_id WHERE p.is_published=1)
+    OR EXISTS(SELECT 1 FROM inserted i INNER JOIN dbo.reservation_policies p ON p.id=i.policy_id WHERE p.is_published=1)
+  THROW 51018, 'Los recursos grupales de una politica publicada son inmutables.', 1;
+ IF EXISTS(SELECT 1 FROM inserted i INNER JOIN dbo.reservation_policies p ON p.id=i.policy_id INNER JOIN dbo.resources r ON r.id=i.resource_id WHERE r.capacity IS NULL OR r.capacity<p.minimum_participants OR r.reservation_mode='OPEN_USE')
+  THROW 51019, 'El recurso grupal requiere capacidad suficiente y no puede ser OPEN_USE.', 1;
 END;
 GO
 
@@ -796,6 +859,9 @@ BEGIN
     IF EXISTS (SELECT 1 FROM inserted i INNER JOIN dbo.users u ON u.id = i.user_id WHERE i.status IN ('PENDING', 'CONFIRMED') AND u.is_blocked = 1)
         THROW 51000, 'El usuario se encuentra bloqueado y no puede crear reservas.', 1;
 
+    IF EXISTS (SELECT 1 FROM inserted i INNER JOIN dbo.users u ON u.id=i.user_id INNER JOIN dbo.reservation_policy_group_resources g ON g.policy_id=i.policy_id AND g.resource_id=i.resource_id WHERE i.status IN ('PENDING','CONFIRMED') AND NULLIF(LTRIM(RTRIM(u.rut)),'') IS NULL)
+        THROW 51017, 'El usuario debe registrar su RUT antes de crear reservas.', 1;
+
     IF EXISTS (SELECT 1 FROM inserted i INNER JOIN dbo.resources r ON r.id = i.resource_id WHERE i.status IN ('PENDING', 'CONFIRMED') AND r.is_active = 0)
         THROW 51001, 'El recurso no esta activo.', 1;
 
@@ -818,9 +884,9 @@ BEGIN
         FROM inserted i
         INNER JOIN dbo.reservations existing ON existing.resource_id = i.resource_id
         INNER JOIN dbo.resources r ON r.id = i.resource_id
-        WHERE i.status = 'CONFIRMED'
+        WHERE i.status IN ('PENDING','CONFIRMED')
           AND r.reservation_mode <> 'OPEN_USE'
-          AND existing.status = 'CONFIRMED'
+          AND existing.status IN ('PENDING','CONFIRMED')
           AND existing.id <> i.id
           AND i.start_time < DATEADD(MINUTE, existing.duration_minutes, existing.start_time)
           AND DATEADD(MINUTE, i.duration_minutes, i.start_time) > existing.start_time
@@ -831,8 +897,8 @@ BEGIN
         SELECT 1
         FROM inserted i
         INNER JOIN dbo.reservations existing ON existing.user_id = i.user_id
-        WHERE i.status = 'CONFIRMED'
-          AND existing.status = 'CONFIRMED'
+        WHERE i.status IN ('PENDING','CONFIRMED')
+          AND existing.status IN ('PENDING','CONFIRMED')
           AND existing.id <> i.id
           AND i.start_time < DATEADD(MINUTE, existing.duration_minutes, existing.start_time)
           AND DATEADD(MINUTE, i.duration_minutes, i.start_time) > existing.start_time
@@ -843,7 +909,7 @@ BEGIN
         SELECT 1
         FROM inserted i
         INNER JOIN dbo.availability_blocks b ON b.resource_id = i.resource_id
-        WHERE i.status = 'CONFIRMED'
+        WHERE i.status IN ('PENDING','CONFIRMED')
           AND b.is_active = 1
           AND i.start_time < b.end_time
           AND DATEADD(MINUTE, i.duration_minutes, i.start_time) > b.start_time
@@ -855,7 +921,7 @@ BEGIN
         FROM inserted i
         INNER JOIN dbo.scheduled_activities s ON s.resource_id = i.resource_id
         INNER JOIN dbo.resources r ON r.id = i.resource_id
-        WHERE i.status = 'CONFIRMED'
+        WHERE i.status IN ('PENDING','CONFIRMED')
           AND r.reservation_mode <> 'OPEN_USE'
           AND s.is_active = 1
           AND i.start_time < s.end_time
@@ -889,7 +955,7 @@ BEGIN
         FROM inserted i
         INNER JOIN dbo.reservations r ON r.resource_id = i.resource_id
         WHERE i.is_active = 1
-          AND r.status = 'CONFIRMED'
+          AND r.status IN ('PENDING','CONFIRMED')
           AND i.start_time < DATEADD(MINUTE, r.duration_minutes, r.start_time)
           AND i.end_time > r.start_time
     )
@@ -932,7 +998,7 @@ BEGIN
         FROM inserted i
         INNER JOIN dbo.reservations r ON r.resource_id = i.resource_id
         WHERE i.is_active = 1
-          AND r.status = 'CONFIRMED'
+          AND r.status IN ('PENDING','CONFIRMED')
           AND i.start_time < DATEADD(MINUTE, r.duration_minutes, r.start_time)
           AND i.end_time > r.start_time
     )
@@ -943,6 +1009,32 @@ GO
 -- ============================================================
 -- AUDIT AND NOTIFICATION TRIGGERS
 -- ============================================================
+
+-- Garantias complementarias para instalaciones migradas desde MVP1. Se
+-- mantienen tambien en instalaciones limpias para paridad schema/migracion.
+CREATE OR ALTER TRIGGER dbo.trg_reservations_pending_conflicts ON dbo.reservations AFTER INSERT,UPDATE AS
+BEGIN
+ SET NOCOUNT ON;
+ IF EXISTS(SELECT 1 FROM inserted i INNER JOIN dbo.reservations r ON r.resource_id=i.resource_id WHERE i.status='PENDING' AND r.status IN('PENDING','CONFIRMED') AND r.id<>i.id AND i.start_time<DATEADD(MINUTE,r.duration_minutes,r.start_time) AND DATEADD(MINUTE,i.duration_minutes,i.start_time)>r.start_time) THROW 52010,'La solicitud pendiente se cruza con otra solicitud activa.',1;
+ IF EXISTS(SELECT 1 FROM inserted i INNER JOIN dbo.reservations r ON r.user_id=i.user_id WHERE i.status='PENDING' AND r.status IN('PENDING','CONFIRMED') AND r.id<>i.id AND i.start_time<DATEADD(MINUTE,r.duration_minutes,r.start_time) AND DATEADD(MINUTE,i.duration_minutes,i.start_time)>r.start_time) THROW 52015,'El usuario ya tiene una solicitud activa en ese horario.',1;
+ IF EXISTS(SELECT 1 FROM inserted i INNER JOIN dbo.availability_blocks b ON b.resource_id=i.resource_id WHERE i.status='PENDING' AND b.is_active=1 AND i.start_time<b.end_time AND DATEADD(MINUTE,i.duration_minutes,i.start_time)>b.start_time) THROW 52011,'La solicitud pendiente se cruza con un bloqueo.',1;
+ IF EXISTS(SELECT 1 FROM inserted i INNER JOIN dbo.scheduled_activities s ON s.resource_id=i.resource_id WHERE i.status='PENDING' AND s.is_active=1 AND i.start_time<s.end_time AND DATEADD(MINUTE,i.duration_minutes,i.start_time)>s.start_time) THROW 52012,'La solicitud pendiente se cruza con una actividad.',1;
+END;
+GO
+
+CREATE OR ALTER TRIGGER dbo.trg_blocks_pending_conflicts ON dbo.availability_blocks AFTER INSERT,UPDATE AS
+BEGIN
+ SET NOCOUNT ON;
+ IF EXISTS(SELECT 1 FROM inserted i INNER JOIN dbo.reservations r ON r.resource_id=i.resource_id WHERE i.is_active=1 AND r.status='PENDING' AND i.start_time<DATEADD(MINUTE,r.duration_minutes,r.start_time) AND i.end_time>r.start_time) THROW 52013,'El bloqueo se cruza con una solicitud pendiente.',1;
+END;
+GO
+
+CREATE OR ALTER TRIGGER dbo.trg_scheduled_activities_pending_conflicts ON dbo.scheduled_activities AFTER INSERT,UPDATE AS
+BEGIN
+ SET NOCOUNT ON;
+ IF EXISTS(SELECT 1 FROM inserted i INNER JOIN dbo.reservations r ON r.resource_id=i.resource_id WHERE i.is_active=1 AND r.status='PENDING' AND i.start_time<DATEADD(MINUTE,r.duration_minutes,r.start_time) AND i.end_time>r.start_time) THROW 52014,'La actividad se cruza con una solicitud pendiente.',1;
+END;
+GO
 
 CREATE OR ALTER TRIGGER dbo.trg_violations_notify
 ON dbo.violations

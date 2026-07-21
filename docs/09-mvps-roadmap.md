@@ -11,7 +11,7 @@ Los MVPs organizan el proyecto desde una base tecnica funcional hasta una versio
 | MVP | Nombre | Proposito | Estado |
 | --- | --- | --- | --- |
 | MVP 1 | Base tecnica funcional | Dejar frontend, backend, base de datos, autenticacion, seguridad minima y demo online operando con datos reales. | Reabierto para pulido final |
-| MVP 2 | Flujo usuario completo | Permitir que un usuario normal consulte disponibilidad, solicite, confirme por participantes cuando corresponda, cancele y revise su informacion. | Avanzado con brechas obligatorias |
+| MVP 2 | Flujo usuario completo | Permitir que un usuario normal consulte disponibilidad, solicite, confirme por participantes cuando corresponda, cancele y revise su informacion. | Backend/DB de participantes verificado localmente; frontend, vencimiento e integracion pendientes |
 | MVP 3 | Administracion institucional | Completar calendario institucional, bloqueos, recursos y gestion administrativa. | Parcial |
 | MVP 4 | Entrega, calidad y soporte | Completar reportes, notificaciones, pruebas, documentacion y despliegue. | En desarrollo |
 
@@ -255,8 +255,8 @@ Incluye tambien una primera version funcional de talleres deportivos: listado de
 - Cargar el detalle por ID sin descargar colecciones completas (`API-006`).
 - Agregar confirmacion fuerte antes de cancelar reservas (`RES-007`).
 - Integrar en frontend y verificar en SQL Server/Azure SQL la ventana y frecuencia versionadas ya implementadas localmente; `PENDING` consume desde su creacion y `CANCELLED` libera la oportunidad (`RES-012`).
-- Registrar al solicitante y participantes mediante cuentas unicas, exigiendo al menos 10 para las tres multicanchas (`RES-008`).
-- Mantener solicitudes grupales en `PENDING`, bloquear el horario, confirmar al alcanzar el minimo y volver a `PENDING` si una retirada reduce el conteo (`RES-008`, `RES-010`).
+- Integrar en frontend el codigo compartible y la API ya implementada para solicitante y participantes con cuentas unicas (`RES-008`).
+- Verificar en SQL Server/Azure SQL real el backend ya implementado de `PENDING`, bloqueo, confirmacion al minimo y retorno a `PENDING` por retirada (`RES-008`, `RES-010`).
 - Aceptar cambios hasta exactamente una hora antes inclusive y cancelar al vencer bajo el minimo, liberando horario y oportunidad (`RES-008`, `RES-012`).
 - Profesionalizar la seleccion de horario, capacidad, etiquetas humanas y experiencia movil (`UX-001`).
 - Mostrar feedback preventivo de conflicto antes de confirmar una reserva (`UX-003`).

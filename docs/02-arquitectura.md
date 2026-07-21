@@ -137,13 +137,13 @@ La demo online inicial usa:
 
 Estado: APROBADA e IMPLEMENTADA para el versionado prospectivo y la publicacion administrativa; VERIFICADA LOCALMENTE el 2026-07-21. La ejecucion contra SQL Server/Azure SQL y la concurrencia real siguen PENDIENTES de verificacion.
 
-- Las politicas de ventana, frecuencia, plazo, minimo, jornada, intervalo, duraciones y recursos permitidos se almacenan como versiones inmutables. La clasificacion de recursos que requeriran confirmacion grupal permanece APROBADA pero PENDIENTE.
+- Las politicas de ventana, frecuencia, plazo, minimo, jornada, intervalo, duraciones, recursos permitidos y recursos grupales se almacenan como versiones inmutables. La clasificacion grupal usa una relacion separada y solo admite recursos permitidos, con capacidad suficiente y distintos de `OPEN_USE`.
 - Cada solicitud referencia la version vigente al crearse y conserva sus condiciones.
 - La publicacion tiene vigencia inmediata. Una transaccion serializable cierra la version anterior, crea el snapshot completo y publica la nueva; en concurrencia, la transaccion que obtiene primero el bloqueo determina la version disponible para la reserva.
 - Existe un bootstrap tecnico controlado: el esquema crea sus protecciones y, despues de cargar los recursos, el seed completa y marca una sola vez los recursos permitidos de la politica inicial heredada. No constituye una via administrativa para editar versiones publicadas.
 - El solicitante se registra como participante, no puede retirar su participacion y debe cancelar la solicitud completa si desea abandonarla.
-- Confirmar o retirar participacion, recalcular el estado y resolver el vencimiento forman una sola operacion transaccional por reserva.
-- Los vencimientos se resuelven antes de consultar o modificar las reservas relevantes. Un ejecutor programado queda como mejora futura si se exige notificacion exactamente al minuto sin actividad del sistema.
+- Confirmar, reconfirmar o retirar participacion y recalcular el estado forman una sola operacion serializable por reserva. La capacidad queda congelada en la solicitud.
+- El vencimiento por limite temporal aun no esta implementado. Su resolucion atomica y un posible ejecutor programado quedan para el siguiente incremento.
 - Una correccion excepcional permanece fuera de este incremento: el diseno aprobado exige seleccionar solicitudes futuras activas, previsualizar el efecto, declarar un motivo y aplicar el lote de forma atomica y auditada, sin editar versiones historicas ni cancelar implicitamente.
 - `ADMIN-005`, incluida la prioridad de actividades institucionales, se disenara en una entrega arquitectonica posterior.
 
@@ -152,10 +152,13 @@ Estado: APROBADA e IMPLEMENTADA para el versionado prospectivo y la publicacion 
 - `GET /api/reservation-policy/current`: autenticado; devuelve solo condiciones operativas, sin ID, autoria, vigencias ni metadatos de auditoria.
 - `GET /api/admin/reservation-policies`: solo administrador; devuelve el historial completo.
 - `POST /api/admin/reservation-policies`: solo administrador; exige `Idempotency-Key` (maximo 100 caracteres). Responde `201` al crear, `200` al repetir la misma clave con payload equivalente y `409` al reutilizarla con datos distintos.
+- `POST /api/reservations`: devuelve `joinCode` solo en la respuesta de creacion de una solicitud grupal; la base conserva exclusivamente su hash.
+- `GET /api/group-reservations/:code`: autenticado; devuelve progreso agregado y membresia propia, sin nombres de participantes.
+- `PUT /api/group-reservations/:code/confirmation`: autenticado; confirma o reconfirma la participacion propia.
+- `DELETE /api/group-reservations/:code/confirmation`: autenticado; retira la participacion propia, salvo la del propietario.
+- `GET /api/admin/reservations/:id/participants`: solo administrador; devuelve el detalle nominal.
 
-Los endpoints de participantes y correcciones que siguen son contratos aprobados pero PENDIENTES, no parte del incremento verificado:
-- `PUT /api/reservations/:id/participants/me`: confirmar participacion propia.
-- `DELETE /api/reservations/:id/participants/me`: retirar participacion propia; el solicitante recibe rechazo y debe cancelar.
+Los endpoints de correcciones que siguen son contratos aprobados pero PENDIENTES, no parte del incremento verificado:
 - `POST /api/admin/reservation-policy-corrections/preview`: simular una correccion excepcional.
 - `POST /api/admin/reservation-policy-corrections/apply`: aplicar una simulacion vigente con idempotencia por lote.
 

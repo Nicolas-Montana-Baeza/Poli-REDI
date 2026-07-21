@@ -13,6 +13,7 @@ type ReservationPolicy struct {
 	SlotIntervalMinutes         int        `json:"slotIntervalMinutes"`
 	AllowedDurations            []int      `json:"allowedDurations"`
 	ResourceIDs                 []int      `json:"resourceIds"`
+	GroupResourceIDs            []int      `json:"groupResourceIds"`
 	EffectiveFrom               time.Time  `json:"effectiveFrom"`
 	EffectiveTo                 *time.Time `json:"effectiveTo,omitempty"`
 	CreatedByUserID             *int       `json:"createdByUserId,omitempty"`
@@ -29,6 +30,7 @@ type PublishReservationPolicyRequest struct {
 	SlotIntervalMinutes         int   `json:"slotIntervalMinutes"`
 	AllowedDurations            []int `json:"allowedDurations"`
 	ResourceIDs                 []int `json:"resourceIds"`
+	GroupResourceIDs            []int `json:"groupResourceIds"`
 }
 
 // CurrentReservationPolicy expone solo condiciones operativas. Identificadores,
@@ -43,6 +45,7 @@ type CurrentReservationPolicy struct {
 	SlotIntervalMinutes         int   `json:"slotIntervalMinutes"`
 	AllowedDurations            []int `json:"allowedDurations"`
 	ResourceIDs                 []int `json:"resourceIds"`
+	GroupResourceIDs            []int `json:"groupResourceIds"`
 }
 
 func (p ReservationPolicy) Public() CurrentReservationPolicy {
@@ -50,6 +53,6 @@ func (p ReservationPolicy) Public() CurrentReservationPolicy {
 		ReservableWindowDays: p.ReservableWindowDays, RequestFrequencyDays: p.RequestFrequencyDays,
 		ConfirmationDeadlineMinutes: p.ConfirmationDeadlineMinutes, MinimumParticipants: p.MinimumParticipants,
 		OpeningMinute: p.OpeningMinute, ClosingMinute: p.ClosingMinute, SlotIntervalMinutes: p.SlotIntervalMinutes,
-		AllowedDurations: p.AllowedDurations, ResourceIDs: p.ResourceIDs,
+		AllowedDurations: p.AllowedDurations, ResourceIDs: p.ResourceIDs, GroupResourceIDs: p.GroupResourceIDs,
 	}
 }

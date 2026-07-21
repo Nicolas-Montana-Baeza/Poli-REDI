@@ -1571,13 +1571,13 @@ Permitir cancelar reservas desde la interfaz usando el usuario autenticado.
 
 Prioridad: P0
 Labels: `frontend`, `backend`, `database`, `reservas`, `ux`, `needs-architecture`, `mvp2`
-Estado sugerido: Ready for Development
+Estado actual: Implementado parcialmente; backend/DB VERIFICADO LOCALMENTE, pendiente frontend, vencimiento e integracion SQL real.
 
 ### Contexto
 
 El usuario confirmo el 2026-07-20 que Cancha 1, 2 y 3 corresponden formalmente a multicancha 1, 2 y 3. Cada solicitud requiere al menos 10 usuarios con cuenta, incluido el solicitante. La solicitud `PENDING` bloquea el horario y consume la oportunidad semanal. Las confirmaciones pueden registrarse o retirarse hasta exactamente una hora antes inclusive, valor configurable. Si vence bajo el minimo, se cancela, libera el horario y deja de consumir la oportunidad.
 
-El flujo actual no registra participantes y crea toda reserva directamente como `CONFIRMED`, por lo que no cumple la regla aprobada.
+El backend actual registra participantes mediante codigo compartible, crea `PENDING` segun la clasificacion versionada y recalcula el estado por minimo. La experiencia frontend, el limite temporal efectivo y el vencimiento automatico aun no estan implementados.
 
 ### Objetivo
 
@@ -1601,25 +1601,25 @@ Registrar confirmaciones de participantes unicos, mantener la solicitud grupal e
 
 ### Criterios de aceptacion
 
-- [ ] Una solicitud grupal nueva comienza en `PENDING`.
-- [ ] Un mismo participante no puede aumentar dos veces el conteo vigente.
-- [ ] Con 9 confirmaciones la solicitud permanece `PENDING`.
-- [ ] La decima confirmacion valida cambia la solicitud a `CONFIRMED` si las demas reglas siguen cumpliendose.
-- [ ] `OPEN_USE` no solicita confirmaciones de participantes.
-- [ ] El cliente no puede forzar `CONFIRMED` ni declarar un conteo arbitrario.
-- [ ] Se rechaza una confirmacion que supere la capacidad del recurso cuando corresponda.
+- [x] Una solicitud grupal nueva comienza en `PENDING` (verificado localmente).
+- [x] Un mismo participante no puede aumentar dos veces el conteo vigente (verificado localmente).
+- [x] Con 9 confirmaciones la solicitud permanece `PENDING` (verificado localmente).
+- [x] La decima confirmacion valida cambia la solicitud a `CONFIRMED` si las demas reglas siguen cumpliendose (verificado localmente).
+- [x] `OPEN_USE` no solicita confirmaciones de participantes (verificado localmente).
+- [x] El cliente no puede forzar `CONFIRMED` ni declarar un conteo arbitrario (verificado localmente).
+- [x] Se rechaza una confirmacion que supere la capacidad snapshot del recurso (verificado localmente).
 - [ ] El solicitante puede ver el avance y los errores recuperables.
-- [ ] Si una retirada valida reduce el conteo de 10 a 9 antes del limite, la reserva vuelve a `PENDING`.
+- [x] Si una retirada valida reduce el conteo de 10 a 9, la reserva vuelve a `PENDING` (verificado localmente; la aplicacion del limite temporal sigue pendiente).
 - [ ] Confirmar o retirar despues del limite configurado se rechaza sin cambiar el conteo.
 - [ ] El valor inicial del limite es una hora antes del inicio y un cambio autorizado se refleja en las solicitudes posteriores aplicables.
-- [ ] El solicitante cuenta una vez entre los 10 y toda confirmacion corresponde a una cuenta autenticada.
-- [ ] Mientras esta `PENDING`, el horario aparece ocupado para solicitudes incompatibles.
+- [x] El solicitante cuenta una vez, no puede retirarse y toda confirmacion corresponde a una cuenta autenticada con RUT (verificado localmente).
+- [x] Mientras esta `PENDING`, el horario queda bloqueado para solicitudes incompatibles (verificado localmente y por contrato SQL).
 - [ ] Exactamente una hora antes se admite el ultimo cambio; despues se rechaza.
 - [ ] Al vencer bajo el minimo cambia a `CANCELLED`, libera horario y oportunidad semanal.
-- [ ] Un usuario normal no puede cambiar el plazo ni los recursos sujetos a confirmacion.
-- [ ] `go test ./...` pasa.
-- [ ] `npm test` pasa.
-- [ ] `npm run build` pasa.
+- [x] Un usuario normal no puede cambiar el plazo ni los recursos sujetos a confirmacion (verificado localmente).
+- [x] `go test ./...` pasa.
+- [x] `npm test` pasa (9/9).
+- [x] `npm run build` pasa.
 
 ### Decision de producto cerrada
 

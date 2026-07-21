@@ -146,6 +146,8 @@ Para preparar una base limpia:
 1. Ejecutar `database/drop.sql` si se necesita limpiar objetos existentes.
 2. Ejecutar `database/schema.sql`.
 3. Ejecutar `database/seed.sql` para cargar datos iniciales de desarrollo.
+
+Para actualizar una base MVP 1 existente sin reconstruirla, ejecutar despues `database/migrations/001_mvp2_group_participants.sql`. La migracion es prospectiva e idempotente: agrega la estructura grupal y publica una nueva politica, sin reclasificar reservas historicas.
 4. Configurar `backend/.env`.
 5. Levantar el backend y validar `/api/health`.
 

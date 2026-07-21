@@ -68,6 +68,22 @@ func loadPolicyCollections(ctx context.Context, q interface {
 		}
 		p.ResourceIDs = append(p.ResourceIDs, value)
 	}
+	if err := rows.Err(); err != nil {
+		return err
+	}
+	rows.Close()
+	rows, err = q.QueryContext(ctx, `SELECT resource_id FROM dbo.reservation_policy_group_resources WHERE policy_id = @p1 ORDER BY resource_id`, p.ID)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var value int
+		if err := rows.Scan(&value); err != nil {
+			return err
+		}
+		p.GroupResourceIDs = append(p.GroupResourceIDs, value)
+	}
 	return rows.Err()
 }
 
@@ -162,6 +178,16 @@ func PublishReservationPolicy(request models.PublishReservationPolicyRequest, cr
 		count, _ := result.RowsAffected()
 		if count != 1 {
 			return models.ReservationPolicy{}, false, fmt.Errorf("%w: recurso %d no existe o no esta activo", ErrInvalidPolicyResource, value)
+		}
+	}
+	for _, value := range request.GroupResourceIDs {
+		result, err := tx.ExecContext(ctx, `INSERT INTO dbo.reservation_policy_group_resources (policy_id, resource_id) SELECT @p1, r.id FROM dbo.resources r INNER JOIN dbo.reservation_policy_resources pr ON pr.policy_id=@p1 AND pr.resource_id=r.id WHERE r.id=@p2 AND r.is_active=1 AND r.capacity IS NOT NULL AND r.capacity>=@p3 AND r.reservation_mode<>'OPEN_USE'`, id, value, request.MinimumParticipants)
+		if err != nil {
+			return models.ReservationPolicy{}, false, err
+		}
+		count, _ := result.RowsAffected()
+		if count != 1 {
+			return models.ReservationPolicy{}, false, fmt.Errorf("%w: recurso grupal %d invalido", ErrInvalidPolicyResource, value)
 		}
 	}
 	if _, err := tx.ExecContext(ctx, `UPDATE dbo.reservation_policies SET is_published = 1 WHERE id = @p1 AND is_published = 0`, id); err != nil {

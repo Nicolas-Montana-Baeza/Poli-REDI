@@ -50,12 +50,16 @@ La estructura principal esta organizada por capas:
 - `GET /api/reservations/mine`
 - `POST /api/reservations`
 - `PATCH /api/reservations/cancel`
+- `GET /api/group-reservations/:code`: progreso agregado, sin datos nominales.
+- `PUT /api/group-reservations/:code/confirmation`: confirmar o reconfirmar la participacion del usuario autenticado.
+- `DELETE /api/group-reservations/:code/confirmation`: retirar la participacion propia; el propietario no puede retirarse.
 
 ## Endpoints administrativos actuales
 
 - `GET /api/users`
 - `GET /api/reservations`
 - `PATCH /api/resources/:id/image`
+- `GET /api/admin/reservations/:id/participants`: detalle nominal, protegido por `RequireAdmin`.
 
 ## Hallazgos de seguridad leve
 
@@ -105,7 +109,7 @@ Estado para MVP 1:
 
 ### Estado y limites controlados por servidor
 
-El contrato publico de creacion ya no acepta `status`; el servicio fuerza el estado inicial `CONFIRMED` y la cancelacion solo permite transiciones desde estados activos. La API valida duraciones permitidas, paso de 15 minutos, apertura 08:00, cierre 22:00 y termino completo dentro de la jornada.
+El contrato publico de creacion ya no acepta `status`; el servicio asigna `PENDING` cuando la politica versionada clasifica el recurso como grupal y `CONFIRMED` en los demas casos. La cancelacion solo permite transiciones desde estados activos. La API valida duraciones permitidas, paso de 15 minutos, apertura 08:00, cierre 22:00 y termino completo dentro de la jornada.
 
 Estado para MVP 1:
 
@@ -129,6 +133,14 @@ Estado: IMPLEMENTADA y VERIFICADA LOCALMENTE. Todas las rutas exigen autenticaci
 - `POST /api/admin/reservation-policies`: snapshot completo con vigencia inmediata. Exige `Idempotency-Key`; devuelve `201` para publicacion nueva, `200` para replay identico y `409` para replay divergente.
 
 El repositorio publica con aislamiento serializable y bloqueos `UPDLOCK, HOLDLOCK`. Esta garantia fue cubierta localmente y por inspeccion estatica, pero no se sometio a carga concurrente contra SQL Server/Azure SQL real. La correccion excepcional permanece fuera de alcance y no tiene rutas implementadas.
+
+## API de participantes grupales
+
+Estado: IMPLEMENTADA y VERIFICADA LOCALMENTE; pendiente de frontend y de prueba integrada contra SQL Server/Azure SQL real.
+
+`POST /api/reservations` devuelve `joinCode` solo al crear una solicitud grupal. El codigo compartible no se persiste en claro: la reserva guarda su hash. Las consultas por codigo exponen solo `reservationId`, estado, conteo, minimo, capacidad snapshot y membresia del usuario actual. Confirmacion, reconfirmacion y retiro se serializan por reserva, exigen cuenta activa con RUT, respetan capacidad, auditan cada cambio y recalculan `PENDING` o `CONFIRMED`. El propietario se inserta confirmado, cuenta una vez y no puede retirarse.
+
+El limite temporal y la cancelacion automatica por vencimiento aun no se aplican en estas rutas; no deben presentarse como terminados.
 
 ## Pruebas backend recomendadas
 

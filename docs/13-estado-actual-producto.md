@@ -8,7 +8,7 @@ Fecha de corte: 2026-07-21
 - **Objetivo — APROBADO:** validar un prototipo que centralice recursos, disponibilidad, reservas y reglas institucionales basicas sin presentarlo como plataforma productiva completa.
 - **Usuarios afectados — HECHO:** usuarios normales, administradores y personal institucional encargado de la operacion deportiva.
 - **Resultado esperado — PROPUESTA:** disponer de una demo verificable cuyo alcance implementado, faltante y futuro pueda comunicarse sin confundir codigo, aprobacion y validacion.
-- **Estado actual — HECHO:** existe una demo funcional con identidad, reservas y consulta operacional; la ventana, frecuencia y administracion backend de politicas prospectivas estan implementadas y verificadas localmente, pero no en SQL Server/Azure SQL real. Participantes, bloqueo `PENDING`, vencimiento, interfaz administrativa y correccion excepcional aun no estan implementados, por lo que el MVP 2 no puede declararse cerrado.
+- **Estado actual — HECHO:** existe una demo funcional con identidad, reservas y consulta operacional; ventana, frecuencia, politicas prospectivas, clasificacion grupal, participantes, bloqueo `PENDING` y transiciones por minimo estan implementados en backend/DB y verificados localmente, pero no en SQL Server/Azure SQL real. Vencimiento, interfaces y correccion excepcional aun no estan implementados, por lo que el MVP 2 no puede declararse cerrado.
 
 ### 2. Evidencia revisada
 
@@ -54,7 +54,7 @@ Fecha de corte: 2026-07-21
 #### Futuro posible
 
 - Gestion administrativa completa de usuarios, inventario oficial, bloqueos y programacion.
-- Implementacion de participantes y validacion de capacidad de punta a punta como trabajo obligatorio de MVP 2.
+- Integracion frontend de participantes y validacion integrada de capacidad/estado como trabajo obligatorio de MVP 2; el backend/DB ya esta verificado localmente.
 - Infracciones, notificaciones completas, reportes institucionales y consulta de auditoria.
 - Filtros de servidor, detalle individual de reserva y disponibilidad por rango.
 - Cierre de accesibilidad, responsive, seguridad de errores y pruebas integradas.
@@ -227,7 +227,7 @@ Fecha de corte: 2026-07-21
 **Resultado:** Politica institucional actualizada sin facultades equivalentes para usuarios normales.<br>
 **Prioridad:** SHOULD para MVP 3.<br>
 **Fuente:** Decision explicita del usuario del 2026-07-20.<br>
-**Estado:** APROBADO e IMPLEMENTADO PARCIAL; VERIFICADO LOCAL para publicacion prospectiva de condiciones y recursos permitidos, historial, DTO minimo, permisos e idempotencia. La clasificacion de confirmacion grupal, participantes, minimo, transiciones, interfaz y correccion excepcional permanecen PENDIENTES; SQL/Azure no verificado.<br>
+**Estado:** APROBADO e IMPLEMENTADO PARCIAL; VERIFICADO LOCAL para publicacion prospectiva, clasificacion grupal, participantes, minimo, transiciones, historial, DTO minimo, permisos e idempotencia. Interfaz, vencimiento y correccion excepcional permanecen PENDIENTES; SQL/Azure no verificado.<br>
 **Dependencias:** RF-002, RF-020 a RF-022 y arquitectura aprobada de versionado prospectivo con correcciones excepcionales.
 
 #### Requisitos no funcionales
@@ -321,7 +321,7 @@ Fecha de corte: 2026-07-21
 **Regla:** El cliente no decide el estado. `OPEN_USE` no requiere confirmacion de participantes; Cancha 1, 2 y 3 quedan `PENDING` hasta alcanzar el minimo, pasan automaticamente a `CONFIRMED` al cumplirlo y vuelven a `PENDING` si una retirada valida deja menos de 10 confirmaciones vigentes.<br>
 **Justificacion:** Ajusta la confirmacion al modo de uso del recurso.  
 **Fuente:** Decision explicita del usuario del 2026-07-20.  
-**Estado:** APROBADO; no IMPLEMENTADO. El flujo actual crea toda reserva como `CONFIRMED`.  
+**Estado:** APROBADO, IMPLEMENTADO en backend/DB y VERIFICADO LOCALMENTE para clasificacion, bloqueo y transiciones por minimo. Limite temporal, vencimiento, frontend e integracion SQL/Azure PENDIENTES.<br>
 **Excepciones:** Recursos cuya politica oficial no exija participantes.
 
 **RN-007 — Conflictos y modos de recurso**  
@@ -572,8 +572,8 @@ Dado un usuario normal y un administrador, cuando intentan modificar periodo, pl
 | ID | Fuentes en conflicto | Diferencia | Efecto |
 | --- | --- | --- | --- |
 | C-01 | Alcance definitivo vs repositorio | Entra ID real y demo Azure estaban fuera del alcance original y hoy estan implementados/documentados. | El informe puede describir un alcance distinto del prototipo entregado. |
-| C-03 | Reglas aprobadas vs flujo actual | La ventana/frecuencia versionadas ya se aplican localmente, pero falta verificarlas en Azure SQL; el minimo de 10 participantes aun no se aplica. | MVP 2 no puede cerrarse. |
-| C-04 | Confirmacion aprobada vs flujo actual | Las multicanchas requieren cuentas, bloqueo `PENDING`, estados reversibles y cancelacion al vencer; el sistema confirma toda reserva al crearla y no registra participantes. | Solicitudes grupales pueden quedar confirmadas sin cumplir las reglas. |
+| C-03 | Reglas aprobadas vs flujo actual | Ventana, frecuencia, minimo y participantes ya se aplican localmente, pero falta verificarlos en Azure SQL y exponerlos en frontend. | MVP 2 no puede cerrarse. |
+| C-04 | Confirmacion aprobada vs flujo actual | El backend ya aplica cuentas, bloqueo `PENDING` y estados reversibles; falta impedir cambios despues del limite y cancelar al vencer bajo el minimo. | Una solicitud puede permanecer `PENDING` mas alla del plazo. |
 | C-05 | Prioridad institucional aprobada vs esquema actual | Debe cancelarse y notificarse la reserva particular y permitirse decision entre actividades, pero el esquema rechaza el solapamiento al registrar la actividad. | El comportamiento aprobado no puede ejecutarse. |
 | C-06 | Inventario y politicas aprobadas vs administracion actual | Los ocho recursos son oficiales; la API administrativa ya publica politicas prospectivas, pero faltan interfaz y gestion completa del inventario. | La operacion institucional aun no puede mantenerse completamente desde la interfaz. |
 | C-07 | Disponibilidad visible vs regla de base | Bloqueos impiden reservar, pero no se muestran en el endpoint actual. | Un horario puede parecer libre y fallar al confirmar. |

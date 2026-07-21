@@ -2,7 +2,9 @@ package repositories
 
 import (
 	"context"
+	"crypto/sha256"
 	"database/sql"
+	"encoding/hex"
 	"errors"
 	"time"
 
@@ -196,6 +198,33 @@ func AddReservationWithPolicy(reservation models.Reservation, validate func(mode
 	if !policyAllowsResource(policy, reservation.ResourceID) {
 		return models.Reservation{}, ErrResourceNotAllowedByPolicy
 	}
+	isGroup := false
+	for _, id := range policy.GroupResourceIDs {
+		if id == reservation.ResourceID {
+			isGroup = true
+			break
+		}
+	}
+	var joinHash any
+	var capacitySnapshot any
+	var frozenCapacity int
+	if isGroup {
+		reservation.Status = initialGroupReservationStatus(policy.MinimumParticipants)
+		sum := sha256.Sum256([]byte(reservation.JoinCode))
+		joinHash = hex.EncodeToString(sum[:])
+		if err := tx.QueryRowContext(ctx, `SELECT capacity FROM dbo.resources WITH(UPDLOCK,HOLDLOCK) WHERE id=@p1 AND is_active=1 AND capacity IS NOT NULL`, reservation.ResourceID).Scan(&frozenCapacity); err != nil {
+			return models.Reservation{}, err
+		}
+		if frozenCapacity < policy.MinimumParticipants {
+			return models.Reservation{}, errors.New("la capacidad del recurso es menor al minimo de participantes")
+		}
+		capacitySnapshot = frozenCapacity
+	} else {
+		reservation.Status = models.ReservationStatusConfirmed
+		reservation.JoinCode = ""
+		joinHash = nil
+		capacitySnapshot = nil
+	}
 	if err := validate(policy); err != nil {
 		return models.Reservation{}, err
 	}
@@ -217,10 +246,14 @@ func AddReservationWithPolicy(reservation models.Reservation, validate func(mode
 			activity_id,
 			start_time,
 			duration_minutes,
-			status
+			status, join_code_hash, group_capacity_snapshot
 		)
 		OUTPUT INSERTED.id INTO @created
-		VALUES (@p1, @p2, @p3, @p4, @p5, @p6, @p7);
+		VALUES (@p1, @p2, @p3, @p4, @p5, @p6, @p7, @p8, @p9);
+		INSERT INTO dbo.participants(reservation_id,user_id,status,confirmed_at,is_owner)
+		SELECT id,@p2,'CONFIRMED',SYSUTCDATETIME(),1 FROM @created WHERE @p8 IS NOT NULL;
+		INSERT INTO dbo.reservation_participant_audit(reservation_id,actor_user_id,participant_user_id,action,previous_status,new_status,previous_reservation_status,new_reservation_status)
+		SELECT id,@p2,@p2,'REQUESTER_ADDED',NULL,'CONFIRMED',@p7,@p7 FROM @created WHERE @p8 IS NOT NULL;
 
 		SELECT
 			r.id,
@@ -257,6 +290,8 @@ func AddReservationWithPolicy(reservation models.Reservation, validate func(mode
 		businessclock.ToDatabaseWallTime(reservation.StartTime),
 		reservation.DurationMinutes,
 		reservation.Status,
+		joinHash,
+		capacitySnapshot,
 	).Scan(
 		&reservation.ID,
 		&reservation.PolicyID,
@@ -290,8 +325,18 @@ func AddReservationWithPolicy(reservation models.Reservation, validate func(mode
 	reservation.UserFullName = userFullName
 	reservation.UserEmail = userEmail
 	reservation.UserRUT = userRUT
+	if isGroup {
+		reservation.Capacity = &frozenCapacity
+	}
 
 	return reservation, nil
+}
+
+func initialGroupReservationStatus(minimum int) string {
+	if minimum <= 1 {
+		return models.ReservationStatusConfirmed
+	}
+	return models.ReservationStatusPending
 }
 
 func policyAllowsResource(policy models.ReservationPolicy, resourceID int) bool {

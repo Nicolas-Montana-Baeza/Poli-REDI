@@ -1,7 +1,9 @@
 package services
 
 import (
+	"crypto/rand"
 	"database/sql"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"regexp"
@@ -116,6 +118,11 @@ func createReservationAt(
 	now time.Time,
 ) (models.Reservation, error) {
 	reservation = enforceInitialReservationStatus(reservation)
+	codeBytes := make([]byte, 24)
+	if _, err := rand.Read(codeBytes); err != nil {
+		return models.Reservation{}, err
+	}
+	reservation.JoinCode = base64.RawURLEncoding.EncodeToString(codeBytes)
 
 	if reservation.UserID == 0 {
 		return models.Reservation{}, errors.New("no se pudo identificar al usuario autenticado")
@@ -433,6 +440,8 @@ func mapDatabaseReservationError(err error) error {
 			return errors.New("el horario o la duracion no estan permitidos por la politica vigente")
 		case 51016:
 			return errors.New("el recurso no esta permitido por la politica vigente")
+		case 51017:
+			return errors.New("debes registrar tu RUT antes de crear reservas")
 		case 547:
 			return errors.New("usuario, recurso o actividad no existe, o los datos no cumplen restricciones")
 		case 2601, 2627:

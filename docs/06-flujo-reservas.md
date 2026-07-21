@@ -19,16 +19,17 @@ Este documento describe el flujo funcional de reservas en Poli-REDI, sus validac
 4. El sistema muestra recursos, reservas, talleres y actividades institucionales del dia seleccionado.
 5. El usuario selecciona un horario libre.
 6. Si el usuario normal no tiene RUT, la UI bloquea la accion.
-7. El formulario permite ajustar recurso, fecha, hora, duracion y actividad. Participantes no se solicita en MVP 1 porque todavia no se persiste.
+7. El formulario permite ajustar recurso, fecha, hora, duracion y actividad. La interfaz aun no incorpora el codigo compartible ni las acciones de participantes.
 8. El frontend valida campos obligatorios.
 9. El backend toma el usuario desde la sesion autenticada.
 10. El backend rechaza usuarios normales sin RUT.
 11. El servicio valida zona horaria de negocio, fecha/hora, duracion permitida, paso de inicio, jornada operativa, ventana reservable y frecuencia desde la creacion de la solicitud activa anterior.
 12. La base de datos vuelve a proteger ventana y frecuencia ante concurrencia, ademas de validar conflictos de recurso, usuario, bloqueos y actividades programadas.
-13. Si la reserva se crea, la UI refresca disponibilidad y muestra mensaje de exito.
-14. Si existe conflicto, el formulario mantiene el error visible.
+13. Si el recurso pertenece al conjunto grupal de la politica, el backend crea la solicitud `PENDING`, registra al propietario como participante confirmado y devuelve un `joinCode` de una sola exposicion; en otro caso crea `CONFIRMED` sin codigo.
+14. Si la reserva se crea, la UI refresca disponibilidad y muestra mensaje de exito.
+15. Si existe conflicto, el formulario mantiene el error visible.
 
-Este flujo describe el comportamiento implementado, no el flujo objetivo completo aprobado el 2026-07-20. La ventana y la frecuencia versionadas estan implementadas y verificadas localmente, pero aun no se han verificado en Azure SQL. Todavia no se registran confirmaciones de participantes y toda reserva se crea como `CONFIRMED`.
+Este flujo describe el comportamiento implementado en backend y base. Ventana, frecuencia, clasificacion grupal, participantes y transiciones por minimo estan verificados localmente, pero no en Azure SQL. La interfaz y el vencimiento automatico al limite siguen pendientes.
 
 ## Flujo objetivo aprobado de solicitud y confirmacion
 
@@ -44,7 +45,7 @@ Este flujo describe el comportamiento implementado, no el flujo objetivo complet
 10. Si una persona retira su confirmacion dentro del plazo y el conteo baja de 10, la reserva vuelve a `PENDING`.
 11. Si al alcanzar el limite la solicitud tiene menos de 10 confirmaciones, cambia automaticamente a `CANCELLED`, libera el horario y deja de consumir la oportunidad semanal.
 
-Solo un usuario con rol administrador puede modificar los recursos sujetos a confirmacion, el periodo semanal o el plazo previo. Como propuesta no bloqueante, los cambios se aplican a solicitudes creadas despues de la modificacion.
+Solo un usuario con rol administrador puede modificar los recursos sujetos a confirmacion, el periodo semanal o el plazo previo. Los cambios se aplican prospectivamente a solicitudes creadas despues de la publicacion.
 
 ## Flujo objetivo aprobado de prioridad institucional
 
@@ -136,7 +137,7 @@ Regla UX:
 - `durationMinutes` en `30, 60, 90, 120, 150, 180`.
 - Inicio entre 08:00 y 21:30, en intervalos de 15 minutos.
 - Termino completo de la reserva a mas tardar a las 22:00.
-- El payload publico no acepta `status`; el servidor asigna `CONFIRMED`.
+- El payload publico no acepta `status`; el servidor asigna `PENDING` a recursos grupales de la politica y `CONFIRMED` al resto.
 - Cancelacion solo por propietario o administrador.
 - Cancelacion permitida unicamente desde `CONFIRMED` o `PENDING`.
 
@@ -161,7 +162,7 @@ Validaciones backend pendientes antes de cerrar MVP 1:
 
 - Mostrar siempre el rango completo de la reserva antes de confirmar.
 - Redondear seleccion de horario a intervalos institucionales.
-- Mostrar capacidad y avance de confirmaciones. Los participantes deben incorporarse de punta a punta para recursos grupales en MVP 2 (`RES-008`).
+- Mostrar capacidad, avance de confirmaciones, codigo compartible y acciones de confirmar/retirar consumiendo la API ya implementada (`RES-008`).
 - Diferenciar visualmente reserva, bloqueo, mantencion y actividad institucional.
 - No exponer informacion personal de reservas ajenas en disponibilidad.
 - Mantener errores recuperables dentro del mismo contexto visual.

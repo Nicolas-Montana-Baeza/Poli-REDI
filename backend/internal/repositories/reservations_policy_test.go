@@ -15,3 +15,12 @@ func TestPolicyAllowsOnlyVersionedResources(t *testing.T) {
 		t.Fatal("resource outside the policy snapshot was accepted")
 	}
 }
+
+func TestInitialGroupReservationStatus(t *testing.T) {
+	if got := initialGroupReservationStatus(10); got != models.ReservationStatusPending {
+		t.Fatalf("minimum 10 = %s", got)
+	}
+	if got := initialGroupReservationStatus(1); got != models.ReservationStatusConfirmed {
+		t.Fatalf("minimum 1 = %s", got)
+	}
+}

@@ -57,8 +57,23 @@ func PublishReservationPolicy(request models.PublishReservationPolicyRequest, cr
 			return models.ReservationPolicy{}, false, policyValidation("los identificadores de recursos deben ser mayores que cero")
 		}
 	}
+	for _, value := range request.GroupResourceIDs {
+		if value <= 0 {
+			return models.ReservationPolicy{}, false, policyValidation("los recursos grupales no son validos")
+		}
+	}
 	request.AllowedDurations = uniquePositive(request.AllowedDurations)
 	request.ResourceIDs = uniquePositive(request.ResourceIDs)
+	request.GroupResourceIDs = uniquePositive(request.GroupResourceIDs)
+	allowed := map[int]bool{}
+	for _, id := range request.ResourceIDs {
+		allowed[id] = true
+	}
+	for _, id := range request.GroupResourceIDs {
+		if !allowed[id] {
+			return models.ReservationPolicy{}, false, policyValidation("los recursos grupales deben pertenecer a los recursos permitidos")
+		}
+	}
 	hash, err := reservationPolicyPayloadHash(request)
 	if err != nil {
 		return models.ReservationPolicy{}, false, err

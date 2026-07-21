@@ -75,6 +75,8 @@ Orden recomendado para una base limpia:
 1. Ejecutar `database/drop.sql` si se necesita limpiar objetos existentes.
 2. Ejecutar `database/schema.sql`.
 3. Ejecutar `database/seed.sql` para cargar datos iniciales.
+
+Para una base MVP 1 ya existente, no repetir el flujo destructivo de instalacion limpia: ejecutar `database/migrations/001_mvp2_group_participants.sql`. La migracion es prospectiva e idempotente y no modifica reservas historicas.
 4. Configurar `backend/.env`.
 5. Levantar backend y validar `/api/health`.
 

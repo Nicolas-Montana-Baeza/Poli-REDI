@@ -95,7 +95,7 @@ Pendiente relacionado: `RES-004`.
 
 El sistema debe permitir crear solicitudes de reserva sobre recursos disponibles, asociadas al usuario autenticado y, opcionalmente, a una actividad. El servidor debe asignar el estado segun la politica del recurso, aplicar la restriccion semanal y aceptar para todos los recursos solo duraciones de 30, 60, 90, 120, 150 o 180 minutos dentro de la jornada institucional.
 
-Estado actual: Implementado parcialmente. La asociacion al usuario, el estado controlado por servidor, la zona `America/Santiago` y el catalogo de duraciones aprobado tienen pruebas locales; falta la restriccion semanal y la confirmacion condicional por participantes aprobadas el 2026-07-20.
+Estado actual: Implementado parcialmente. La asociacion al usuario, el estado controlado por servidor, la zona `America/Santiago`, el catalogo de duraciones, la restriccion semanal y la confirmacion condicional por participantes tienen pruebas locales. Faltan frontend, vencimiento efectivo e integracion SQL/Azure.
 
 Pendiente relacionado: `RES-008`, `RES-009`, `RES-010`, `RES-011`.
 
@@ -205,17 +205,13 @@ Pendiente relacionado: `RES-012`.
 
 El sistema debe registrar confirmaciones de usuarios unicos y exigir al menos 10, incluido el solicitante, para multicancha 1, 2 y 3, identificadas en el inventario como Cancha 1, 2 y 3. Todos los participantes deben tener cuenta. Las confirmaciones pueden registrarse o retirarse hasta exactamente una hora antes inclusive, plazo configurable.
 
-Estado actual: APROBADO el 2026-07-20; no implementado.
-
-Pendiente relacionado: `RES-008`.
+Estado actual: IMPLEMENTADO en backend/DB y VERIFICADO LOCALMENTE para unicidad, cuenta activa con RUT, propietario contado/irretirable, capacidad snapshot, codigo compartible hash y progreso agregado. PENDIENTES: interfaz, limite temporal efectivo y verificacion SQL/Azure real (`RES-008`).
 
 ### RF-022 - Estado condicionado por politica del recurso
 
 El sistema debe mantener `PENDING` y bloquear el horario hasta alcanzar el minimo, cambiar automaticamente a `CONFIRMED` al cumplirlo y devolverla a `PENDING` si una retirada valida reduce el conteo. Si llega al limite con menos de 10, debe cambiar a `CANCELLED`, liberar el horario y dejar de consumir la oportunidad semanal. Los recursos `OPEN_USE` no requieren confirmacion grupal.
 
-Estado actual: APROBADO el 2026-07-20; no implementado. El flujo actual confirma todas las reservas al crearlas.
-
-Pendiente relacionado: `RES-008`, `RES-010`.
+Estado actual: IMPLEMENTADO en backend/DB y VERIFICADO LOCALMENTE para `OPEN_USE`, `PENDING`/`CONFIRMED`, bloqueo y retirada bajo el minimo. PENDIENTE: cancelacion automatica al vencer, frontend e integracion SQL/Azure (`RES-008`, `RES-010`).
 
 ### RF-023 - Resolucion de conflictos institucionales
 
@@ -237,7 +233,7 @@ Pendiente relacionado: `ADMIN-003`.
 
 El sistema debe permitir exclusivamente a usuarios con rol administrador publicar nuevas versiones del periodo de reserva, el plazo previo de confirmacion y los recursos sujetos a confirmacion grupal. Los cambios normales son prospectivos y cada solicitud conserva la version vigente al crearse. Excepcionalmente, el administrador puede migrar solicitudes futuras `PENDING` o `CONFIRMED` seleccionadas a otra version mediante simulacion, motivo obligatorio, confirmacion, aplicacion atomica y auditoria; la operacion no edita versiones historicas ni cancela solicitudes implicitamente.
 
-Estado actual: APROBADO e IMPLEMENTADO PARCIAL; VERIFICADO LOCALMENTE el 2026-07-21 para publicacion prospectiva de condiciones y recursos permitidos, historial administrativo, DTO publico minimo, permisos e idempotencia. La clasificacion de recursos sujetos a confirmacion grupal, participantes, minimo, transiciones, interfaz administrativa y correcciones excepcionales siguen PENDIENTES; no se verifico contra SQL Server/Azure SQL real.
+Estado actual: APROBADO e IMPLEMENTADO PARCIAL; VERIFICADO LOCALMENTE el 2026-07-21 para publicacion prospectiva, clasificacion separada de recursos grupales, historial, DTO publico minimo, permisos e idempotencia. Participantes, minimo y transiciones estan implementados en backend/DB. Interfaz administrativa, vencimiento y correcciones excepcionales siguen PENDIENTES; no se verifico contra SQL Server/Azure SQL real.
 
 Pendiente relacionado: `ADMIN-006`.
 
