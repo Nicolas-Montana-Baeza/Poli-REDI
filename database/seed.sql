@@ -16,18 +16,19 @@ GO
 SET IDENTITY_INSERT dbo.users ON;
 INSERT INTO dbo.users (id, email, full_name, rut, is_admin, is_blocked, entra_oid, tenant_id)
 VALUES
-(1, 'admin@universidad.cl', 'Administrador General', NULL, 1, 0, NULL, NULL),
-(2, 'nicolas@universidad.cl', 'Nicolas Montana', '12345678-5', 0, 0, NULL, NULL),
-(3, 'maria@universidad.cl', 'Maria Gonzalez', '10000000-8', 0, 0, NULL, NULL),
-(4, 'juan@universidad.cl', 'Juan Perez', '10000001-6', 0, 0, NULL, NULL),
-(5, 'camila@universidad.cl', 'Camila Soto', '10000002-4', 0, 0, NULL, NULL),
-(6, 'pedro@universidad.cl', 'Pedro Ramirez', '10000003-2', 0, 0, NULL, NULL),
-(7, 'valentina@universidad.cl', 'Valentina Fuentes', '10000004-0', 0, 0, NULL, NULL),
-(8, 'sebastian@universidad.cl', 'Sebastian Morales', '10000005-9', 0, 0, NULL, NULL),
-(9, 'fernanda@universidad.cl', 'Fernanda Rojas', '10000006-7', 0, 0, NULL, NULL),
-(10, 'diego@universidad.cl', 'Diego Herrera', '10000007-5', 0, 0, NULL, NULL),
-(11, 'sofia@universidad.cl', 'Sofia Castillo', '10000008-3', 0, 0, NULL, NULL),
-(12, 'bloqueado@universidad.cl', 'Usuario Bloqueado', '10000009-1', 0, 1, NULL, NULL);
+(1, 'admin@polirediucen.onmicrosoft.com', N'Administrador', NULL, 1, 0, '2e02ef4b-97d8-4359-acce-3431018f8745', NULL),
+(2, 'nicolas@polirediucen.onmicrosoft.com', N'Nicolás Montaña', NULL, 0, 0, '1cc13d5f-8baa-427c-9f04-a09c4e52121a', NULL),
+(3, 'maria@polirediucen.onmicrosoft.com', N'María González', NULL, 0, 0, '43831395-6628-4c1d-b3e8-289c54076dfd', NULL),
+(4, 'juan@polirediucen.onmicrosoft.com', N'Juan Pérez', NULL, 0, 0, '0fe3819a-c6f7-420f-85c4-9ccc578e72c0', NULL),
+(5, 'camila@polirediucen.onmicrosoft.com', N'Camila Soto', NULL, 0, 0, '5bb1fded-f7e2-4dd8-b591-58756b5bb0b4', NULL),
+(6, 'pedro@polirediucen.onmicrosoft.com', N'Pedro Ramírez', NULL, 0, 0, '22110319-7b8b-4c4c-ac18-0d7897a3200f', NULL),
+(7, 'valentina@polirediucen.onmicrosoft.com', N'Valentina Fuentes', NULL, 0, 0, '1078591b-b341-4762-9f0d-41a5ae9a3cfc', NULL),
+(8, 'sebastian@polirediucen.onmicrosoft.com', N'Sebastián Morales', NULL, 0, 0, '4baf08a6-75a7-4ecc-8e91-fc537c019106', NULL),
+(9, 'fernanda@polirediucen.onmicrosoft.com', N'Fernanda Rojas', NULL, 0, 0, 'a633168d-5d10-4dd3-875d-fd58f224c67e', NULL),
+(10, 'diego@polirediucen.onmicrosoft.com', N'Diego Herrera', NULL, 0, 0, '175b7686-e1ea-4b9a-8999-77bc1be7f800', NULL),
+(11, 'sofia@polirediucen.onmicrosoft.com', N'Sofía Castillo', NULL, 0, 0, 'a0c7a873-6e4b-4934-8780-1c40f26f7b50', NULL),
+(12, 'bloqueado@polirediucen.onmicrosoft.com', N'Usuario Bloqueado', NULL, 0, 1, 'c0e0c85d-a7f9-4e54-a213-c452d4546ba0', NULL),
+(13, 'ni.cco896_gmail.com#EXT#@polirediucen.onmicrosoft.com', N'Nicolás Montaña', NULL, 0, 0, '3da380aa-1b93-4418-adeb-a1ae8d862776', NULL);
 SET IDENTITY_INSERT dbo.users OFF;
 GO
 
