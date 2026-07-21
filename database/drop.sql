@@ -14,6 +14,7 @@ GO
 
 -- TRIGGERS
 IF OBJECT_ID('dbo.trg_reservations_audit', 'TR') IS NOT NULL DROP TRIGGER dbo.trg_reservations_audit;
+IF OBJECT_ID('dbo.trg_reservation_policies_immutable', 'TR') IS NOT NULL DROP TRIGGER dbo.trg_reservation_policies_immutable;
 IF OBJECT_ID('dbo.trg_violations_notify', 'TR') IS NOT NULL DROP TRIGGER dbo.trg_violations_notify;
 IF OBJECT_ID('dbo.trg_scheduled_activities_validate_conflicts', 'TR') IS NOT NULL DROP TRIGGER dbo.trg_scheduled_activities_validate_conflicts;
 IF OBJECT_ID('dbo.trg_blocks_validate_conflicts', 'TR') IS NOT NULL DROP TRIGGER dbo.trg_blocks_validate_conflicts;
@@ -39,6 +40,8 @@ IF OBJECT_ID('dbo.scheduled_activities', 'U') IS NOT NULL DROP TABLE dbo.schedul
 IF OBJECT_ID('dbo.availability_blocks', 'U') IS NOT NULL DROP TABLE dbo.availability_blocks;
 IF OBJECT_ID('dbo.participants', 'U') IS NOT NULL DROP TABLE dbo.participants;
 IF OBJECT_ID('dbo.reservations', 'U') IS NOT NULL DROP TABLE dbo.reservations;
+IF OBJECT_ID('dbo.reservation_policy_resources', 'U') IS NOT NULL DROP TABLE dbo.reservation_policy_resources;
+IF OBJECT_ID('dbo.reservation_policies', 'U') IS NOT NULL DROP TABLE dbo.reservation_policies;
 IF OBJECT_ID('dbo.activities', 'U') IS NOT NULL DROP TABLE dbo.activities;
 IF OBJECT_ID('dbo.resources', 'U') IS NOT NULL DROP TABLE dbo.resources;
 IF OBJECT_ID('dbo.users', 'U') IS NOT NULL DROP TABLE dbo.users;

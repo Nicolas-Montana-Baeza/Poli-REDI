@@ -588,6 +588,32 @@ BEGIN
 END;
 GO
 
+CREATE OR ALTER TRIGGER dbo.trg_reservation_policies_immutable
+ON dbo.reservation_policies
+AFTER UPDATE, DELETE
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF EXISTS (SELECT 1 FROM deleted d LEFT JOIN inserted i ON i.id = d.id WHERE i.id IS NULL)
+        THROW 51011, 'Las versiones de politica utilizadas no se pueden eliminar.', 1;
+
+    IF EXISTS (
+        SELECT 1
+        FROM deleted d
+        INNER JOIN inserted i ON i.id = d.id
+        WHERE i.reservable_window_days <> d.reservable_window_days
+           OR i.request_frequency_days <> d.request_frequency_days
+           OR i.confirmation_deadline_minutes <> d.confirmation_deadline_minutes
+           OR i.minimum_participants <> d.minimum_participants
+           OR i.effective_from <> d.effective_from
+           OR ISNULL(i.created_by_user_id, -1) <> ISNULL(d.created_by_user_id, -1)
+           OR i.created_at <> d.created_at
+    )
+        THROW 51012, 'Una version de politica publicada es inmutable.', 1;
+END;
+GO
+
 -- ============================================================
 -- BUSINESS RULE TRIGGERS
 -- Reemplazan las restricciones EXCLUDE de PostgreSQL.
@@ -601,6 +627,65 @@ AFTER INSERT, UPDATE
 AS
 BEGIN
     SET NOCOUNT ON;
+
+    IF EXISTS (
+        SELECT 1
+        FROM inserted i
+        LEFT JOIN deleted d ON d.id = i.id
+        INNER JOIN dbo.reservation_policies p ON p.id = i.policy_id
+        WHERE d.id IS NULL
+          AND (
+              CONVERT(DATE, i.start_time) < CONVERT(DATE, i.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'Pacific SA Standard Time')
+              OR CONVERT(DATE, i.start_time) >= DATEADD(DAY, p.reservable_window_days, CONVERT(DATE, i.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'Pacific SA Standard Time'))
+          )
+    )
+        THROW 51009, 'La fecha solicitada esta fuera de la ventana reservable vigente.', 1;
+
+    DECLARE @next_request_date DATE;
+
+    SELECT TOP (1)
+        @next_request_date = DATEADD(
+            DAY,
+            previous_policy.request_frequency_days,
+            CONVERT(
+                DATE,
+                previous.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'Pacific SA Standard Time'
+            )
+        )
+    FROM inserted i
+    LEFT JOIN deleted d ON d.id = i.id
+    INNER JOIN dbo.reservations previous WITH (UPDLOCK, HOLDLOCK)
+        ON previous.user_id = i.user_id
+       AND previous.id <> i.id
+       AND previous.status IN ('PENDING', 'CONFIRMED')
+    INNER JOIN dbo.reservation_policies previous_policy ON previous_policy.id = previous.policy_id
+    WHERE d.id IS NULL
+      AND CONVERT(DATE, i.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'Pacific SA Standard Time') < DATEADD(
+          DAY,
+          previous_policy.request_frequency_days,
+          CONVERT(
+              DATE,
+              previous.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'Pacific SA Standard Time'
+          )
+      )
+    ORDER BY DATEADD(
+        DAY,
+        previous_policy.request_frequency_days,
+        CONVERT(
+            DATE,
+            previous.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'Pacific SA Standard Time'
+        )
+    ) DESC, previous.id DESC;
+
+    IF @next_request_date IS NOT NULL
+    BEGIN
+        DECLARE @frequency_message NVARCHAR(2048) = CONCAT(
+            N'Ya existe una solicitud vigente. Proxima fecha permitida: ',
+            CONVERT(NVARCHAR(10), @next_request_date, 23),
+            N'.'
+        );
+        THROW 51010, @frequency_message, 1;
+    END;
 
     IF EXISTS (SELECT 1 FROM inserted i INNER JOIN dbo.users u ON u.id = i.user_id WHERE i.status IN ('PENDING', 'CONFIRMED') AND u.is_blocked = 1)
         THROW 51000, 'El usuario se encuentra bloqueado y no puede crear reservas.', 1;

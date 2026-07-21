@@ -46,6 +46,19 @@ VALUES
 SET IDENTITY_INSERT dbo.resources OFF;
 GO
 
+INSERT INTO dbo.reservation_policy_resources (policy_id, resource_id)
+SELECT p.id, r.id
+FROM dbo.reservation_policies p
+INNER JOIN dbo.resources r ON r.id IN (1, 2, 7)
+WHERE p.effective_to IS NULL
+  AND NOT EXISTS (
+      SELECT 1
+      FROM dbo.reservation_policy_resources existing
+      WHERE existing.policy_id = p.id
+        AND existing.resource_id = r.id
+  );
+GO
+
 -- ACTIVITIES
 SET IDENTITY_INSERT dbo.activities ON;
 INSERT INTO dbo.activities (id, name, description, is_active)
@@ -61,16 +74,17 @@ GO
 
 -- RESERVATIONS
 SET IDENTITY_INSERT dbo.reservations ON;
-INSERT INTO dbo.reservations (id, user_id, resource_id, activity_id, start_time, duration_minutes, status, cancellation_reason)
+DECLARE @initial_policy_id INT = (SELECT TOP (1) id FROM dbo.reservation_policies ORDER BY effective_from ASC, id ASC);
+INSERT INTO dbo.reservations (id, policy_id, user_id, resource_id, activity_id, start_time, duration_minutes, status, cancellation_reason, created_at)
 VALUES
-(1, 2, 1, 1, '2026-04-30T10:00:00', 60, 'CONFIRMED', NULL),
-(2, 3, 2, 2, '2026-04-30T11:30:00', 90, 'CONFIRMED', NULL),
-(3, 4, 3, 3, '2026-04-30T13:30:00', 60, 'CONFIRMED', NULL),
-(4, 5, 4, 4, '2026-04-30T15:00:00', 120, 'CONFIRMED', NULL),
-(5, 1, 5, 5, '2026-04-30T18:00:00', 60, 'PENDING', NULL),
-(6, 7, 1, 1, '2026-05-01T09:00:00', 60, 'CONFIRMED', NULL),
-(7, 8, 2, 2, '2026-05-01T11:00:00', 60, 'CONFIRMED', NULL),
-(8, 9, 3, 3, '2026-05-01T14:00:00', 60, 'CONFIRMED', NULL);
+(1, @initial_policy_id, 2, 1, 1, '2026-04-30T10:00:00', 60, 'CONFIRMED', NULL, '2026-04-29T12:00:00'),
+(2, @initial_policy_id, 3, 2, 2, '2026-04-30T11:30:00', 90, 'CONFIRMED', NULL, '2026-04-29T12:00:00'),
+(3, @initial_policy_id, 4, 3, 3, '2026-04-30T13:30:00', 60, 'CONFIRMED', NULL, '2026-04-29T12:00:00'),
+(4, @initial_policy_id, 5, 4, 4, '2026-04-30T15:00:00', 120, 'CONFIRMED', NULL, '2026-04-29T12:00:00'),
+(5, @initial_policy_id, 1, 5, 5, '2026-04-30T18:00:00', 60, 'PENDING', NULL, '2026-04-29T12:00:00'),
+(6, @initial_policy_id, 7, 1, 1, '2026-05-01T09:00:00', 60, 'CONFIRMED', NULL, '2026-04-30T12:00:00'),
+(7, @initial_policy_id, 8, 2, 2, '2026-05-01T11:00:00', 60, 'CONFIRMED', NULL, '2026-04-30T12:00:00'),
+(8, @initial_policy_id, 9, 3, 3, '2026-05-01T14:00:00', 60, 'CONFIRMED', NULL, '2026-04-30T12:00:00');
 SET IDENTITY_INSERT dbo.reservations OFF;
 GO
 

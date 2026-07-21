@@ -3,6 +3,7 @@ package services
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 	"regexp"
 	"sort"
 	"strconv"
@@ -132,14 +133,48 @@ func createReservationAt(
 		return models.Reservation{}, errors.New("no puedes crear reservas en el pasado")
 	}
 
-	// La validacion de horario entrega errores de dominio antes del INSERT. Los
-	// triggers de SQL Server siguen protegiendo conflictos entre filas porque dos
-	// requests concurrentes pueden saltarse cualquier chequeo solo en memoria.
+	// La validacion de horario entrega errores de dominio antes de consultar la
+	// base. Los triggers siguen siendo la autoridad frente a concurrencia.
 	if err := reservationrules.ValidateSchedule(
 		reservation.StartTime,
 		reservation.DurationMinutes,
 	); err != nil {
 		return models.Reservation{}, err
+	}
+
+	policy, err := repositories.GetCurrentReservationPolicy()
+	if errors.Is(err, sql.ErrNoRows) {
+		return models.Reservation{}, errors.New("no existe una pol\u00edtica de reservas vigente")
+	}
+	if err != nil {
+		return models.Reservation{}, err
+	}
+
+	if err := reservationrules.ValidateReservableWindow(
+		now,
+		reservation.StartTime,
+		policy.ReservableWindowDays,
+	); err != nil {
+		return models.Reservation{}, err
+	}
+
+	previousCreatedAt, frequencyDays, err := repositories.GetLatestConsumingReservation(reservation.UserID)
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return models.Reservation{}, err
+	}
+	if err == nil {
+		nextDate := reservationrules.NextRequestDate(
+			previousCreatedAt,
+			frequencyDays,
+			businessclock.Location(),
+		)
+		today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+		if today.Before(nextDate) {
+			return models.Reservation{}, fmt.Errorf(
+				"ya tienes una solicitud vigente; pr\u00f3xima fecha permitida: %s",
+				nextDate.Format("2006-01-02"),
+			)
+		}
 	}
 
 	resource, err := repositories.GetResourceByID(reservation.ResourceID)

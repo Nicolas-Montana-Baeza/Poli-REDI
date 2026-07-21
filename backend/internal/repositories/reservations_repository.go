@@ -92,6 +92,69 @@ func GetReservationsByUserID(userID int) ([]models.Reservation, error) {
 	return scanReservationRows(rows)
 }
 
+func GetCurrentReservationPolicy() (models.ReservationPolicy, error) {
+	var policy models.ReservationPolicy
+	var effectiveTo sql.NullTime
+
+	err := database.DB.QueryRowContext(
+		context.Background(),
+		`
+		SELECT TOP (1)
+			id,
+			reservable_window_days,
+			request_frequency_days,
+			confirmation_deadline_minutes,
+			minimum_participants,
+			effective_from,
+			effective_to
+		FROM dbo.reservation_policies
+		WHERE effective_from <= SYSUTCDATETIME()
+		  AND (effective_to IS NULL OR effective_to > SYSUTCDATETIME())
+		ORDER BY effective_from DESC, id DESC;
+		`,
+	).Scan(
+		&policy.ID,
+		&policy.ReservableWindowDays,
+		&policy.RequestFrequencyDays,
+		&policy.ConfirmationDeadlineMinutes,
+		&policy.MinimumParticipants,
+		&policy.EffectiveFrom,
+		&effectiveTo,
+	)
+
+	if effectiveTo.Valid {
+		policy.EffectiveTo = &effectiveTo.Time
+	}
+
+	return policy, err
+}
+
+func GetLatestConsumingReservation(userID int) (time.Time, int, error) {
+	var createdAt time.Time
+	var frequencyDays int
+
+	err := database.DB.QueryRowContext(
+		context.Background(),
+		`
+		SELECT TOP (1)
+			r.created_at,
+			p.request_frequency_days
+		FROM dbo.reservations r
+		INNER JOIN dbo.reservation_policies p ON p.id = r.policy_id
+		WHERE r.user_id = @p1
+		  AND r.status IN ('PENDING', 'CONFIRMED')
+		ORDER BY DATEADD(
+			DAY,
+			p.request_frequency_days,
+			CONVERT(DATE, r.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'Pacific SA Standard Time')
+		) DESC, r.id DESC;
+		`,
+		userID,
+	).Scan(&createdAt, &frequencyDays)
+
+	return createdAt, frequencyDays, err
+}
+
 func scanReservationRows(rows *sql.Rows) ([]models.Reservation, error) {
 	reservations := []models.Reservation{}
 
