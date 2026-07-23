@@ -132,3 +132,21 @@ func TestValidateReservationPolicySnapshotUsesSuppliedVersion(t *testing.T) {
 		t.Fatal("validation ignored the supplied policy snapshot")
 	}
 }
+
+func TestRequestFrequencyMessageUsesSendDateEvenForLaterReservation(t *testing.T) {
+	if err := businessclock.Configure(businessclock.DefaultLocationName); err != nil {
+		t.Fatalf("Configure() error = %v", err)
+	}
+	previousCreatedAt := time.Date(2026, time.July, 20, 18, 30, 0, 0, time.UTC)
+	now := time.Date(2026, time.July, 23, 10, 0, 0, 0, businessclock.Location())
+	nextDate := reservationrules.NextRequestDate(previousCreatedAt, 7, businessclock.Location())
+	selectedStart := time.Date(2026, time.July, 30, 12, 0, 0, 0, businessclock.Location())
+	if !selectedStart.After(nextDate) {
+		t.Fatal("test precondition: selected reservation must be later than next request date")
+	}
+	err := validateRequestFrequency(previousCreatedAt, 7, now)
+	want := "A\u00fan no puedes enviar otra solicitud. Podr\u00e1s hacerlo desde el 27/07/2026; la espera depende de cu\u00e1ndo env\u00edas la solicitud, no de la fecha que quieres reservar."
+	if err == nil || err.Error() != want {
+		t.Fatalf("validateRequestFrequency() error = %q, expected %q", err, want)
+	}
+}

@@ -14,6 +14,7 @@ import { useReservationsStore } from '@/stores/reservations'
 import { useAuthStore } from '@/stores/auth'
 import { useActivitiesStore } from '@/stores/activities'
 import { useWorkshopsStore } from '@/stores/workshops'
+import { reservationsService } from '@/services/reservations.service'
 import { buildWorkshopAvailabilityItems } from '@/utils/workshopSchedule'
 import {
   getBusinessDateKey,
@@ -194,6 +195,7 @@ const canCancelSelectedReservation = computed(() => {
 /* MODAL */
 const showReservationForm = ref(false)
 const isCreatingReservation = ref(false)
+const currentPolicy = ref(null)
 
 /* LOAD DATA */
 onMounted(async () => {
@@ -204,6 +206,7 @@ onMounted(async () => {
     activitiesStore.fetchActivities(),
     workshopsStore.fetchWorkshops()
   ])
+  try { currentPolicy.value = await reservationsService.getCurrentPolicy() } catch { currentPolicy.value = null }
 })
 
 /* SLOT SELECT */
@@ -260,6 +263,16 @@ const closeReservationDetail = () => {
   selectedReservation.value = null
 
   reservationsStore.clearActionError?.()
+}
+const updateSelectedTarget = async (targetParticipants) => {
+  try {
+    const updated = await reservationsService.updateTarget(selectedReservation.value.id, Number(targetParticipants))
+    selectedReservation.value = { ...selectedReservation.value, ...updated }
+    await reservationsStore.fetchAvailabilityReservations()
+    reservationsStore.setActionSuccess('Objetivo de participantes actualizado.')
+  } catch (error) {
+    reservationsStore.setActionError(error.response?.data?.error || 'No se pudo actualizar el objetivo.')
+  }
 }
 
 /* SUBMIT */
@@ -343,6 +356,9 @@ const submitReservation = async (reservation) => {
 
     if (activityId > 0) {
       payload.activityId = activityId
+    }
+    if (reservation.targetParticipants != null) {
+      payload.targetParticipants = Number(reservation.targetParticipants)
     }
 
     await reservationsStore.createReservation(payload)
@@ -630,6 +646,7 @@ const goToday = () => {
       :activities="activitiesStore.activities"
       :error-message="reservationsStore.actionError"
       :submitting="isCreatingReservation"
+      :policy="currentPolicy"
       @close="closeReservationForm"
       @submit="submitReservation"
     />
@@ -642,6 +659,7 @@ const goToday = () => {
       :error-message="reservationsStore.actionError"
       @close="closeReservationDetail"
       @cancel="cancelSelectedReservation"
+      @update-target="updateSelectedTarget"
     />
 
   </section>

@@ -38,7 +38,8 @@ const props = defineProps({
   submitting: {
     type: Boolean,
     default: false
-  }
+  },
+  policy: { type: Object, default: null }
 })
 
 const emit = defineEmits([
@@ -56,7 +57,8 @@ const form = ref({
 
   durationMinutes: 60,
 
-  activityId: null
+  activityId: null,
+  targetParticipants: null
 })
 
 const fieldErrors = ref({})
@@ -75,6 +77,9 @@ const getDefaultActivityId = () => {
 const isOpenUseResource = computed(() => {
   return form.value.resource?.reservationMode === 'OPEN_USE'
 })
+const isGroupResource = computed(() => props.policy?.groupResourceIds?.includes(form.value.resource?.id))
+const minimumParticipants = computed(() => Number(props.policy?.minimumParticipants || 1))
+const resourceCapacity = computed(() => Number(form.value.resource?.capacity || minimumParticipants.value))
 
 const handleActivityUpdate = () => {
   fieldErrors.value.activityId = ''
@@ -111,6 +116,8 @@ watch(
       slot.resource?.reservationMode === 'OPEN_USE'
         ? null
         : form.value.activityId || getDefaultActivityId()
+    form.value.targetParticipants = slot.resource && props.policy?.groupResourceIds?.includes(slot.resource.id)
+      ? minimumParticipants.value : null
   },
   {
     immediate: true
@@ -144,6 +151,8 @@ const handleResourceSelect = (resource) => {
   } else if (!form.value.activityId) {
     form.value.activityId = getDefaultActivityId()
   }
+  form.value.targetParticipants = props.policy?.groupResourceIds?.includes(resource?.id)
+    ? minimumParticipants.value : null
 
   fieldErrors.value.resource = ''
 }
@@ -208,6 +217,12 @@ const validateForm = () => {
     isPastReservationStart()
   ) {
     errors.hour = 'No puedes crear reservas en fechas u horarios pasados.'
+  }
+  if (isGroupResource.value) {
+    const target = Number(form.value.targetParticipants)
+    if (!Number.isInteger(target) || target < minimumParticipants.value || target > resourceCapacity.value) {
+      errors.targetParticipants = `Ingresa un objetivo entre ${minimumParticipants.value} y ${resourceCapacity.value}.`
+    }
   }
 
   fieldErrors.value = errors
@@ -346,6 +361,22 @@ const handleClose = () => {
           <p v-if="fieldErrors.durationMinutes">
             {{ fieldErrors.durationMinutes }}
           </p>
+        </div>
+
+        <!-- ACTIVITY -->
+        <div v-if="isGroupResource" class="field">
+          <label for="target-participants">Objetivo de participantes</label>
+          <input
+            id="target-participants"
+            v-model.number="form.targetParticipants"
+            type="number"
+            :min="minimumParticipants"
+            :max="resourceCapacity"
+            :disabled="submitting"
+            :class="{ invalid: fieldErrors.targetParticipants }"
+          >
+          <small>El solicitante está incluido. La reserva se confirma al alcanzar {{ minimumParticipants }} participantes.</small>
+          <p v-if="fieldErrors.targetParticipants" class="field-error">{{ fieldErrors.targetParticipants }}</p>
         </div>
 
         <!-- ACTIVITY -->

@@ -80,8 +80,7 @@ Para una base MVP 1 ya existente, no repetir el flujo destructivo de
 instalacion limpia. Es obligatorio seguir
 [`database/migrations/README.md`](../database/migrations/README.md): crear el
 backup, abrir una sesion nueva, usar una herramienta compatible con `GO`,
-ejecutar solamente la migracion indicada y comprobar sus cuatro indicadores
-`POSTCHECK`. Esa guia es la unica fuente operativa para la recuperacion o
+ejecutar `001_mvp2_group_participants.sql` y despues `002_mvp2_target_participants.sql`, comprobando el `POSTCHECK` de cada una antes de continuar. Esa guia es la unica fuente operativa para la recuperacion o
 actualizacion de la base existente.
 4. Configurar `backend/.env`.
 5. Levantar backend y validar `/api/health`.

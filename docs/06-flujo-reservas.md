@@ -19,7 +19,7 @@ Este documento describe el flujo funcional de reservas en Poli-REDI, sus validac
 4. El sistema muestra recursos, reservas, talleres y actividades institucionales del dia seleccionado.
 5. El usuario selecciona un horario libre.
 6. Si el usuario normal no tiene RUT, la UI bloquea la accion.
-7. El formulario permite ajustar recurso, fecha, hora, duracion y actividad. La interfaz aun no incorpora el codigo compartible ni las acciones de participantes.
+7. El formulario permite ajustar recurso, fecha, hora, duracion, actividad y, para recursos grupales, un objetivo opcional entre el minimo y la capacidad.
 8. El frontend valida campos obligatorios.
 9. El backend toma el usuario desde la sesion autenticada.
 10. El backend rechaza usuarios normales sin RUT.
@@ -29,7 +29,7 @@ Este documento describe el flujo funcional de reservas en Poli-REDI, sus validac
 14. Si la reserva se crea, la UI refresca disponibilidad y muestra mensaje de exito.
 15. Si existe conflicto, el formulario mantiene el error visible.
 
-Este flujo describe el comportamiento implementado en backend y base. Ventana, frecuencia, clasificacion grupal, participantes y transiciones por minimo estan verificados localmente, pero no en Azure SQL. La interfaz y el vencimiento automatico al limite siguen pendientes.
+El backend y la base del flujo grupal estan implementados y verificados localmente. El frontend cubre seleccion del objetivo, progreso agregado y edicion por propietario, pero aun no muestra/conserva/permite compartir `joinCode`, ingresar por codigo, confirmar ni retirar. No fue verificado en Azure SQL; el deadline de confirmaciones/retiros y el vencimiento automatico siguen pendientes.
 
 ## Flujo objetivo aprobado de solicitud y confirmacion
 
@@ -39,11 +39,12 @@ Este flujo describe el comportamiento implementado en backend y base. Ventana, f
 4. El sistema consulta la politica del recurso.
 5. Si el recurso es `OPEN_USE`, no exige confirmacion grupal.
 6. Para multicancha 1, 2 y 3, identificadas en el inventario como Cancha 1, 2 y 3, registra la solicitud como `PENDING` y bloquea el horario.
-7. El solicitante cuenta entre los 10. Los participantes, todos con cuenta, confirman hasta el limite configurable, inicialmente una hora antes del inicio e inclusivo en el instante exacto.
-8. Con menos de 10 confirmaciones vigentes, la solicitud permanece pendiente.
-9. Al alcanzar 10 confirmaciones, el sistema vuelve a validar las demas reglas y cambia automaticamente la solicitud a `CONFIRMED`.
-10. Si una persona retira su confirmacion dentro del plazo y el conteo baja de 10, la reserva vuelve a `PENDING`.
-11. Si al alcanzar el limite la solicitud tiene menos de 10 confirmaciones, cambia automaticamente a `CANCELLED`, libera el horario y deja de consumir la oportunidad semanal.
+7. El solicitante cuenta dentro del minimo. El objetivo opcional usa el minimo por defecto, no puede superar la capacidad y limita nuevas altas; alcanzar el minimo, no el objetivo, confirma la solicitud.
+8. El propietario puede cambiar el objetivo hasta el limite configurable inclusive, sin bajarlo del minimo ni del conteo confirmado y sin superar la capacidad.
+9. Con menos del minimo de confirmaciones vigentes, la solicitud permanece pendiente.
+10. Al alcanzar el minimo, el sistema cambia automaticamente la solicitud a `CONFIRMED`.
+11. Si una persona retira su confirmacion dentro del plazo y el conteo baja del minimo, vuelve a `PENDING`.
+12. Si al alcanzar el limite permanece bajo el minimo, debe cancelarse automaticamente; este ultimo paso sigue pendiente.
 
 Solo un usuario con rol administrador puede modificar los recursos sujetos a confirmacion, el periodo semanal o el plazo previo. Los cambios se aplican prospectivamente a solicitudes creadas despues de la publicacion.
 
@@ -162,7 +163,8 @@ Validaciones backend pendientes antes de cerrar MVP 1:
 
 - Mostrar siempre el rango completo de la reserva antes de confirmar.
 - Redondear seleccion de horario a intervalos institucionales.
-- Mostrar capacidad, avance de confirmaciones, codigo compartible y acciones de confirmar/retirar consumiendo la API ya implementada (`RES-008`).
+- Completar la UI para mostrar, conservar y compartir el codigo, ingresar por codigo y ejecutar confirmar/retirar; la API ya existe (`RES-008`).
+- Distinguir siempre minimo institucional, objetivo de convocatoria y capacidad maxima. El mensaje de frecuencia debe aclarar que el periodo se cuenta desde la creacion de la solicitud anterior.
 - Diferenciar visualmente reserva, bloqueo, mantencion y actividad institucional.
 - No exponer informacion personal de reservas ajenas en disponibilidad.
 - Mantener errores recuperables dentro del mismo contexto visual.

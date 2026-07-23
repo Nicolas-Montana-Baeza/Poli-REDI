@@ -63,3 +63,26 @@ func TestConfigureRejectsInvalidTimezone(t *testing.T) {
 		t.Fatalf("restore Configure() error = %v", err)
 	}
 }
+
+func TestConfirmationDeadlineUsesSantiagoDST(t *testing.T) {
+	if err := Configure(DefaultLocationName); err != nil {
+		t.Fatal(err)
+	}
+	start := time.Date(2026, time.December, 10, 18, 0, 0, 0, time.UTC)
+	deadline := ConfirmationDeadline(start, 90)
+	_, offset := deadline.Zone()
+	if deadline.Hour() != 16 || deadline.Minute() != 30 || offset != -3*60*60 {
+		t.Fatalf("deadline = %v, expected 16:30 in summer Santiago time", deadline)
+	}
+}
+
+func TestConfirmationDeadlineIsExactAtBoundary(t *testing.T) {
+	start := time.Date(2026, time.July, 10, 18, 0, 0, 0, time.UTC)
+	deadline := ConfirmationDeadline(start, 60)
+	if businessNow := deadline; businessNow.After(deadline) {
+		t.Fatal("the exact deadline must remain inclusive")
+	}
+	if !deadline.Add(time.Nanosecond).After(deadline) {
+		t.Fatal("an instant after the deadline must be closed")
+	}
+}

@@ -6,9 +6,11 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"errors"
+	"poli-redi-api/internal/businessclock"
 	"poli-redi-api/internal/database"
 	"poli-redi-api/internal/models"
 	"strings"
+	"time"
 )
 
 var ErrInvalidJoinCode = errors.New("solicitud grupal no encontrada")
@@ -18,13 +20,26 @@ var ErrOwnerCannotWithdraw = errors.New("el solicitante no puede retirarse")
 
 func codeHash(code string) string { s := sha256.Sum256([]byte(code)); return hex.EncodeToString(s[:]) }
 
+func assembleReservationProgress(reservationID int, status string, count, minimum, target, capacity int, start time.Time, deadlineMinutes int, isOwner, isMember bool) models.ReservationProgress {
+	deadline := businessclock.ConfirmationDeadline(start, deadlineMinutes)
+	return models.ReservationProgress{
+		ReservationID: reservationID, Status: status, ParticipantCount: count,
+		MinimumParticipants: minimum, TargetParticipants: target, Capacity: capacity,
+		ConfirmationDeadline: deadline,
+		CanEditTarget:        isOwner && !businessclock.Now().After(deadline),
+		IsOwner:              isOwner, IsMember: isMember,
+	}
+}
+
 func GetReservationProgress(code string, userID int) (models.ReservationProgress, error) {
 	var p models.ReservationProgress
-	err := database.DB.QueryRowContext(context.Background(), `SELECT r.id,r.status,COUNT(CASE WHEN pa.status='CONFIRMED' THEN 1 END),pol.minimum_participants,r.group_capacity_snapshot,CASE WHEN EXISTS(SELECT 1 FROM dbo.participants mine WHERE mine.reservation_id=r.id AND mine.user_id=@p2 AND mine.status='CONFIRMED') THEN 1 ELSE 0 END FROM dbo.reservations r INNER JOIN dbo.reservation_policies pol ON pol.id=r.policy_id LEFT JOIN dbo.participants pa ON pa.reservation_id=r.id WHERE r.join_code_hash=@p1 AND r.group_capacity_snapshot IS NOT NULL AND r.status IN ('PENDING','CONFIRMED') GROUP BY r.id,r.status,pol.minimum_participants,r.group_capacity_snapshot`, codeHash(code), userID).Scan(&p.ReservationID, &p.Status, &p.ParticipantCount, &p.MinimumParticipants, &p.Capacity, &p.IsMember)
+	var start time.Time
+	var deadlineMinutes int
+	err := database.DB.QueryRowContext(context.Background(), `SELECT r.id,r.status,COUNT(CASE WHEN pa.status='CONFIRMED' THEN 1 END),pol.minimum_participants,r.group_capacity_snapshot,COALESCE(r.target_participants,r.group_capacity_snapshot),r.start_time,pol.confirmation_deadline_minutes,CASE WHEN EXISTS(SELECT 1 FROM dbo.participants mine WHERE mine.reservation_id=r.id AND mine.user_id=@p2 AND mine.status='CONFIRMED') THEN 1 ELSE 0 END,CASE WHEN r.user_id=@p2 THEN 1 ELSE 0 END FROM dbo.reservations r INNER JOIN dbo.reservation_policies pol ON pol.id=r.policy_id LEFT JOIN dbo.participants pa ON pa.reservation_id=r.id WHERE r.join_code_hash=@p1 AND r.group_capacity_snapshot IS NOT NULL AND r.status IN ('PENDING','CONFIRMED') GROUP BY r.id,r.status,pol.minimum_participants,r.group_capacity_snapshot,r.target_participants,r.start_time,pol.confirmation_deadline_minutes,r.user_id`, codeHash(code), userID).Scan(&p.ReservationID, &p.Status, &p.ParticipantCount, &p.MinimumParticipants, &p.Capacity, &p.TargetParticipants, &start, &deadlineMinutes, &p.IsMember, &p.IsOwner)
 	if errors.Is(err, sql.ErrNoRows) {
 		return p, ErrInvalidJoinCode
 	}
-	return p, err
+	return assembleReservationProgress(p.ReservationID, p.Status, p.ParticipantCount, p.MinimumParticipants, p.TargetParticipants, p.Capacity, start, deadlineMinutes, p.IsOwner, p.IsMember), err
 }
 
 func ChangeParticipation(code string, userID int, confirm bool) (models.ReservationProgress, error) {
@@ -34,9 +49,11 @@ func ChangeParticipation(code string, userID int, confirm bool) (models.Reservat
 		return models.ReservationProgress{}, err
 	}
 	defer tx.Rollback()
-	var reservationID, capacity, minimum int
+	var reservationID, capacity, minimum, deadlineMinutes, ownerID int
 	var oldReservationStatus string
-	err = tx.QueryRowContext(ctx, `SELECT r.id,r.group_capacity_snapshot,p.minimum_participants,r.status FROM dbo.reservations r WITH(UPDLOCK,HOLDLOCK) INNER JOIN dbo.reservation_policies p ON p.id=r.policy_id WHERE r.join_code_hash=@p1 AND r.group_capacity_snapshot IS NOT NULL AND r.status IN('PENDING','CONFIRMED')`, codeHash(code)).Scan(&reservationID, &capacity, &minimum, &oldReservationStatus)
+	var target int
+	var start time.Time
+	err = tx.QueryRowContext(ctx, `SELECT r.id,r.group_capacity_snapshot,p.minimum_participants,COALESCE(r.target_participants,r.group_capacity_snapshot),r.status,r.start_time,p.confirmation_deadline_minutes,r.user_id FROM dbo.reservations r WITH(UPDLOCK,HOLDLOCK) INNER JOIN dbo.reservation_policies p ON p.id=r.policy_id WHERE r.join_code_hash=@p1 AND r.group_capacity_snapshot IS NOT NULL AND r.status IN('PENDING','CONFIRMED')`, codeHash(code)).Scan(&reservationID, &capacity, &minimum, &target, &oldReservationStatus, &start, &deadlineMinutes, &ownerID)
 	if errors.Is(err, sql.ErrNoRows) {
 		return models.ReservationProgress{}, ErrInvalidJoinCode
 	}
@@ -66,7 +83,7 @@ func ChangeParticipation(code string, userID int, confirm bool) (models.Reservat
 	if err = tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM dbo.participants WITH(UPDLOCK,HOLDLOCK) WHERE reservation_id=@p1 AND status='CONFIRMED'`, reservationID).Scan(&priorCount); err != nil {
 		return models.ReservationProgress{}, err
 	}
-	mutate, newStatus, calculatedStatus, transitionErr := participantTransition(participantExists, oldStatus, isOwner, priorCount, capacity, minimum, confirm)
+	mutate, newStatus, calculatedStatus, transitionErr := participantTransition(participantExists, oldStatus, isOwner, priorCount, target, minimum, confirm)
 	if transitionErr != nil {
 		return models.ReservationProgress{}, transitionErr
 	}
@@ -74,7 +91,7 @@ func ChangeParticipation(code string, userID int, confirm bool) (models.Reservat
 		if err = tx.Commit(); err != nil {
 			return models.ReservationProgress{}, err
 		}
-		return models.ReservationProgress{ReservationID: reservationID, Status: calculatedStatus, ParticipantCount: priorCount, MinimumParticipants: minimum, Capacity: capacity, IsMember: participantExists && oldStatus == "CONFIRMED"}, nil
+		return assembleReservationProgress(reservationID, calculatedStatus, priorCount, minimum, target, capacity, start, deadlineMinutes, ownerID == userID, participantExists && oldStatus == "CONFIRMED"), nil
 	}
 	if !participantExists {
 		_, err = tx.ExecContext(ctx, `INSERT INTO dbo.participants(reservation_id,user_id,status,confirmed_at,is_owner) VALUES(@p1,@p2,@p3,CASE WHEN @p3='CONFIRMED' THEN SYSUTCDATETIME() END,0)`, reservationID, userID, newStatus)
@@ -101,7 +118,65 @@ func ChangeParticipation(code string, userID int, confirm bool) (models.Reservat
 	if err = tx.Commit(); err != nil {
 		return models.ReservationProgress{}, err
 	}
-	return models.ReservationProgress{ReservationID: reservationID, Status: newReservationStatus, ParticipantCount: count, MinimumParticipants: minimum, Capacity: capacity, IsMember: newStatus == "CONFIRMED"}, nil
+	return assembleReservationProgress(reservationID, newReservationStatus, count, minimum, target, capacity, start, deadlineMinutes, ownerID == userID, newStatus == "CONFIRMED"), nil
+}
+
+var ErrTargetForbidden = errors.New("solo el solicitante puede modificar el objetivo")
+var ErrTargetDeadline = errors.New("el plazo para modificar el objetivo ya vencio")
+var ErrTargetBelowConfirmed = errors.New("el objetivo no puede ser menor que los participantes confirmados")
+
+func UpdateReservationTarget(reservationID, userID, target int, now time.Time) (models.ReservationProgress, error) {
+	ctx := context.Background()
+	tx, err := database.DB.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelSerializable})
+	if err != nil {
+		return models.ReservationProgress{}, err
+	}
+	defer tx.Rollback()
+	var owner, minimum, capacity int
+	var oldTarget sql.NullInt64
+	var status string
+	var start time.Time
+	var deadlineMinutes int
+	err = tx.QueryRowContext(ctx, `SELECT r.user_id,p.minimum_participants,r.group_capacity_snapshot,r.target_participants,r.status,r.start_time,p.confirmation_deadline_minutes FROM dbo.reservations r WITH(UPDLOCK,HOLDLOCK) INNER JOIN dbo.reservation_policies p ON p.id=r.policy_id WHERE r.id=@p1 AND r.group_capacity_snapshot IS NOT NULL`, reservationID).Scan(&owner, &minimum, &capacity, &oldTarget, &status, &start, &deadlineMinutes)
+	if errors.Is(err, sql.ErrNoRows) {
+		return models.ReservationProgress{}, ErrInvalidJoinCode
+	}
+	if err != nil {
+		return models.ReservationProgress{}, err
+	}
+	if owner != userID {
+		return models.ReservationProgress{}, ErrTargetForbidden
+	}
+	if status != "PENDING" && status != "CONFIRMED" {
+		return models.ReservationProgress{}, errors.New("la solicitud no esta activa")
+	}
+	deadline := businessclock.ConfirmationDeadline(start, deadlineMinutes)
+	if !targetDeadlineOpen(now, deadline) {
+		return models.ReservationProgress{}, ErrTargetDeadline
+	}
+	var count int
+	if err = tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM dbo.participants WITH(UPDLOCK,HOLDLOCK) WHERE reservation_id=@p1 AND status='CONFIRMED'`, reservationID).Scan(&count); err != nil {
+		return models.ReservationProgress{}, err
+	}
+	if err := validateTargetChange(target, minimum, capacity, count); err != nil {
+		return models.ReservationProgress{}, err
+	}
+	oldEffective := capacity
+	if oldTarget.Valid {
+		oldEffective = int(oldTarget.Int64)
+	}
+	if target != oldEffective {
+		if _, err = tx.ExecContext(ctx, `UPDATE dbo.reservations SET target_participants=@p2,updated_at=SYSUTCDATETIME() WHERE id=@p1`, reservationID, target); err != nil {
+			return models.ReservationProgress{}, err
+		}
+		if _, err = tx.ExecContext(ctx, `INSERT INTO dbo.reservation_target_audit(reservation_id,actor_user_id,old_target_participants,new_target_participants) VALUES(@p1,@p2,@p3,@p4)`, reservationID, userID, oldEffective, target); err != nil {
+			return models.ReservationProgress{}, err
+		}
+	}
+	if err = tx.Commit(); err != nil {
+		return models.ReservationProgress{}, err
+	}
+	return assembleReservationProgress(reservationID, status, count, minimum, target, capacity, start, deadlineMinutes, true, true), nil
 }
 
 func GetReservationParticipants(reservationID int) ([]models.ReservationParticipant, error) {

@@ -55,3 +55,32 @@ manualmente. Conservar el backup y revisar la fila cuya `idempotency_key` es
 `migration-mvp2-group-v1`. La migracion se detiene antes de alterar la politica
 vigente. Esa fila requiere revision tecnica; despues se ejecuta nuevamente solo
 la migracion.
+
+Despues de completar y verificar `001`, ejecutar
+`002_mvp2_target_participants.sql`. Esta segunda migracion es acumulativa, no
+rellena reservas historicas y conserva `NULL` con semantica efectiva igual a la
+capacidad congelada de cada solicitud.
+
+## `002_mvp2_target_participants.sql`
+
+1. Crear un backup o export recuperable antes de comenzar.
+2. Abrir una sesion nueva y confirmar `@@TRANCOUNT = 0` y `XACT_STATE() = 0`.
+3. Usar SSMS, Azure Data Studio o `sqlcmd`, conservando todos los separadores
+   `GO`.
+4. Ejecutar solamente `002_mvp2_target_participants.sql`, y solo despues de que
+   el `POSTCHECK` de `001` haya informado todos sus indicadores en `1`.
+5. Si una fase falla, no ejecutar `drop.sql`, `schema.sql` ni rellenar datos
+   historicos. Abrir otra sesion, inspeccionar columna, constraint, tabla y
+   triggers, y volver a ejecutar solamente `002`; todas sus fases son
+   reejecutables y toleran estado parcial.
+
+   ```sql
+   SELECT COL_LENGTH('dbo.reservations','target_participants') AS target_column;
+   SELECT OBJECT_ID('dbo.ck_reservations_target_participants','C') AS target_constraint;
+   SELECT OBJECT_ID('dbo.reservation_target_audit','U') AS target_audit;
+   SELECT OBJECT_ID('dbo.trg_reservations_target_validate','TR') AS validation_trigger;
+   SELECT OBJECT_ID('dbo.trg_reservation_target_audit_append_only','TR') AS append_only_trigger;
+   ```
+6. El `POSTCHECK` final debe mostrar en `1`: `target_column_ok`,
+   `target_constraint_ok`, `target_validation_trigger_ok`, `target_audit_ok` y
+   `target_audit_append_only_ok`.

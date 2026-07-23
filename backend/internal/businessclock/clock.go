@@ -95,6 +95,12 @@ func FromDatabaseWallTime(value time.Time) time.Time {
 	)
 }
 
+// ConfirmationDeadline derives the single deadline used by every reservation
+// endpoint from the Chilean wall time stored in SQL Server.
+func ConfirmationDeadline(startDatabaseWallTime time.Time, minutesBeforeStart int) time.Time {
+	return FromDatabaseWallTime(startDatabaseWallTime).Add(-time.Duration(minutesBeforeStart) * time.Minute)
+}
+
 // ToDatabaseWallTime quita la zona manteniendo los campos de hora institucional
 // esperados por SQL Server DATETIME2. La zona UTC retornada solo transporta el
 // valor para database/sql; no debe interpretarse como instante UTC de agenda.

@@ -160,6 +160,7 @@ Campos grupales relevantes:
 
 - `join_code_hash`: SHA-256 unico del codigo compartible; el codigo en claro no se persiste.
 - `group_capacity_snapshot`: capacidad inmutable tomada al crear una solicitud grupal.
+- `target_participants`: objetivo editable de la solicitud grupal. `NULL` historico conserva semantica efectiva igual a `group_capacity_snapshot`; no se realiza backfill.
 
 Contrato temporal de reservas para MVP 1:
 
@@ -183,6 +184,8 @@ Estados permitidos:
 - `CANCELLED`
 
 Cada reserva tiene como maximo una fila por usuario. `is_owner` identifica al solicitante, que se registra confirmado, cuenta dentro del minimo y no puede retirarse. `updated_at` permite conservar los cambios de confirmacion/retiro. `reservation_participant_audit` registra actor, participante, accion y estados anterior/nuevo de participante y reserva.
+
+`reservation_target_audit` registra de forma append-only cada cambio de objetivo con actor y valores anterior/nuevo. Las restricciones exigen `minimum_participants <= target_participants <= group_capacity_snapshot`; el repositorio agrega que el objetivo no puede bajar del conteo confirmado.
 
 ### `availability_blocks`
 
@@ -527,7 +530,7 @@ El modelo agrega:
 
 Debe existir una sola version vigente. Publicar una politica cierra la anterior y activa inmediatamente la nueva dentro de una transaccion serializable. Indices filtrados impiden dos versiones vigentes y claves de idempotencia duplicadas. Triggers protegen de edicion o eliminacion las politicas publicadas y sus colecciones. Las reservas conservan `policy_id`; las claves foraneas impiden eliminar su politica mientras exista historial relacionado.
 
-Para una base limpia, `schema.sql` crea la estructura y `seed.sql` carga los recursos y completa el bootstrap tecnico controlado. Para una base MVP 1 existente se ejecuta despues `database/migrations/001_mvp2_group_participants.sql`: es prospectiva e idempotente, agrega estructura grupal y publica una nueva politica que clasifica los recursos 1, 2 y 7 sin modificar ni rellenar reservas historicas. Este flujo no es un mecanismo administrativo para editar versiones publicadas.
+Para una base limpia, `schema.sql` crea la estructura y `seed.sql` carga los recursos y completa el bootstrap tecnico controlado. Para una base MVP 1 existente se ejecutan, en orden, `database/migrations/001_mvp2_group_participants.sql` y `002_mvp2_target_participants.sql`, validando cada `POSTCHECK`. La segunda es acumulativa, no rellena historicos y conserva `NULL` como objetivo efectivo igual a la capacidad congelada. Este flujo no es un mecanismo administrativo para editar versiones publicadas.
 
 La persistencia y los endpoints de correcciones excepcionales no estan implementados en este incremento. Su contrato aprobado exige solicitudes futuras activas, vista previa temporal de un solo uso vinculada al administrador, motivo, revalidacion y aplicacion atomica auditada, sin cancelaciones implicitas.
 

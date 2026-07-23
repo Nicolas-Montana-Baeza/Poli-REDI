@@ -57,20 +57,25 @@ func GetAvailabilityItems() ([]models.AvailabilityItem, error) {
 
 	for _, reservation := range reservations {
 		items = append(items, models.AvailabilityItem{
-			ID:              reservation.ID,
-			AvailabilityKey: "reservation-" + strconv.Itoa(reservation.ID),
-			UserID:          reservation.UserID,
-			ResourceID:      reservation.ResourceID,
-			StartTime:       reservation.StartTime,
-			DurationMinutes: reservation.DurationMinutes,
-			Status:          reservation.Status,
-			Hour:            reservation.Hour,
-			Title:           reservation.Title,
-			Type:            reservation.Type,
-			ResourceName:    reservation.ResourceName,
-			UserFullName:    reservation.UserFullName,
-			UserEmail:       reservation.UserEmail,
-			UserRUT:         reservation.UserRUT,
+			ID:                   reservation.ID,
+			AvailabilityKey:      "reservation-" + strconv.Itoa(reservation.ID),
+			UserID:               reservation.UserID,
+			ResourceID:           reservation.ResourceID,
+			StartTime:            reservation.StartTime,
+			DurationMinutes:      reservation.DurationMinutes,
+			Status:               reservation.Status,
+			Hour:                 reservation.Hour,
+			Title:                reservation.Title,
+			Type:                 reservation.Type,
+			ResourceName:         reservation.ResourceName,
+			UserFullName:         reservation.UserFullName,
+			UserEmail:            reservation.UserEmail,
+			UserRUT:              reservation.UserRUT,
+			ParticipantCount:     reservation.ParticipantCount,
+			MinimumParticipants:  reservation.MinimumParticipants,
+			TargetParticipants:   reservation.TargetParticipants,
+			Capacity:             reservation.Capacity,
+			ConfirmationDeadline: reservation.ConfirmationDeadline,
 		})
 	}
 
@@ -145,17 +150,8 @@ func createReservationAt(
 		return models.Reservation{}, err
 	}
 	if err == nil {
-		nextDate := reservationrules.NextRequestDate(
-			previousCreatedAt,
-			frequencyDays,
-			businessclock.Location(),
-		)
-		today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
-		if today.Before(nextDate) {
-			return models.Reservation{}, fmt.Errorf(
-				"ya tienes una solicitud vigente; pr\u00f3xima fecha permitida: %s",
-				nextDate.Format("2006-01-02"),
-			)
+		if err := validateRequestFrequency(previousCreatedAt, frequencyDays, now); err != nil {
+			return models.Reservation{}, err
 		}
 	}
 
@@ -182,6 +178,22 @@ func createReservationAt(
 	}
 
 	return createdReservation, nil
+}
+
+func validateRequestFrequency(previousCreatedAt time.Time, frequencyDays int, now time.Time) error {
+	nextDate := reservationrules.NextRequestDate(
+		previousCreatedAt,
+		frequencyDays,
+		businessclock.Location(),
+	)
+	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+	if today.Before(nextDate) {
+		return fmt.Errorf(
+			"A\u00fan no puedes enviar otra solicitud. Podr\u00e1s hacerlo desde el %s; la espera depende de cu\u00e1ndo env\u00edas la solicitud, no de la fecha que quieres reservar.",
+			nextDate.Format("02/01/2006"),
+		)
+	}
+	return nil
 }
 
 func validateReservationPolicySnapshot(reservation models.Reservation, now time.Time, policy models.ReservationPolicy) error {

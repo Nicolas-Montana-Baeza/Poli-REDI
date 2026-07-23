@@ -23,7 +23,7 @@ Quedan fuera del MVP 1 la gestion completa de bloqueos, CRUD avanzado de recurso
 
 Estado de cierre: el MVP 1 esta funcional como demo. Zona horaria, estado controlado por servidor y limites de horario/duracion estan implementados y tienen pruebas locales, pero falta verificarlos en el ambiente integrado/online. Tambien permanecen pendientes la ampliacion de cobertura, la seguridad de errores y la coherencia responsive/accesible. El estado de producto vigente y sus contradicciones de alcance estan en `docs/00-resumen-proyecto.md` y `docs/13-estado-actual-producto.md`.
 
-Para MVP 2 y MVP 3 se aprobaron el 2026-07-20 reglas aun no implementadas: ventana y frecuencia semanal configurables; `PENDING` consume la oportunidad desde su creacion y `CANCELLED` la libera; Cancha 1, 2 y 3 corresponden a multicancha 1, 2 y 3 y requieren 10 usuarios con cuenta, incluido el solicitante; la solicitud bloquea el horario, admite cambios hasta una hora antes inclusive y se cancela si vence bajo el minimo; solo administradores pueden modificar recursos, periodos o plazos. Tambien se aprobo el catalogo ya implementado de 30 a 180 minutos en incrementos de 30, junto con la prioridad institucional y el aviso al usuario cancelado.
+Para MVP 2 y MVP 3 se aprobaron reglas de ventana, frecuencia, participantes y prioridad institucional. El flujo grupal ya permite elegir un objetivo entre el minimo de la politica y la capacidad congelada, incluye al solicitante, confirma al alcanzar el minimo y limita nuevas altas al objetivo. El propietario puede editar ese objetivo hasta el limite de confirmacion inclusive. El vencimiento automatico, notificaciones y administracion de estas reglas siguen pendientes.
 
 ## Stack
 
@@ -148,8 +148,8 @@ Para preparar una base limpia:
 3. Ejecutar `database/seed.sql` para cargar datos iniciales de desarrollo.
 
 Para actualizar una base MVP 1 existente sin reconstruirla, seguir
-[`database/migrations/README.md`](database/migrations/README.md) y ejecutar
-solamente `database/migrations/001_mvp2_group_participants.sql` con una
+[`database/migrations/README.md`](database/migrations/README.md) y ejecutar,
+en orden, `001_mvp2_group_participants.sql` y `002_mvp2_target_participants.sql` con una
 herramienta compatible con `GO`. Ante un intento fallido sobre la unica base,
 no ejecutar `drop.sql`, `schema.sql` ni `seed.sql`.
 4. Configurar `backend/.env`.

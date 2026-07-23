@@ -95,7 +95,7 @@ Pendiente relacionado: `RES-004`.
 
 El sistema debe permitir crear solicitudes de reserva sobre recursos disponibles, asociadas al usuario autenticado y, opcionalmente, a una actividad. El servidor debe asignar el estado segun la politica del recurso, aplicar la restriccion semanal y aceptar para todos los recursos solo duraciones de 30, 60, 90, 120, 150 o 180 minutos dentro de la jornada institucional.
 
-Estado actual: Implementado parcialmente. La asociacion al usuario, el estado controlado por servidor, la zona `America/Santiago`, el catalogo de duraciones, la restriccion semanal y la confirmacion condicional por participantes tienen pruebas locales. Faltan frontend, vencimiento efectivo e integracion SQL/Azure.
+Estado actual: Implementado parcialmente. Backend/DB de participantes y el frontend de objetivo/progreso tienen pruebas locales. Faltan UI de codigo compartible y acciones de confirmar/retirar, deadline efectivo para esas acciones, vencimiento e integracion SQL/Azure.
 
 Pendiente relacionado: `RES-008`, `RES-009`, `RES-010`, `RES-011`.
 
@@ -205,7 +205,9 @@ Pendiente relacionado: `RES-012`.
 
 El sistema debe registrar confirmaciones de usuarios unicos y exigir al menos 10, incluido el solicitante, para multicancha 1, 2 y 3, identificadas en el inventario como Cancha 1, 2 y 3. Todos los participantes deben tener cuenta. Las confirmaciones pueden registrarse o retirarse hasta exactamente una hora antes inclusive, plazo configurable.
 
-Estado actual: IMPLEMENTADO en backend/DB y VERIFICADO LOCALMENTE para unicidad, cuenta activa con RUT, propietario contado/irretirable, capacidad snapshot, codigo compartible hash y progreso agregado. PENDIENTES: interfaz, limite temporal efectivo y verificacion SQL/Azure real (`RES-008`).
+Cada solicitud grupal puede declarar `targetParticipants`. Si se omite usa el minimo de la politica; debe quedar entre minimo y capacidad congelada. El objetivo limita altas, pero la confirmacion ocurre al alcanzar el minimo. El propietario, incluido en el conteo, puede editarlo hasta el limite inclusivo sin bajarlo del minimo ni del conteo vigente.
+
+Estado actual: IMPLEMENTADO y VERIFICADO LOCALMENTE en backend/DB para unicidad, cuenta activa con RUT, propietario, capacidad, objetivo, codigo y progreso. Frontend PARCIAL: objetivo, progreso agregado y edicion owner. El deadline inclusivo solo protege el `PATCH` del objetivo; confirmaciones/retiros, su UI, vencimiento y SQL/Azure real siguen PENDIENTES (`RES-008`).
 
 ### RF-022 - Estado condicionado por politica del recurso
 
@@ -489,7 +491,9 @@ Criterios de aceptacion:
 - Con menos de 10 confirmaciones no se presenta como reserva confirmada.
 - La decima confirmacion cambia automaticamente la solicitud a `CONFIRMED` si las demas reglas siguen vigentes.
 - Si una retirada valida reduce el conteo por debajo de 10, la reserva vuelve a `PENDING`.
-- Las confirmaciones y retiradas se aceptan hasta exactamente una hora antes inclusive y se rechazan despues.
+- El solicitante puede elegir un objetivo entre minimo y capacidad, modificarlo hasta el deadline inclusive y no bajarlo del conteo vigente.
+- Alcanzar el minimo confirma; alcanzar el objetivo no es un estado adicional.
+- Las confirmaciones y retiradas deben aceptarse hasta exactamente una hora antes inclusive y rechazarse despues; este criterio sigue pendiente.
 - Si vence bajo el minimo, cambia a `CANCELLED`, libera el horario y la oportunidad semanal.
 - El cliente no puede forzar el estado ni el conteo.
 

@@ -24,6 +24,14 @@ export const reservationsService = {
 
     return response.data
   },
+  async getCurrentPolicy() {
+    const response = await api.get('/reservation-policy/current')
+    return response.data
+  },
+  async updateTarget(reservationId, targetParticipants) {
+    const response = await api.patch(`/reservations/${reservationId}/target-participants`, { targetParticipants })
+    return response.data
+  },
 
   async cancel(reservationId) {
     const response = await api.patch('/reservations/cancel', {

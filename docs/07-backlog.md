@@ -1571,13 +1571,13 @@ Permitir cancelar reservas desde la interfaz usando el usuario autenticado.
 
 Prioridad: P0
 Labels: `frontend`, `backend`, `database`, `reservas`, `ux`, `needs-architecture`, `mvp2`
-Estado actual: Implementado parcialmente; backend/DB VERIFICADO LOCALMENTE, pendiente frontend, vencimiento e integracion SQL real.
+Estado actual: Implementado parcialmente; backend/DB y frontend parcial de objetivo/progreso/edicion owner VERIFICADOS LOCALMENTE. Pendientes UI de codigo/confirmar/retirar, deadline de esas acciones, vencimiento e integracion SQL real.
 
 ### Contexto
 
 El usuario confirmo el 2026-07-20 que Cancha 1, 2 y 3 corresponden formalmente a multicancha 1, 2 y 3. Cada solicitud requiere al menos 10 usuarios con cuenta, incluido el solicitante. La solicitud `PENDING` bloquea el horario y consume la oportunidad semanal. Las confirmaciones pueden registrarse o retirarse hasta exactamente una hora antes inclusive, valor configurable. Si vence bajo el minimo, se cancela, libera el horario y deja de consumir la oportunidad.
 
-El backend actual registra participantes mediante codigo compartible, crea `PENDING` segun la clasificacion versionada y recalcula el estado por minimo. La experiencia frontend, el limite temporal efectivo y el vencimiento automatico aun no estan implementados.
+El backend registra participantes mediante codigo compartible, crea `PENDING`, recalcula por minimo y permite un objetivo opcional. La UI implementa objetivo, progreso agregado y edicion owner. Aun faltan mostrar/conservar/compartir el codigo, ingresar por codigo, confirmar/retirar y aplicarles el deadline; tambien falta vencimiento automatico.
 
 ### Objetivo
 
@@ -1609,7 +1609,7 @@ Registrar confirmaciones de participantes unicos, mantener la solicitud grupal e
 - [x] El cliente no puede forzar `CONFIRMED` ni declarar un conteo arbitrario (verificado localmente).
 - [x] Se rechaza una confirmacion que supere la capacidad snapshot del recurso (verificado localmente).
 - [ ] El solicitante puede ver el avance y los errores recuperables.
-- [x] Si una retirada valida reduce el conteo de 10 a 9, la reserva vuelve a `PENDING` (verificado localmente; la aplicacion del limite temporal sigue pendiente).
+- [x] Si una retirada valida reduce el conteo de 10 a 9 antes del limite inclusivo, la reserva vuelve a `PENDING` (verificado localmente).
 - [ ] Confirmar o retirar despues del limite configurado se rechaza sin cambiar el conteo.
 - [ ] El valor inicial del limite es una hora antes del inicio y un cambio autorizado se refleja en las solicitudes posteriores aplicables.
 - [x] El solicitante cuenta una vez, no puede retirarse y toda confirmacion corresponde a una cuenta autenticada con RUT (verificado localmente).
@@ -1620,6 +1620,19 @@ Registrar confirmaciones de participantes unicos, mantener la solicitud grupal e
 - [x] `go test ./...` pasa.
 - [x] `npm test` pasa (9/9).
 - [x] `npm run build` pasa.
+
+### Incremento objetivo de participantes — 2026-07-23
+
+- [x] `targetParticipants` es opcional al crear y usa el minimo de politica por defecto.
+- [x] Se valida `minimo <= objetivo <= capacidad snapshot`; el propietario cuenta y el minimo sigue confirmando la solicitud.
+- [x] El objetivo limita nuevas altas y solo el propietario puede editarlo hasta el deadline inclusivo, respetando minimo, conteo vigente y capacidad.
+- [x] Los cambios se serializan y auditan de forma append-only; historicos `NULL` equivalen a capacidad.
+- [x] La UI distingue minimo, objetivo y capacidad; permite seleccionar objetivo, consultar progreso agregado y editar como owner.
+- [ ] UI para mostrar/conservar/compartir `joinCode`, ingresar por codigo, confirmar y retirar.
+- [x] La microcopy de frecuencia aclara que el periodo se cuenta desde la creacion de la solicitud anterior.
+- [x] Verificacion local: `go test ./...`, `go vet ./...`, `npm test` (10/10), `npm run build` y `git diff --check`.
+- [ ] Ejecutar `001` y luego `002` y verificar comportamiento/concurrencia en SQL Server/Azure SQL real.
+- [ ] Aplicar deadline a confirmar/retirar e implementar vencimiento automatico, notificaciones y administracion independiente del objetivo por defecto.
 
 ### Decision de producto cerrada
 

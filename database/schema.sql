@@ -250,6 +250,7 @@ BEGIN
         duration_minutes INT NOT NULL,
         status NVARCHAR(30) NOT NULL CONSTRAINT df_reservations_status DEFAULT ('PENDING'),
         group_capacity_snapshot INT NULL,
+        target_participants INT NULL,
         cancellation_reason NVARCHAR(MAX) NULL,
         created_at DATETIME2(0) NOT NULL CONSTRAINT df_reservations_created_at DEFAULT (SYSUTCDATETIME()),
         updated_at DATETIME2(0) NOT NULL CONSTRAINT df_reservations_updated_at DEFAULT (SYSUTCDATETIME()),
@@ -259,6 +260,7 @@ BEGIN
         CONSTRAINT fk_reservations_activity FOREIGN KEY (activity_id) REFERENCES dbo.activities(id) ON DELETE SET NULL,
         CONSTRAINT ck_reservations_duration CHECK (duration_minutes > 0),
         CONSTRAINT ck_reservations_group_capacity_snapshot CHECK (group_capacity_snapshot IS NULL OR group_capacity_snapshot > 0),
+        CONSTRAINT ck_reservations_target_participants CHECK (target_participants IS NULL OR target_participants > 0),
         CONSTRAINT ck_reservations_status CHECK (status IN ('PENDING', 'CONFIRMED', 'CANCELLED', 'REJECTED', 'EXPIRED'))
     );
 END;
@@ -271,6 +273,7 @@ END;
 GO
 
 IF COL_LENGTH('dbo.reservations', 'group_capacity_snapshot') IS NULL ALTER TABLE dbo.reservations ADD group_capacity_snapshot INT NULL;
+IF COL_LENGTH('dbo.reservations', 'target_participants') IS NULL ALTER TABLE dbo.reservations ADD target_participants INT NULL;
 GO
 IF OBJECT_ID('dbo.ck_reservations_group_capacity_snapshot','C') IS NULL ALTER TABLE dbo.reservations ADD CONSTRAINT ck_reservations_group_capacity_snapshot CHECK(group_capacity_snapshot IS NULL OR group_capacity_snapshot>0);
 GO
@@ -392,6 +395,26 @@ BEGIN
   FOREIGN KEY(reservation_id) REFERENCES dbo.reservations(id), FOREIGN KEY(actor_user_id) REFERENCES dbo.users(id),
   FOREIGN KEY(participant_user_id) REFERENCES dbo.users(id)
  );
+END;
+GO
+
+IF OBJECT_ID('dbo.reservation_target_audit','U') IS NULL
+BEGIN
+ CREATE TABLE dbo.reservation_target_audit(
+  id BIGINT IDENTITY(1,1) PRIMARY KEY,reservation_id INT NOT NULL,actor_user_id INT NOT NULL,
+  old_target_participants INT NOT NULL,new_target_participants INT NOT NULL,
+  created_at DATETIME2(0) NOT NULL DEFAULT SYSUTCDATETIME(),
+  FOREIGN KEY(reservation_id) REFERENCES dbo.reservations(id),FOREIGN KEY(actor_user_id) REFERENCES dbo.users(id));
+END;
+GO
+
+CREATE OR ALTER TRIGGER dbo.trg_reservation_target_audit_append_only
+ON dbo.reservation_target_audit
+INSTEAD OF UPDATE, DELETE
+AS
+BEGIN
+ SET NOCOUNT ON;
+ THROW 51022,'La auditoria de objetivo es inmutable.',1;
 END;
 GO
 
@@ -667,6 +690,16 @@ BEGIN
  SET NOCOUNT ON;
  IF EXISTS(SELECT 1 FROM inserted i INNER JOIN deleted d ON d.id=i.id WHERE ISNULL(i.group_capacity_snapshot,-1)<>ISNULL(d.group_capacity_snapshot,-1) OR ISNULL(i.join_code_hash,'')<>ISNULL(d.join_code_hash,''))
   THROW 51020,'El snapshot grupal de una solicitud es inmutable.',1;
+END;
+GO
+
+CREATE OR ALTER TRIGGER dbo.trg_reservations_target_validate ON dbo.reservations AFTER INSERT,UPDATE AS
+BEGIN
+ SET NOCOUNT ON;
+ IF EXISTS(SELECT 1 FROM inserted i LEFT JOIN dbo.reservation_policies p ON p.id=i.policy_id
+  WHERE (i.target_participants IS NOT NULL AND i.group_capacity_snapshot IS NULL)
+     OR (i.target_participants IS NOT NULL AND (i.target_participants<p.minimum_participants OR i.target_participants>i.group_capacity_snapshot)))
+  THROW 51021,'El objetivo de participantes no cumple minimo o capacidad.',1;
 END;
 GO
 

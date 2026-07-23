@@ -23,26 +23,33 @@ type Reservation struct {
 	UpdatedAt       time.Time `json:"updatedAt"`
 
 	// Campos útiles para el frontend actual
-	Hour                string `json:"hour"`
-	Title               string `json:"title"`
-	Type                string `json:"type"`
-	ResourceName        string `json:"resourceName"`
-	UserFullName        string `json:"userFullName"`
-	UserEmail           string `json:"userEmail"`
-	UserRUT             string `json:"userRut"`
-	JoinCode            string `json:"joinCode,omitempty"`
-	ParticipantCount    int    `json:"participantCount"`
-	MinimumParticipants int    `json:"minimumParticipants"`
-	Capacity            *int   `json:"capacity,omitempty"`
+	Hour                 string     `json:"hour"`
+	Title                string     `json:"title"`
+	Type                 string     `json:"type"`
+	ResourceName         string     `json:"resourceName"`
+	UserFullName         string     `json:"userFullName"`
+	UserEmail            string     `json:"userEmail"`
+	UserRUT              string     `json:"userRut"`
+	JoinCode             string     `json:"joinCode,omitempty"`
+	ParticipantCount     int        `json:"participantCount"`
+	MinimumParticipants  int        `json:"minimumParticipants"`
+	Capacity             *int       `json:"capacity,omitempty"`
+	TargetParticipants   *int       `json:"targetParticipants,omitempty"`
+	ConfirmationDeadline *time.Time `json:"confirmationDeadline,omitempty"`
+	CanEditTarget        bool       `json:"canEditTarget"`
 }
 
 type ReservationProgress struct {
-	ReservationID       int    `json:"reservationId"`
-	Status              string `json:"status"`
-	ParticipantCount    int    `json:"participantCount"`
-	MinimumParticipants int    `json:"minimumParticipants"`
-	Capacity            int    `json:"capacity"`
-	IsMember            bool   `json:"isMember"`
+	ReservationID        int       `json:"reservationId"`
+	Status               string    `json:"status"`
+	ParticipantCount     int       `json:"participantCount"`
+	MinimumParticipants  int       `json:"minimumParticipants"`
+	Capacity             int       `json:"capacity"`
+	IsMember             bool      `json:"isMember"`
+	TargetParticipants   int       `json:"targetParticipants"`
+	ConfirmationDeadline time.Time `json:"confirmationDeadline"`
+	CanEditTarget        bool      `json:"canEditTarget"`
+	IsOwner              bool      `json:"isOwner"`
 }
 type ReservationParticipant struct {
 	UserID   int    `json:"userId"`
@@ -54,10 +61,15 @@ type ReservationParticipant struct {
 }
 
 type CreateReservationRequest struct {
-	ResourceID      int    `json:"resourceId"`
-	ActivityID      *int   `json:"activityId"`
-	StartTime       string `json:"startTime"`
-	DurationMinutes int    `json:"durationMinutes"`
+	ResourceID         int    `json:"resourceId"`
+	ActivityID         *int   `json:"activityId"`
+	StartTime          string `json:"startTime"`
+	DurationMinutes    int    `json:"durationMinutes"`
+	TargetParticipants *int   `json:"targetParticipants,omitempty"`
+}
+
+type UpdateTargetParticipantsRequest struct {
+	TargetParticipants int `json:"targetParticipants"`
 }
 
 type CancelReservationRequest struct {

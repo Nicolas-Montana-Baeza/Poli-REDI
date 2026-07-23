@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 
 import {
+  formatBusinessDateTime,
   formatBusinessTime,
   getBusinessDateKey,
   parseBusinessDateTime
@@ -27,4 +28,8 @@ test('clasifica correctamente un instante UTC cercano a medianoche', () => {
 
   assert.equal(getBusinessDateKey(date), '2026-07-14')
   assert.equal(formatBusinessTime(date), '22:30')
+})
+
+test('formatea fecha y hora siempre en America/Santiago', () => {
+  assert.match(formatBusinessDateTime('2026-07-15T02:30:00Z'), /14-07-2026.*22:30/)
 })

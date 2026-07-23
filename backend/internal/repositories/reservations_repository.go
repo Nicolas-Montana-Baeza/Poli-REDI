@@ -14,6 +14,8 @@ import (
 )
 
 var ErrResourceNotAllowedByPolicy = errors.New("el recurso no esta permitido por la politica vigente")
+var ErrTargetForNonGroup = errors.New("targetParticipants solo se permite para solicitudes grupales")
+var ErrInvalidTargetParticipants = errors.New("targetParticipants debe estar entre el minimo y la capacidad")
 
 func GetAllReservations() ([]models.Reservation, error) {
 	rows, err := database.DB.QueryContext(
@@ -35,11 +37,15 @@ func GetAllReservations() ([]models.Reservation, error) {
 			COALESCE(u.full_name, '') AS user_full_name,
 			COALESCE(u.email, '') AS user_email,
 			COALESCE(u.rut, '') AS user_rut
+			,COALESCE(r.target_participants,r.group_capacity_snapshot),r.group_capacity_snapshot,p.minimum_participants,
+			(SELECT COUNT(*) FROM dbo.participants pa WHERE pa.reservation_id=r.id AND pa.status='CONFIRMED'),
+			p.confirmation_deadline_minutes
 		FROM dbo.reservations r
 		INNER JOIN dbo.resources res
 			ON res.id = r.resource_id
 		INNER JOIN dbo.users u
 			ON u.id = r.user_id
+		INNER JOIN dbo.reservation_policies p ON p.id=r.policy_id
 		LEFT JOIN dbo.activities a
 			ON a.id = r.activity_id
 		ORDER BY r.start_time ASC;
@@ -75,11 +81,15 @@ func GetReservationsByUserID(userID int) ([]models.Reservation, error) {
 			COALESCE(u.full_name, '') AS user_full_name,
 			COALESCE(u.email, '') AS user_email,
 			COALESCE(u.rut, '') AS user_rut
+			,COALESCE(r.target_participants,r.group_capacity_snapshot),r.group_capacity_snapshot,p.minimum_participants,
+			(SELECT COUNT(*) FROM dbo.participants pa WHERE pa.reservation_id=r.id AND pa.status='CONFIRMED'),
+			p.confirmation_deadline_minutes
 		FROM dbo.reservations r
 		INNER JOIN dbo.resources res
 			ON res.id = r.resource_id
 		INNER JOIN dbo.users u
 			ON u.id = r.user_id
+		INNER JOIN dbo.reservation_policies p ON p.id=r.policy_id
 		LEFT JOIN dbo.activities a
 			ON a.id = r.activity_id
 		WHERE r.user_id = @p1
@@ -94,7 +104,13 @@ func GetReservationsByUserID(userID int) ([]models.Reservation, error) {
 
 	defer rows.Close()
 
-	return scanReservationRows(rows)
+	result, scanErr := scanReservationRows(rows)
+	if scanErr == nil {
+		for i := range result {
+			result[i].CanEditTarget = result[i].TargetParticipants != nil && result[i].ConfirmationDeadline != nil && !businessclock.Now().After(*result[i].ConfirmationDeadline)
+		}
+	}
+	return result, scanErr
 }
 
 func GetCurrentReservationPolicy() (models.ReservationPolicy, error) {
@@ -137,6 +153,8 @@ func scanReservationRows(rows *sql.Rows) ([]models.Reservation, error) {
 		var userFullName string
 		var userEmail string
 		var userRUT string
+		var target, capacity, minimum, count sql.NullInt64
+		var deadlineMinutes sql.NullInt64
 
 		err := rows.Scan(
 			&reservation.ID,
@@ -154,6 +172,7 @@ func scanReservationRows(rows *sql.Rows) ([]models.Reservation, error) {
 			&userFullName,
 			&userEmail,
 			&userRUT,
+			&target, &capacity, &minimum, &count, &deadlineMinutes,
 		)
 
 		if err != nil {
@@ -170,6 +189,24 @@ func scanReservationRows(rows *sql.Rows) ([]models.Reservation, error) {
 		reservation.UserFullName = userFullName
 		reservation.UserEmail = userEmail
 		reservation.UserRUT = userRUT
+		if target.Valid {
+			v := int(target.Int64)
+			reservation.TargetParticipants = &v
+		}
+		if capacity.Valid {
+			v := int(capacity.Int64)
+			reservation.Capacity = &v
+		}
+		if minimum.Valid {
+			reservation.MinimumParticipants = int(minimum.Int64)
+		}
+		if count.Valid {
+			reservation.ParticipantCount = int(count.Int64)
+		}
+		if deadlineMinutes.Valid && target.Valid {
+			v := businessclock.ConfirmationDeadline(reservation.StartTime, int(deadlineMinutes.Int64))
+			reservation.ConfirmationDeadline = &v
+		}
 
 		reservations = append(reservations, reservation)
 	}
@@ -219,7 +256,18 @@ func AddReservationWithPolicy(reservation models.Reservation, validate func(mode
 			return models.Reservation{}, errors.New("la capacidad del recurso es menor al minimo de participantes")
 		}
 		capacitySnapshot = frozenCapacity
+		target := policy.MinimumParticipants
+		if reservation.TargetParticipants != nil {
+			target = *reservation.TargetParticipants
+		}
+		if target < policy.MinimumParticipants || target > frozenCapacity {
+			return models.Reservation{}, ErrInvalidTargetParticipants
+		}
+		reservation.TargetParticipants = &target
 	} else {
+		if reservation.TargetParticipants != nil {
+			return models.Reservation{}, ErrTargetForNonGroup
+		}
 		reservation.Status = models.ReservationStatusConfirmed
 		reservation.JoinCode = ""
 		joinHash = nil
@@ -246,10 +294,10 @@ func AddReservationWithPolicy(reservation models.Reservation, validate func(mode
 			activity_id,
 			start_time,
 			duration_minutes,
-			status, join_code_hash, group_capacity_snapshot
+			status, join_code_hash, group_capacity_snapshot, target_participants
 		)
 		OUTPUT INSERTED.id INTO @created
-		VALUES (@p1, @p2, @p3, @p4, @p5, @p6, @p7, @p8, @p9);
+		VALUES (@p1, @p2, @p3, @p4, @p5, @p6, @p7, @p8, @p9, @p10);
 		INSERT INTO dbo.participants(reservation_id,user_id,status,confirmed_at,is_owner)
 		SELECT id,@p2,'CONFIRMED',SYSUTCDATETIME(),1 FROM @created WHERE @p8 IS NOT NULL;
 		INSERT INTO dbo.reservation_participant_audit(reservation_id,actor_user_id,participant_user_id,action,previous_status,new_status,previous_reservation_status,new_reservation_status)
@@ -292,6 +340,7 @@ func AddReservationWithPolicy(reservation models.Reservation, validate func(mode
 		reservation.Status,
 		joinHash,
 		capacitySnapshot,
+		reservation.TargetParticipants,
 	).Scan(
 		&reservation.ID,
 		&reservation.PolicyID,
@@ -327,6 +376,15 @@ func AddReservationWithPolicy(reservation models.Reservation, validate func(mode
 	reservation.UserRUT = userRUT
 	if isGroup {
 		reservation.Capacity = &frozenCapacity
+		progress := assembleReservationProgress(
+			reservation.ID, reservation.Status, 1, policy.MinimumParticipants,
+			*reservation.TargetParticipants, frozenCapacity, reservation.StartTime,
+			policy.ConfirmationDeadlineMinutes, true, true,
+		)
+		reservation.ParticipantCount = progress.ParticipantCount
+		reservation.MinimumParticipants = progress.MinimumParticipants
+		reservation.ConfirmationDeadline = &progress.ConfirmationDeadline
+		reservation.CanEditTarget = progress.CanEditTarget
 	}
 
 	return reservation, nil

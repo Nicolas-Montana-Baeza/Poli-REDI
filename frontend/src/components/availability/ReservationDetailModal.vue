@@ -1,11 +1,12 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import {
   formatReservationDate,
   formatReservationTimeRange,
   getReservationDisplayStatus,
   isReservationCancelable
 } from '@/utils/reservationTime'
+import { formatBusinessDateTime } from '@/utils/businessTime'
 
 const props = defineProps({
   visible: {
@@ -31,8 +32,11 @@ const props = defineProps({
 
 const emit = defineEmits([
   'close',
-  'cancel'
+  'cancel',
+  'update-target'
 ])
+const targetValue = ref(null)
+watch(() => props.reservation, value => { targetValue.value = value?.targetParticipants ?? null }, { immediate: true })
 
 const reservationDate = computed(() => {
   return formatReservationDate(
@@ -122,6 +126,12 @@ const details = computed(() => {
   }
 
   return [
+    {
+      label: 'Progreso',
+      value: props.reservation.targetParticipants
+        ? `${props.reservation.participantCount || 0} de ${props.reservation.targetParticipants} participantes`
+        : 'No aplica'
+    },
     {
       label:
         props.reservation.isScheduledActivity
@@ -227,6 +237,17 @@ const handleCancel = () => {
 
           </dl>
 
+        </section>
+
+        <section v-if="reservation?.targetParticipants" class="target-editor">
+          <p>Mínimo requerido: {{ reservation.minimumParticipants }}. Objetivo: {{ reservation.targetParticipants }}. Capacidad: {{ reservation.capacity }}. El solicitante está incluido.</p>
+          <p>La confirmación ocurre al alcanzar el mínimo requerido.</p>
+          <p v-if="reservation.confirmationDeadline">Puedes editar el objetivo hasta {{ formatBusinessDateTime(reservation.confirmationDeadline) }}.</p>
+          <div v-if="reservation.canEditTarget" class="target-controls">
+            <label for="detail-target">Objetivo de participantes</label>
+            <input id="detail-target" v-model.number="targetValue" type="number" :min="Math.max(reservation.minimumParticipants, reservation.participantCount)" :max="reservation.capacity">
+            <button class="app-button primary" type="button" @click="emit('update-target', targetValue)">Guardar objetivo</button>
+          </div>
         </section>
 
         <div
@@ -445,6 +466,10 @@ const handleCancel = () => {
   font-size: 13px;
   font-weight: 800;
 }
+.target-editor { padding: 12px 14px; border: 1px solid var(--color-border); border-radius: var(--radius-md); }
+.target-editor p { margin: 0 0 8px; font-size: 13px; color: var(--color-text-muted); }
+.target-controls { display: grid; grid-template-columns: 1fr 100px auto; gap: 8px; align-items: center; }
+.target-controls input { height: 42px; padding: 0 10px; border: 1px solid var(--color-border); border-radius: var(--radius-md); }
 
 .warning {
   background: var(--color-warning-soft);
@@ -519,6 +544,7 @@ const handleCancel = () => {
   .actions {
     flex-direction: column;
   }
+  .target-controls { grid-template-columns: 1fr; }
 
   .actions button {
     width: 100%;

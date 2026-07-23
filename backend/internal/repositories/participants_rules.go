@@ -1,5 +1,7 @@
 package repositories
 
+import "time"
+
 func participantTransition(exists bool, old string, owner bool, count, capacity, minimum int, confirm bool) (bool, string, string, error) {
 	next := "CANCELLED"
 	if confirm {
@@ -29,4 +31,18 @@ func participantReservationStatus(count, minimum int) string {
 		return "CONFIRMED"
 	}
 	return "PENDING"
+}
+
+func validateTargetChange(target, minimum, capacity, confirmed int) error {
+	if target < minimum || target > capacity {
+		return ErrInvalidTargetParticipants
+	}
+	if target < confirmed {
+		return ErrTargetBelowConfirmed
+	}
+	return nil
+}
+
+func targetDeadlineOpen(now, deadline time.Time) bool {
+	return !now.After(deadline)
 }

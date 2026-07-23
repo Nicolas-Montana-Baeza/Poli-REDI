@@ -53,6 +53,7 @@ La estructura principal esta organizada por capas:
 - `GET /api/group-reservations/:code`: progreso agregado, sin datos nominales.
 - `PUT /api/group-reservations/:code/confirmation`: confirmar o reconfirmar la participacion del usuario autenticado.
 - `DELETE /api/group-reservations/:code/confirmation`: retirar la participacion propia; el propietario no puede retirarse.
+- `PATCH /api/reservations/:id/target-participants`: cambiar el objetivo de una solicitud grupal propia hasta su limite de confirmacion inclusive.
 
 ## Endpoints administrativos actuales
 
@@ -136,11 +137,13 @@ El repositorio publica con aislamiento serializable y bloqueos `UPDLOCK, HOLDLOC
 
 ## API de participantes grupales
 
-Estado: IMPLEMENTADA y VERIFICADA LOCALMENTE; pendiente de frontend y de prueba integrada contra SQL Server/Azure SQL real.
+Estado: API IMPLEMENTADA y VERIFICADA LOCALMENTE. El frontend cubre seleccion del objetivo, progreso agregado y edicion por propietario; compartir/conservar `joinCode`, ingresar por codigo, confirmar y retirar siguen pendientes. Tambien falta prueba integrada contra SQL Server/Azure SQL real.
 
 `POST /api/reservations` devuelve `joinCode` solo al crear una solicitud grupal. El codigo compartible no se persiste en claro: la reserva guarda su hash. Las consultas por codigo exponen solo `reservationId`, estado, conteo, minimo, capacidad snapshot y membresia del usuario actual. Confirmacion, reconfirmacion y retiro se serializan por reserva, exigen cuenta activa con RUT, respetan capacidad, auditan cada cambio y recalculan `PENDING` o `CONFIRMED`. El propietario se inserta confirmado, cuenta una vez y no puede retirarse.
 
-El limite temporal y la cancelacion automatica por vencimiento aun no se aplican en estas rutas; no deben presentarse como terminados.
+La creacion acepta `targetParticipants` opcional. En solicitudes grupales, el valor por defecto es `minimumParticipants` y debe cumplir `minimo <= objetivo <= capacidad snapshot`; en recursos no grupales, enviarlo produce `400`. El umbral de confirmacion sigue siendo el minimo, mientras el objetivo limita nuevas altas. El propietario puede modificarlo mediante `PATCH /api/reservations/:id/target-participants` hasta `confirmationDeadline` inclusive; no puede bajarlo del minimo ni del conteo vigente, ni subirlo sobre la capacidad. Cada cambio se serializa y se registra en auditoria append-only. El progreso agrega `targetParticipants`, `confirmationDeadline`, `canEditTarget` e `isOwner`.
+
+El limite temporal inclusivo se aplica actualmente solo a `PATCH /api/reservations/:id/target-participants`, usando `America/Santiago`. Aplicarlo a confirmaciones y retiros, junto con la cancelacion automatica por vencimiento, sigue pendiente. Tampoco existen notificaciones ni administracion del objetivo por defecto.
 
 ## Pruebas backend recomendadas
 

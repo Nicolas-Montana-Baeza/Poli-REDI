@@ -153,3 +153,17 @@ func TestMigrationRecoveryGuidesAvoidOptionalColumnCompileErrors(t *testing.T) {
 		}
 	}
 }
+
+func TestTargetParticipantsMigrationIsCumulativeAndDoesNotBackfill(t *testing.T) {
+	migration := strings.ToUpper(readRepositoryFile(t, "database", "migrations", "002_mvp2_target_participants.sql"))
+	for _, required := range []string{"COL_LENGTH('DBO.RESERVATIONS','TARGET_PARTICIPANTS')", "EXEC(N'ALTER TABLE", "RESERVATION_TARGET_AUDIT", "CREATE OR ALTER TRIGGER DBO.TRG_RESERVATIONS_TARGET_VALIDATE", "TRG_RESERVATION_TARGET_AUDIT_APPEND_ONLY", "INSTEAD OF UPDATE,DELETE", "TARGET_CONSTRAINT_OK", "TARGET_AUDIT_APPEND_ONLY_OK", "GROUP_CAPACITY_SNAPSHOT", "GO"} {
+		if !strings.Contains(migration, required) {
+			t.Fatalf("migration 002 lacks %s", required)
+		}
+	}
+	for _, forbidden := range []string{"UPDATE DBO.RESERVATIONS SET TARGET_PARTICIPANTS", "DROP TABLE", "DELETE FROM"} {
+		if strings.Contains(migration, forbidden) {
+			t.Fatalf("migration 002 is not safe for legacy/rerun: %s", forbidden)
+		}
+	}
+}
