@@ -129,8 +129,10 @@ func GetLatestConsumingReservation(userID int) (time.Time, int, error) {
 			p.request_frequency_days
 		FROM dbo.reservations r
 		INNER JOIN dbo.reservation_policies p ON p.id = r.policy_id
+		INNER JOIN dbo.resources resource ON resource.id = r.resource_id
 		WHERE r.user_id = @p1
 		  AND r.status IN ('PENDING', 'CONFIRMED')
+		  AND resource.reservation_mode <> 'OPEN_USE'
 		ORDER BY DATEADD(
 			DAY,
 			p.request_frequency_days,

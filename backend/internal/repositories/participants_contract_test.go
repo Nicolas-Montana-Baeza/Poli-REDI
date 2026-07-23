@@ -55,6 +55,34 @@ func TestParticipantQueriesUseCapacitySnapshotTrimmedRUTAndInitialAudit(t *testi
 	}
 }
 
+func TestOpenUseDoesNotConsumeFrequencyButKeepsUserOverlapGuard(t *testing.T) {
+	repository := strings.ToUpper(readRepositoryFile(t, "backend", "internal", "repositories", "reservations_repository.go"))
+	schema := strings.ToUpper(readRepositoryFile(t, "database", "schema.sql"))
+	migration := strings.ToUpper(readRepositoryFile(t, "database", "migrations", "003_open_use_frequency_scope.sql"))
+
+	if !strings.Contains(repository, "RESOURCE.RESERVATION_MODE <> 'OPEN_USE'") {
+		t.Fatal("frequency lookup must exclude OPEN_USE reservations")
+	}
+	for _, required := range []string{
+		"INSERTED_RESOURCE.RESERVATION_MODE <> 'OPEN_USE'",
+		"PREVIOUS_RESOURCE.RESERVATION_MODE <> 'OPEN_USE'",
+		"EXISTING.USER_ID = I.USER_ID",
+	} {
+		if !strings.Contains(schema, required) {
+			t.Fatalf("schema lacks OPEN_USE frequency/overlap rule: %s", required)
+		}
+	}
+	for _, required := range []string{
+		"INSERTED_RESOURCE.RESERVATION_MODE <> ''OPEN_USE''",
+		"PREVIOUS_RESOURCE.RESERVATION_MODE <> ''OPEN_USE''",
+		"EXISTING.USER_ID = I.USER_ID",
+	} {
+		if !strings.Contains(migration, required) {
+			t.Fatalf("migration lacks OPEN_USE frequency/overlap rule: %s", required)
+		}
+	}
+}
+
 func TestSchemaAndMigrationInstallEquivalentMVP2TriggerObligations(t *testing.T) {
 	schema := strings.ToUpper(readRepositoryFile(t, "database", "schema.sql"))
 	migration := strings.ToUpper(readRepositoryFile(t, "database", "migrations", "001_mvp2_group_participants.sql"))

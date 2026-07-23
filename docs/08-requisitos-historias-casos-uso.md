@@ -101,7 +101,7 @@ Pendiente relacionado: `RES-008`, `RES-009`, `RES-010`, `RES-011`.
 
 ### RF-007 - Validacion de conflictos de reserva
 
-El sistema debe rechazar reservas que se solapen con otras reservas confirmadas, talleres activos o reglas de disponibilidad. Los recursos `OPEN_USE` permiten concurrencia y no bloquean por reserva existente.
+El sistema debe rechazar reservas que se solapen con otras reservas confirmadas, talleres activos o reglas de disponibilidad. Los recursos `OPEN_USE` permiten concurrencia y no bloquean por reserva existente. No consumen la frecuencia de solicitudes ni son limitados por ella; aun asi, un mismo usuario no puede mantener una reserva `OPEN_USE` solapada con otra reserva activa de cualquier modo. Los horarios contiguos no constituyen solape.
 
 Estado actual: Implementado parcialmente para reservas, talleres activos, bloqueos y actividades programadas. El servidor controla el estado inicial y la base protege conflictos concurrentes; falta mostrar bloqueos en disponibilidad y ampliar pruebas integradas.
 

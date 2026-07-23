@@ -37,7 +37,9 @@ El backend y la base del flujo grupal estan implementados y verificados localmen
 2. El servidor valida que la fecha elegida este dentro de la ventana configurable; con el valor vigente de siete dias, un martes se puede elegir desde ese martes hasta el lunes siguiente.
 3. El servidor valida la frecuencia configurable desde la fecha de creacion de la solicitud anterior. Una solicitud `PENDING` consume la oportunidad desde que se crea; una solicitud `CANCELLED` deja de consumirla.
 4. El sistema consulta la politica del recurso.
-5. Si el recurso es `OPEN_USE`, no exige confirmacion grupal.
+5. Si el recurso es `OPEN_USE`, no exige confirmacion grupal ni consume la
+   frecuencia de solicitudes. Puede reservarse consecutivamente, pero se
+   rechaza si el mismo usuario ya tiene cualquier reserva activa solapada.
 6. Para multicancha 1, 2 y 3, identificadas en el inventario como Cancha 1, 2 y 3, registra la solicitud como `PENDING` y bloquea el horario.
 7. El solicitante cuenta dentro del minimo. El objetivo opcional usa el minimo por defecto, no puede superar la capacidad y limita nuevas altas; alcanzar el minimo, no el objetivo, confirma la solicitud.
 8. El propietario puede cambiar el objetivo hasta el limite configurable inclusive, sin bajarlo del minimo ni del conteo confirmado y sin superar la capacidad.

@@ -150,3 +150,14 @@ func TestRequestFrequencyMessageUsesSendDateEvenForLaterReservation(t *testing.T
 		t.Fatalf("validateRequestFrequency() error = %q, expected %q", err, want)
 	}
 }
+
+func TestOpenUseDoesNotConsumeRequestFrequency(t *testing.T) {
+	if modeConsumesRequestFrequency("OPEN_USE") {
+		t.Fatal("OPEN_USE must not consume request frequency")
+	}
+	for _, mode := range []string{"RESERVABLE", "ADMIN_ONLY"} {
+		if !modeConsumesRequestFrequency(mode) {
+			t.Fatalf("%s must consume request frequency", mode)
+		}
+	}
+}

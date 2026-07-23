@@ -160,7 +160,7 @@ Fecha de corte: 2026-07-21
 
 **ID:** RF-020  
 **Titulo:** Restriccion semanal de reserva particular  
-**Descripcion:** El sistema debe limitar las fechas reservables al periodo institucional configurado e impedir mas de una solicitud vigente del mismo usuario dentro del periodo contado desde la fecha local de creacion de la solicitud anterior. `PENDING` y `CONFIRMED` consumen la oportunidad; `CANCELLED` deja de consumirla.<br>
+**Descripcion:** El sistema debe limitar las fechas reservables al periodo institucional configurado e impedir mas de una solicitud normal vigente del mismo usuario dentro del periodo contado desde la fecha local de creacion de la solicitud anterior. `PENDING` y `CONFIRMED` de recursos distintos de `OPEN_USE` consumen la oportunidad; `CANCELLED` y las solicitudes `OPEN_USE` no la consumen.<br>
 **Actor:** Usuario normal.  
 **Precondiciones:** Usuario identificado e historial consultable.  
 **Comportamiento esperado:** Evaluar la fecha institucional, la configuracion vigente y el historial aplicable; rechazar fechas fuera de ventana o solicitudes prematuras y comunicar la proxima fecha permitida.<br>
@@ -329,7 +329,7 @@ Fecha de corte: 2026-07-21
 **Estado:** APROBADO y VERIFICADO LOCALMENTE en backend/DB y frontend parcial de objetivo/progreso/edicion owner. El deadline inclusivo esta implementado para editar el objetivo. Historicos `NULL` usan capacidad como objetivo efectivo; SQL/Azure real PENDIENTE.<br>
 
 **RN-007 — Conflictos y modos de recurso**  
-**Regla:** Recursos `RESERVABLE` no admiten solapamientos confirmados; `INFORMATIVE` no admite reserva; `ADMIN_ONLY` exige administrador; `OPEN_USE` permite concurrencia de reservas y no queda bloqueado por programacion o talleres, aunque un bloqueo activo si impide reservar. Un usuario no puede tener dos reservas confirmadas solapadas.  
+**Regla:** Recursos `RESERVABLE` no admiten solapamientos confirmados; `INFORMATIVE` no admite reserva; `ADMIN_ONLY` exige administrador; `OPEN_USE` permite concurrencia de reservas, no consume frecuencia y no queda bloqueado por programacion o talleres, aunque un bloqueo activo si impide reservar. Un usuario no puede tener dos reservas activas solapadas, incluso al combinar `OPEN_USE` con otro modo; los horarios contiguos si se permiten.
 **Justificacion:** Refleja el comportamiento de base de datos y servicio.  
 **Fuente:** `database/schema.sql` y servicio de reservas.  
 **Estado:** IMPLEMENTADO en parte y APROBADO para que `OPEN_USE` no requiera confirmacion grupal.  

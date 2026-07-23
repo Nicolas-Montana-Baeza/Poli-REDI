@@ -84,3 +84,15 @@ capacidad congelada de cada solicitud.
 6. El `POSTCHECK` final debe mostrar en `1`: `target_column_ok`,
    `target_constraint_ok`, `target_validation_trigger_ok`, `target_audit_ok` y
    `target_audit_append_only_ok`.
+
+## `003_open_use_frequency_scope.sql`
+
+Ejecutar despues de `001` y `002`. Esta migracion hace que `OPEN_USE` no
+consuma la frecuencia configurada ni sea limitado por reservas normales
+anteriores. Conserva la prohibicion de reservas solapadas para el mismo usuario;
+los limites contiguos, por ejemplo `12:00-13:00` y `13:00-14:00`, no se
+consideran solape.
+
+La migracion es reejecutable y valida la definicion vigente antes de modificar
+el trigger. El `POSTCHECK` debe mostrar `open_use_frequency_scope_ok = 1` y
+`user_overlap_guard_ok = 1`.

@@ -165,7 +165,10 @@ La prioridad debe estar en reglas de negocio y permisos.
 - Rechazar duracion fuera del catalogo permitido.
 - Rechazar inicio o termino fuera de jornada.
 - Mantener hora y clasificacion temporal con `America/Santiago`.
-- Permitir concurrencia en recursos `OPEN_USE`.
+- Permitir concurrencia en recursos `OPEN_USE`. Estas solicitudes no consumen
+  ni quedan limitadas por la frecuencia configurada. El mismo usuario puede
+  encadenarlas o combinarlas con reservas normales, pero no puede mantener dos
+  reservas activas con horas realmente solapadas.
 - Rechazar cruce con talleres activos del recurso.
 - Rechazar cruce con bloqueo.
 - Rechazar cruce con actividad programada.

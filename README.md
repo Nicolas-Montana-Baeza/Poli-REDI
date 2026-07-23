@@ -149,7 +149,8 @@ Para preparar una base limpia:
 
 Para actualizar una base MVP 1 existente sin reconstruirla, seguir
 [`database/migrations/README.md`](database/migrations/README.md) y ejecutar,
-en orden, `001_mvp2_group_participants.sql` y `002_mvp2_target_participants.sql` con una
+en orden, `001_mvp2_group_participants.sql`, `002_mvp2_target_participants.sql`
+y `003_open_use_frequency_scope.sql` con una
 herramienta compatible con `GO`. Ante un intento fallido sobre la unica base,
 no ejecutar `drop.sql`, `schema.sql` ni `seed.sql`.
 4. Configurar `backend/.env`.

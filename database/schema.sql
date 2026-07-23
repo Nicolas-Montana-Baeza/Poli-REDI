@@ -856,12 +856,16 @@ BEGIN
         )
     FROM inserted i
     LEFT JOIN deleted d ON d.id = i.id
+    INNER JOIN dbo.resources inserted_resource ON inserted_resource.id = i.resource_id
     INNER JOIN dbo.reservations previous WITH (UPDLOCK, HOLDLOCK)
         ON previous.user_id = i.user_id
        AND previous.id <> i.id
        AND previous.status IN ('PENDING', 'CONFIRMED')
+    INNER JOIN dbo.resources previous_resource ON previous_resource.id = previous.resource_id
     INNER JOIN dbo.reservation_policies previous_policy ON previous_policy.id = previous.policy_id
     WHERE d.id IS NULL
+      AND inserted_resource.reservation_mode <> 'OPEN_USE'
+      AND previous_resource.reservation_mode <> 'OPEN_USE'
       AND CONVERT(DATE, i.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'Pacific SA Standard Time') < DATEADD(
           DAY,
           previous_policy.request_frequency_days,

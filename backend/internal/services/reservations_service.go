@@ -145,24 +145,24 @@ func createReservationAt(
 		return models.Reservation{}, errors.New("no puedes crear reservas en el pasado")
 	}
 
-	previousCreatedAt, frequencyDays, err := repositories.GetLatestConsumingReservation(reservation.UserID)
-	if err != nil && !errors.Is(err, sql.ErrNoRows) {
-		return models.Reservation{}, err
-	}
-	if err == nil {
-		if err := validateRequestFrequency(previousCreatedAt, frequencyDays, now); err != nil {
-			return models.Reservation{}, err
-		}
-	}
-
 	resource, err := repositories.GetResourceByID(reservation.ResourceID)
 
 	if err != nil {
 		return models.Reservation{}, err
 	}
 
-	if resource.ReservationMode == "OPEN_USE" {
+	if !modeConsumesRequestFrequency(resource.ReservationMode) {
 		reservation.ActivityID = nil
+	} else {
+		previousCreatedAt, frequencyDays, err := repositories.GetLatestConsumingReservation(reservation.UserID)
+		if err != nil && !errors.Is(err, sql.ErrNoRows) {
+			return models.Reservation{}, err
+		}
+		if err == nil {
+			if err := validateRequestFrequency(previousCreatedAt, frequencyDays, now); err != nil {
+				return models.Reservation{}, err
+			}
+		}
 	}
 
 	if err := validateWorkshopAvailability(reservation); err != nil {
@@ -194,6 +194,10 @@ func validateRequestFrequency(previousCreatedAt time.Time, frequencyDays int, no
 		)
 	}
 	return nil
+}
+
+func modeConsumesRequestFrequency(reservationMode string) bool {
+	return reservationMode != "OPEN_USE"
 }
 
 func validateReservationPolicySnapshot(reservation models.Reservation, now time.Time, policy models.ReservationPolicy) error {
