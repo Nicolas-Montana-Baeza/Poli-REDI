@@ -31,6 +31,7 @@ El proceso de reserva del Polideportivo institucional (3 canchas y 1 sala multiu
 | **Recursos y Disponibilidad** | `IMPLEMENTADO` | Consulta de disponibilidad por fecha/recurso entre 08:00 y 22:00 (`GET /api/resources`). |
 | **Creación de Reservas** | `IMPLEMENTADO` | Reservas particulares e institucionales controladas por servidor. |
 | **Flujo Grupal y Código de Unión**| `IMPLEMENTADO` | Cifrado AES de códigos de unión, rotación de llaves y quorum obligatorio de 10 personas. |
+| **Diseño y UI/UX (Tokens & Components)**| `VERIFICADO` | Tokens de estado HSL/Hex en `variables.css` y componentes canónicos (`StatusBadge.vue`, `PrimaryButton.vue`, `ConfirmModal.vue`, `MetricCard.vue`) integrados sin errores de compilación (`npm run build`). |
 | **Control de Frecuencia Semanal** | `IMPLEMENTADO` | Restricción de 7 días corridos entre reservas solicitadas por el mismo usuario. |
 | **Prioridad Institucional** | `IMPLEMENTADO` | Bloqueo o cancelación de reservas particulares ante clases o actividades académicas. |
 | **Cancelación de Reservas** | `IMPLEMENTADO` | Propietario o administrador pueden cancelar reservas activas (`PATCH /api/reservations/cancel`). |
