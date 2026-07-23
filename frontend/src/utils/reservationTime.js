@@ -4,7 +4,7 @@ import {
   getBusinessDateKey,
   getBusinessMinutes,
   parseBusinessDateTime
-} from './businessTime'
+} from './businessTime.js'
 
 export { getBusinessDateKey }
 
@@ -100,6 +100,21 @@ export const isReservationCancelable = (reservation) => {
   return (
     reservation?.status !== 'CANCELLED' &&
     getReservationTemporalState(reservation) !== 'past'
+  )
+}
+
+export const canUserCancelReservation = (reservation, user) => {
+  if (!reservation || !user) {
+    return false
+  }
+
+  if (user.isAdmin === true) {
+    return isReservationCancelable(reservation)
+  }
+
+  return (
+    isReservationCancelable(reservation) &&
+    reservation.userId === user.id
   )
 }
 

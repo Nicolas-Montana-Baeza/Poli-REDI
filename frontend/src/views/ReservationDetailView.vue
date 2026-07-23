@@ -17,10 +17,10 @@ import { reservationsService } from '@/services/reservations.service'
 import { useAuthStore } from '@/stores/auth'
 import { useReservationsStore } from '@/stores/reservations'
 import {
+  canUserCancelReservation,
   formatReservationDate,
   formatReservationTimeRange,
-  getReservationDisplayStatus,
-  isReservationCancelable
+  getReservationDisplayStatus
 } from '@/utils/reservationTime'
 
 const route = useRoute()
@@ -73,7 +73,7 @@ const loadingError = computed(() => {
 })
 
 const canCancel = computed(() => {
-  return isReservationCancelable(reservation.value)
+  return canUserCancelReservation(reservation.value, authStore.user)
 })
 const isOwnGroup = computed(() => Boolean(reservation.value?.targetParticipants) && reservation.value?.userId === authStore.user?.id)
 const ownerProgress = computed(() => reservation.value ? { ...reservation.value, reservationId: reservation.value.id, isOwner: true, isMember: true } : null)

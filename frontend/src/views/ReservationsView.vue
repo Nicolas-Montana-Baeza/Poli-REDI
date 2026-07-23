@@ -6,8 +6,8 @@ import SkeletonLoader from '@/components/ui/SkeletonLoader.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useReservationsStore } from '@/stores/reservations'
 import {
+  canUserCancelReservation,
   isReservationActionable,
-  isReservationCancelable,
   parseReservationDateTime
 } from '@/utils/reservationTime'
 
@@ -76,7 +76,7 @@ const emptyMessage = computed(() => {
 })
 
 const canCancel = (reservation) => {
-  return isReservationCancelable(reservation)
+  return canUserCancelReservation(reservation, authStore.user)
 }
 
 const cancelReservation = async (reservation) => {

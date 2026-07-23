@@ -2,13 +2,14 @@ package handlers
 
 import (
 	"errors"
-	"github.com/gofiber/fiber/v2"
 	"poli-redi-api/internal/businessclock"
 	"poli-redi-api/internal/middleware"
 	"poli-redi-api/internal/models"
 	"poli-redi-api/internal/repositories"
 	"strconv"
 	"strings"
+
+	"github.com/gofiber/fiber/v2"
 )
 
 func participantCode(c *fiber.Ctx) string { return strings.TrimSpace(c.Params("code")) }
@@ -79,7 +80,7 @@ func participationHTTPStatus(err error) int {
 		return 404
 	case errors.Is(err, repositories.ErrParticipantIneligible):
 		return 403
-	case errors.Is(err, repositories.ErrGroupCapacity), errors.Is(err, repositories.ErrOwnerCannotWithdraw):
+	case errors.Is(err, repositories.ErrGroupCapacity), errors.Is(err, repositories.ErrOwnerCannotWithdraw), errors.Is(err, repositories.ErrParticipantConflict):
 		return 409
 	case errors.Is(err, repositories.ErrParticipationDeadline):
 		return 410

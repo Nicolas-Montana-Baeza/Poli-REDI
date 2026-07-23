@@ -16,7 +16,8 @@ import {
   BarChart3,
   Menu,
   ShieldCheck,
-  X
+  X,
+  KeyRound
 } from 'lucide-vue-next'
 
 /* STATE */
@@ -54,6 +55,12 @@ const menu = computed(() => {
           label: 'Inicio',
           icon: Home,
           to: '/'
+        },
+
+        {
+          label: 'Ingresar Código',
+          icon: KeyRound,
+          to: '/join'
         },
 
         {

@@ -1,6 +1,8 @@
 <script setup>
 import { computed, onMounted } from 'vue'
 
+import { KeyRound } from 'lucide-vue-next'
+
 import FacilityCarousel from '../components/dashboard/FacilityCarousel.vue'
 import ReservationsPanel from '../components/dashboard/ReservationsPanel.vue'
 import SkeletonLoader from '@/components/ui/SkeletonLoader.vue'
@@ -66,6 +68,16 @@ const reservations = computed(() => {
           disponibilidad e
           instalaciones deportivas.
         </p>
+
+        <div class="hero-actions">
+          <RouterLink
+            class="app-button primary hero-cta"
+            to="/join"
+          >
+            <KeyRound :size="18" />
+            Ingresar código
+          </RouterLink>
+        </div>
 
       </div>
 
@@ -190,6 +202,19 @@ const reservations = computed(() => {
   overflow: hidden;
 
   position: relative;
+}
+
+.hero-actions {
+  margin-top: 18px;
+}
+
+.hero-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+
+  text-decoration: none;
 }
 
 .hero h1 {

@@ -7,11 +7,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/gofiber/fiber/v2"
 	"poli-redi-api/internal/database"
 	"poli-redi-api/internal/models"
 	"poli-redi-api/internal/repositories"
+
+	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/gofiber/fiber/v2"
 )
 
 func participantTestApp(user *models.LocalAuthUser) *fiber.App {
@@ -63,8 +64,8 @@ func TestExpiredParticipationReturns410(t *testing.T) {
 	defer func() { database.DB = previous }()
 	mock.ExpectBegin()
 	mock.ExpectQuery("SELECT r.id,r.group_capacity_snapshot").
-		WillReturnRows(sqlmock.NewRows([]string{"id", "capacity", "minimum", "target", "status", "start", "minutes", "owner", "reason"}).
-			AddRow(1, 20, 10, 12, "CANCELLED", time.Now(), 60, 2, "CONFIRMATION_DEADLINE"))
+		WillReturnRows(sqlmock.NewRows([]string{"id", "capacity", "minimum", "target", "status", "start", "minutes", "deadline_minutes", "owner", "reason"}).
+			AddRow(1, 20, 10, 12, "CANCELLED", time.Now(), 60, 90, 2, "CONFIRMATION_DEADLINE"))
 	mock.ExpectRollback()
 	user := models.LocalAuthUser{ID: 3}
 	response, err := participantTestApp(&user).Test(httptest.NewRequest(http.MethodPut, "/group/code", nil))

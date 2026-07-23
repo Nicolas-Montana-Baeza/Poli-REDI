@@ -100,6 +100,13 @@ func GetReservationsByUserID(userID int) ([]models.Reservation, error) {
 		LEFT JOIN dbo.activities a
 			ON a.id = r.activity_id
 		WHERE r.user_id = @p1
+		   OR EXISTS (
+			SELECT 1
+			FROM dbo.participants pa
+			WHERE pa.reservation_id = r.id
+			  AND pa.user_id = @p1
+			  AND pa.status = 'CONFIRMED'
+		)
 		ORDER BY r.start_time DESC;
 		`,
 		userID,

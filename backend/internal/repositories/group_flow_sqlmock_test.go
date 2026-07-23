@@ -1,16 +1,19 @@
 package repositories
 
 import (
+	"context"
 	"database/sql"
 	"encoding/base64"
 	"errors"
 	"regexp"
 	"strings"
 	"testing"
+	"time"
 
-	"github.com/DATA-DOG/go-sqlmock"
 	"poli-redi-api/internal/database"
 	"poli-redi-api/internal/joinsecret"
+
+	"github.com/DATA-DOG/go-sqlmock"
 )
 
 func withMockDB(t *testing.T) (sqlmock.Sqlmock, func()) {
@@ -123,6 +126,32 @@ func TestRotateJoinCodeReturnsUniformNotFoundForNonOwner(t *testing.T) {
 	if !errors.Is(err, ErrInvalidJoinCode) {
 		t.Fatalf("error = %v", err)
 	}
+	if err = mock.ExpectationsWereMet(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestUserReservationOverlapGuardBlocksConfirmingJoinCode(t *testing.T) {
+	mock, done := withMockDB(t)
+	defer done()
+	mock.ExpectBegin()
+	tx, err := database.DB.Begin()
+	if err != nil {
+		t.Fatal(err)
+	}
+	start := time.Date(2026, 7, 23, 10, 0, 0, 0, time.UTC)
+	mock.ExpectQuery(regexp.QuoteMeta("SELECT TOP (1) 1 FROM dbo.reservations existing WITH(UPDLOCK,HOLDLOCK) WHERE existing.user_id=@p1 AND existing.id<>@p2 AND existing.status IN('PENDING','CONFIRMED') AND existing.start_time < DATEADD(MINUTE, @p3, @p4) AND DATEADD(MINUTE, existing.duration_minutes, existing.start_time) > @p5")).
+		WithArgs(4, 7, 60, start, start).
+		WillReturnRows(sqlmock.NewRows([]string{"overlap"}).AddRow(1))
+	overlaps, err := userHasActiveOverlapTx(context.Background(), tx, 4, 7, start, 60)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !overlaps {
+		t.Fatal("expected overlap guard to detect a conflicting existing reservation")
+	}
+	mock.ExpectRollback()
+	_ = tx.Rollback()
 	if err = mock.ExpectationsWereMet(); err != nil {
 		t.Fatal(err)
 	}

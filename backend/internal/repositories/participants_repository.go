@@ -21,6 +21,7 @@ var ErrParticipantIneligible = errors.New("la cuenta debe estar activa y tener R
 var ErrGroupCapacity = errors.New("la solicitud alcanzo su capacidad")
 var ErrOwnerCannotWithdraw = errors.New("el solicitante no puede retirarse")
 var ErrParticipationDeadline = errors.New("el plazo de confirmacion ya vencio")
+var ErrParticipantConflict = errors.New("ya tienes una reserva activa en ese horario")
 
 func codeHash(code string) string { s := sha256.Sum256([]byte(code)); return hex.EncodeToString(s[:]) }
 
@@ -49,6 +50,22 @@ func GetReservationProgress(code string, userID int) (models.ReservationProgress
 	return assembleReservationProgress(p.ReservationID, p.Status, p.ParticipantCount, p.MinimumParticipants, p.TargetParticipants, p.Capacity, start, deadlineMinutes, p.IsOwner, p.IsMember), err
 }
 
+func userHasActiveOverlapTx(ctx context.Context, tx *sql.Tx, userID, reservationID int, start time.Time, durationMinutes int) (bool, error) {
+	var found int
+	err := tx.QueryRowContext(ctx, `SELECT TOP (1) 1 FROM dbo.reservations existing WITH(UPDLOCK,HOLDLOCK)
+		WHERE existing.user_id=@p1 AND existing.id<>@p2
+		  AND existing.status IN('PENDING','CONFIRMED')
+		  AND existing.start_time < DATEADD(MINUTE, @p3, @p4)
+		  AND DATEADD(MINUTE, existing.duration_minutes, existing.start_time) > @p5`, userID, reservationID, durationMinutes, start, start).Scan(&found)
+	if errors.Is(err, sql.ErrNoRows) {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
 func ChangeParticipation(code string, userID int, confirm bool) (models.ReservationProgress, error) {
 	ctx := context.Background()
 	tx, err := database.DB.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelSerializable})
@@ -60,7 +77,8 @@ func ChangeParticipation(code string, userID int, confirm bool) (models.Reservat
 	var oldReservationStatus, cancellationReason string
 	var target int
 	var start time.Time
-	err = tx.QueryRowContext(ctx, `SELECT r.id,r.group_capacity_snapshot,p.minimum_participants,COALESCE(r.target_participants,r.group_capacity_snapshot),r.status,r.start_time,p.confirmation_deadline_minutes,r.user_id,COALESCE(r.cancellation_reason,'') FROM dbo.reservations r WITH(UPDLOCK,HOLDLOCK) INNER JOIN dbo.reservation_policies p ON p.id=r.policy_id WHERE r.join_code_hash=@p1 AND r.group_capacity_snapshot IS NOT NULL AND r.status IN('PENDING','CONFIRMED','CANCELLED')`, codeHash(code)).Scan(&reservationID, &capacity, &minimum, &target, &oldReservationStatus, &start, &deadlineMinutes, &ownerID, &cancellationReason)
+	var durationMinutes int
+	err = tx.QueryRowContext(ctx, `SELECT r.id,r.group_capacity_snapshot,p.minimum_participants,COALESCE(r.target_participants,r.group_capacity_snapshot),r.status,r.start_time,r.duration_minutes,p.confirmation_deadline_minutes,r.user_id,COALESCE(r.cancellation_reason,'') FROM dbo.reservations r WITH(UPDLOCK,HOLDLOCK) INNER JOIN dbo.reservation_policies p ON p.id=r.policy_id WHERE r.join_code_hash=@p1 AND r.group_capacity_snapshot IS NOT NULL AND r.status IN('PENDING','CONFIRMED','CANCELLED')`, codeHash(code)).Scan(&reservationID, &capacity, &minimum, &target, &oldReservationStatus, &start, &durationMinutes, &deadlineMinutes, &ownerID, &cancellationReason)
 	if errors.Is(err, sql.ErrNoRows) {
 		return models.ReservationProgress{}, ErrInvalidJoinCode
 	}
@@ -92,6 +110,15 @@ func ChangeParticipation(code string, userID int, confirm bool) (models.Reservat
 	}
 	if blocked || strings.TrimSpace(rut) == "" {
 		return models.ReservationProgress{}, ErrParticipantIneligible
+	}
+	if confirm {
+		overlaps, err := userHasActiveOverlapTx(ctx, tx, userID, reservationID, start, durationMinutes)
+		if err != nil {
+			return models.ReservationProgress{}, err
+		}
+		if overlaps {
+			return models.ReservationProgress{}, ErrParticipantConflict
+		}
 	}
 	var oldStatus string
 	var isOwner bool

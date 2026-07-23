@@ -55,6 +55,20 @@ func TestParticipantQueriesUseCapacitySnapshotTrimmedRUTAndInitialAudit(t *testi
 	}
 }
 
+func TestMyReservationsQueryIncludesConfirmedParticipantMembership(t *testing.T) {
+	repository := strings.ToUpper(readRepositoryFile(t, "backend", "internal", "repositories", "reservations_repository.go"))
+	for _, required := range []string{
+		"WHERE R.USER_ID = @P1",
+		"OR EXISTS (",
+		"PA.USER_ID = @P1",
+		"PA.STATUS = 'CONFIRMED'",
+	} {
+		if !strings.Contains(repository, required) {
+			t.Fatalf("reservations query lacks %s", required)
+		}
+	}
+}
+
 func TestOpenUseDoesNotConsumeFrequencyButKeepsUserOverlapGuard(t *testing.T) {
 	repository := strings.ToUpper(readRepositoryFile(t, "backend", "internal", "repositories", "reservations_repository.go"))
 	schema := strings.ToUpper(readRepositoryFile(t, "database", "schema.sql"))

@@ -4,7 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import ParticipantsProgress from '@/components/ui/ParticipantsProgress.vue'
 import { reservationsService } from '@/services/reservations.service'
 const route=useRoute(),router=useRouter(),code=ref(String(route.params.code||'')),progress=ref(null),error=ref(''),busy=ref(false)
-const messageFor=e=>({404:'El código no existe o ya no está disponible.',410:'El plazo de confirmación ya venció.',403:'Debes tener una cuenta activa y RUT registrado.'}[e?.response?.status]||e?.response?.data?.error||'No se pudo completar la operación.')
+const messageFor=e=>({404:'El código no existe o ya no está disponible.',409:'Ya tienes una reserva activa en ese horario y no puedes confirmar esta participación.',410:'El plazo de confirmación ya venció.',403:'Debes tener una cuenta activa y RUT registrado.'}[e?.response?.status]||e?.response?.data?.error||'No se pudo completar la operación.')
 const load=async()=>{error.value='';if(!code.value.trim())return;busy.value=true;try{progress.value=await reservationsService.getGroupProgress(code.value.trim());router.replace(`/join/${encodeURIComponent(code.value.trim())}`)}catch(e){progress.value=null;error.value=messageFor(e)}finally{busy.value=false}}
 const change=async confirm=>{busy.value=true;error.value='';try{progress.value=confirm?await reservationsService.confirmGroup(code.value):await reservationsService.withdrawGroup(code.value)}catch(e){error.value=messageFor(e)}finally{busy.value=false}}
 onMounted(()=>{if(code.value)load()})
