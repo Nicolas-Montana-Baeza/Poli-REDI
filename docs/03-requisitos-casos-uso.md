@@ -12,13 +12,13 @@ gantt
     title Roadmap Poli-REDI
     dateFormat  YYYY-MM-DD
     section MVP 1 Base Operativa
-    Consulta Disponibilidad & Reservas Básicas :done, mvp1, 2026-01-01, 2026-03-31
-    section MVP 2 Reglas & Grupal
-    Quorum 10 Persona & Frecuencia Semanal   :done, mvp2, 2026-04-01, 2026-06-30
-    section MVP 3 Administración
-    Bloqueos, Infracciones & Notificaciones   :active, mvp3, 2026-07-01, 2026-08-31
+    Consulta Disponibilidad y Reservas Basicas :done, mvp1, 2026-01-01, 2026-03-31
+    section MVP 2 Reglas y Grupal
+    Quorum 10 Personas y Frecuencia Semanal   :done, mvp2, 2026-04-01, 2026-06-30
+    section MVP 3 Administracion
+    Bloqueos e Infracciones                   :active, mvp3, 2026-07-01, 2026-08-31
     section MVP 4 Trazabilidad
-    Reportes Avanzados & BI                  :future, mvp4, 2026-09-01, 2026-10-31
+    Reportes Avanzados                        :mvp4, 2026-09-01, 2026-10-31
 ```
 
 * **MVP 1 (Base Operativa):** Demo funcional. Inicios de sesión, disponibilidad en agenda, reservas simples, captura de RUT y panel admin inicial.
