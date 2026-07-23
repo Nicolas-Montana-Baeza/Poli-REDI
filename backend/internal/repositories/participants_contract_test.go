@@ -59,6 +59,9 @@ func TestSchemaAndMigrationInstallEquivalentMVP2TriggerObligations(t *testing.T)
 	schema := strings.ToUpper(readRepositoryFile(t, "database", "schema.sql"))
 	migration := strings.ToUpper(readRepositoryFile(t, "database", "migrations", "001_mvp2_group_participants.sql"))
 	required := []string{
+		"TRG_RESERVATION_POLICIES_IMMUTABLE", "THROW 51011", "THROW 51012",
+		"TRG_RESERVATION_POLICY_RESOURCES_IMMUTABLE", "LEGACY_POLICY_SCOPE_BOOTSTRAP", "THROW 51013",
+		"TRG_RESERVATION_POLICY_DURATIONS_IMMUTABLE", "THROW 51014",
 		"TRG_RESERVATIONS_PENDING_CONFLICTS", "R.USER_ID=I.USER_ID",
 		"R.STATUS IN('PENDING','CONFIRMED')", "TRG_BLOCKS_PENDING_CONFLICTS",
 		"TRG_SCHEDULED_ACTIVITIES_PENDING_CONFLICTS",
@@ -77,6 +80,76 @@ func TestSchemaAndMigrationInstallEquivalentMVP2TriggerObligations(t *testing.T)
 	for _, divergent := range []string{"TRG_MVP2_PENDING", "TRG_MVP2_BLOCKS", "TRG_MVP2_ACTIVITIES"} {
 		if strings.Contains(schema, divergent) || strings.Contains(migration, divergent) {
 			t.Fatalf("divergent trigger remains: %s", divergent)
+		}
+	}
+}
+
+func TestMigrationNormalizesOldMVP1BeforeReferencingNewColumns(t *testing.T) {
+	migration := strings.ToUpper(readRepositoryFile(t, "database", "migrations", "001_mvp2_group_participants.sql"))
+	for _, column := range []string{
+		"OPENING_MINUTE", "CLOSING_MINUTE", "SLOT_INTERVAL_MINUTES",
+		"IDEMPOTENCY_KEY", "IDEMPOTENCY_PAYLOAD_HASH", "IS_PUBLISHED",
+		"POLICY_ID", "JOIN_CODE_HASH", "GROUP_CAPACITY_SNAPSHOT",
+	} {
+		if !strings.Contains(migration, "COL_LENGTH(") || !strings.Contains(migration, column) {
+			t.Fatalf("old MVP1 prerequisite is not normalized: %s", column)
+		}
+	}
+	addColumns := strings.Index(migration, "-- FASE 1:")
+	firstBatchEnd := strings.Index(migration[addColumns:], "\nGO")
+	publication := strings.Index(migration, "-- FASE 6:")
+	if addColumns < 0 || firstBatchEnd < 0 || publication < 0 || publication <= addColumns+firstBatchEnd {
+		t.Fatal("new columns must be separated by GO and publication must be last")
+	}
+	for _, required := range []string{
+		"EXEC(N'ALTER TABLE", "WITH VALUES", "-- PREFLIGHT:", "-- POSTCHECK",
+		"ELSE IF NOT EXISTS", "NO SE MODIFICO LA VIGENCIA",
+	} {
+		if !strings.Contains(migration, required) {
+			t.Fatalf("migration lacks recoverable old/partial-state behavior: %s", required)
+		}
+	}
+}
+
+func TestMigrationDoesNotPublishBeforeCanonicalTriggers(t *testing.T) {
+	migration := strings.ToUpper(readRepositoryFile(t, "database", "migrations", "001_mvp2_group_participants.sql"))
+	triggers := strings.Index(migration, "-- FASE 5:")
+	publication := strings.Index(migration, "-- FASE 6:")
+	if triggers < 0 || publication < 0 || triggers >= publication {
+		t.Fatal("canonical triggers must be installed before prospective publication")
+	}
+	if strings.Contains(migration[:publication], "SET IS_PUBLISHED=1") {
+		t.Fatal("migration publishes a policy before all prerequisites and triggers")
+	}
+}
+
+func TestMigrationRecoveryGuidesAvoidOptionalColumnCompileErrors(t *testing.T) {
+	guide := strings.ToUpper(readRepositoryFile(t, "database", "migrations", "README.md"))
+	installation := strings.ToUpper(readRepositoryFile(t, "docs", "01-instalacion-y-ejecucion.md"))
+	for _, unsafe := range []string{
+		"SELECT ID,EFFECTIVE_FROM,EFFECTIVE_TO,IS_PUBLISHED",
+		"SELECT ID,EFFECTIVE_FROM,EFFECTIVE_TO,IDEMPOTENCY_KEY",
+	} {
+		if strings.Contains(guide, unsafe) {
+			t.Fatalf("recovery guide references optional columns directly: %s", unsafe)
+		}
+	}
+	for _, safe := range []string{
+		"COL_LENGTH('DBO.RESERVATION_POLICIES','IS_PUBLISHED')",
+		"COL_LENGTH('DBO.RESERVATION_POLICIES','IDEMPOTENCY_KEY')",
+		"FROM SYS.COLUMNS",
+		"SELECT ID,EFFECTIVE_FROM,EFFECTIVE_TO",
+	} {
+		if !strings.Contains(guide, safe) {
+			t.Fatalf("recovery guide lacks safe inspection: %s", safe)
+		}
+	}
+	for _, required := range []string{
+		"DATABASE/MIGRATIONS/README.MD", "BACKUP", "SESION NUEVA",
+		"COMPATIBLE CON `GO`", "POSTCHECK", "UNICA FUENTE OPERATIVA",
+	} {
+		if !strings.Contains(installation, required) {
+			t.Fatalf("installation guide lacks safe migration referral: %s", required)
 		}
 	}
 }

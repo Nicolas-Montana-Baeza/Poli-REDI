@@ -31,6 +31,7 @@ backend/bin
 backend/tmp
 .gocache/
 .qa-go-cache/
+.tmp-gocache/
 # Build
 *.exe
 *.out

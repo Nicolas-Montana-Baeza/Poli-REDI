@@ -76,7 +76,13 @@ Orden recomendado para una base limpia:
 2. Ejecutar `database/schema.sql`.
 3. Ejecutar `database/seed.sql` para cargar datos iniciales.
 
-Para una base MVP 1 ya existente, no repetir el flujo destructivo de instalacion limpia: ejecutar `database/migrations/001_mvp2_group_participants.sql`. La migracion es prospectiva e idempotente y no modifica reservas historicas.
+Para una base MVP 1 ya existente, no repetir el flujo destructivo de
+instalacion limpia. Es obligatorio seguir
+[`database/migrations/README.md`](../database/migrations/README.md): crear el
+backup, abrir una sesion nueva, usar una herramienta compatible con `GO`,
+ejecutar solamente la migracion indicada y comprobar sus cuatro indicadores
+`POSTCHECK`. Esa guia es la unica fuente operativa para la recuperacion o
+actualizacion de la base existente.
 4. Configurar `backend/.env`.
 5. Levantar backend y validar `/api/health`.
 

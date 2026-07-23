@@ -147,7 +147,11 @@ Para preparar una base limpia:
 2. Ejecutar `database/schema.sql`.
 3. Ejecutar `database/seed.sql` para cargar datos iniciales de desarrollo.
 
-Para actualizar una base MVP 1 existente sin reconstruirla, ejecutar despues `database/migrations/001_mvp2_group_participants.sql`. La migracion es prospectiva e idempotente: agrega la estructura grupal y publica una nueva politica, sin reclasificar reservas historicas.
+Para actualizar una base MVP 1 existente sin reconstruirla, seguir
+[`database/migrations/README.md`](database/migrations/README.md) y ejecutar
+solamente `database/migrations/001_mvp2_group_participants.sql` con una
+herramienta compatible con `GO`. Ante un intento fallido sobre la unica base,
+no ejecutar `drop.sql`, `schema.sql` ni `seed.sql`.
 4. Configurar `backend/.env`.
 5. Levantar el backend y validar `/api/health`.
 
