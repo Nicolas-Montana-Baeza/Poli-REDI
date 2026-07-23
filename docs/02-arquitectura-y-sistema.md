@@ -11,10 +11,10 @@ Poli-REDI adopta una arquitectura cliente-servidor desacoplada compuesta por tre
 
 ```mermaid
 graph TD
-    Client["Frontend SPA (Vue 3 + Vite + Pinia)"] -->|HTTP / REST API (JSON)| API["Backend Server (Go + Fiber Framework)"]
-    API -->|T-SQL / SQL Driver| DB[("Azure SQL Database")]
-    Client -->|MSAL Browser Auth| EntraID["Microsoft Entra ID (OAuth 2.0 / OIDC)"]
-    API -->|JWT Validation| EntraID
+    Client["Frontend SPA (Vue 3 + Vite + Pinia)"] -->|"HTTP / REST API (JSON)"| API["Backend Server (Go + Fiber Framework)"]
+    API -->|"T-SQL / SQL Driver"| DB[("Azure SQL Database")]
+    Client -->|"MSAL Browser Auth"| EntraID["Microsoft Entra ID (OAuth 2.0 / OIDC)"]
+    API -->|"JWT Validation"| EntraID
 ```
 
 ---
@@ -74,11 +74,11 @@ La SPA desarrollada en **Vue 3** (Composition API) utiliza:
 
 ```mermaid
 stateDiagram-v2
-    [*] --> PENDING : Crear Reserva Particular (Resource Grupal)
-    [*] --> CONFIRMED : Crear Reserva Institucional / Individual
-    PENDING --> CONFIRMED : Quorum Alcanzado (>= 10 Participantes)
-    PENDING --> CANCELLED : Expiración Deadline / Retiro de Integrantes
-    CONFIRMED --> CANCELLED : Cancelación por Usuario / Prioridad Institucional
+    [*] --> PENDING : "Crear Reserva Particular (Recurso Grupal)"
+    [*] --> CONFIRMED : "Crear Reserva Institucional / Individual"
+    PENDING --> CONFIRMED : "Quorum Alcanzado (>= 10 Participantes)"
+    PENDING --> CANCELLED : "Expiracion Deadline / Retiro de Integrantes"
+    CONFIRMED --> CANCELLED : "Cancelacion por Usuario / Prioridad Institucional"
     CANCELLED --> [*]
     CONFIRMED --> [*]
 ```
