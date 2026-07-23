@@ -96,12 +96,15 @@ N'DECLARE @next_request_date DATE;
 
     DECLARE @create_or_alter INT = CHARINDEX(N'CREATE OR ALTER TRIGGER', UPPER(@definition));
     DECLARE @create_only INT = CHARINDEX(N'CREATE TRIGGER', UPPER(@definition));
+    DECLARE @alter_only INT = CHARINDEX(N'ALTER TRIGGER', UPPER(@definition));
     IF @create_or_alter > 0
         SET @definition = STUFF(@definition, @create_or_alter, LEN(N'CREATE OR ALTER TRIGGER'), N'ALTER TRIGGER');
     ELSE IF @create_only > 0
         SET @definition = STUFF(@definition, @create_only, LEN(N'CREATE TRIGGER'), N'ALTER TRIGGER');
+    ELSE IF @alter_only > 0
+        PRINT 'El trigger ya usa ALTER TRIGGER.';
     ELSE
-        THROW 53002, 'Preflight: no se pudo identificar la sentencia CREATE del trigger.', 1;
+        THROW 53002, 'Preflight: no se pudo identificar la sentencia DDL del trigger.', 1;
 
     EXEC sys.sp_executesql @definition;
 END;
