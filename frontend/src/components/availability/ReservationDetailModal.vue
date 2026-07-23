@@ -1,5 +1,6 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
+import { reservationsService } from '@/services/reservations.service'
 import {
   formatReservationDate,
   formatReservationTimeRange,
@@ -27,7 +28,8 @@ const props = defineProps({
   canCancel: {
     type: Boolean,
     default: true
-  }
+  },
+  canManageJoinCode: { type: Boolean, default: false }
 })
 
 const emit = defineEmits([
@@ -36,6 +38,10 @@ const emit = defineEmits([
   'update-target'
 ])
 const targetValue = ref(null)
+const joinCode = ref('')
+const codeError = ref('')
+const codeBusy = ref(false)
+const codeOpen = ref(false)
 watch(() => props.reservation, value => { targetValue.value = value?.targetParticipants ?? null }, { immediate: true })
 
 const reservationDate = computed(() => {
@@ -169,6 +175,21 @@ const details = computed(() => {
 const handleCancel = () => {
   emit('cancel')
 }
+const loadJoinCode = async () => {
+  codeOpen.value = !codeOpen.value
+  if (!codeOpen.value || joinCode.value) return
+  codeBusy.value = true; codeError.value = ''
+  try { joinCode.value = (await reservationsService.getJoinCode(props.reservation.id)).joinCode }
+  catch { codeError.value = 'No se pudo recuperar el código.' }
+  finally { codeBusy.value = false }
+}
+const rotateJoinCode = async () => {
+  codeBusy.value = true; codeError.value = ''
+  try { joinCode.value = (await reservationsService.rotateJoinCode(props.reservation.id)).joinCode }
+  catch { codeError.value = 'No se pudo generar un código nuevo.' }
+  finally { codeBusy.value = false }
+}
+const copyJoinCode = async () => { await navigator.clipboard.writeText(joinCode.value) }
 </script>
 
 <template>
@@ -247,6 +268,20 @@ const handleCancel = () => {
             <label for="detail-target">Objetivo de participantes</label>
             <input id="detail-target" v-model.number="targetValue" type="number" :min="Math.max(reservation.minimumParticipants, reservation.participantCount)" :max="reservation.capacity">
             <button class="app-button primary" type="button" @click="emit('update-target', targetValue)">Guardar objetivo</button>
+          </div>
+        </section>
+        <section v-if="canManageJoinCode" class="target-editor">
+          <button type="button" class="secondary-btn" :aria-expanded="codeOpen" @click="loadJoinCode">Código de invitación</button>
+          <div v-if="codeOpen">
+            <p v-if="codeBusy">Cargando código…</p>
+            <p v-if="codeError" role="alert">{{ codeError }}</p>
+            <template v-if="joinCode">
+              <output aria-label="Código de invitación">{{ joinCode }}</output>
+              <div class="target-controls">
+                <button type="button" class="app-button secondary" @click="copyJoinCode">Copiar</button>
+                <button type="button" class="app-button secondary" :disabled="codeBusy" @click="rotateJoinCode">Generar código nuevo</button>
+              </div>
+            </template>
           </div>
         </section>
 

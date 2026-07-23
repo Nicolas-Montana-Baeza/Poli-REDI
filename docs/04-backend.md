@@ -54,6 +54,8 @@ La estructura principal esta organizada por capas:
 - `PUT /api/group-reservations/:code/confirmation`: confirmar o reconfirmar la participacion del usuario autenticado.
 - `DELETE /api/group-reservations/:code/confirmation`: retirar la participacion propia; el propietario no puede retirarse.
 - `PATCH /api/reservations/:id/target-participants`: cambiar el objetivo de una solicitud grupal propia hasta su limite de confirmacion inclusive.
+- `GET /api/reservations/:id/join-code`: recuperar el codigo, solo propietario.
+- `POST /api/reservations/:id/join-code/rotate`: rotar codigo/hash/secreto, solo propietario.
 
 ## Endpoints administrativos actuales
 
@@ -137,13 +139,15 @@ El repositorio publica con aislamiento serializable y bloqueos `UPDLOCK, HOLDLOC
 
 ## API de participantes grupales
 
-Estado: API IMPLEMENTADA y VERIFICADA LOCALMENTE. El frontend cubre seleccion del objetivo, progreso agregado y edicion por propietario; compartir/conservar `joinCode`, ingresar por codigo, confirmar y retirar siguen pendientes. Tambien falta prueba integrada contra SQL Server/Azure SQL real.
+Estado: ACCEPTED LOCALLY. API y frontend cubren detalle/progreso, codigo recuperable owner-only, rotacion, `/join` manual o por URL, confirmar, retirar y reconfirmar.
 
-`POST /api/reservations` devuelve `joinCode` solo al crear una solicitud grupal. El codigo compartible no se persiste en claro: la reserva guarda su hash. Las consultas por codigo exponen solo `reservationId`, estado, conteo, minimo, capacidad snapshot y membresia del usuario actual. Confirmacion, reconfirmacion y retiro se serializan por reserva, exigen cuenta activa con RUT, respetan capacidad, auditan cada cambio y recalculan `PENDING` o `CONFIRMED`. El propietario se inserta confirmado, cuenta una vez y no puede retirarse.
+`POST /api/reservations` crea la solicitud grupal sin exponer el codigo. El propietario lo recupera bajo demanda con `GET /api/reservations/:id/join-code`. La base guarda hash para lookup y secreto cifrado. Las consultas por codigo exponen progreso agregado; confirmar, reconfirmar y retirar se serializan, exigen cuenta activa con RUT, respetan capacidad y auditan cada cambio.
 
 La creacion acepta `targetParticipants` opcional. En solicitudes grupales, el valor por defecto es `minimumParticipants` y debe cumplir `minimo <= objetivo <= capacidad snapshot`; en recursos no grupales, enviarlo produce `400`. El umbral de confirmacion sigue siendo el minimo, mientras el objetivo limita nuevas altas. El propietario puede modificarlo mediante `PATCH /api/reservations/:id/target-participants` hasta `confirmationDeadline` inclusive; no puede bajarlo del minimo ni del conteo vigente, ni subirlo sobre la capacidad. Cada cambio se serializa y se registra en auditoria append-only. El progreso agrega `targetParticipants`, `confirmationDeadline`, `canEditTarget` e `isOwner`.
 
-El limite temporal inclusivo se aplica actualmente solo a `PATCH /api/reservations/:id/target-participants`, usando `America/Santiago`. Aplicarlo a confirmaciones y retiros, junto con la cancelacion automatica por vencimiento, sigue pendiente. Tampoco existen notificaciones ni administracion del objetivo por defecto.
+El deadline inclusivo en `America/Santiago` se aplica a objetivo, confirmacion y retiro. Bajo el minimo, una solicitud `PENDING` expira a `CANCELLED` de forma perezosa y mediante worker cada 30 segundos. `GET /api/reservations/:id/join-code` y `POST /api/reservations/:id/join-code/rotate` son owner-only y usan respuesta uniforme `404`; la rotacion permite migrar reservas legacy. Configuracion obligatoria: `JOIN_CODE_ENCRYPTION_KEYS` y `JOIN_CODE_KEY_VERSION`.
+
+Estados HTTP relevantes: `400` payload/regla invalida, `403` operacion no permitida, `404` codigo o reserva no accesible, `409` capacidad/estado incompatible y `410` deadline vencido. Azure SQL real, idempotencia y concurrencia integrada siguen pendientes.
 
 ## Pruebas backend recomendadas
 

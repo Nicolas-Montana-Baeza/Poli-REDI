@@ -53,6 +53,8 @@ func RegisterRoutes(app *fiber.App) {
 	protected.Post("/reservations", handlers.CreateReservation)
 	protected.Patch("/reservations/cancel", handlers.CancelReservation)
 	protected.Patch("/reservations/:id/target-participants", handlers.UpdateReservationTarget)
+	protected.Get("/reservations/:id/join-code", handlers.GetOwnerJoinCode)
+	protected.Post("/reservations/:id/join-code/rotate", handlers.RotateOwnerJoinCode)
 	protected.Get("/group-reservations/:code", handlers.GetReservationProgress)
 	protected.Put("/group-reservations/:code/confirmation", handlers.ConfirmParticipation)
 	protected.Delete("/group-reservations/:code/confirmation", handlers.WithdrawParticipation)

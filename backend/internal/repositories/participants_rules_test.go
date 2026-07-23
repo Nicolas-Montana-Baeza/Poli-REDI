@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"errors"
+	"poli-redi-api/internal/models"
 	"testing"
 	"time"
 )
@@ -24,6 +25,17 @@ func TestParticipantTransition(t *testing.T) {
 	}
 }
 
+func TestParticipantThresholdMovesNineToTenAndBack(t *testing.T) {
+	mutate, _, status, err := participantTransition(false, "", false, 9, 20, 10, true)
+	if err != nil || !mutate || status != models.ReservationStatusConfirmed {
+		t.Fatalf("9 -> 10 = mutate %v status %s err %v", mutate, status, err)
+	}
+	mutate, _, status, err = participantTransition(true, "CONFIRMED", false, 10, 20, 10, false)
+	if err != nil || !mutate || status != models.ReservationStatusPending {
+		t.Fatalf("10 -> 9 = mutate %v status %s err %v", mutate, status, err)
+	}
+}
+
 func TestTargetValidationAndInclusiveDeadline(t *testing.T) {
 	if err := validateTargetChange(10, 10, 22, 9); err != nil {
 		t.Fatalf("valid target: %v", err)
@@ -43,6 +55,12 @@ func TestTargetValidationAndInclusiveDeadline(t *testing.T) {
 	}
 	if targetDeadlineOpen(deadline.Add(time.Nanosecond), deadline) {
 		t.Fatal("after deadline must be rejected")
+	}
+	if participationDeadlineClosed(deadline, deadline) {
+		t.Fatal("participation must remain open at the exact deadline")
+	}
+	if !participationDeadlineClosed(deadline.Add(time.Nanosecond), deadline) {
+		t.Fatal("participation must close immediately after the deadline")
 	}
 }
 

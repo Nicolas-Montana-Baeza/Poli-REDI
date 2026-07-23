@@ -7,6 +7,7 @@ dist
 .env.local
 .env.*.local
 backend/.env
+backend/.env.backup-*
 backend/.env.local
 backend/.env.*.local
 frontend/.env

@@ -48,6 +48,8 @@ IF OBJECT_ID('dbo.workshops', 'U') IS NOT NULL DROP TABLE dbo.workshops;
 IF OBJECT_ID('dbo.scheduled_activities', 'U') IS NOT NULL DROP TABLE dbo.scheduled_activities;
 IF OBJECT_ID('dbo.availability_blocks', 'U') IS NOT NULL DROP TABLE dbo.availability_blocks;
 IF OBJECT_ID('dbo.participants', 'U') IS NOT NULL DROP TABLE dbo.participants;
+IF OBJECT_ID('dbo.reservation_join_code_secrets', 'U') IS NOT NULL DROP TABLE dbo.reservation_join_code_secrets;
+IF OBJECT_ID('dbo.reservation_group_expirations', 'U') IS NOT NULL DROP TABLE dbo.reservation_group_expirations;
 IF OBJECT_ID('dbo.reservation_participant_audit', 'U') IS NOT NULL DROP TABLE dbo.reservation_participant_audit;
 IF OBJECT_ID('dbo.reservation_target_audit', 'U') IS NOT NULL DROP TABLE dbo.reservation_target_audit;
 IF OBJECT_ID('dbo.reservations', 'U') IS NOT NULL DROP TABLE dbo.reservations;

@@ -2,12 +2,15 @@ package repositories
 
 import (
 	"context"
+	"crypto/rand"
 	"crypto/sha256"
 	"database/sql"
+	"encoding/base64"
 	"encoding/hex"
 	"errors"
 	"poli-redi-api/internal/businessclock"
 	"poli-redi-api/internal/database"
+	"poli-redi-api/internal/joinsecret"
 	"poli-redi-api/internal/models"
 	"strings"
 	"time"
@@ -17,6 +20,7 @@ var ErrInvalidJoinCode = errors.New("solicitud grupal no encontrada")
 var ErrParticipantIneligible = errors.New("la cuenta debe estar activa y tener RUT registrado")
 var ErrGroupCapacity = errors.New("la solicitud alcanzo su capacidad")
 var ErrOwnerCannotWithdraw = errors.New("el solicitante no puede retirarse")
+var ErrParticipationDeadline = errors.New("el plazo de confirmacion ya vencio")
 
 func codeHash(code string) string { s := sha256.Sum256([]byte(code)); return hex.EncodeToString(s[:]) }
 
@@ -32,10 +36,13 @@ func assembleReservationProgress(reservationID int, status string, count, minimu
 }
 
 func GetReservationProgress(code string, userID int) (models.ReservationProgress, error) {
+	if err := ExpirePendingGroupReservations(businessclock.Now()); err != nil {
+		return models.ReservationProgress{}, err
+	}
 	var p models.ReservationProgress
 	var start time.Time
 	var deadlineMinutes int
-	err := database.DB.QueryRowContext(context.Background(), `SELECT r.id,r.status,COUNT(CASE WHEN pa.status='CONFIRMED' THEN 1 END),pol.minimum_participants,r.group_capacity_snapshot,COALESCE(r.target_participants,r.group_capacity_snapshot),r.start_time,pol.confirmation_deadline_minutes,CASE WHEN EXISTS(SELECT 1 FROM dbo.participants mine WHERE mine.reservation_id=r.id AND mine.user_id=@p2 AND mine.status='CONFIRMED') THEN 1 ELSE 0 END,CASE WHEN r.user_id=@p2 THEN 1 ELSE 0 END FROM dbo.reservations r INNER JOIN dbo.reservation_policies pol ON pol.id=r.policy_id LEFT JOIN dbo.participants pa ON pa.reservation_id=r.id WHERE r.join_code_hash=@p1 AND r.group_capacity_snapshot IS NOT NULL AND r.status IN ('PENDING','CONFIRMED') GROUP BY r.id,r.status,pol.minimum_participants,r.group_capacity_snapshot,r.target_participants,r.start_time,pol.confirmation_deadline_minutes,r.user_id`, codeHash(code), userID).Scan(&p.ReservationID, &p.Status, &p.ParticipantCount, &p.MinimumParticipants, &p.Capacity, &p.TargetParticipants, &start, &deadlineMinutes, &p.IsMember, &p.IsOwner)
+	err := database.DB.QueryRowContext(context.Background(), `SELECT r.id,r.status,COUNT(CASE WHEN pa.status='CONFIRMED' THEN 1 END),pol.minimum_participants,r.group_capacity_snapshot,COALESCE(r.target_participants,r.group_capacity_snapshot),r.start_time,pol.confirmation_deadline_minutes,CASE WHEN EXISTS(SELECT 1 FROM dbo.participants mine WHERE mine.reservation_id=r.id AND mine.user_id=@p2 AND mine.status='CONFIRMED') THEN 1 ELSE 0 END,CASE WHEN r.user_id=@p2 THEN 1 ELSE 0 END FROM dbo.reservations r INNER JOIN dbo.reservation_policies pol ON pol.id=r.policy_id LEFT JOIN dbo.participants pa ON pa.reservation_id=r.id WHERE r.join_code_hash=@p1 AND r.group_capacity_snapshot IS NOT NULL AND r.status IN ('PENDING','CONFIRMED','CANCELLED') GROUP BY r.id,r.status,pol.minimum_participants,r.group_capacity_snapshot,r.target_participants,r.start_time,pol.confirmation_deadline_minutes,r.user_id`, codeHash(code), userID).Scan(&p.ReservationID, &p.Status, &p.ParticipantCount, &p.MinimumParticipants, &p.Capacity, &p.TargetParticipants, &start, &deadlineMinutes, &p.IsMember, &p.IsOwner)
 	if errors.Is(err, sql.ErrNoRows) {
 		return p, ErrInvalidJoinCode
 	}
@@ -50,15 +57,33 @@ func ChangeParticipation(code string, userID int, confirm bool) (models.Reservat
 	}
 	defer tx.Rollback()
 	var reservationID, capacity, minimum, deadlineMinutes, ownerID int
-	var oldReservationStatus string
+	var oldReservationStatus, cancellationReason string
 	var target int
 	var start time.Time
-	err = tx.QueryRowContext(ctx, `SELECT r.id,r.group_capacity_snapshot,p.minimum_participants,COALESCE(r.target_participants,r.group_capacity_snapshot),r.status,r.start_time,p.confirmation_deadline_minutes,r.user_id FROM dbo.reservations r WITH(UPDLOCK,HOLDLOCK) INNER JOIN dbo.reservation_policies p ON p.id=r.policy_id WHERE r.join_code_hash=@p1 AND r.group_capacity_snapshot IS NOT NULL AND r.status IN('PENDING','CONFIRMED')`, codeHash(code)).Scan(&reservationID, &capacity, &minimum, &target, &oldReservationStatus, &start, &deadlineMinutes, &ownerID)
+	err = tx.QueryRowContext(ctx, `SELECT r.id,r.group_capacity_snapshot,p.minimum_participants,COALESCE(r.target_participants,r.group_capacity_snapshot),r.status,r.start_time,p.confirmation_deadline_minutes,r.user_id,COALESCE(r.cancellation_reason,'') FROM dbo.reservations r WITH(UPDLOCK,HOLDLOCK) INNER JOIN dbo.reservation_policies p ON p.id=r.policy_id WHERE r.join_code_hash=@p1 AND r.group_capacity_snapshot IS NOT NULL AND r.status IN('PENDING','CONFIRMED','CANCELLED')`, codeHash(code)).Scan(&reservationID, &capacity, &minimum, &target, &oldReservationStatus, &start, &deadlineMinutes, &ownerID, &cancellationReason)
 	if errors.Is(err, sql.ErrNoRows) {
 		return models.ReservationProgress{}, ErrInvalidJoinCode
 	}
 	if err != nil {
 		return models.ReservationProgress{}, err
+	}
+	if oldReservationStatus == models.ReservationStatusCancelled {
+		if cancellationReason == "CONFIRMATION_DEADLINE" {
+			return models.ReservationProgress{}, ErrParticipationDeadline
+		}
+		return models.ReservationProgress{}, ErrInvalidJoinCode
+	}
+	deadline := businessclock.ConfirmationDeadline(start, deadlineMinutes)
+	if participationDeadlineClosed(businessclock.Now(), deadline) {
+		if oldReservationStatus == models.ReservationStatusPending {
+			if _, err = expirePendingGroupTx(ctx, tx, reservationID, ownerID, minimum); err != nil {
+				return models.ReservationProgress{}, err
+			}
+		}
+		if err = tx.Commit(); err != nil {
+			return models.ReservationProgress{}, err
+		}
+		return models.ReservationProgress{}, ErrParticipationDeadline
 	}
 	var rut string
 	var blocked bool
@@ -121,6 +146,120 @@ func ChangeParticipation(code string, userID int, confirm bool) (models.Reservat
 	return assembleReservationProgress(reservationID, newReservationStatus, count, minimum, target, capacity, start, deadlineMinutes, ownerID == userID, newStatus == "CONFIRMED"), nil
 }
 
+func expirePendingGroupTx(ctx context.Context, tx *sql.Tx, reservationID, ownerID, minimum int) (bool, error) {
+	var count int
+	if err := tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM dbo.participants WITH(UPDLOCK,HOLDLOCK) WHERE reservation_id=@p1 AND status='CONFIRMED'`, reservationID).Scan(&count); err != nil {
+		return false, err
+	}
+	if count >= minimum {
+		return false, nil
+	}
+	result, err := tx.ExecContext(ctx, `UPDATE dbo.reservations SET status='CANCELLED',cancellation_reason='CONFIRMATION_DEADLINE',updated_at=SYSUTCDATETIME() WHERE id=@p1 AND status='PENDING'`, reservationID)
+	if err != nil {
+		return false, err
+	}
+	changed, _ := result.RowsAffected()
+	if changed == 0 {
+		return false, nil
+	}
+	if _, err = tx.ExecContext(ctx, `INSERT INTO dbo.reservation_group_expirations(reservation_id,participant_count,minimum_participants) VALUES(@p1,@p2,@p3)`, reservationID, count, minimum); err != nil {
+		return false, err
+	}
+	_, err = tx.ExecContext(ctx, `INSERT INTO dbo.notifications(user_id,reservation_id,title,message,type) VALUES(@p1,@p2,'Solicitud grupal cancelada','No se alcanzo el minimo antes del plazo.','RESERVATION_CANCELLED')`, ownerID, reservationID)
+	return true, err
+}
+
+func ExpirePendingGroupReservations(now time.Time) error {
+	rows, err := database.DB.QueryContext(context.Background(), `SELECT r.id,r.user_id,r.start_time,p.confirmation_deadline_minutes,p.minimum_participants FROM dbo.reservations r INNER JOIN dbo.reservation_policies p ON p.id=r.policy_id WHERE r.status='PENDING' AND r.group_capacity_snapshot IS NOT NULL`)
+	if err != nil {
+		return err
+	}
+	type candidate struct {
+		id, owner, minutes, minimum int
+		start                       time.Time
+	}
+	var candidates []candidate
+	for rows.Next() {
+		var c candidate
+		if err = rows.Scan(&c.id, &c.owner, &c.start, &c.minutes, &c.minimum); err != nil {
+			rows.Close()
+			return err
+		}
+		if now.After(businessclock.ConfirmationDeadline(c.start, c.minutes)) {
+			candidates = append(candidates, c)
+		}
+	}
+	rows.Close()
+	for _, c := range candidates {
+		ctx := context.Background()
+		tx, beginErr := database.DB.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelSerializable})
+		if beginErr != nil {
+			return beginErr
+		}
+		var status string
+		if beginErr = tx.QueryRowContext(ctx, `SELECT status FROM dbo.reservations WITH(UPDLOCK,HOLDLOCK) WHERE id=@p1`, c.id).Scan(&status); beginErr == nil && status == "PENDING" {
+			_, beginErr = expirePendingGroupTx(ctx, tx, c.id, c.owner, c.minimum)
+		}
+		if beginErr == nil {
+			beginErr = tx.Commit()
+		} else {
+			tx.Rollback()
+		}
+		if beginErr != nil {
+			return beginErr
+		}
+	}
+	return nil
+}
+
+func GetOwnerJoinCode(reservationID, userID int) (string, error) {
+	var nonce, ciphertext []byte
+	var version int
+	err := database.DB.QueryRowContext(context.Background(), `SELECT s.nonce,s.ciphertext,s.key_version FROM dbo.reservations r INNER JOIN dbo.reservation_join_code_secrets s ON s.reservation_id=r.id WHERE r.id=@p1 AND r.user_id=@p2 AND r.group_capacity_snapshot IS NOT NULL`, reservationID, userID).Scan(&nonce, &ciphertext, &version)
+	if errors.Is(err, sql.ErrNoRows) {
+		return "", ErrInvalidJoinCode
+	}
+	if err != nil {
+		return "", err
+	}
+	return joinsecret.Decrypt(nonce, ciphertext, version, reservationID)
+}
+
+func RotateOwnerJoinCode(reservationID, userID int) (string, error) {
+	ctx := context.Background()
+	tx, err := database.DB.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelSerializable})
+	if err != nil {
+		return "", err
+	}
+	defer tx.Rollback()
+	var owner int
+	if err = tx.QueryRowContext(ctx, `SELECT user_id FROM dbo.reservations WITH(UPDLOCK,HOLDLOCK) WHERE id=@p1 AND group_capacity_snapshot IS NOT NULL`, reservationID).Scan(&owner); errors.Is(err, sql.ErrNoRows) || owner != userID {
+		return "", ErrInvalidJoinCode
+	}
+	if err != nil {
+		return "", err
+	}
+	raw := make([]byte, 18)
+	if _, err = rand.Read(raw); err != nil {
+		return "", err
+	}
+	code := base64.RawURLEncoding.EncodeToString(raw)
+	nonce, ciphertext, version, err := joinsecret.Encrypt(code, reservationID)
+	if err != nil {
+		return "", err
+	}
+	if _, err = tx.ExecContext(ctx, `UPDATE dbo.reservations SET join_code_hash=@p2,updated_at=SYSUTCDATETIME() WHERE id=@p1`, reservationID, codeHash(code)); err != nil {
+		return "", err
+	}
+	if _, err = tx.ExecContext(ctx, `MERGE dbo.reservation_join_code_secrets AS t USING(SELECT @p1 reservation_id) s ON t.reservation_id=s.reservation_id WHEN MATCHED THEN UPDATE SET key_version=@p2,nonce=@p3,ciphertext=@p4,rotated_at=SYSUTCDATETIME() WHEN NOT MATCHED THEN INSERT(reservation_id,key_version,nonce,ciphertext) VALUES(@p1,@p2,@p3,@p4);`, reservationID, version, nonce, ciphertext); err != nil {
+		return "", err
+	}
+	if err = tx.Commit(); err != nil {
+		return "", err
+	}
+	return code, nil
+}
+
 var ErrTargetForbidden = errors.New("solo el solicitante puede modificar el objetivo")
 var ErrTargetDeadline = errors.New("el plazo para modificar el objetivo ya vencio")
 var ErrTargetBelowConfirmed = errors.New("el objetivo no puede ser menor que los participantes confirmados")
@@ -152,6 +291,14 @@ func UpdateReservationTarget(reservationID, userID, target int, now time.Time) (
 	}
 	deadline := businessclock.ConfirmationDeadline(start, deadlineMinutes)
 	if !targetDeadlineOpen(now, deadline) {
+		if status == models.ReservationStatusPending {
+			if _, err = expirePendingGroupTx(ctx, tx, reservationID, owner, minimum); err != nil {
+				return models.ReservationProgress{}, err
+			}
+			if err = tx.Commit(); err != nil {
+				return models.ReservationProgress{}, err
+			}
+		}
 		return models.ReservationProgress{}, ErrTargetDeadline
 	}
 	var count int

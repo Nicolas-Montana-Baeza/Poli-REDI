@@ -191,6 +191,10 @@ const canCancelSelectedReservation = computed(() => {
     selectedReservation.value.userId === authStore.user.id
   )
 })
+const canManageSelectedJoinCode = computed(() =>
+  Boolean(selectedReservation.value?.targetParticipants) &&
+  selectedReservation.value?.userId === authStore.user?.id
+)
 
 /* MODAL */
 const showReservationForm = ref(false)
@@ -655,6 +659,7 @@ const goToday = () => {
     <ReservationDetailModal
       :visible="Boolean(selectedReservation)"
       :reservation="selectedReservation"
+      :can-manage-join-code="canManageSelectedJoinCode"
       :can-cancel="canCancelSelectedReservation"
       :error-message="reservationsStore.actionError"
       @close="closeReservationDetail"

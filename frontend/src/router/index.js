@@ -19,9 +19,15 @@ import ReportsView from '../views/ReportsView.vue'
 import AuthCallbackView from '../views/AuthCallbackView.vue'
 import LoginView from '../views/LoginView.vue'
 import BlockedView from '../views/BlockedView.vue'
+import JoinReservationView from '../views/JoinReservationView.vue'
 import { useAuthStore } from '../stores/auth'
 
 const routes = [
+  {
+    path: '/join/:code?',
+    component: JoinReservationView,
+    meta: { requiresAuth: true }
+  },
   {
     path: '/',
     component: DashboardView,

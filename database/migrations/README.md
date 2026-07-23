@@ -97,3 +97,20 @@ La migracion es reejecutable e instala la definicion canonica completa con
 `CREATE OR ALTER TRIGGER`; no intenta interpretar el encabezado almacenado por
 SQL Server. El `POSTCHECK` debe mostrar `open_use_frequency_scope_ok = 1` y
 `user_overlap_guard_ok = 1`.
+
+## `004_group_flow_completion.sql`
+
+Ejecutar solamente después de verificar 001, 002 y 003. Es incremental,
+reejecutable y no genera secretos ni cambia estados históricos. Añade el
+almacenamiento cifrado del código y la marca idempotente de expiración.
+La migracion separa tablas, validacion de estado parcial y constraints mediante
+`GO`. Si se interrumpe, abrir una sesion nueva, confirmar `@@TRANCOUNT = 0` y
+`XACT_STATE() = 0`, conservar el backup y ejecutar nuevamente solo 004. Las
+tablas con columnas compatibles y constraints faltantes se completan; columnas,
+tipos, nulabilidad, precision o PK divergentes detienen el proceso con
+`54001`-`54004` sin reinterpretar datos.
+
+El `POSTCHECK` devuelve doce indicadores para tabla, columnas/tipos/nulabilidad,
+PK/unicidad, FK, CHECK y
+DEFAULT. Todos deben valer `1`. No continuar con el despliegue si alguno vale
+`0`.

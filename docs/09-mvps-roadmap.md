@@ -11,7 +11,7 @@ Los MVPs organizan el proyecto desde una base tecnica funcional hasta una versio
 | MVP | Nombre | Proposito | Estado |
 | --- | --- | --- | --- |
 | MVP 1 | Base tecnica funcional | Dejar frontend, backend, base de datos, autenticacion, seguridad minima y demo online operando con datos reales. | Reabierto para pulido final |
-| MVP 2 | Flujo usuario completo | Permitir que un usuario normal consulte disponibilidad, solicite, confirme por participantes cuando corresponda, cancele y revise su informacion. | Backend/DB verificado; frontend parcial de objetivo/progreso. UI de participacion, deadline, vencimiento e integracion pendientes |
+| MVP 2 | Flujo usuario completo | Permitir que un usuario normal consulte disponibilidad, solicite, confirme por participantes cuando corresponda, cancele y revise su informacion. | Flujo grupal ACCEPTED LOCALLY; Azure SQL 004/idempotencia/concurrencia real pendientes |
 | MVP 3 | Administracion institucional | Completar calendario institucional, bloqueos, recursos y gestion administrativa. | Parcial |
 | MVP 4 | Entrega, calidad y soporte | Completar reportes, notificaciones, pruebas, documentacion y despliegue. | En desarrollo |
 
@@ -255,7 +255,7 @@ Incluye tambien una primera version funcional de talleres deportivos: listado de
 - Cargar el detalle por ID sin descargar colecciones completas (`API-006`).
 - Agregar confirmacion fuerte antes de cancelar reservas (`RES-007`).
 - Integrar en frontend y verificar en SQL Server/Azure SQL la ventana y frecuencia versionadas ya implementadas localmente; `PENDING` consume desde su creacion y `CANCELLED` libera la oportunidad (`RES-012`).
-- Completar UI de codigo compartible, ingreso, confirmar/retirar; aplicarles deadline y verificar todo en SQL Server/Azure SQL (`RES-008`).
+- Verificar migracion 004, idempotencia y concurrencia del flujo grupal en SQL Server/Azure SQL (`RES-008`).
 - Verificar en SQL Server/Azure SQL real el backend ya implementado de `PENDING`, bloqueo, confirmacion al minimo y retorno a `PENDING` por retirada (`RES-008`, `RES-010`).
 - Aceptar cambios hasta exactamente una hora antes inclusive y cancelar al vencer bajo el minimo, liberando horario y oportunidad (`RES-008`, `RES-012`).
 - Profesionalizar la seleccion de horario, capacidad, etiquetas humanas y experiencia movil (`UX-001`).
@@ -267,7 +267,7 @@ Incluye tambien una primera version funcional de talleres deportivos: listado de
 
 El MVP 2 se considera cerrado cuando un usuario normal puede autenticarse, completar su perfil, consultar disponibilidad, cumplir la ventana y frecuencia, crear una solicitud con estado acorde al recurso, reunir mediante cuentas y mantener 10 participantes dentro del plazo, observar el bloqueo `PENDING` y su cancelacion al vencer, cancelar una reserva propia, revisar reservas/historial/recursos, inscribirse en talleres y operar sin errores visibles en los flujos principales.
 
-El objetivo de convocatoria no reemplaza el minimo institucional: puede elegirse entre minimo y capacidad, limita altas y es editable por el propietario hasta el deadline inclusivo. Ese subflujo esta verificado localmente; el frontend de participacion, deadline de confirmar/retirar, vencimiento y SQL/Azure real mantienen abierto MVP 2.
+El objetivo no reemplaza el minimo. El flujo frontend, deadline y vencimiento estan ACCEPTED LOCALLY; SQL/Azure real y otras brechas mantienen abierto MVP 2.
 
 ## MVP 3 - Administracion institucional
 

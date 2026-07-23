@@ -10,6 +10,7 @@ import (
 
 	"poli-redi-api/internal/businessclock"
 	"poli-redi-api/internal/database"
+	"poli-redi-api/internal/joinsecret"
 	"poli-redi-api/internal/models"
 )
 
@@ -18,6 +19,9 @@ var ErrTargetForNonGroup = errors.New("targetParticipants solo se permite para s
 var ErrInvalidTargetParticipants = errors.New("targetParticipants debe estar entre el minimo y la capacidad")
 
 func GetAllReservations() ([]models.Reservation, error) {
+	if err := ExpirePendingGroupReservations(businessclock.Now()); err != nil {
+		return nil, err
+	}
 	rows, err := database.DB.QueryContext(
 		context.Background(),
 		`
@@ -62,6 +66,9 @@ func GetAllReservations() ([]models.Reservation, error) {
 }
 
 func GetReservationsByUserID(userID int) ([]models.Reservation, error) {
+	if err := ExpirePendingGroupReservations(businessclock.Now()); err != nil {
+		return nil, err
+	}
 	rows, err := database.DB.QueryContext(
 		context.Background(),
 		`
@@ -364,6 +371,11 @@ func AddReservationWithPolicy(reservation models.Reservation, validate func(mode
 	if err != nil {
 		return models.Reservation{}, err
 	}
+	if isGroup {
+		if err = insertJoinCodeSecretTx(ctx, tx, reservation.ID, reservation.JoinCode); err != nil {
+			return models.Reservation{}, err
+		}
+	}
 	if err := tx.Commit(); err != nil {
 		return models.Reservation{}, err
 	}
@@ -387,9 +399,19 @@ func AddReservationWithPolicy(reservation models.Reservation, validate func(mode
 		reservation.MinimumParticipants = progress.MinimumParticipants
 		reservation.ConfirmationDeadline = &progress.ConfirmationDeadline
 		reservation.CanEditTarget = progress.CanEditTarget
+		reservation.JoinCode = ""
 	}
 
 	return reservation, nil
+}
+
+func insertJoinCodeSecretTx(ctx context.Context, tx *sql.Tx, reservationID int, code string) error {
+	nonce, ciphertext, version, err := joinsecret.Encrypt(code, reservationID)
+	if err != nil {
+		return err
+	}
+	_, err = tx.ExecContext(ctx, `INSERT INTO dbo.reservation_join_code_secrets(reservation_id,key_version,nonce,ciphertext) VALUES(@p1,@p2,@p3,@p4)`, reservationID, version, nonce, ciphertext)
+	return err
 }
 
 func initialGroupReservationStatus(minimum int) string {

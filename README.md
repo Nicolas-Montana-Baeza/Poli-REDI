@@ -23,7 +23,7 @@ Quedan fuera del MVP 1 la gestion completa de bloqueos, CRUD avanzado de recurso
 
 Estado de cierre: el MVP 1 esta funcional como demo. Zona horaria, estado controlado por servidor y limites de horario/duracion estan implementados y tienen pruebas locales, pero falta verificarlos en el ambiente integrado/online. Tambien permanecen pendientes la ampliacion de cobertura, la seguridad de errores y la coherencia responsive/accesible. El estado de producto vigente y sus contradicciones de alcance estan en `docs/00-resumen-proyecto.md` y `docs/13-estado-actual-producto.md`.
 
-Para MVP 2 y MVP 3 se aprobaron reglas de ventana, frecuencia, participantes y prioridad institucional. El flujo grupal ya permite elegir un objetivo entre el minimo de la politica y la capacidad congelada, incluye al solicitante, confirma al alcanzar el minimo y limita nuevas altas al objetivo. El propietario puede editar ese objetivo hasta el limite de confirmacion inclusive. El vencimiento automatico, notificaciones y administracion de estas reglas siguen pendientes.
+Para MVP 2 y MVP 3 se aprobaron reglas de ventana, frecuencia, participantes y prioridad institucional. El cierre del flujo grupal esta ACCEPTED LOCALLY: objetivo, progreso, codigo/enlace, confirmar, retirar, reconfirmar, deadline inclusivo y expiracion `CANCELLED`. El codigo es recuperable solo por el propietario, se almacena cifrado y puede rotarse. La expiracion genera una notificacion unica localmente; siguen pendientes el sistema completo de notificaciones, lectura, destinos y otros eventos, ademas de administracion.
 
 ## Stack
 
@@ -149,14 +149,16 @@ Para preparar una base limpia:
 
 Para actualizar una base MVP 1 existente sin reconstruirla, seguir
 [`database/migrations/README.md`](database/migrations/README.md) y ejecutar,
-en orden, `001_mvp2_group_participants.sql`, `002_mvp2_target_participants.sql`
-y `003_open_use_frequency_scope.sql` con una
+en orden, `001_mvp2_group_participants.sql`, `002_mvp2_target_participants.sql`,
+`003_open_use_frequency_scope.sql` y `004_group_flow_completion.sql` con una
 herramienta compatible con `GO`. Ante un intento fallido sobre la unica base,
 no ejecutar `drop.sql`, `schema.sql` ni `seed.sql`.
 4. Configurar `backend/.env`.
 5. Levantar el backend y validar `/api/health`.
 
 No usar scripts ni cadenas de conexion PostgreSQL para el entorno actual.
+
+Antes de iniciar el backend, ejecutar `./scripts/configure-join-code-encryption.ps1`; usar `-Rotate` para agregar una version activa conservando claves anteriores. El script valida Git ignore y puntos de reanalisis, escribe atomicamente y crea backups `backend/.env.backup-*` sin mostrar secretos. Las variables resultantes son `JOIN_CODE_ENCRYPTION_KEYS` (`version:base64`, separadas por coma) y `JOIN_CODE_KEY_VERSION`.
 
 ## Ejecutar backend
 

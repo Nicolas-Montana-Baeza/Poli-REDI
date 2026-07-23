@@ -35,7 +35,7 @@ Un elemento puede estar implementado sin estar aprobado y puede estar implementa
 | Recursos | IMPLEMENTADO PARCIAL | Catalogo y cambio administrativo de imagen; no existe gestion completa de altas, datos, modos y activacion. |
 | Disponibilidad | IMPLEMENTADO PARCIAL | Integra reservas y actividades programadas; la interfaz agrega talleres recurrentes. Los bloqueos no se muestran y no hay filtros de rango en el servidor. |
 | Creacion de reservas | IMPLEMENTADO PARCIAL | Propietario, zona horaria, jornada y duraciones son controlados por servidor. El backend crea `PENDING` para recursos grupales versionados y `CONFIRMED` para los demas; falta integrar la experiencia en frontend. |
-| Reglas institucionales | APROBADO / IMPLEMENTACION PARCIAL | Ventana, frecuencia, versionado prospectivo, clasificacion grupal, participantes y transiciones por minimo estan implementados y verificados localmente. Vencimiento efectivo, interfaz administrativa y de participantes, correccion excepcional y verificacion en SQL Server/Azure SQL real siguen pendientes. |
+| Reglas institucionales | APROBADO / IMPLEMENTACION PARCIAL | Flujo grupal completo ACCEPTED LOCALLY, incluidos deadline, expiracion e interfaz. Interfaz administrativa, correccion excepcional y verificacion SQL/Azure real siguen pendientes. |
 | Cancelacion | IMPLEMENTADO PARCIAL | Propietario o administrador pueden cancelar estados activos no finalizados; la confirmacion visible no es consistente en todos los accesos. |
 | Talleres | IMPLEMENTADO | Consulta e inscripcion con RUT, cupo y duplicado controlados; no existe desinscripcion. |
 | Notificaciones | IMPLEMENTADO PARCIAL | Consulta y contador existen; no se marcan como leidas y la generacion cubre solo eventos limitados. |
@@ -102,7 +102,7 @@ No usar `docs/00-revision-inicial.md` como estado vigente; es un registro histor
 
 ## Arquitectura de politicas: estado de implementacion
 
-La politica se versiona y cada solicitud referencia la version aplicable. Publicacion inmediata, snapshot completo, clasificacion separada de recursos grupales, permisos, historial e idempotencia estan implementados y verificados localmente. Tambien se implementaron participantes y transiciones por minimo. Plazo/vencimiento efectivo, interfaces y correcciones excepcionales siguen pendientes. `ADMIN-005` se mantiene para una entrega arquitectonica posterior.
+La politica se versiona y cada solicitud referencia la version aplicable. Publicacion, clasificacion grupal y flujo de participantes —incluidos deadline, expiracion y UI— estan aceptados localmente. Interfaz administrativa, correcciones excepcionales y SQL/Azure real siguen pendientes. `ADMIN-005` se mantiene para una entrega posterior.
 
 ## Evidencia local del corte
 

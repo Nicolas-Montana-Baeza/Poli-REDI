@@ -72,6 +72,10 @@ type UpdateTargetParticipantsRequest struct {
 	TargetParticipants int `json:"targetParticipants"`
 }
 
+type JoinCodeResponse struct {
+	JoinCode string `json:"joinCode"`
+}
+
 type CancelReservationRequest struct {
 	ReservationID int `json:"reservationId"`
 }

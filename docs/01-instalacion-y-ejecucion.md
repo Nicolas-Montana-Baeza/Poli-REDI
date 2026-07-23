@@ -81,14 +81,16 @@ instalacion limpia. Es obligatorio seguir
 [`database/migrations/README.md`](../database/migrations/README.md): crear el
 backup, abrir una sesion nueva, usar una herramienta compatible con `GO`,
 ejecutar `001_mvp2_group_participants.sql`, despues
-`002_mvp2_target_participants.sql` y finalmente
-`003_open_use_frequency_scope.sql`, comprobando el `POSTCHECK` de cada una
+`002_mvp2_target_participants.sql`, `003_open_use_frequency_scope.sql` y finalmente
+`004_group_flow_completion.sql`, comprobando el `POSTCHECK` de cada una; `004` devuelve 12 indicadores
 antes de continuar. Esa guia es la unica fuente operativa para la recuperacion o
 actualizacion de la base existente.
 4. Configurar `backend/.env`.
 5. Levantar backend y validar `/api/health`.
 
 No usar `DATABASE_URL`, `pgx`, `psql` ni cadenas PostgreSQL para el entorno actual.
+
+Ejecutar `./scripts/configure-join-code-encryption.ps1` para validar/reutilizar o crear el llavero local. `-Rotate` agrega una version sin eliminar las anteriores. El script exige `.env` y backups ignorados, rechaza junctions/symlinks, guarda atomicamente y crea un backup recuperable sin imprimir claves. Configura `JOIN_CODE_ENCRYPTION_KEYS` y `JOIN_CODE_KEY_VERSION`.
 
 ## Ejecutar backend
 

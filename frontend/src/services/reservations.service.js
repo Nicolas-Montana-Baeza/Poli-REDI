@@ -32,6 +32,21 @@ export const reservationsService = {
     const response = await api.patch(`/reservations/${reservationId}/target-participants`, { targetParticipants })
     return response.data
   },
+  async getGroupProgress(code) {
+    return (await api.get(`/group-reservations/${encodeURIComponent(code)}`)).data
+  },
+  async confirmGroup(code) {
+    return (await api.put(`/group-reservations/${encodeURIComponent(code)}/confirmation`)).data
+  },
+  async withdrawGroup(code) {
+    return (await api.delete(`/group-reservations/${encodeURIComponent(code)}/confirmation`)).data
+  },
+  async getJoinCode(reservationId) {
+    return (await api.get(`/reservations/${reservationId}/join-code`)).data
+  },
+  async rotateJoinCode(reservationId) {
+    return (await api.post(`/reservations/${reservationId}/join-code/rotate`)).data
+  },
 
   async cancel(reservationId) {
     const response = await api.patch('/reservations/cancel', {

@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import {
@@ -12,6 +12,8 @@ import {
 } from 'lucide-vue-next'
 
 import SkeletonLoader from '@/components/ui/SkeletonLoader.vue'
+import ParticipantsProgress from '@/components/ui/ParticipantsProgress.vue'
+import { reservationsService } from '@/services/reservations.service'
 import { useAuthStore } from '@/stores/auth'
 import { useReservationsStore } from '@/stores/reservations'
 import {
@@ -26,6 +28,11 @@ const router = useRouter()
 const authStore = useAuthStore()
 const reservationsStore = useReservationsStore()
 const cancelling = ref(false)
+const joinCode = ref('')
+const joinCodeOpen = ref(false)
+const groupBusy = ref(false)
+const groupError = ref('')
+const targetValue = ref(null)
 
 const reservationId = computed(() => {
   return Number(route.params.id)
@@ -51,6 +58,7 @@ const reservation = computed(() => {
     (item) => item.id === reservationId.value
   )
 })
+watch(reservation, value => { targetValue.value = value?.targetParticipants ?? null })
 
 const isLoading = computed(() => {
   return authStore.user?.isAdmin
@@ -67,6 +75,28 @@ const loadingError = computed(() => {
 const canCancel = computed(() => {
   return isReservationCancelable(reservation.value)
 })
+const isOwnGroup = computed(() => Boolean(reservation.value?.targetParticipants) && reservation.value?.userId === authStore.user?.id)
+const ownerProgress = computed(() => reservation.value ? { ...reservation.value, reservationId: reservation.value.id, isOwner: true, isMember: true } : null)
+const toggleJoinCode = async () => {
+  joinCodeOpen.value = !joinCodeOpen.value
+  if (!joinCodeOpen.value || joinCode.value) return
+  groupBusy.value = true; groupError.value = ''
+  try { joinCode.value = (await reservationsService.getJoinCode(reservation.value.id)).joinCode }
+  catch { groupError.value = 'No se pudo recuperar el código.' } finally { groupBusy.value = false }
+}
+const rotateJoinCode = async () => {
+  groupBusy.value = true; groupError.value = ''
+  try { joinCode.value = (await reservationsService.rotateJoinCode(reservation.value.id)).joinCode }
+  catch { groupError.value = 'No se pudo generar un código nuevo.' } finally { groupBusy.value = false }
+}
+const updateTarget = async () => {
+  groupBusy.value = true; groupError.value = ''
+  try {
+    const updated = await reservationsService.updateTarget(reservation.value.id, Number(targetValue.value))
+    Object.assign(reservation.value, updated)
+  } catch (e) { groupError.value = e?.response?.data?.error || 'No se pudo actualizar el objetivo.' }
+  finally { groupBusy.value = false }
+}
 
 const statusLabel = computed(() => {
   return getReservationDisplayStatus(reservation.value).label
@@ -296,6 +326,23 @@ const goBack = () => {
 
       </section>
 
+      <section v-if="isOwnGroup" class="group-panel">
+        <ParticipantsProgress :progress="ownerProgress" :busy="groupBusy" />
+        <form v-if="reservation.canEditTarget" @submit.prevent="updateTarget">
+          <label for="owner-target">Objetivo de participantes</label>
+          <input id="owner-target" v-model.number="targetValue" type="number" :min="Math.max(reservation.minimumParticipants,reservation.participantCount)" :max="reservation.capacity" required>
+          <button :disabled="groupBusy">Guardar objetivo</button>
+        </form>
+        <button type="button" :aria-expanded="joinCodeOpen" @click="toggleJoinCode">Código de invitación</button>
+        <div v-if="joinCodeOpen">
+          <p v-if="groupBusy">Cargando…</p>
+          <output v-if="joinCode">{{ joinCode }}</output>
+          <button v-if="joinCode" type="button" @click="navigator.clipboard.writeText(joinCode)">Copiar</button>
+          <button v-if="joinCode" type="button" :disabled="groupBusy" @click="rotateJoinCode">Generar código nuevo</button>
+        </div>
+        <p v-if="groupError" class="state-card error" role="alert">{{ groupError }}</p>
+      </section>
+
     </section>
 
   </main>
@@ -404,6 +451,7 @@ const goBack = () => {
 
   box-shadow: var(--shadow-card);
 }
+.group-panel{display:grid;gap:1rem;margin-top:1rem}.group-panel form{display:flex;gap:.75rem;align-items:end;flex-wrap:wrap}.group-panel input,.group-panel button{min-height:44px;padding:.65rem}.group-panel output{display:block;padding:.75rem;background:#f1f5f9;border-radius:.5rem;overflow-wrap:anywhere}
 
 .detail-header {
   display: flex;

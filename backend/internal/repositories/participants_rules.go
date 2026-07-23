@@ -46,3 +46,7 @@ func validateTargetChange(target, minimum, capacity, confirmed int) error {
 func targetDeadlineOpen(now, deadline time.Time) bool {
 	return !now.After(deadline)
 }
+
+func participationDeadlineClosed(now, deadline time.Time) bool {
+	return now.After(deadline)
+}

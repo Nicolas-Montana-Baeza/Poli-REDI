@@ -6,9 +6,14 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strconv"
+	"strings"
+	"time"
 
 	"poli-redi-api/internal/businessclock"
 	"poli-redi-api/internal/database"
+	"poli-redi-api/internal/joinsecret"
+	"poli-redi-api/internal/repositories"
 	"poli-redi-api/internal/routes"
 
 	"github.com/gofiber/fiber/v2"
@@ -22,10 +27,26 @@ func main() {
 	if err := businessclock.Configure(os.Getenv("APP_TIMEZONE")); err != nil {
 		log.Fatal(err)
 	}
+	keyVersion, err := parseJoinCodeKeyVersion(os.Getenv("JOIN_CODE_KEY_VERSION"))
+	if err != nil {
+		log.Fatal(err)
+	}
+	if err := joinsecret.Configure(os.Getenv("JOIN_CODE_ENCRYPTION_KEYS"), keyVersion); err != nil {
+		log.Fatal(err)
+	}
 
 	database.Connect()
 
 	defer database.Close()
+	go func() {
+		ticker := time.NewTicker(30 * time.Second)
+		defer ticker.Stop()
+		for range ticker.C {
+			if err := repositories.ExpirePendingGroupReservations(businessclock.Now()); err != nil {
+				log.Println("No se pudieron expirar solicitudes grupales:", err)
+			}
+		}
+	}()
 
 	app := fiber.New()
 
@@ -46,6 +67,18 @@ func main() {
 	log.Println("Servidor iniciado en http://localhost:" + port)
 
 	log.Fatal(app.Listen(":" + port))
+}
+
+func parseJoinCodeKeyVersion(value string) (int, error) {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return 0, errors.New("JOIN_CODE_KEY_VERSION es obligatorio; ejecute scripts/configure-join-code-encryption.ps1")
+	}
+	version, err := strconv.Atoi(value)
+	if err != nil || version <= 0 {
+		return 0, errors.New("JOIN_CODE_KEY_VERSION debe ser un entero positivo sin prefijo ni comillas")
+	}
+	return version, nil
 }
 
 func envOrDefault(key string, fallback string) string {

@@ -1571,13 +1571,13 @@ Permitir cancelar reservas desde la interfaz usando el usuario autenticado.
 
 Prioridad: P0
 Labels: `frontend`, `backend`, `database`, `reservas`, `ux`, `needs-architecture`, `mvp2`
-Estado actual: Implementado parcialmente; backend/DB y frontend parcial de objetivo/progreso/edicion owner VERIFICADOS LOCALMENTE. Pendientes UI de codigo/confirmar/retirar, deadline de esas acciones, vencimiento e integracion SQL real.
+Estado actual: Flujo grupal ACCEPTED LOCALLY; Azure SQL 004/idempotencia/concurrencia real pendientes.
 
 ### Contexto
 
 El usuario confirmo el 2026-07-20 que Cancha 1, 2 y 3 corresponden formalmente a multicancha 1, 2 y 3. Cada solicitud requiere al menos 10 usuarios con cuenta, incluido el solicitante. La solicitud `PENDING` bloquea el horario y consume la oportunidad semanal. Las confirmaciones pueden registrarse o retirarse hasta exactamente una hora antes inclusive, valor configurable. Si vence bajo el minimo, se cancela, libera el horario y deja de consumir la oportunidad.
 
-El backend registra participantes mediante codigo compartible, crea `PENDING`, recalcula por minimo y permite un objetivo opcional. La UI implementa objetivo, progreso agregado y edicion owner. Aun faltan mostrar/conservar/compartir el codigo, ingresar por codigo, confirmar/retirar y aplicarles el deadline; tambien falta vencimiento automatico.
+Backend y UI cubren progreso, codigo cifrado recuperable owner-only, rotacion legacy, `/join` manual/URL, confirmar/retirar/reconfirmar, deadline inclusivo y expiracion `CANCELLED` por worker+perezosa.
 
 ### Objetivo
 
@@ -1628,11 +1628,17 @@ Registrar confirmaciones de participantes unicos, mantener la solicitud grupal e
 - [x] El objetivo limita nuevas altas y solo el propietario puede editarlo hasta el deadline inclusivo, respetando minimo, conteo vigente y capacidad.
 - [x] Los cambios se serializan y auditan de forma append-only; historicos `NULL` equivalen a capacidad.
 - [x] La UI distingue minimo, objetivo y capacidad; permite seleccionar objetivo, consultar progreso agregado y editar como owner.
-- [ ] UI para mostrar/conservar/compartir `joinCode`, ingresar por codigo, confirmar y retirar.
+- [x] UI para mostrar/copiar/rotar `joinCode`, ingresar manualmente o por URL, confirmar, retirar y reconfirmar.
 - [x] La microcopy de frecuencia aclara que el periodo se cuenta desde la creacion de la solicitud anterior.
 - [x] Verificacion local: `go test ./...`, `go vet ./...`, `npm test` (10/10), `npm run build` y `git diff --check`.
 - [ ] Ejecutar `001` y luego `002` y verificar comportamiento/concurrencia en SQL Server/Azure SQL real.
-- [ ] Aplicar deadline a confirmar/retirar e implementar vencimiento automatico, notificaciones y administracion independiente del objetivo por defecto.
+- [x] Aplicar deadline inclusivo a confirmar/retirar e implementar vencimiento `CANCELLED` por worker y via perezosa.
+- [x] La expiracion crea una unica notificacion localmente mediante la misma marca idempotente.
+- [ ] Notificaciones y administracion independiente del objetivo por defecto.
+- [ ] Completar lectura/marcado, destinos y notificaciones para los demas eventos.
+- [ ] Ejecutar migracion `004`, validar sus 12 indicadores, idempotencia y concurrencia en Azure SQL real.
+
+Evidencia local del cierre: suites Go y frontend, build de produccion, pruebas del configurador y `git diff --check` aprobados. La defensa contra junction/reparse point fue revisada por inspeccion. Las vulnerabilidades `high` informadas por npm pertenecen a dependencias transitivas de desarrollo y no al bundle de produccion; requieren seguimiento, no bloquean esta aceptacion local.
 
 ### Decision de producto cerrada
 
@@ -2161,7 +2167,7 @@ Permitir que solo usuarios con rol administrador modifiquen el periodo de reserv
 - [x] Un administrador puede publicar una nueva version del periodo cuyo valor inicial es siete dias.
 - [x] Un administrador puede publicar una nueva version del plazo previo cuyo valor inicial es una hora.
 - [x] Un administrador puede versionar recursos permitidos, jornada, intervalo y duraciones permitidas.
-- [ ] La politica clasifica que recursos requieren confirmacion grupal; participantes, minimo y transiciones asociadas siguen pendientes.
+- [x] La politica clasifica recursos grupales y el flujo de participantes, minimo, deadline y expiracion esta ACCEPTED LOCALLY.
 - [x] Un usuario normal no puede consultar el historial ni modificar estas politicas; solo recibe el DTO operativo minimo vigente.
 - [x] El historial administrativo conserva valores, autoria y vigencias; la interfaz para mostrarlos sigue pendiente.
 - [x] El cambio normal crea una version inmutable con vigencia inmediata y se aplica a solicitudes creadas posteriormente.
@@ -2174,7 +2180,7 @@ Permitir que solo usuarios con rol administrador modifiquen el periodo de reserv
 
 ### Arquitectura aprobada
 
-- Persistir versiones en `reservation_policies` y sus recursos permitidos en `reservation_policy_resources`; la clasificacion de confirmacion grupal requiere implementacion posterior.
+- Persistir versiones en `reservation_policies`, recursos permitidos y clasificacion grupal; esta ultima ya esta implementada y aceptada localmente.
 - Asociar cada reserva mediante `reservations.policy_id`.
 - Registrar excepciones en `reservation_policy_corrections` con version anterior/nueva, administrador, motivo, fecha UTC y lote.
 - Separar `preview` y `apply` en rutas administrativas protegidas.
@@ -2185,7 +2191,7 @@ Permitir que solo usuarios con rol administrador modifiquen el periodo de reserv
 - Contratos: `GET /api/reservation-policy/current`, `GET /api/admin/reservation-policies` y `POST /api/admin/reservation-policies`.
 - La publicacion exige `Idempotency-Key`: `201` nuevo, `200` replay identico y `409` replay divergente.
 - El esquema protege version vigente unica, idempotencia, snapshot completo e inmutabilidad; el seed completa y marca una sola vez el bootstrap tecnico de recursos permitidos despues de cargar el catalogo.
-- QA acepto/verifico localmente tras cuatro rondas. No se ejecuto el esquema actualizado en SQL Server/Azure SQL real; concurrencia fue validada estaticamente y `go vet` no se ejecuto en la ronda final por cuota.
+- QA acepto/verifico localmente; `go vet ./...` final PASS. No se ejecuto la migracion 004 en SQL Server/Azure SQL real; idempotencia y concurrencia real siguen pendientes.
 - La vista previa/aplicacion de correcciones excepcionales y su auditoria permanecen pendientes y fuera de este incremento. La retencion institucional definitiva tambien sigue pendiente; las politicas referenciadas por reservas no pueden eliminarse.
 
 ---

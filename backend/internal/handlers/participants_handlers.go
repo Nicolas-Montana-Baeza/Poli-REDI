@@ -49,6 +49,12 @@ func UpdateReservationTarget(c *fiber.Ctx) error {
 		if errors.Is(err, repositories.ErrInvalidJoinCode) {
 			status = 404
 		}
+		if errors.Is(err, repositories.ErrTargetDeadline) {
+			status = 410
+		}
+		if errors.Is(err, repositories.ErrTargetBelowConfirmed) {
+			status = 409
+		}
 		return c.Status(status).JSON(fiber.Map{"error": err.Error()})
 	}
 	return c.JSON(progress)
@@ -62,16 +68,56 @@ func changeParticipation(c *fiber.Ctx, confirm bool) error {
 	}
 	p, e := repositories.ChangeParticipation(participantCode(c), u.ID, confirm)
 	if e != nil {
-		status := 400
-		if errors.Is(e, repositories.ErrInvalidJoinCode) {
-			status = 404
-		}
-		if errors.Is(e, repositories.ErrParticipantIneligible) {
-			status = 403
-		}
-		return c.Status(status).JSON(fiber.Map{"error": e.Error()})
+		return c.Status(participationHTTPStatus(e)).JSON(fiber.Map{"error": e.Error()})
 	}
 	return c.JSON(p)
+}
+
+func participationHTTPStatus(err error) int {
+	switch {
+	case errors.Is(err, repositories.ErrInvalidJoinCode):
+		return 404
+	case errors.Is(err, repositories.ErrParticipantIneligible):
+		return 403
+	case errors.Is(err, repositories.ErrGroupCapacity), errors.Is(err, repositories.ErrOwnerCannotWithdraw):
+		return 409
+	case errors.Is(err, repositories.ErrParticipationDeadline):
+		return 410
+	default:
+		return 400
+	}
+}
+
+func GetOwnerJoinCode(c *fiber.Ctx) error {
+	return ownerJoinCode(c, false)
+}
+
+func RotateOwnerJoinCode(c *fiber.Ctx) error {
+	return ownerJoinCode(c, true)
+}
+
+func ownerJoinCode(c *fiber.Ctx, rotate bool) error {
+	u, ok := middleware.GetLocalUser(c)
+	if !ok {
+		return c.SendStatus(401)
+	}
+	id, err := strconv.Atoi(c.Params("id"))
+	if err != nil {
+		return c.Status(404).JSON(fiber.Map{"error": repositories.ErrInvalidJoinCode.Error()})
+	}
+	var code string
+	if rotate {
+		code, err = repositories.RotateOwnerJoinCode(id, u.ID)
+	} else {
+		code, err = repositories.GetOwnerJoinCode(id, u.ID)
+	}
+	if errors.Is(err, repositories.ErrInvalidJoinCode) {
+		return c.Status(404).JSON(fiber.Map{"error": repositories.ErrInvalidJoinCode.Error()})
+	}
+	if err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": "no se pudo recuperar el codigo"})
+	}
+	return c.JSON(models.JoinCodeResponse{JoinCode: code})
 }
 func GetReservationParticipants(c *fiber.Ctx) error {
 	id, e := strconv.Atoi(c.Params("id"))

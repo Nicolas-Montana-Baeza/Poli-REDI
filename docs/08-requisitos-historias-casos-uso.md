@@ -95,7 +95,7 @@ Pendiente relacionado: `RES-004`.
 
 El sistema debe permitir crear solicitudes de reserva sobre recursos disponibles, asociadas al usuario autenticado y, opcionalmente, a una actividad. El servidor debe asignar el estado segun la politica del recurso, aplicar la restriccion semanal y aceptar para todos los recursos solo duraciones de 30, 60, 90, 120, 150 o 180 minutos dentro de la jornada institucional.
 
-Estado actual: Implementado parcialmente. Backend/DB de participantes y el frontend de objetivo/progreso tienen pruebas locales. Faltan UI de codigo compartible y acciones de confirmar/retirar, deadline efectivo para esas acciones, vencimiento e integracion SQL/Azure.
+Estado actual: ACCEPTED LOCALLY para flujo grupal completo; Azure SQL real pendiente.
 
 Pendiente relacionado: `RES-008`, `RES-009`, `RES-010`, `RES-011`.
 
@@ -207,7 +207,7 @@ El sistema debe registrar confirmaciones de usuarios unicos y exigir al menos 10
 
 Cada solicitud grupal puede declarar `targetParticipants`. Si se omite usa el minimo de la politica; debe quedar entre minimo y capacidad congelada. El objetivo limita altas, pero la confirmacion ocurre al alcanzar el minimo. El propietario, incluido en el conteo, puede editarlo hasta el limite inclusivo sin bajarlo del minimo ni del conteo vigente.
 
-Estado actual: IMPLEMENTADO y VERIFICADO LOCALMENTE en backend/DB para unicidad, cuenta activa con RUT, propietario, capacidad, objetivo, codigo y progreso. Frontend PARCIAL: objetivo, progreso agregado y edicion owner. El deadline inclusivo solo protege el `PATCH` del objetivo; confirmaciones/retiros, su UI, vencimiento y SQL/Azure real siguen PENDIENTES (`RES-008`).
+Estado actual: ACCEPTED LOCALLY en backend/DB/frontend: progreso, codigo owner-only cifrado y rotacion, `/join`, confirmar/retirar/reconfirmar, deadline inclusivo y expiracion `CANCELLED`. Azure SQL real PENDIENTE (`RES-008`).
 
 ### RF-022 - Estado condicionado por politica del recurso
 
@@ -235,7 +235,7 @@ Pendiente relacionado: `ADMIN-003`.
 
 El sistema debe permitir exclusivamente a usuarios con rol administrador publicar nuevas versiones del periodo de reserva, el plazo previo de confirmacion y los recursos sujetos a confirmacion grupal. Los cambios normales son prospectivos y cada solicitud conserva la version vigente al crearse. Excepcionalmente, el administrador puede migrar solicitudes futuras `PENDING` o `CONFIRMED` seleccionadas a otra version mediante simulacion, motivo obligatorio, confirmacion, aplicacion atomica y auditoria; la operacion no edita versiones historicas ni cancela solicitudes implicitamente.
 
-Estado actual: APROBADO e IMPLEMENTADO PARCIAL; VERIFICADO LOCALMENTE el 2026-07-21 para publicacion prospectiva, clasificacion separada de recursos grupales, historial, DTO publico minimo, permisos e idempotencia. Participantes, minimo y transiciones estan implementados en backend/DB. Interfaz administrativa, vencimiento y correcciones excepcionales siguen PENDIENTES; no se verifico contra SQL Server/Azure SQL real.
+Estado actual: APROBADO e IMPLEMENTADO PARCIAL. Publicacion prospectiva, clasificacion y flujo grupal completo estan aceptados localmente. Interfaz administrativa y correcciones excepcionales siguen PENDIENTES; SQL Server/Azure SQL real no verificado.
 
 Pendiente relacionado: `ADMIN-006`.
 
@@ -493,7 +493,7 @@ Criterios de aceptacion:
 - Si una retirada valida reduce el conteo por debajo de 10, la reserva vuelve a `PENDING`.
 - El solicitante puede elegir un objetivo entre minimo y capacidad, modificarlo hasta el deadline inclusive y no bajarlo del conteo vigente.
 - Alcanzar el minimo confirma; alcanzar el objetivo no es un estado adicional.
-- Las confirmaciones y retiradas deben aceptarse hasta exactamente una hora antes inclusive y rechazarse despues; este criterio sigue pendiente.
+- Las confirmaciones y retiradas se aceptan hasta exactamente una hora antes inclusive y se rechazan despues.
 - Si vence bajo el minimo, cambia a `CANCELLED`, libera el horario y la oportunidad semanal.
 - El cliente no puede forzar el estado ni el conteo.
 

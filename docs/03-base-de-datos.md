@@ -159,6 +159,8 @@ Campos temporales relevantes:
 Campos grupales relevantes:
 
 - `join_code_hash`: SHA-256 unico del codigo compartible; el codigo en claro no se persiste.
+- `reservation_join_code_secrets`: nonce, ciphertext y version de clave; permite recuperacion owner-only sin persistir texto plano.
+- `reservation_group_expirations`: marca unica e idempotente de expiracion bajo el minimo.
 - `group_capacity_snapshot`: capacidad inmutable tomada al crear una solicitud grupal.
 - `target_participants`: objetivo editable de la solicitud grupal. `NULL` historico conserva semantica efectiva igual a `group_capacity_snapshot`; no se realiza backfill.
 
@@ -532,9 +534,11 @@ Debe existir una sola version vigente. Publicar una politica cierra la anterior 
 
 Para una base limpia, `schema.sql` crea la estructura y `seed.sql` carga los recursos y completa el bootstrap tecnico controlado. Para una base MVP 1 existente se ejecutan, en orden, `database/migrations/001_mvp2_group_participants.sql` y `002_mvp2_target_participants.sql`, validando cada `POSTCHECK`. La segunda es acumulativa, no rellena historicos y conserva `NULL` como objetivo efectivo igual a la capacidad congelada. Este flujo no es un mecanismo administrativo para editar versiones publicadas.
 
+Despues deben ejecutarse `003_open_use_frequency_scope.sql` y `004_group_flow_completion.sql`. `004` no genera secretos ni cambia estados historicos; su `POSTCHECK` devuelve 12 indicadores que deben valer `1`. La ejecucion e idempotencia en Azure SQL real siguen pendientes.
+
 La persistencia y los endpoints de correcciones excepcionales no estan implementados en este incremento. Su contrato aprobado exige solicitudes futuras activas, vista previa temporal de un solo uso vinculada al administrador, motivo, revalidacion y aplicacion atomica auditada, sin cancelaciones implicitas.
 
-Los conflictos consideran `PENDING` y `CONFIRMED`. Confirmacion, reconfirmacion y retiro se serializan por reserva mediante transaccion y `UPDLOCK, HOLDLOCK`; recalculan `PENDING`/`CONFIRMED`, respetan el snapshot de capacidad y generan auditoria. El vencimiento temporal sigue pendiente. Estas garantias tienen pruebas locales y revision estatica, pero no prueba de concurrencia integrada contra SQL Server/Azure SQL real.
+Los conflictos consideran `PENDING` y `CONFIRMED`. Confirmacion, reconfirmacion, retiro y expiracion se serializan por reserva mediante transaccion y `UPDLOCK, HOLDLOCK`; recalculan estado, respetan capacidad y generan auditoria/marca idempotente. Tienen pruebas locales, pero no concurrencia integrada contra SQL Server/Azure SQL real.
 
 ## Recomendacion siguiente
 

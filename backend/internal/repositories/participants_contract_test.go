@@ -201,3 +201,54 @@ func TestTargetParticipantsMigrationIsCumulativeAndDoesNotBackfill(t *testing.T)
 		}
 	}
 }
+
+func TestGroupCompletionMigrationAndRoutesContract(t *testing.T) {
+	migration := strings.ToUpper(readRepositoryFile(t, "database", "migrations", "004_group_flow_completion.sql"))
+	routes := strings.ToUpper(readRepositoryFile(t, "backend", "internal", "routes", "routes.go"))
+	repository := strings.ToUpper(readRepositoryFile(t, "backend", "internal", "repositories", "participants_repository.go"))
+	for _, required := range []string{"RESERVATION_JOIN_CODE_SECRETS", "KEY_VERSION", "NONCE VARBINARY", "CIPHERTEXT VARBINARY", "RESERVATION_GROUP_EXPIRATIONS", "IF OBJECT_ID", "JOIN_CODE_SECRETS_TABLE_OK", "JOIN_CODE_SECRETS_COLUMNS_OK", "GROUP_EXPIRATIONS_TABLE_OK", "GROUP_EXPIRATIONS_COLUMNS_OK", "SYS.COLUMNS", "IS_NULLABLE", "GROUP_EXPIRATIONS_UNIQUE_OK"} {
+		if !strings.Contains(migration, required) {
+			t.Fatalf("migration 004 lacks %s", required)
+		}
+	}
+	for _, forbidden := range []string{"UPDATE DBO.RESERVATIONS SET", "DELETE FROM", "JOIN_CODE NVARCHAR"} {
+		if strings.Contains(migration, forbidden) {
+			t.Fatalf("migration 004 reinterprets historical data: %s", forbidden)
+		}
+	}
+	for _, required := range []string{"/RESERVATIONS/:ID/JOIN-CODE", "/JOIN-CODE/ROTATE", "/GROUP-RESERVATIONS/:CODE/CONFIRMATION"} {
+		if !strings.Contains(routes, required) {
+			t.Fatalf("routes lack %s", required)
+		}
+	}
+	for _, required := range []string{"WITH(UPDLOCK,HOLDLOCK)", "CONFIRMATION_DEADLINE", "RESERVATION_GROUP_EXPIRATIONS", "RESERVATION_JOIN_CODE_SECRETS"} {
+		if !strings.Contains(repository, required) {
+			t.Fatalf("repository lacks %s", required)
+		}
+	}
+}
+
+func TestGroupCompletionMigrationUsesRealSQLServerDateTime2Metadata(t *testing.T) {
+	migration := strings.ToUpper(readRepositoryFile(t, "database", "migrations", "004_group_flow_completion.sql"))
+	for _, required := range []string{
+		"('ROTATED_AT','DATETIME2',6,19,0,0)",
+		"('EXPIRED_AT','DATETIME2',6,19,0,0)",
+		"TYPE_NAME(C.USER_TYPE_ID)='DATETIME2'",
+		"C.MAX_LENGTH=6",
+		"C.PRECISION=19",
+		"C.SCALE=0",
+	} {
+		if !strings.Contains(migration, required) {
+			t.Fatalf("migration 004 lacks real DATETIME2(0) metadata: %s", required)
+		}
+	}
+	for _, impossible := range []string{
+		"'DATETIME2',8,27,0,0",
+		"TYPE_NAME(C.USER_TYPE_ID)='DATETIME2' AND C.MAX_LENGTH=8",
+		"TYPE_NAME(C.USER_TYPE_ID)='DATETIME2' AND C.PRECISION=27",
+	} {
+		if strings.Contains(migration, impossible) {
+			t.Fatalf("migration 004 regressed to invalid DATETIME2 metadata: %s", impossible)
+		}
+	}
+}

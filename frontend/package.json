@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "node --test src/utils/businessTime.test.js src/utils/reservationRules.test.js"
+    "test": "node --test src/utils/businessTime.test.js src/utils/reservationRules.test.js src/utils/groupFlow.contract.test.js && vitest run src/components/ui/ParticipantsProgress.test.js"
   },
   "dependencies": {
     "@azure/msal-browser": "^5.11.0",
@@ -18,6 +18,9 @@
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^6.0.6",
-    "vite": "^8.0.10"
+    "@vue/test-utils": "^2.4.11",
+    "jsdom": "^29.1.1",
+    "vite": "^8.0.10",
+    "vitest": "^4.1.10"
   }
 }

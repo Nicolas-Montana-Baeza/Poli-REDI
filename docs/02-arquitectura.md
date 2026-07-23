@@ -144,7 +144,7 @@ Estado: APROBADA e IMPLEMENTADA para el versionado prospectivo y la publicacion 
 - El solicitante se registra como participante, no puede retirar su participacion y debe cancelar la solicitud completa si desea abandonarla.
 - Confirmar, reconfirmar o retirar participacion y recalcular el estado forman una sola operacion serializable por reserva. La capacidad queda congelada en la solicitud.
 - El objetivo de participantes es propio de cada solicitud grupal: por defecto usa el minimo de la politica, debe quedar entre minimo y capacidad congelada, y limita nuevas altas sin cambiar el umbral de confirmacion. Solo el propietario puede editarlo hasta el limite temporal inclusivo; la operacion se serializa y audita.
-- El vencimiento por limite temporal aun no esta implementado. Su resolucion atomica y un posible ejecutor programado quedan para el siguiente incremento.
+- El deadline inclusivo rige objetivo, confirmacion y retiro. Solicitudes `PENDING` bajo el minimo expiran a `CANCELLED` mediante worker cada 30 segundos y resolucion perezosa; una marca unica evita expiraciones duplicadas.
 - Una correccion excepcional permanece fuera de este incremento: el diseno aprobado exige seleccionar solicitudes futuras activas, previsualizar el efecto, declarar un motivo y aplicar el lote de forma atomica y auditada, sin editar versiones historicas ni cancelar implicitamente.
 - `ADMIN-005`, incluida la prioridad de actividades institucionales, se disenara en una entrega arquitectonica posterior.
 
@@ -153,12 +153,14 @@ Estado: APROBADA e IMPLEMENTADA para el versionado prospectivo y la publicacion 
 - `GET /api/reservation-policy/current`: autenticado; devuelve solo condiciones operativas, sin ID, autoria, vigencias ni metadatos de auditoria.
 - `GET /api/admin/reservation-policies`: solo administrador; devuelve el historial completo.
 - `POST /api/admin/reservation-policies`: solo administrador; exige `Idempotency-Key` (maximo 100 caracteres). Responde `201` al crear, `200` al repetir la misma clave con payload equivalente y `409` al reutilizarla con datos distintos.
-- `POST /api/reservations`: devuelve `joinCode` solo en la respuesta de creacion de una solicitud grupal; la base conserva exclusivamente su hash.
+- `POST /api/reservations`: crea la solicitud grupal y persiste hash/secreto cifrado; el propietario recupera el codigo bajo demanda mediante el endpoint owner-only.
 - `POST /api/reservations`: acepta `targetParticipants` opcional solo para recursos grupales; si se omite usa el minimo de la politica y si se envia fuera de minimo/capacidad, o para un recurso no grupal, responde `400`.
 - `GET /api/group-reservations/:code`: autenticado; devuelve progreso agregado y membresia propia, sin nombres de participantes.
 - `PUT /api/group-reservations/:code/confirmation`: autenticado; confirma o reconfirma la participacion propia.
 - `DELETE /api/group-reservations/:code/confirmation`: autenticado; retira la participacion propia, salvo la del propietario.
 - `PATCH /api/reservations/:id/target-participants`: autenticado y solo propietario; acepta `{ "targetParticipants": n }` hasta el `confirmationDeadline` inclusive. El nuevo valor debe ser al menos el minimo y el conteo actual, y no superar la capacidad congelada.
+- `GET /api/reservations/:id/join-code`: solo propietario; recupera el codigo cifrado.
+- `POST /api/reservations/:id/join-code/rotate`: solo propietario; reemplaza hash/secreto atomico, invalida el anterior y habilita reservas legacy sin secreto.
 - `GET /api/admin/reservations/:id/participants`: solo administrador; devuelve el detalle nominal.
 
 Los endpoints de correcciones que siguen son contratos aprobados pero PENDIENTES, no parte del incremento verificado:

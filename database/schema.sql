@@ -379,6 +379,26 @@ IF COL_LENGTH('dbo.reservations', 'join_code_hash') IS NULL ALTER TABLE dbo.rese
 GO
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name='uq_reservations_join_code_hash' AND object_id=OBJECT_ID('dbo.reservations')) CREATE UNIQUE INDEX uq_reservations_join_code_hash ON dbo.reservations(join_code_hash) WHERE join_code_hash IS NOT NULL;
 GO
+IF OBJECT_ID('dbo.reservation_join_code_secrets','U') IS NULL
+BEGIN
+ CREATE TABLE dbo.reservation_join_code_secrets(
+  reservation_id INT NOT NULL CONSTRAINT pk_reservation_join_code_secrets PRIMARY KEY,
+  key_version INT NOT NULL, nonce VARBINARY(32) NOT NULL, ciphertext VARBINARY(512) NOT NULL,
+  rotated_at DATETIME2(0) NOT NULL CONSTRAINT df_join_code_secret_rotated DEFAULT SYSUTCDATETIME(),
+  CONSTRAINT fk_join_code_secret_reservation FOREIGN KEY(reservation_id) REFERENCES dbo.reservations(id) ON DELETE CASCADE,
+  CONSTRAINT ck_join_code_secret_key_version CHECK(key_version>0));
+END;
+GO
+IF OBJECT_ID('dbo.reservation_group_expirations','U') IS NULL
+BEGIN
+ CREATE TABLE dbo.reservation_group_expirations(
+  reservation_id INT NOT NULL CONSTRAINT pk_reservation_group_expirations PRIMARY KEY,
+  participant_count INT NOT NULL, minimum_participants INT NOT NULL,
+  expired_at DATETIME2(0) NOT NULL CONSTRAINT df_group_expired_at DEFAULT SYSUTCDATETIME(),
+  CONSTRAINT fk_group_expiration_reservation FOREIGN KEY(reservation_id) REFERENCES dbo.reservations(id),
+  CONSTRAINT ck_group_expiration_counts CHECK(participant_count>=0 AND minimum_participants>0 AND participant_count<minimum_participants));
+END;
+GO
 IF COL_LENGTH('dbo.participants', 'is_owner') IS NULL ALTER TABLE dbo.participants ADD is_owner BIT NOT NULL CONSTRAINT df_participants_is_owner DEFAULT(0);
 IF COL_LENGTH('dbo.participants', 'updated_at') IS NULL ALTER TABLE dbo.participants ADD updated_at DATETIME2(0) NOT NULL CONSTRAINT df_participants_updated_at DEFAULT(SYSUTCDATETIME());
 GO

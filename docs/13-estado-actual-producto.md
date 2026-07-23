@@ -8,7 +8,7 @@ Fecha de corte: 2026-07-21
 - **Objetivo — APROBADO:** validar un prototipo que centralice recursos, disponibilidad, reservas y reglas institucionales basicas sin presentarlo como plataforma productiva completa.
 - **Usuarios afectados — HECHO:** usuarios normales, administradores y personal institucional encargado de la operacion deportiva.
 - **Resultado esperado — PROPUESTA:** disponer de una demo verificable cuyo alcance implementado, faltante y futuro pueda comunicarse sin confundir codigo, aprobacion y validacion.
-- **Estado actual — HECHO:** backend/DB de participantes y transiciones estan verificados localmente; el frontend cubre objetivo, progreso agregado y edicion owner. UI de codigo compartible/ingreso/confirmacion/retiro, deadline de esas acciones, vencimiento, SQL/Azure real y otras brechas siguen pendientes; MVP 2 no esta cerrado.
+- **Estado actual — HECHO:** el flujo grupal esta ACCEPTED LOCALLY: progreso, codigo cifrado recuperable owner-only, rotacion legacy, `/join`, confirmar/retirar/reconfirmar, deadline inclusivo y expiracion `CANCELLED`. Azure SQL 004/idempotencia/concurrencia real y otras brechas mantienen abierto MVP 2.
 
 ### 2. Evidencia revisada
 
@@ -24,7 +24,7 @@ Fecha de corte: 2026-07-21
 | `frontend/src/components/availability/AvailabilitySection.vue` | La interfaz combina reservas, actividades programadas y talleres; no incorpora bloqueos visibles y permite abrir seleccion sobre recursos que despues puede rechazar el servidor. | IMPLEMENTADO PARCIAL |
 | `database/seed.sql` | Contiene los ocho recursos confirmados como inventario oficial inicial. | APROBADO como linea base; gestion completa PENDIENTE |
 | Decisiones explicitas del usuario del 2026-07-20 | Confirman que `PENDING` consume y `CANCELLED` libera la oportunidad; el solicitante cuenta y todos los participantes tienen cuenta; la solicitud bloquea, admite cambios en el limite exacto y se cancela al vencer bajo el minimo; las tres canchas son multicanchas y solo administradores modifican politicas. | APROBADO |
-| Pruebas locales 2026-07-21 | El incremento de politicas fue aceptado tras cuatro rondas QA con pruebas Go y validaciones de contrato; `npm test` y `npm run build` aprobaron. `go vet` no se ejecuto en la ronda final por cuota. | VERIFICADO LOCAL; SQL/Azure PENDIENTE |
+| Pruebas locales | Flujo grupal aceptado localmente; suites Go/frontend, build, configurador, contratos y `go vet ./...` final PASS. | ACCEPTED LOCALLY; SQL/Azure PENDIENTE |
 | `docs/12-checklist-demo-mvp1.md` | La mayor parte de la prueba manual e integrada sigue pendiente; no hay verificacion online actual registrada. | PENDIENTE |
 
 ### 3. Alcance
@@ -54,7 +54,7 @@ Fecha de corte: 2026-07-21
 #### Futuro posible
 
 - Gestion administrativa completa de usuarios, inventario oficial, bloqueos y programacion.
-- Participantes y estados estan verificados localmente en backend/DB; frontend parcial para objetivo/progreso/edicion. Restan codigo compartible y acciones de participacion en UI, deadline de confirmar/retirar, SQL/Azure real y vencimiento.
+- Flujo grupal completo aceptado localmente en backend/DB/frontend; resta validar migracion 004, idempotencia y concurrencia en Azure SQL real.
 - Infracciones, notificaciones completas, reportes institucionales y consulta de auditoria.
 - Filtros de servidor, detalle individual de reserva y disponibilidad por rango.
 - Cierre de accesibilidad, responsive, seguridad de errores y pruebas integradas.
@@ -227,7 +227,7 @@ Fecha de corte: 2026-07-21
 **Resultado:** Politica institucional actualizada sin facultades equivalentes para usuarios normales.<br>
 **Prioridad:** SHOULD para MVP 3.<br>
 **Fuente:** Decision explicita del usuario del 2026-07-20.<br>
-**Estado:** APROBADO e IMPLEMENTADO PARCIAL; VERIFICADO LOCAL para publicacion prospectiva, clasificacion grupal, participantes, minimo, transiciones, historial, DTO minimo, permisos e idempotencia. Interfaz, vencimiento y correccion excepcional permanecen PENDIENTES; SQL/Azure no verificado.<br>
+**Estado:** APROBADO e IMPLEMENTADO PARCIAL. Publicacion, clasificacion y flujo grupal completo ACCEPTED LOCALLY. Interfaz administrativa y correccion excepcional PENDIENTES; SQL/Azure no verificado.<br>
 **Dependencias:** RF-002, RF-020 a RF-022 y arquitectura aprobada de versionado prospectivo con correcciones excepcionales.
 
 #### Requisitos no funcionales
@@ -321,12 +321,12 @@ Fecha de corte: 2026-07-21
 **Regla:** El cliente no decide el estado. `OPEN_USE` no requiere confirmacion de participantes; Cancha 1, 2 y 3 quedan `PENDING` hasta alcanzar el minimo, pasan automaticamente a `CONFIRMED` al cumplirlo y vuelven a `PENDING` si una retirada valida deja menos de 10 confirmaciones vigentes.<br>
 **Justificacion:** Ajusta la confirmacion al modo de uso del recurso.  
 **Fuente:** Decision explicita del usuario del 2026-07-20.  
-**Estado:** APROBADO, IMPLEMENTADO y VERIFICADO LOCALMENTE para clasificacion, bloqueo y transiciones backend/DB. Deadline de confirmar/retirar, UI de participacion, vencimiento e integracion SQL/Azure PENDIENTES.<br>
+**Estado:** ACCEPTED LOCALLY para clasificacion, transiciones, UI, deadline y expiracion. Integracion SQL/Azure PENDIENTE.<br>
 **Excepciones:** Recursos cuya politica oficial no exija participantes.
 
 **RN-006A — Minimo, objetivo y capacidad**<br>
 **Regla:** El minimo de politica confirma; el objetivo de convocatoria limita altas; la capacidad snapshot es el maximo. El objetivo por defecto es el minimo y el propietario puede editarlo hasta el deadline inclusive, sin bajarlo del minimo ni del conteo vigente.<br>
-**Estado:** APROBADO y VERIFICADO LOCALMENTE en backend/DB y frontend parcial de objetivo/progreso/edicion owner. El deadline inclusivo esta implementado para editar el objetivo. Historicos `NULL` usan capacidad como objetivo efectivo; SQL/Azure real PENDIENTE.<br>
+**Estado:** ACCEPTED LOCALLY en backend/DB/frontend. El deadline inclusivo cubre objetivo, confirmacion y retiro; historicos `NULL` usan capacidad como objetivo efectivo. SQL/Azure real PENDIENTE.<br>
 
 **RN-007 — Conflictos y modos de recurso**  
 **Regla:** Recursos `RESERVABLE` no admiten solapamientos confirmados; `INFORMATIVE` no admite reserva; `ADMIN_ONLY` exige administrador; `OPEN_USE` permite concurrencia de reservas, no consume frecuencia y no queda bloqueado por programacion o talleres, aunque un bloqueo activo si impide reservar. Un usuario no puede tener dos reservas activas solapadas, incluso al combinar `OPEN_USE` con otro modo; los horarios contiguos si se permiten.
@@ -576,8 +576,8 @@ Dado un usuario normal y un administrador, cuando intentan modificar periodo, pl
 | ID | Fuentes en conflicto | Diferencia | Efecto |
 | --- | --- | --- | --- |
 | C-01 | Alcance definitivo vs repositorio | Entra ID real y demo Azure estaban fuera del alcance original y hoy estan implementados/documentados. | El informe puede describir un alcance distinto del prototipo entregado. |
-| C-03 | Reglas aprobadas vs flujo actual | Backend/DB aplica minimo, objetivo y participantes; frontend cubre solo objetivo, progreso y edicion owner. Faltan codigo compartible, ingreso, confirmar/retirar y Azure SQL. | MVP 2 no puede cerrarse. |
-| C-04 | Confirmacion aprobada vs flujo actual | El backend ya aplica cuentas, bloqueo `PENDING` y estados reversibles; falta impedir cambios despues del limite y cancelar al vencer bajo el minimo. | Una solicitud puede permanecer `PENDING` mas alla del plazo. |
+| C-03 | Reglas aprobadas vs flujo actual | El flujo grupal completo esta aceptado localmente; falta Azure SQL 004, idempotencia y concurrencia real. | MVP 2 no puede cerrarse. |
+| C-04 | Confirmacion aprobada vs flujo actual | Resuelta localmente: deadline inclusivo y expiracion `CANCELLED` funcionan por worker y via perezosa. | Pendiente confirmar en Azure SQL real. |
 | C-05 | Prioridad institucional aprobada vs esquema actual | Debe cancelarse y notificarse la reserva particular y permitirse decision entre actividades, pero el esquema rechaza el solapamiento al registrar la actividad. | El comportamiento aprobado no puede ejecutarse. |
 | C-06 | Inventario y politicas aprobadas vs administracion actual | Los ocho recursos son oficiales; la API administrativa ya publica politicas prospectivas, pero faltan interfaz y gestion completa del inventario. | La operacion institucional aun no puede mantenerse completamente desde la interfaz. |
 | C-07 | Disponibilidad visible vs regla de base | Bloqueos impiden reservar, pero no se muestran en el endpoint actual. | Un horario puede parecer libre y fallar al confirmar. |

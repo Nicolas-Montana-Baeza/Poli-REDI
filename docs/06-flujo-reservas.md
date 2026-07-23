@@ -25,11 +25,11 @@ Este documento describe el flujo funcional de reservas en Poli-REDI, sus validac
 10. El backend rechaza usuarios normales sin RUT.
 11. El servicio valida zona horaria de negocio, fecha/hora, duracion permitida, paso de inicio, jornada operativa, ventana reservable y frecuencia desde la creacion de la solicitud activa anterior.
 12. La base de datos vuelve a proteger ventana y frecuencia ante concurrencia, ademas de validar conflictos de recurso, usuario, bloqueos y actividades programadas.
-13. Si el recurso pertenece al conjunto grupal de la politica, el backend crea la solicitud `PENDING`, registra al propietario como participante confirmado y devuelve un `joinCode` de una sola exposicion; en otro caso crea `CONFIRMED` sin codigo.
+13. Si el recurso pertenece al conjunto grupal, crea `PENDING` y registra al propietario. El owner recupera el codigo despues, bajo demanda, o lo rota mediante endpoints owner-only.
 14. Si la reserva se crea, la UI refresca disponibilidad y muestra mensaje de exito.
 15. Si existe conflicto, el formulario mantiene el error visible.
 
-El backend y la base del flujo grupal estan implementados y verificados localmente. El frontend cubre seleccion del objetivo, progreso agregado y edicion por propietario, pero aun no muestra/conserva/permite compartir `joinCode`, ingresar por codigo, confirmar ni retirar. No fue verificado en Azure SQL; el deadline de confirmaciones/retiros y el vencimiento automatico siguen pendientes.
+El flujo grupal esta ACCEPTED LOCALLY de punta a punta: el owner recupera, copia o rota el codigo; participantes ingresan manualmente o por `/join/:code`, consultan progreso y pueden confirmar, retirar y reconfirmar. El deadline es inclusivo. Bajo el minimo, `PENDING` expira a `CANCELLED` mediante worker y resolucion perezosa. Azure SQL real sigue pendiente.
 
 ## Flujo objetivo aprobado de solicitud y confirmacion
 
@@ -165,7 +165,7 @@ Validaciones backend pendientes antes de cerrar MVP 1:
 
 - Mostrar siempre el rango completo de la reserva antes de confirmar.
 - Redondear seleccion de horario a intervalos institucionales.
-- Completar la UI para mostrar, conservar y compartir el codigo, ingresar por codigo y ejecutar confirmar/retirar; la API ya existe (`RES-008`).
+- Mantener en detalle el progreso, codigo owner-only y acciones de confirmar/retirar/reconfirmar; el codigo anterior deja de servir al rotarlo.
 - Distinguir siempre minimo institucional, objetivo de convocatoria y capacidad maxima. El mensaje de frecuencia debe aclarar que el periodo se cuenta desde la creacion de la solicitud anterior.
 - Diferenciar visualmente reserva, bloqueo, mantencion y actividad institucional.
 - No exponer informacion personal de reservas ajenas en disponibilidad.
