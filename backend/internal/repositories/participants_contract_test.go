@@ -73,12 +73,18 @@ func TestOpenUseDoesNotConsumeFrequencyButKeepsUserOverlapGuard(t *testing.T) {
 		}
 	}
 	for _, required := range []string{
-		"INSERTED_RESOURCE.RESERVATION_MODE <> ''OPEN_USE''",
-		"PREVIOUS_RESOURCE.RESERVATION_MODE <> ''OPEN_USE''",
+		"CREATE OR ALTER TRIGGER DBO.TRG_RESERVATIONS_VALIDATE_CONFLICTS",
+		"INSERTED_RESOURCE.RESERVATION_MODE <> 'OPEN_USE'",
+		"PREVIOUS_RESOURCE.RESERVATION_MODE <> 'OPEN_USE'",
 		"EXISTING.USER_ID = I.USER_ID",
 	} {
 		if !strings.Contains(migration, required) {
 			t.Fatalf("migration lacks OPEN_USE frequency/overlap rule: %s", required)
+		}
+	}
+	for _, fragile := range []string{"CHARINDEX(", "STUFF(", "SP_EXECUTESQL", "THROW 53001", "THROW 53002"} {
+		if strings.Contains(migration, fragile) {
+			t.Fatalf("migration must not reconstruct the stored trigger header: %s", fragile)
 		}
 	}
 }

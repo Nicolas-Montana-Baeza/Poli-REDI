@@ -93,6 +93,7 @@ anteriores. Conserva la prohibicion de reservas solapadas para el mismo usuario;
 los limites contiguos, por ejemplo `12:00-13:00` y `13:00-14:00`, no se
 consideran solape.
 
-La migracion es reejecutable y valida la definicion vigente antes de modificar
-el trigger. El `POSTCHECK` debe mostrar `open_use_frequency_scope_ok = 1` y
+La migracion es reejecutable e instala la definicion canonica completa con
+`CREATE OR ALTER TRIGGER`; no intenta interpretar el encabezado almacenado por
+SQL Server. El `POSTCHECK` debe mostrar `open_use_frequency_scope_ok = 1` y
 `user_overlap_guard_ok = 1`.
