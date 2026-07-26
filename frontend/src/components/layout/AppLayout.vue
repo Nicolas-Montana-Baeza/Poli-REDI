@@ -3,6 +3,7 @@ import { computed } from 'vue'
 
 import RutRequiredModal from '@/components/auth/RutRequiredModal.vue'
 import { useAuthStore } from '@/stores/auth'
+import { hasRut } from '@/utils/validators'
 
 import HeaderBar from './HeaderBar.vue'
 
@@ -10,9 +11,12 @@ const authStore = useAuthStore()
 
 const shouldRequestRut = computed(() => {
   return (
+    authStore.profileReady &&
+    !authStore.loading &&
+    !authStore.error &&
     authStore.user &&
     authStore.user.isAdmin !== true &&
-    !authStore.user.rut
+    !hasRut(authStore.user.rut)
   )
 })
 </script>

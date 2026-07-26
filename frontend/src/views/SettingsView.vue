@@ -67,7 +67,7 @@ const rutStatusLabel = computed(() => {
     return authStore.user.rut
   }
 
-  return rutRequired.value ? 'Pendiente' : 'No requerido'
+  return rutRequired.value ? 'Pendiente' : 'No requerido para administradores.'
 })
 
 const initials = computed(() => {
@@ -252,6 +252,7 @@ watch(
           </strong>
 
           <form
+            v-if="rutRequired && !authStore.user?.rut"
             class="rut-form"
             @submit.prevent="handleRutSubmit"
           >
@@ -273,6 +274,14 @@ watch(
             </button>
 
           </form>
+
+          <p v-else-if="authStore.user?.rut" class="hint">
+            El RUT registrado es de solo lectura.
+          </p>
+
+          <p v-else class="hint">
+            No requerido para administradores.
+          </p>
 
           <p
             v-if="rutRequired && !authStore.user?.rut"

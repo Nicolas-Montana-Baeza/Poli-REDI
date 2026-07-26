@@ -3,6 +3,7 @@ import { computed, onMounted, ref } from 'vue'
 
 import ReservationListCard from '@/components/reservations/ReservationListCard.vue'
 import SkeletonLoader from '@/components/ui/SkeletonLoader.vue'
+import ConfirmModal from '@/components/ui/ConfirmModal.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useReservationsStore } from '@/stores/reservations'
 import {
@@ -14,6 +15,7 @@ import {
 const reservationsStore = useReservationsStore()
 const authStore = useAuthStore()
 const cancellingId = ref(null)
+const pendingCancellation = ref(null)
 
 onMounted(async () => {
   reservationsStore.clearActionError()
@@ -80,14 +82,11 @@ const canCancel = (reservation) => {
 }
 
 const cancelReservation = async (reservation) => {
-  const confirmed = window.confirm(
-    '¿Deseas cancelar esta reserva?'
-  )
-
-  if (!confirmed) {
-    return
-  }
-
+  pendingCancellation.value = reservation
+}
+const confirmCancellation = async () => {
+  const reservation = pendingCancellation.value
+  if (!reservation) return
   cancellingId.value = reservation.id
 
   try {
@@ -102,6 +101,7 @@ const cancelReservation = async (reservation) => {
     // El store deja el mensaje listo para mostrar en la vista.
   } finally {
     cancellingId.value = null
+    pendingCancellation.value = null
   }
 }
 </script>
@@ -184,6 +184,18 @@ const cancelReservation = async (reservation) => {
       </section>
 
     </section>
+    <ConfirmModal
+      :show="Boolean(pendingCancellation)"
+      title="Cancelar reserva"
+      message="Esta acción cancelará la reserva y no se puede deshacer."
+      confirm-text="Sí, cancelar reserva"
+      cancel-text="Mantener reserva"
+      variant="danger"
+      destructive
+      :loading="cancellingId !== null"
+      @confirm="confirmCancellation"
+      @cancel="pendingCancellation = null"
+    />
 
   </main>
 </template>

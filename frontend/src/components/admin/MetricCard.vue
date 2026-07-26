@@ -13,21 +13,25 @@ defineProps({
     default: ''
   },
   icon: {
-    type: String,
-    default: ''
+    type: [String, Object, Function],
+    default: null
   },
   trend: {
     type: String,
     default: '' // 'up', 'down', 'neutral'
-  }
+  },
+  interactive: { type: Boolean, default: false }
 })
 </script>
 
 <template>
-  <div class="metric-card">
+  <div class="metric-card" :class="{ interactive }">
     <div class="metric-header">
       <span class="metric-title">{{ title }}</span>
-      <span v-if="icon" class="metric-icon">{{ icon }}</span>
+      <span v-if="icon" class="metric-icon">
+        <component :is="icon" v-if="typeof icon !== 'string'" :size="26" />
+        <template v-else>{{ icon }}</template>
+      </span>
     </div>
 
     <div class="metric-body">
@@ -53,7 +57,7 @@ defineProps({
   transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
-.metric-card:hover {
+.metric-card.interactive:hover {
   transform: translateY(-2px);
   box-shadow: var(--shadow-hover);
 }

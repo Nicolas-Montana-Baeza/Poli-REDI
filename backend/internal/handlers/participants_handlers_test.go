@@ -2,8 +2,10 @@ package handlers
 
 import (
 	"database/sql"
+	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -24,8 +26,47 @@ func participantTestApp(user *models.LocalAuthUser) *fiber.App {
 		return c.Next()
 	})
 	app.Put("/group/:code", ConfirmParticipation)
+	app.Get("/group/:code", GetReservationProgress)
 	app.Get("/reservations/:id/join-code", GetOwnerJoinCode)
 	return app
+}
+
+func TestCancelledAndInvalidJoinCodesReturnIndistinguishable404(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	previous := database.DB
+	database.DB = db
+	defer func() { database.DB = previous }()
+
+	for range 2 {
+		mock.ExpectQuery("SELECT r.id,r.user_id,r.start_time").
+			WillReturnRows(sqlmock.NewRows([]string{"id", "owner", "start", "minutes", "minimum"}))
+		mock.ExpectQuery("(?s)SELECT r.id,r.status.*r.status IN \\('PENDING','CONFIRMED'\\)").
+			WithArgs(sqlmock.AnyArg(), 3).
+			WillReturnError(sql.ErrNoRows)
+	}
+	app := participantTestApp(&models.LocalAuthUser{ID: 3})
+	var bodies [][]byte
+	for _, path := range []string{"/group/codigo-cancelado", "/group/codigo-invalido"} {
+		response, requestErr := app.Test(httptest.NewRequest(http.MethodGet, path, nil))
+		if requestErr != nil || response.StatusCode != 404 {
+			t.Fatalf("%s status=%d err=%v", path, response.StatusCode, requestErr)
+		}
+		body, readErr := io.ReadAll(response.Body)
+		if readErr != nil {
+			t.Fatal(readErr)
+		}
+		bodies = append(bodies, body)
+	}
+	if string(bodies[0]) != string(bodies[1]) || !strings.Contains(string(bodies[0]), "El código no existe o ya no está disponible.") {
+		t.Fatalf("404 responses differ or leak state: %q / %q", bodies[0], bodies[1])
+	}
+	if err = mock.ExpectationsWereMet(); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func TestParticipationErrorStatusContract(t *testing.T) {

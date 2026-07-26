@@ -61,6 +61,12 @@ function handleClick(event) {
   cursor: not-allowed;
 }
 
+.btn-ui:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  box-shadow: var(--shadow-focus);
+}
+
 /* Tamaños */
 .btn-sm {
   padding: 6px 12px;

@@ -173,7 +173,7 @@ func TestMigrationDoesNotPublishBeforeCanonicalTriggers(t *testing.T) {
 
 func TestMigrationRecoveryGuidesAvoidOptionalColumnCompileErrors(t *testing.T) {
 	guide := strings.ToUpper(readRepositoryFile(t, "database", "migrations", "README.md"))
-	installation := strings.ToUpper(readRepositoryFile(t, "docs", "01-instalacion-y-ejecucion.md"))
+	installation := strings.ToUpper(readRepositoryFile(t, "docs", "04-guias-y-despliegue.md"))
 	for _, unsafe := range []string{
 		"SELECT ID,EFFECTIVE_FROM,EFFECTIVE_TO,IS_PUBLISHED",
 		"SELECT ID,EFFECTIVE_FROM,EFFECTIVE_TO,IDEMPOTENCY_KEY",
@@ -193,8 +193,8 @@ func TestMigrationRecoveryGuidesAvoidOptionalColumnCompileErrors(t *testing.T) {
 		}
 	}
 	for _, required := range []string{
-		"DATABASE/MIGRATIONS/README.MD", "BACKUP", "SESION NUEVA",
-		"COMPATIBLE CON `GO`", "POSTCHECK", "UNICA FUENTE OPERATIVA",
+		"DATABASE/MIGRATIONS/README.MD", "BACKUP", "SESIÓN NUEVA",
+		"COMPATIBLE CON `GO`", "POSTCHECK", "BASE ÚNICA",
 	} {
 		if !strings.Contains(installation, required) {
 			t.Fatalf("installation guide lacks safe migration referral: %s", required)

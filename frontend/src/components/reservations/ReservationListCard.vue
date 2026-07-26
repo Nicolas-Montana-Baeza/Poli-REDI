@@ -1,4 +1,5 @@
 <script setup>
+import { computed } from 'vue'
 import {
   CalendarDays,
   Clock,
@@ -11,6 +12,7 @@ import {
   formatReservationTimeRange,
   getReservationDisplayStatus
 } from '@/utils/reservationTime'
+import StatusBadge from '@/components/ui/StatusBadge.vue'
 
 const props = defineProps({
   reservation: {
@@ -49,6 +51,11 @@ const emit = defineEmits([
   'open-detail',
   'cancel'
 ])
+const displayStatus = computed(() => getReservationDisplayStatus(props.reservation))
+const badgeStatus = computed(() => ({
+  completed: 'INACTIVE',
+  ongoing: 'ACTIVE'
+}[displayStatus.value.className] || props.reservation.status))
 
 const handleCardKeydown = (event) => {
   if (props.detailTo) {
@@ -85,12 +92,11 @@ const handleCancel = () => {
 
       <div class="card-copy">
 
-        <span
-          class="reservation-status app-badge"
-          :class="getReservationDisplayStatus(reservation).className"
-        >
-          {{ getReservationDisplayStatus(reservation).label }}
-        </span>
+        <StatusBadge
+          class="reservation-status"
+          :status="badgeStatus"
+          :label="displayStatus.label"
+        />
 
         <h2>
           {{ reservation.title || 'Reserva' }}

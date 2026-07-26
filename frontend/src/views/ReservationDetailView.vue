@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import {
@@ -13,6 +13,8 @@ import {
 
 import SkeletonLoader from '@/components/ui/SkeletonLoader.vue'
 import ParticipantsProgress from '@/components/ui/ParticipantsProgress.vue'
+import ConfirmModal from '@/components/ui/ConfirmModal.vue'
+import StatusBadge from '@/components/ui/StatusBadge.vue'
 import { reservationsService } from '@/services/reservations.service'
 import { useAuthStore } from '@/stores/auth'
 import { useReservationsStore } from '@/stores/reservations'
@@ -33,6 +35,12 @@ const joinCodeOpen = ref(false)
 const groupBusy = ref(false)
 const groupError = ref('')
 const targetValue = ref(null)
+const cancelModalOpen = ref(false)
+const rotateModalOpen = ref(false)
+const copyFeedback = ref('')
+const joinCodeUnavailable = ref(false)
+let joinOperationGeneration = 0
+let componentMounted = true
 
 const reservationId = computed(() => {
   return Number(route.params.id)
@@ -58,7 +66,22 @@ const reservation = computed(() => {
     (item) => item.id === reservationId.value
   )
 })
+const clearJoinCodeState = () => {
+  joinOperationGeneration += 1
+  joinCode.value = ''
+  joinCodeOpen.value = false
+  joinCodeUnavailable.value = false
+  copyFeedback.value = ''
+  groupError.value = ''
+  rotateModalOpen.value = false
+  groupBusy.value = false
+}
 watch(reservation, value => { targetValue.value = value?.targetParticipants ?? null })
+watch(reservationId, clearJoinCodeState)
+onBeforeUnmount(() => {
+  componentMounted = false
+  clearJoinCodeState()
+})
 
 const isLoading = computed(() => {
   return authStore.user?.isAdmin
@@ -79,15 +102,63 @@ const isOwnGroup = computed(() => Boolean(reservation.value?.targetParticipants)
 const ownerProgress = computed(() => reservation.value ? { ...reservation.value, reservationId: reservation.value.id, isOwner: true, isMember: true } : null)
 const toggleJoinCode = async () => {
   joinCodeOpen.value = !joinCodeOpen.value
+  if (!joinCodeOpen.value) {
+    clearJoinCodeState()
+    return
+  }
   if (!joinCodeOpen.value || joinCode.value) return
+  const requestedReservationId = reservation.value.id
+  const operationGeneration = ++joinOperationGeneration
   groupBusy.value = true; groupError.value = ''
-  try { joinCode.value = (await reservationsService.getJoinCode(reservation.value.id)).joinCode }
-  catch { groupError.value = 'No se pudo recuperar el código.' } finally { groupBusy.value = false }
+  try {
+    const response = await reservationsService.getJoinCode(requestedReservationId)
+    if (!componentMounted || !joinCodeOpen.value || reservationId.value !== requestedReservationId || operationGeneration !== joinOperationGeneration) return
+    joinCode.value = response.joinCode || ''
+    joinCodeUnavailable.value = !joinCode.value
+  } catch (error) {
+    if (!componentMounted || !joinCodeOpen.value || reservationId.value !== requestedReservationId || operationGeneration !== joinOperationGeneration) return
+    if (error?.response?.status === 404) joinCodeUnavailable.value = true
+    else groupError.value = 'No se pudo recuperar el código.'
+  } finally {
+    if (componentMounted && operationGeneration === joinOperationGeneration) groupBusy.value = false
+  }
 }
 const rotateJoinCode = async () => {
+  const requestedReservationId = reservation.value.id
+  const operationGeneration = ++joinOperationGeneration
   groupBusy.value = true; groupError.value = ''
-  try { joinCode.value = (await reservationsService.rotateJoinCode(reservation.value.id)).joinCode }
-  catch { groupError.value = 'No se pudo generar un código nuevo.' } finally { groupBusy.value = false }
+  try {
+    const response = await reservationsService.rotateJoinCode(requestedReservationId)
+    if (!componentMounted || reservationId.value !== requestedReservationId || operationGeneration !== joinOperationGeneration) return
+    joinCode.value = response.joinCode
+    joinCodeUnavailable.value = false
+    joinCodeOpen.value = true
+    rotateModalOpen.value = false
+    copyFeedback.value = 'Código nuevo generado. El código anterior dejó de funcionar.'
+  }
+  catch {
+    if (!componentMounted || reservationId.value !== requestedReservationId || operationGeneration !== joinOperationGeneration) return
+    groupError.value = 'No se pudo generar un código nuevo.'
+  } finally {
+    if (componentMounted && operationGeneration === joinOperationGeneration) groupBusy.value = false
+  }
+}
+const copyJoinLink = async () => {
+  const link = `${window.location.origin}/join/${encodeURIComponent(joinCode.value)}`
+  try {
+    await navigator.clipboard.writeText(link)
+    copyFeedback.value = 'Enlace de invitación copiado.'
+  } catch {
+    copyFeedback.value = 'No se pudo copiar el enlace.'
+  }
+}
+const copyJoinCode = async () => {
+  try {
+    await navigator.clipboard.writeText(joinCode.value)
+    copyFeedback.value = 'Código copiado al portapapeles.'
+  } catch {
+    copyFeedback.value = 'No se pudo copiar. Selecciona el código manualmente.'
+  }
 }
 const updateTarget = async () => {
   groupBusy.value = true; groupError.value = ''
@@ -105,6 +176,10 @@ const statusLabel = computed(() => {
 const statusClass = computed(() => {
   return getReservationDisplayStatus(reservation.value).className
 })
+const statusBadgeStatus = computed(() => ({
+  completed: 'INACTIVE',
+  ongoing: 'ACTIVE'
+}[statusClass.value] || reservation.value?.status))
 
 const reservationUserName = computed(() => {
   if (authStore.user?.isAdmin) {
@@ -135,14 +210,7 @@ const cancelReservation = async () => {
     return
   }
 
-  const confirmed = window.confirm(
-    '¿Deseas cancelar esta reserva?'
-  )
-
-  if (!confirmed) {
-    return
-  }
-
+  cancelModalOpen.value = false
   cancelling.value = true
 
   try {
@@ -215,12 +283,7 @@ const goBack = () => {
 
         <div>
 
-          <span
-            class="status"
-            :class="statusClass"
-          >
-            {{ statusLabel }}
-          </span>
+          <StatusBadge :status="statusBadgeStatus" :label="statusLabel" />
 
           <h1>
             {{ reservation.title || 'Reserva' }}
@@ -237,7 +300,7 @@ const goBack = () => {
           class="cancel-button"
           type="button"
           :disabled="cancelling"
-          @click="cancelReservation"
+          @click="cancelModalOpen = true"
         >
           <XCircle :size="18" />
           Cancelar
@@ -337,13 +400,42 @@ const goBack = () => {
         <div v-if="joinCodeOpen">
           <p v-if="groupBusy">Cargando…</p>
           <output v-if="joinCode">{{ joinCode }}</output>
-          <button v-if="joinCode" type="button" @click="navigator.clipboard.writeText(joinCode)">Copiar</button>
-          <button v-if="joinCode" type="button" :disabled="groupBusy" @click="rotateJoinCode">Generar código nuevo</button>
+          <button v-if="joinCode" type="button" @click="copyJoinCode">Copiar</button>
+          <button v-if="joinCode" type="button" @click="copyJoinLink">Copiar enlace</button>
+          <button v-if="joinCode" type="button" :disabled="groupBusy" @click="rotateModalOpen = true">Generar código nuevo</button>
+          <template v-else-if="joinCodeUnavailable && !groupBusy">
+            <p>Esta reserva todavía no tiene un código de invitación.</p>
+            <button type="button" @click="rotateModalOpen = true">Generar código</button>
+          </template>
+          <p v-if="copyFeedback" role="status">{{ copyFeedback }}</p>
         </div>
         <p v-if="groupError" class="state-card error" role="alert">{{ groupError }}</p>
       </section>
 
     </section>
+    <ConfirmModal
+      :show="cancelModalOpen"
+      title="Cancelar reserva"
+      message="Esta acción cancelará la reserva y no se puede deshacer."
+      confirm-text="Sí, cancelar reserva"
+      cancel-text="Mantener reserva"
+      variant="danger"
+      destructive
+      :loading="cancelling"
+      @confirm="cancelReservation"
+      @cancel="cancelModalOpen = false"
+    />
+    <ConfirmModal
+      :show="rotateModalOpen"
+      title="Generar código nuevo"
+      message="El código actual dejará de funcionar inmediatamente. Comparte el nuevo código con las personas invitadas."
+      confirm-text="Generar código nuevo"
+      cancel-text="Conservar código actual"
+      destructive
+      :loading="groupBusy"
+      @confirm="rotateJoinCode"
+      @cancel="rotateModalOpen = false"
+    />
 
   </main>
 </template>

@@ -20,7 +20,7 @@ func GetReservationProgress(c *fiber.Ctx) error {
 	}
 	p, e := repositories.GetReservationProgress(participantCode(c), u.ID)
 	if errors.Is(e, repositories.ErrInvalidJoinCode) {
-		return c.Status(404).JSON(fiber.Map{"error": e.Error()})
+		return c.Status(404).JSON(fiber.Map{"error": "El código no existe o ya no está disponible."})
 	}
 	if e != nil {
 		return c.Status(500).JSON(fiber.Map{"error": "no se pudo consultar el progreso"})

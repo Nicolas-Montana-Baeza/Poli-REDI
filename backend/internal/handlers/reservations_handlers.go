@@ -105,7 +105,7 @@ func CreateReservation(c *fiber.Ctx) error {
 			"error": "Datos inválidos o campos no permitidos",
 		})
 	}
-	if strings.TrimSpace(user.RUT) == "" {
+	if !user.IsAdmin && strings.TrimSpace(user.RUT) == "" {
 		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"error": "Debes registrar tu RUT antes de crear reservas."})
 	}
 

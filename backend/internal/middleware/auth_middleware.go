@@ -207,19 +207,6 @@ func requireDevAuth() fiber.Handler {
 			})
 		}
 
-		// X-Dev-Reset-Rut existe solo para probar localmente el flujo de RUT
-		// obligatorio. Depende de DEV_AUTH_ENABLED y nunca aplica a administradores.
-		if !localUser.IsAdmin && strings.EqualFold(c.Get("X-Dev-Reset-Rut"), "true") {
-			localUser, err = repositories.UpdateUserRUT(localUser.ID, "")
-
-			if err != nil {
-				return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-					"error":  "no se pudo preparar el RUT local de prueba",
-					"detail": err.Error(),
-				})
-			}
-		}
-
 		authUser := AuthUser{
 			OID:    "dev-local",
 			Name:   fullName,

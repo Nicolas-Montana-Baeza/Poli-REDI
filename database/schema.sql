@@ -916,7 +916,7 @@ BEGIN
     IF EXISTS (SELECT 1 FROM inserted i INNER JOIN dbo.users u ON u.id = i.user_id WHERE i.status IN ('PENDING', 'CONFIRMED') AND u.is_blocked = 1)
         THROW 51000, 'El usuario se encuentra bloqueado y no puede crear reservas.', 1;
 
-    IF EXISTS (SELECT 1 FROM inserted i INNER JOIN dbo.users u ON u.id=i.user_id INNER JOIN dbo.reservation_policy_group_resources g ON g.policy_id=i.policy_id AND g.resource_id=i.resource_id WHERE i.status IN ('PENDING','CONFIRMED') AND NULLIF(LTRIM(RTRIM(u.rut)),'') IS NULL)
+    IF EXISTS (SELECT 1 FROM inserted i INNER JOIN dbo.users u ON u.id=i.user_id INNER JOIN dbo.reservation_policy_group_resources g ON g.policy_id=i.policy_id AND g.resource_id=i.resource_id WHERE i.status IN ('PENDING','CONFIRMED') AND u.is_admin=0 AND NULLIF(LTRIM(RTRIM(u.rut)),'') IS NULL)
         THROW 51017, 'El usuario debe registrar su RUT antes de crear reservas.', 1;
 
     IF EXISTS (SELECT 1 FROM inserted i INNER JOIN dbo.resources r ON r.id = i.resource_id WHERE i.status IN ('PENDING', 'CONFIRMED') AND r.is_active = 0)

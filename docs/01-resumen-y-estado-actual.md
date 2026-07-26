@@ -19,6 +19,7 @@ El proceso de reserva del Polideportivo institucional (3 canchas y 1 sala multiu
 * `IMPLEMENTADO`: Comportamiento observable en código Go/Vue o base de datos.
 * `VERIFICADO`: Comprobado mediante pruebas unitarias/builds con resultado satisfactorio.
 * `ACCEPTED LOCALLY`: Incremento aceptado mediante pruebas locales, todavía pendiente de validación integrada en Azure SQL.
+* `IMPLEMENTADO LOCAL`: Funcionalidad integrada en el código y comprobada en el ambiente local mediante pruebas o build; todavía pendiente de validación en el ambiente desplegado.
 * `PENDIENTE`: Funcionalidad planeada o en trabajo futuro.
 
 ---
@@ -32,7 +33,7 @@ El proceso de reserva del Polideportivo institucional (3 canchas y 1 sala multiu
 | **Recursos y Disponibilidad** | `IMPLEMENTADO` | Consulta de disponibilidad por fecha/recurso entre 08:00 y 22:00 (`GET /api/resources`). |
 | **Creación de Reservas** | `IMPLEMENTADO` | Reservas particulares e institucionales controladas por servidor. |
 | **Flujo Grupal y Código de Unión**| `ACCEPTED LOCALLY` | Progreso, código cifrado recuperable solo por propietario, rotación, `/join`, confirmación, retiro, reconfirmación, deadline inclusivo y expiración. Migración 004 y concurrencia real en Azure SQL pendientes. |
-| **Diseño y UI/UX (Tokens & Components)**| `VERIFICADO` | Tokens de estado HSL/Hex en `variables.css` y componentes canónicos (`StatusBadge.vue`, `PrimaryButton.vue`, `ConfirmModal.vue`, `MetricCard.vue`) integrados sin errores de compilación (`npm run build`). |
+| **Diseño y UI/UX (Tokens & Components)**| `IMPLEMENTADO LOCAL` | `StatusBadge` se usa en tarjetas, detalle y próximas reservas; `ConfirmModal` reemplaza confirmaciones nativas de cancelación y protege la rotación de códigos; `MetricCard` cubre las tres métricas administrativas; `PrimaryButton` se usa en los modales y acciones del progreso grupal. Calendarios y bloques con semántica especial conservan sus controles propios. La validación integrada/online continúa pendiente. |
 | **Control de Frecuencia Semanal** | `IMPLEMENTADO` | Restricción de 7 días corridos entre reservas solicitadas por el mismo usuario. |
 | **Prioridad Institucional** | `PENDIENTE` | La regla está aprobada, pero el flujo administrativo de resolución y cancelación automática aún no está implementado. |
 | **Cancelación de Reservas** | `IMPLEMENTADO` | Propietario o administrador pueden cancelar reservas activas (`PATCH /api/reservations/cancel`). |

@@ -10,6 +10,8 @@ import {
 } from 'lucide-vue-next'
 
 import SkeletonLoader from '@/components/ui/SkeletonLoader.vue'
+import MetricCard from '@/components/admin/MetricCard.vue'
+import StatusBadge from '@/components/ui/StatusBadge.vue'
 import { useResourcesStore } from '@/stores/resources'
 import { useReservationsStore } from '@/stores/reservations'
 import {
@@ -127,21 +129,6 @@ const actions = [
   }
 ]
 
-const statusLabel = (status) => {
-  switch (status) {
-    case 'CONFIRMED':
-      return 'Confirmada'
-
-    case 'PENDING':
-      return 'Pendiente'
-
-    case 'CANCELLED':
-      return 'Cancelada'
-
-    default:
-      return status || 'Reserva'
-  }
-}
 </script>
 
 <template>
@@ -190,31 +177,14 @@ const statusLabel = (status) => {
 
       <section class="stats-grid">
 
-        <article
+        <MetricCard
           v-for="stat in stats"
           :key="stat.label"
-          class="stat-card"
-          :class="stat.variant"
-        >
-
-          <component
-            :is="stat.icon"
-            :size="26"
-          />
-
-          <span>
-            {{ stat.label }}
-          </span>
-
-          <strong>
-            {{ stat.value }}
-          </strong>
-
-          <p>
-            {{ stat.detail }}
-          </p>
-
-        </article>
+          :title="stat.label"
+          :value="stat.value"
+          :subtitle="stat.detail"
+          :icon="stat.icon"
+        />
 
       </section>
 
@@ -317,9 +287,7 @@ const statusLabel = (status) => {
                 ) }}
               </p>
 
-              <small>
-                {{ statusLabel(reservation.status) }}
-              </small>
+              <StatusBadge :status="reservation.status" />
 
             </article>
 

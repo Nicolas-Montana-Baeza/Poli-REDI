@@ -76,10 +76,6 @@ export function getDevAuthHeaders() {
     'X-Dev-Auth-Name': account.name
   }
 
-  if (account.resetRutOnNextLoad) {
-    headers['X-Dev-Reset-Rut'] = 'true'
-  }
-
   return headers
 }
 
@@ -152,26 +148,12 @@ export function loginLocal({ email, fullName }) {
   const account = {
     local: true,
     username: normalizedEmail,
-    name,
-    resetRutOnNextLoad: normalizedEmail !== 'admin@universidad.cl'
+    name
   }
 
   localStorage.setItem(DEV_ACCOUNT_KEY, JSON.stringify(account))
 
   return account
-}
-
-export function clearDevRutResetFlag() {
-  const account = getDevAccount()
-
-  if (!account?.resetRutOnNextLoad) {
-    return
-  }
-
-  localStorage.setItem(DEV_ACCOUNT_KEY, JSON.stringify({
-    ...account,
-    resetRutOnNextLoad: false
-  }))
 }
 
 export async function logout() {

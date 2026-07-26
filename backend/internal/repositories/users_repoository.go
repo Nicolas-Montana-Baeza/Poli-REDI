@@ -3,9 +3,18 @@ package repositories
 import (
 	"context"
 	"database/sql"
+	"errors"
+	"strings"
 
 	"poli-redi-api/internal/database"
 	"poli-redi-api/internal/models"
+
+	mssql "github.com/microsoft/go-mssqldb"
+)
+
+var (
+	ErrRUTAlreadySet = errors.New("el RUT ya fue registrado y no puede modificarse")
+	ErrRUTDuplicate  = errors.New("el RUT ya está registrado por otra cuenta")
 )
 
 func GetOrCreateUserByEmail(email string, fullName string) (*models.LocalAuthUser, error) {
@@ -164,30 +173,37 @@ func GetAllUsers() ([]models.LocalAuthUser, error) {
 
 func UpdateUserRUT(userID int, rut string) (*models.LocalAuthUser, error) {
 	ctx := context.Background()
-	var rutValue any = rut
-
-	if rut == "" {
-		rutValue = nil
-	}
-
-	_, err := database.DB.ExecContext(
-		ctx,
-		`
-		UPDATE dbo.users
-		SET
-			rut = @p1,
-			updated_at = SYSUTCDATETIME()
-		WHERE id = @p2;
-		`,
-		rutValue,
-		userID,
-	)
-
+	tx, err := database.DB.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelSerializable})
 	if err != nil {
 		return nil, err
 	}
-
-	return getUserByID(ctx, userID)
+	defer tx.Rollback()
+	var current string
+	if err = tx.QueryRowContext(ctx, `SELECT COALESCE(rut,'') FROM dbo.users WITH(UPDLOCK,HOLDLOCK) WHERE id=@p1`, userID).Scan(&current); err != nil {
+		return nil, err
+	}
+	current = strings.TrimSpace(strings.ToUpper(current))
+	if current != "" && current != rut {
+		return nil, ErrRUTAlreadySet
+	}
+	if current == "" {
+		_, err = tx.ExecContext(ctx, `UPDATE dbo.users SET rut=@p1,updated_at=SYSUTCDATETIME() WHERE id=@p2 AND rut IS NULL`, rut, userID)
+		var sqlErr mssql.Error
+		if errors.As(err, &sqlErr) && (sqlErr.Number == 2601 || sqlErr.Number == 2627) {
+			return nil, ErrRUTDuplicate
+		}
+		if err != nil {
+			return nil, err
+		}
+	}
+	if err = tx.Commit(); err != nil {
+		return nil, err
+	}
+	user, err := getUserByID(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	return user, nil
 }
 
 func getUserByID(ctx context.Context, userID int) (*models.LocalAuthUser, error) {

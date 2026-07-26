@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"errors"
 	"poli-redi-api/internal/middleware"
 	"poli-redi-api/internal/models"
 	"poli-redi-api/internal/repositories"
@@ -32,25 +33,13 @@ func UpdateMeRUT(c *fiber.Ctx) error {
 
 	var request models.UpdateRUTRequest
 
-	if err := c.BodyParser(&request); err != nil {
+	if err := decodeStrictJSON(c.Body(), &request); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "Datos inválidos",
 		})
 	}
 
 	normalizedRUT := validators.NormalizeRUT(request.RUT)
-
-	if normalizedRUT == "" && user.IsAdmin {
-		updatedUser, err := repositories.UpdateUserRUT(user.ID, "")
-
-		if err != nil {
-			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-				"error": "no se pudo actualizar el RUT",
-			})
-		}
-
-		return c.JSON(updatedUser)
-	}
 
 	if !validators.IsValidRUT(normalizedRUT) {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
@@ -61,9 +50,10 @@ func UpdateMeRUT(c *fiber.Ctx) error {
 	updatedUser, err := repositories.UpdateUserRUT(user.ID, normalizedRUT)
 
 	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "no se pudo actualizar el RUT",
-		})
+		if errors.Is(err, repositories.ErrRUTAlreadySet) || errors.Is(err, repositories.ErrRUTDuplicate) {
+			return c.Status(fiber.StatusConflict).JSON(fiber.Map{"error": err.Error()})
+		}
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "no se pudo actualizar el RUT"})
 	}
 
 	return c.JSON(updatedUser)
