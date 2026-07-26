@@ -14,7 +14,7 @@ gantt
     section MVP 1 Base Operativa
     Consulta Disponibilidad y Reservas Basicas :done, mvp1, 2026-01-01, 2026-03-31
     section MVP 2 Reglas y Grupal
-    Quorum 10 Personas y Frecuencia Semanal   :done, mvp2, 2026-04-01, 2026-06-30
+    Quorum 10 Personas y Frecuencia Semanal   :active, mvp2, 2026-04-01, 2026-06-30
     section MVP 3 Administracion
     Bloqueos e Infracciones                   :active, mvp3, 2026-07-01, 2026-08-31
     section MVP 4 Trazabilidad
@@ -22,7 +22,7 @@ gantt
 ```
 
 * **MVP 1 (Base Operativa):** Demo funcional. Inicios de sesión, disponibilidad en agenda, reservas simples, captura de RUT y panel admin inicial.
-* **MVP 2 (Reglas y Flujo Grupal):** Accepted locally. Frecuencia semanal, mínimo 10 participantes, código grupal cifrado, prioridad institucional y ventana de tiempo.
+* **MVP 2 (Reglas y Flujo Grupal):** `ACCEPTED LOCALLY`. Frecuencia semanal, mínimo y objetivo, código grupal cifrado, `/join`, participación, deadline y expiración. Migración 004 y concurrencia real en Azure SQL pendientes. La prioridad institucional no forma parte del cierre aceptado.
 * **MVP 3 (Administración Extendida):** Parcial. Bloqueo con motivos, notificaciones internas y pantalla informativa pública.
 * **MVP 4 (Trazabilidad y Futuro):** En desarrollo/Trabajo futuro. Reportes avanzados e integración con sistemas académicos institucionales.
 
@@ -42,14 +42,14 @@ gantt
 
 ### CU-01: Solicitar Reserva Particular
 * **Actor:** Estudiante Autenticado.
-* **Precondición:** El usuario debe tener su RUT registrado y no tener bloqueos activos ni reservas en los últimos 7 días.
+* **Precondición:** El usuario debe tener su RUT registrado y cumplir la frecuencia configurada para solicitudes normales activas. `OPEN_USE` no consume frecuencia, pero tampoco permite solapes activos del mismo usuario.
 * **Flujo Principal:**
   1. El estudiante ingresa a la vista `/disponibilidad`.
   2. Selecciona la cancha, fecha y horario deseado.
   3. El sistema valida disponibilidad y restricción semanal en servidor.
-  4. Si la cancha requiere grupo, el sistema crea la reserva en estado `PENDING` y genera un código de unión AES.
-  5. El usuario comparte el código hasta completar los 10 participantes.
-  6. Al alcanzar el quorum, la reserva pasa automáticamente a `CONFIRMED`.
+  4. Si la cancha requiere grupo, el sistema crea la reserva en estado `PENDING`; el propietario recupera bajo demanda el código cifrado y puede rotarlo.
+  5. Los participantes ingresan manualmente o mediante `/join/:code`, consultan progreso y pueden confirmar, retirar o reconfirmar antes del deadline inclusivo.
+  6. Al alcanzar el mínimo, la reserva pasa automáticamente a `CONFIRMED`; si vence bajo el mínimo, cambia a `CANCELLED`.
 
 ### CU-02: Gestionar Conflicto Institucional (Administrador)
 * **Actor:** Administrador.

@@ -18,6 +18,7 @@ El proceso de reserva del Polideportivo institucional (3 canchas y 1 sala multiu
 * `APROBADO`: Definido explícitamente en el alcance o acordado con contraparte.
 * `IMPLEMENTADO`: Comportamiento observable en código Go/Vue o base de datos.
 * `VERIFICADO`: Comprobado mediante pruebas unitarias/builds con resultado satisfactorio.
+* `ACCEPTED LOCALLY`: Incremento aceptado mediante pruebas locales, todavía pendiente de validación integrada en Azure SQL.
 * `PENDIENTE`: Funcionalidad planeada o en trabajo futuro.
 
 ---
@@ -30,15 +31,15 @@ El proceso de reserva del Polideportivo institucional (3 canchas y 1 sala multiu
 | **Identidad y Perfil (RUT)** | `IMPLEMENTADO` | Modal obligatorio de captura de RUT para usuarios normales antes de reservar. |
 | **Recursos y Disponibilidad** | `IMPLEMENTADO` | Consulta de disponibilidad por fecha/recurso entre 08:00 y 22:00 (`GET /api/resources`). |
 | **Creación de Reservas** | `IMPLEMENTADO` | Reservas particulares e institucionales controladas por servidor. |
-| **Flujo Grupal y Código de Unión**| `IMPLEMENTADO` | Cifrado AES de códigos de unión, rotación de llaves y quorum obligatorio de 10 personas. |
+| **Flujo Grupal y Código de Unión**| `ACCEPTED LOCALLY` | Progreso, código cifrado recuperable solo por propietario, rotación, `/join`, confirmación, retiro, reconfirmación, deadline inclusivo y expiración. Migración 004 y concurrencia real en Azure SQL pendientes. |
 | **Diseño y UI/UX (Tokens & Components)**| `VERIFICADO` | Tokens de estado HSL/Hex en `variables.css` y componentes canónicos (`StatusBadge.vue`, `PrimaryButton.vue`, `ConfirmModal.vue`, `MetricCard.vue`) integrados sin errores de compilación (`npm run build`). |
 | **Control de Frecuencia Semanal** | `IMPLEMENTADO` | Restricción de 7 días corridos entre reservas solicitadas por el mismo usuario. |
-| **Prioridad Institucional** | `IMPLEMENTADO` | Bloqueo o cancelación de reservas particulares ante clases o actividades académicas. |
+| **Prioridad Institucional** | `PENDIENTE` | La regla está aprobada, pero el flujo administrativo de resolución y cancelación automática aún no está implementado. |
 | **Cancelación de Reservas** | `IMPLEMENTADO` | Propietario o administrador pueden cancelar reservas activas (`PATCH /api/reservations/cancel`). |
 | **Talleres e Inscripciones** | `IMPLEMENTADO` | Talleres recurrentes con control de cupos e inscripción con RUT (`/api/activities`). |
-| **Notificaciones Internas** | `PARCIAL` | Consulta y contador interno (`GET /api/notifications`); notificaciones push multicanal pendientes. |
-| **Panel Administrador** | `IMPLEMENTADO` | Gestión básica de usuarios, reservas, recursos e indicadores iniciales. |
-| **Auditoría y Trazabilidad** | `IMPLEMENTADO` | Esquema Azure SQL registra marcas temporales y estados de cambios en reservas. |
+| **Notificaciones Internas** | `PARCIAL` | Consulta y contador (`GET /api/notifications`) y notificación única de expiración verificada localmente; lectura, destinos, otros eventos y sistema completo pendientes. |
+| **Panel Administrador** | `PARCIAL` | Lectura operacional, indicadores, imágenes de recursos y políticas; gestión completa de usuarios, recursos, bloqueos y programación pendiente. |
+| **Auditoría y Trazabilidad** | `PARCIAL` | El esquema registra cambios de reservas, participantes, objetivos y expiraciones; falta consulta administrativa integral. |
 
 ---
 
@@ -48,3 +49,5 @@ El proceso de reserva del Polideportivo institucional (3 canchas y 1 sala multiu
 2. **Ventana de Reserva:** El usuario puede reservar desde el día actual hasta el día anterior al mismo día de la semana siguiente.
 3. **Mínimo de Participantes:** Mínimo 10 participantes obligatorios para Canchas 1, 2 y 3.
 4. **Cancelación Automática por Prioridad:** Un conflicto entre actividad institucional y reserva particular cancela automáticamente la reserva particular y notifica al afectado.
+
+> **Límite de verificación:** El MVP 2 está `ACCEPTED LOCALLY`. Continúan pendientes la ejecución de la migración 004, su idempotencia y las pruebas de concurrencia real en Azure SQL.

@@ -25,7 +25,31 @@
    ```powershell
    ./scripts/configure-join-code-encryption.ps1
    ```
-4. Ejecutar servidor API:
+   Modos disponibles:
+   ```powershell
+   # Validar/reutilizar o crear configuración
+   ./scripts/configure-join-code-encryption.ps1
+
+   # Reemplazar una configuración incompleta o inválida
+   ./scripts/configure-join-code-encryption.ps1 -Repair
+
+   # Agregar una versión activa conservando las anteriores
+   ./scripts/configure-join-code-encryption.ps1 -Rotate
+   ```
+   `-Repair` y `-Rotate` no se pueden combinar. El script valida que `.env` y sus backups estén ignorados, rechaza enlaces/junctions, escribe atómicamente y crea un backup recuperable sin mostrar claves.
+   Las variables obligatorias son:
+   ```env
+   JOIN_CODE_ENCRYPTION_KEYS=1:<clave-base64-de-32-bytes>
+   JOIN_CODE_KEY_VERSION=1
+   ```
+4. En una base existente, ejecutar con herramienta compatible con `GO` y backup previo:
+   1. `001_mvp2_group_participants.sql`
+   2. `002_mvp2_target_participants.sql`
+   3. `003_open_use_frequency_scope.sql`
+   4. `004_group_flow_completion.sql`
+
+   Verificar el `POSTCHECK` de cada migración antes de continuar. Los 12 indicadores de `004` deben valer `1`. Si una fase falla, abrir una sesión nueva, confirmar `@@TRANCOUNT = 0` y `XACT_STATE() = 0`, y seguir la recuperación de `database/migrations/README.md`; no ejecutar `drop.sql`, `schema.sql` ni `seed.sql` sobre la base única.
+5. Ejecutar servidor API:
    ```bash
    cd backend
    go run ./cmd
@@ -53,8 +77,10 @@ La infraestructura de demostración online utiliza:
 
 ### Pasos de Redespliegue:
 1. Asegurar que `CORS_ALLOWED_ORIGINS` en Azure App Service incluya la URL de Static Web Apps.
-2. Configurar las variables `VITE_API_BASE_URL` y `VITE_ENTRA_*` en el pipeline de **GitHub Actions**.
-3. Ejecutar push a rama principal para disparar despliegue automático.
+2. Configurar `JOIN_CODE_ENCRYPTION_KEYS` y `JOIN_CODE_KEY_VERSION` en App Service sin exponer sus valores; conservar versiones anteriores mientras existan secretos cifrados con ellas.
+3. Configurar las variables `VITE_API_BASE_URL` y `VITE_ENTRA_*` en el pipeline de **GitHub Actions**.
+4. Ejecutar y verificar migraciones `001 → 004`; Azure SQL real para `004`, idempotencia y concurrencia siguen pendientes.
+5. Ejecutar push a rama principal para disparar despliegue automático.
 
 ---
 

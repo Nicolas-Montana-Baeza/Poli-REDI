@@ -29,9 +29,11 @@ La persitencia se realiza en **Azure SQL Database** mediante scripts T-SQL ubica
 ### Entidades Principales:
 1. `Users`: Almacena `id`, `email`, `name`, `rut`, `role_id` e `is_blocked`.
 2. `Resources`: Representa los espacios reservables (`Cancha 1`, `Cancha 2`, `Cancha 3`, `Sala Multiusos`).
-3. `Reservations`: Almacena `user_id`, `resource_id`, `start_time`, `end_time`, `status` (`PENDING`, `CONFIRMED`, `CANCELLED`) y `join_code`.
-4. `ReservationParticipants`: Registro de participantes asociados a reservas grupales.
-5. `Activities`: Catalogo de talleres y actividades institucionales recurrentes.
+3. `reservations`: Almacena `user_id`, `resource_id`, `start_time`, `duration_minutes`, `status` (`PENDING`, `CONFIRMED`, `CANCELLED`), `join_code_hash`, capacidad y objetivo grupal.
+4. `participants`: Registro único por usuario y reserva grupal.
+5. `reservation_join_code_secrets`: Secreto cifrado versionado para recuperación owner-only.
+6. `reservation_group_expirations`: Marca idempotente de expiración bajo el mínimo.
+7. `activities`: Catálogo de actividades; la programación institucional usa entidades separadas.
 
 ---
 
@@ -51,7 +53,14 @@ El backend está construido en **Go** estructurado en paquetes modulares (`backe
 * `GET /api/resources`: Listado de recintos deportivos.
 * `GET /api/reservations` | `POST /api/reservations`: Consulta y creación de reservas.
 * `PATCH /api/reservations/cancel`: Cancelación de reservas.
-* `GET /api/activities` | `POST /api/activities/enroll`: Talleres e inscripciones.
+* `GET /api/activities`: Catálogo de actividades.
+* `GET /api/workshops` | `POST /api/workshops/:id/enroll`: Talleres e inscripciones.
+* `GET /api/group-reservations/:code`: Progreso agregado del flujo grupal.
+* `PUT /api/group-reservations/:code/confirmation`: Confirmar o reconfirmar participación.
+* `DELETE /api/group-reservations/:code/confirmation`: Retirar participación propia.
+* `PATCH /api/reservations/:id/target-participants`: Editar objetivo, solo propietario y hasta el deadline inclusivo.
+* `GET /api/reservations/:id/join-code`: Recuperar código cifrado, solo propietario.
+* `POST /api/reservations/:id/join-code/rotate`: Rotar código y habilitar reservas legacy sin secreto.
 
 ---
 
@@ -78,7 +87,13 @@ stateDiagram-v2
     [*] --> CONFIRMED : "Crear Reserva Institucional / Individual"
     PENDING --> CONFIRMED : "Quorum Alcanzado (>= 10 Participantes)"
     PENDING --> CANCELLED : "Expiracion Deadline / Retiro de Integrantes"
-    CONFIRMED --> CANCELLED : "Cancelacion por Usuario / Prioridad Institucional"
+    CONFIRMED --> CANCELLED : "Cancelacion por Usuario / Administrador"
     CANCELLED --> [*]
     CONFIRMED --> [*]
 ```
+
+El deadline inclusivo se aplica a objetivo, confirmación y retiro. Una persona retirada puede reconfirmar antes del límite. Las solicitudes `PENDING` bajo el mínimo expiran a `CANCELLED` mediante un worker periódico y resolución perezosa en consultas o acciones.
+
+`OPEN_USE` no requiere participantes ni consume la frecuencia institucional. Aun así, el mismo usuario no puede mantener reservas activas solapadas entre sí; los horarios contiguos sí se permiten.
+
+> **Estado:** Flujo grupal `ACCEPTED LOCALLY`. Migración 004, idempotencia y concurrencia real en Azure SQL pendientes.

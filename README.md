@@ -158,7 +158,7 @@ no ejecutar `drop.sql`, `schema.sql` ni `seed.sql`.
 
 No usar scripts ni cadenas de conexion PostgreSQL para el entorno actual.
 
-Antes de iniciar el backend, ejecutar `./scripts/configure-join-code-encryption.ps1`; usar `-Rotate` para agregar una version activa conservando claves anteriores. El script valida Git ignore y puntos de reanalisis, escribe atomicamente y crea backups `backend/.env.backup-*` sin mostrar secretos. Las variables resultantes son `JOIN_CODE_ENCRYPTION_KEYS` (`version:base64`, separadas por coma) y `JOIN_CODE_KEY_VERSION`.
+Antes de iniciar el backend, ejecutar `./scripts/configure-join-code-encryption.ps1`. Usar `-Rotate` para agregar una version activa conservando claves anteriores o `-Repair` para reemplazar una configuracion incompleta/invalida; ambos modos son incompatibles entre si. El script valida Git ignore y puntos de reanalisis, escribe atomicamente y crea backups `backend/.env.backup-*` sin mostrar secretos. Las variables resultantes son `JOIN_CODE_ENCRYPTION_KEYS` (`version:base64`, separadas por coma) y `JOIN_CODE_KEY_VERSION`.
 
 ## Ejecutar backend
 
