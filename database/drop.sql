@@ -2,6 +2,13 @@
 -- POLI-REDI - LIMPIEZA BASE DE DATOS
 -- Azure SQL Database / SQL Server T-SQL
 -- ============================================================
+-- Script de reset orientado a desarrollo y pruebas.
+-- El orden sigue las dependencias para dejar la base lista para
+-- volver a aplicar schema.sql y seed.sql de forma limpia.
+-- ============================================================
+
+SET NOCOUNT ON;
+GO
 
 -- VIEWS
 IF OBJECT_ID('dbo.vw_resource_calendar', 'V') IS NOT NULL DROP VIEW dbo.vw_resource_calendar;

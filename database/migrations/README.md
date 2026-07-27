@@ -1,5 +1,7 @@
 # Migraciones de base de datos
 
+El archivo principal [../schema.sql](../schema.sql) representa el estado canónico de la base de datos y sirve como referencia para lectura y uso diario. Las migraciones en esta carpeta quedan como deltas incrementales, reejecutables y ordenados para evolución controlada.
+
 ## `001_mvp2_group_participants.sql`
 
 Ejecutar el archivo completo con una herramienta que interprete separadores

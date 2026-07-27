@@ -2,6 +2,16 @@
 -- POLI-REDI - DDL BASE DE DATOS
 -- Azure SQL Database / SQL Server T-SQL
 -- ============================================================
+-- Canonical target schema for local, test, and CI environments.
+-- The migration history in database/migrations is reflected here as
+-- a readable, idempotent target state:
+--   001_mvp2_group_participants.sql
+--   002_mvp2_target_participants.sql
+--   003_open_use_frequency_scope.sql
+--   004_group_flow_completion.sql
+--   005_rut_integrity_and_admin_exemption.sql
+--   006_workshop_occurrences.sql
+-- ============================================================
 
 SET ANSI_NULLS ON;
 GO
