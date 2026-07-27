@@ -29,7 +29,7 @@ El proceso de reserva del Polideportivo institucional (3 canchas y 1 sala multiu
 | Módulo | Estado | Descripción y Evidencia |
 | :--- | :---: | :--- |
 | **Autenticación y Sesión** | `IMPLEMENTADO` | Integración con Microsoft Entra ID (JWT) + Modo local Dev Auth (`X-Dev-Auth-*`). |
-| **Identidad y Perfil (RUT)** | `IMPLEMENTADO` | Modal obligatorio de captura de RUT para usuarios normales antes de reservar. |
+| **Identidad y Perfil (RUT)** | `ACCEPTED LOCALLY` | Modal condicionado a `/api/me` listo, usuario no administrador y RUT ausente/inválido. Registro write-once, lectura posterior e idempotencia del mismo valor. |
 | **Recursos y Disponibilidad** | `IMPLEMENTADO` | Consulta de disponibilidad por fecha/recurso entre 08:00 y 22:00 (`GET /api/resources`). |
 | **Creación de Reservas** | `IMPLEMENTADO` | Reservas particulares e institucionales controladas por servidor. |
 | **Flujo Grupal y Código de Unión**| `ACCEPTED LOCALLY` | Progreso, código cifrado recuperable solo por propietario, rotación, `/join`, confirmación, retiro, reconfirmación, deadline inclusivo y expiración. Migración 004 y concurrencia real en Azure SQL pendientes. |
@@ -37,7 +37,7 @@ El proceso de reserva del Polideportivo institucional (3 canchas y 1 sala multiu
 | **Control de Frecuencia Semanal** | `IMPLEMENTADO` | Restricción de 7 días corridos entre reservas solicitadas por el mismo usuario. |
 | **Prioridad Institucional** | `PENDIENTE` | La regla está aprobada, pero el flujo administrativo de resolución y cancelación automática aún no está implementado. |
 | **Cancelación de Reservas** | `IMPLEMENTADO` | Propietario o administrador pueden cancelar reservas activas (`PATCH /api/reservations/cancel`). |
-| **Talleres e Inscripciones** | `IMPLEMENTADO` | Talleres recurrentes con control de cupos e inscripción con RUT (`/api/activities`). |
+| **Talleres e Inscripciones** | `ACCEPTED LOCALLY` | Cupos, ocurrencias normalizadas y prevención de solapes taller↔taller para inscripciones activas. Contrato `POST /api/workshops/:id/enroll`. |
 | **Notificaciones Internas** | `PARCIAL` | Consulta y contador (`GET /api/notifications`) y notificación única de expiración verificada localmente; lectura, destinos, otros eventos y sistema completo pendientes. |
 | **Panel Administrador** | `PARCIAL` | Lectura operacional, indicadores, imágenes de recursos y políticas; gestión completa de usuarios, recursos, bloqueos y programación pendiente. |
 | **Auditoría y Trazabilidad** | `PARCIAL` | El esquema registra cambios de reservas, participantes, objetivos y expiraciones; falta consulta administrativa integral. |
@@ -52,3 +52,14 @@ El proceso de reserva del Polideportivo institucional (3 canchas y 1 sala multiu
 4. **Cancelación Automática por Prioridad:** Un conflicto entre actividad institucional y reserva particular cancela automáticamente la reserva particular y notifica al afectado.
 
 > **Límite de verificación:** El MVP 2 está `ACCEPTED LOCALLY`. Continúan pendientes la ejecución de la migración 004, su idempotencia y las pruebas de concurrencia real en Azure SQL.
+
+Las extensiones de integridad de RUT y horarios de talleres también están `ACCEPTED LOCALLY`. Migraciones 005/006, DDL, idempotencia y carreras reales en Azure SQL siguen pendientes.
+
+### Matriz RUT por rol y acción
+
+| Actor sin RUT | Reserva normal | Reserva grupal propia | Inscripción a taller | Confirmar como participante |
+| :--- | :---: | :---: | :---: | :---: |
+| Usuario normal | No | No | No | No |
+| Administrador | Sí | Sí | Sí | No |
+
+Una vez registrado, el RUT no puede cambiarse ni borrarse. Repetir el mismo valor es idempotente; un valor diferente o duplicado devuelve `409`. El inicio de sesión local conserva el RUT existente.

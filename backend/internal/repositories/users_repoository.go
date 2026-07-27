@@ -8,11 +8,13 @@ import (
 
 	"poli-redi-api/internal/database"
 	"poli-redi-api/internal/models"
+	"poli-redi-api/internal/validators"
 
 	mssql "github.com/microsoft/go-mssqldb"
 )
 
 var (
+	ErrRUTInvalid    = errors.New("el RUT no es válido")
 	ErrRUTAlreadySet = errors.New("el RUT ya fue registrado y no puede modificarse")
 	ErrRUTDuplicate  = errors.New("el RUT ya está registrado por otra cuenta")
 )
@@ -172,6 +174,11 @@ func GetAllUsers() ([]models.LocalAuthUser, error) {
 }
 
 func UpdateUserRUT(userID int, rut string) (*models.LocalAuthUser, error) {
+	rut = validators.NormalizeRUT(rut)
+	if !validators.IsValidRUT(rut) {
+		return nil, ErrRUTInvalid
+	}
+
 	ctx := context.Background()
 	tx, err := database.DB.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelSerializable})
 	if err != nil {
@@ -187,13 +194,24 @@ func UpdateUserRUT(userID int, rut string) (*models.LocalAuthUser, error) {
 		return nil, ErrRUTAlreadySet
 	}
 	if current == "" {
-		_, err = tx.ExecContext(ctx, `UPDATE dbo.users SET rut=@p1,updated_at=SYSUTCDATETIME() WHERE id=@p2 AND rut IS NULL`, rut, userID)
+		result, updateErr := tx.ExecContext(ctx, `UPDATE dbo.users SET rut=@p1,updated_at=SYSUTCDATETIME() WHERE id=@p2 AND NULLIF(LTRIM(RTRIM(rut)),'') IS NULL`, rut, userID)
+		err = updateErr
 		var sqlErr mssql.Error
 		if errors.As(err, &sqlErr) && (sqlErr.Number == 2601 || sqlErr.Number == 2627) {
 			return nil, ErrRUTDuplicate
 		}
+		if errors.As(err, &sqlErr) && (sqlErr.Number == 51010 || sqlErr.Number == 55003) {
+			return nil, ErrRUTAlreadySet
+		}
 		if err != nil {
 			return nil, err
+		}
+		affected, rowsErr := result.RowsAffected()
+		if rowsErr != nil {
+			return nil, rowsErr
+		}
+		if affected != 1 {
+			return nil, ErrRUTAlreadySet
 		}
 	}
 	if err = tx.Commit(); err != nil {

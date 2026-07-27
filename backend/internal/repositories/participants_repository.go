@@ -12,7 +12,7 @@ import (
 	"poli-redi-api/internal/database"
 	"poli-redi-api/internal/joinsecret"
 	"poli-redi-api/internal/models"
-	"strings"
+	"poli-redi-api/internal/validators"
 	"time"
 )
 
@@ -108,7 +108,7 @@ func ChangeParticipation(code string, userID int, confirm bool) (models.Reservat
 	if err = tx.QueryRowContext(ctx, `SELECT COALESCE(rut,''),is_blocked FROM dbo.users WITH(UPDLOCK,HOLDLOCK) WHERE id=@p1`, userID).Scan(&rut, &blocked); err != nil {
 		return models.ReservationProgress{}, err
 	}
-	if blocked || strings.TrimSpace(rut) == "" {
+	if blocked || !validators.HasRUT(rut) {
 		return models.ReservationProgress{}, ErrParticipantIneligible
 	}
 	if confirm {

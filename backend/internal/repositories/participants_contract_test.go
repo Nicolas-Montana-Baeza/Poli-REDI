@@ -45,7 +45,9 @@ func TestParticipantQueriesUseCapacitySnapshotTrimmedRUTAndInitialAudit(t *testi
 	if strings.Contains(participants, "RES.CAPACITY") || !strings.Contains(participants, "GROUP_CAPACITY_SNAPSHOT") {
 		t.Fatal("participant flow must use frozen capacity")
 	}
-	if !strings.Contains(participants, "STRINGSTRIMSPACE") && !strings.Contains(participants, "STRINGS.TRIMSPACE") {
+	if !strings.Contains(participants, "VALIDATORS.HASRUT") &&
+		!strings.Contains(participants, "STRINGSTRIMSPACE") &&
+		!strings.Contains(participants, "STRINGS.TRIMSPACE") {
 		t.Fatal("participant RUT must reject whitespace")
 	}
 	for _, required := range []string{"GROUP_CAPACITY_SNAPSHOT", "REQUESTER_ADDED", "RESERVATION_PARTICIPANT_AUDIT", "WITH(UPDLOCK,HOLDLOCK)"} {

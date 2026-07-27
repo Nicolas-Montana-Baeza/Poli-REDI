@@ -9,9 +9,14 @@ const getFriendlyApiError = (error, fallback) => {
   if (!error.response) {
     return 'No se pudo conectar con el backend. Verifica que el servidor esté encendido.'
   }
-
   return error.response?.data?.error || fallback
 }
+
+const getAccountKey = (account) =>
+  account?.homeAccountId ||
+  account?.localAccountId ||
+  account?.username ||
+  null
 
 export const useAuthStore = defineStore('auth', {
   state: () => ({
@@ -32,51 +37,78 @@ export const useAuthStore = defineStore('auth', {
 
   actions: {
     async loadAuthUser() {
-      if (this._loadPromise) return this._loadPromise
+      const account = await getCurrentAccount()
+      const accountKey = getAccountKey(account)
+
+      if (
+        accountKey &&
+        this.profileReady &&
+        this._loadedAccountKey === accountKey
+      ) {
+        return this.user
+      }
+      if (
+        this._loadPromise &&
+        this._loadPromiseAccountKey === accountKey
+      ) {
+        return this._loadPromise
+      }
+
       const generation = ++this.requestGeneration
+      this.account = account
       this.loading = true
       this.profileReady = false
       this.error = null
       this.errorStatus = null
-      this._loadPromise = (async () => {
+      this._loadPromiseAccountKey = accountKey
+      const loadPromise = (async () => {
         try {
-        this.account = await getCurrentAccount()
+          if (!account) {
+            if (generation !== this.requestGeneration) return null
+            this.user = null
+            this._loadedAccountKey = null
+            return null
+          }
 
-        if (!this.account) {
+          const response = await api.get('/me')
           if (generation !== this.requestGeneration) return null
+          this.user = response.data
+          this._loadedAccountKey = accountKey
+          this.profileReady = true
+          return this.user
+        } catch (error) {
+          if (generation !== this.requestGeneration) return null
+          this.error = getFriendlyApiError(
+            error,
+            'No se pudo cargar tu sesión.'
+          )
+          this.errorStatus = error.response?.status || null
           this.user = null
+          this._loadedAccountKey = null
           return null
+        } finally {
+          if (generation === this.requestGeneration) {
+            this.loading = false
+          }
         }
-
-        const response = await api.get('/me')
-        if (generation !== this.requestGeneration) return null
-        this.user = response.data
-        this.profileReady = true
-
-        return this.user
-      } catch (error) {
-        if (generation !== this.requestGeneration) return null
-        this.error = getFriendlyApiError(
-          error,
-          'No se pudo cargar tu sesión.'
-        )
-        this.errorStatus = error.response?.status || null
-        this.user = null
-        return null
-      } finally {
-        if (generation === this.requestGeneration) this.loading = false
-      }
       })()
+      this._loadPromise = loadPromise
+
       try {
-        return await this._loadPromise
+        return await loadPromise
       } finally {
-        if (generation === this.requestGeneration) this._loadPromise = null
+        if (generation === this.requestGeneration) {
+          this._loadPromise = null
+          this._loadPromiseAccountKey = null
+        }
       }
     },
 
     async logoutUser() {
       this.requestGeneration += 1
       this._loadPromise = null
+      this._loadPromiseAccountKey = null
+      this._loadedAccountKey = null
       this.account = null
       this.user = null
       this.profileReady = false
@@ -91,25 +123,24 @@ export const useAuthStore = defineStore('auth', {
       this.error = null
 
       try {
-        const response = await api.patch('/me/rut', {
-          rut
-        })
-
+        const response = await api.patch('/me/rut', { rut })
         if (generation !== this.requestGeneration) return null
         this.user = response.data
         this.profileReady = true
-
         return this.user
       } catch (error) {
-        this.error = getFriendlyApiError(
+        if (generation !== this.requestGeneration) return null
+        const message = getFriendlyApiError(
           error,
           'No se pudo actualizar el RUT.'
         )
+        this.error = message
         if (error.response?.status === 409) {
+          this.profileReady = false
+          this._loadedAccountKey = null
           await this.loadAuthUser()
         }
-
-        throw new Error(this.error)
+        throw new Error(message)
       }
     }
   }

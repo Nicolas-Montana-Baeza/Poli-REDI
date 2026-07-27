@@ -26,6 +26,10 @@ func NormalizeRUT(value string) string {
 	return value[:len(value)-1] + "-" + value[len(value)-1:]
 }
 
+func HasRUT(value string) bool {
+	return IsValidRUT(value)
+}
+
 func IsValidRUT(value string) bool {
 	value = NormalizeRUT(value)
 

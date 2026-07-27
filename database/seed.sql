@@ -173,6 +173,27 @@ VALUES
 SET IDENTITY_INSERT dbo.workshops OFF;
 GO
 
+INSERT INTO dbo.workshop_occurrences (workshop_id, weekday_iso, start_minute, end_minute)
+VALUES
+(1,2,945,1065),(1,4,945,1065),
+(2,2,930,975),(2,4,930,975),
+(3,2,1020,1080),(3,4,1020,1080),
+(4,1,1020,1065),(4,3,1020,1065),
+(5,1,1110,1170),(5,3,1110,1170),
+(6,2,720,900),(6,4,720,900),
+(7,1,855,900),(7,2,855,900),(7,3,855,900),(7,4,855,900),
+(8,1,930,975),(8,3,930,975),
+(9,1,990,1110),(9,5,1050,1140),
+(10,3,840,930),
+(11,2,765,825),(11,3,765,825),(11,4,765,825),
+(12,1,1170,1260),(12,3,1080,1170),
+(13,3,1200,1260),
+(14,3,1020,1140),
+(15,3,1020,1080),
+(16,2,1140,1260),(16,6,705,780),
+(17,5,930,990);
+GO
+
 -- VIOLATIONS
 SET IDENTITY_INSERT dbo.violations ON;
 INSERT INTO dbo.violations (id, user_id, reservation_id, created_by_user_id, violation_type, description)

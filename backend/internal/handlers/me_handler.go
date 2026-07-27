@@ -50,6 +50,9 @@ func UpdateMeRUT(c *fiber.Ctx) error {
 	updatedUser, err := repositories.UpdateUserRUT(user.ID, normalizedRUT)
 
 	if err != nil {
+		if errors.Is(err, repositories.ErrRUTInvalid) {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
+		}
 		if errors.Is(err, repositories.ErrRUTAlreadySet) || errors.Is(err, repositories.ErrRUTDuplicate) {
 			return c.Status(fiber.StatusConflict).JSON(fiber.Map{"error": err.Error()})
 		}

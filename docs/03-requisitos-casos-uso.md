@@ -35,6 +35,7 @@ gantt
 * **HU-03 (Estudiante - Flujo Grupal):** *Como estudiante organizador, quiero invitar a 9 compañeros mediante un código de unión para alcanzar el quorum mínimo requerido.*
 * **HU-04 (Administrador - Cancelación Excepcional):** *Como administrador, quiero cancelar una reserva particular ante un evento institucional prioritario para reasignar la cancha.*
 * **HU-05 (Estudiante - Inscripción a Talleres):** *Como estudiante, quiero inscribirme a talleres deportivos semanales según los cupos disponibles.*
+* **HU-06 (Perfil - Registrar RUT):** *Como usuario normal, quiero registrar una vez mi RUT para habilitar operaciones personales sin que el dato pueda ser reemplazado posteriormente.*
 
 ---
 
@@ -59,3 +60,18 @@ gantt
   2. El sistema detecta el solapamiento de horarios.
   3. El servidor cancela automáticamente la reserva particular afectada.
   4. El sistema emite una notificación interna explicativa al alumno desasociado.
+
+### CU-03: Inscribirse en un Taller
+* **Actor:** Usuario autenticado.
+* **Precondición:** Usuario normal con RUT válido, o administrador; taller activo con ocurrencias válidas y cupo.
+* **Flujo Principal:**
+  1. El sistema normaliza las ocurrencias de todos los días del taller.
+  2. Compara solo talleres activos en los que el usuario mantiene una inscripción `CONFIRMED`.
+  3. Usa intervalos semiabiertos; los horarios contiguos se permiten.
+  4. Si no existe solape, crea la inscripción (`201`) o devuelve la inscripción ya vigente de forma idempotente (`200`).
+* **Alternativa:** Si existe solape, responde `409` con código y detalle estructurado del taller en conflicto. Inscripciones `CANCELLED` y talleres inactivos no bloquean.
+
+### CU-04: Registrar RUT
+* **Actor:** Usuario normal autenticado.
+* **Precondición:** `/api/me` cargado y ausencia de RUT válido.
+* **Resultado:** El RUT queda normalizado, único y write-once. Repetir el mismo valor es idempotente; cambiarlo o duplicarlo responde `409`. Administradores no reciben el modal.

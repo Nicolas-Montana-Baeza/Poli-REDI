@@ -21,30 +21,30 @@ func GetWorkshops(userID int) ([]models.Workshop, error) {
 func EnrollInWorkshop(
 	workshopID int,
 	user models.LocalAuthUser,
-) (models.Workshop, error) {
+) (models.Workshop, bool, error) {
 	if workshopID <= 0 {
-		return models.Workshop{}, errors.New("no se pudo identificar el taller")
+		return models.Workshop{}, false, errors.New("no se pudo identificar el taller")
 	}
 
 	if user.ID <= 0 {
-		return models.Workshop{}, errors.New("usuario autenticado es obligatorio")
+		return models.Workshop{}, false, errors.New("usuario autenticado es obligatorio")
 	}
 
-	workshop, err := repositories.EnrollUserInWorkshop(
+	workshop, created, err := repositories.EnrollUserInWorkshop(
 		workshopID,
 		user.ID,
 	)
 
 	if err != nil {
-		return models.Workshop{}, mapWorkshopError(err)
+		return models.Workshop{}, false, mapWorkshopError(err)
 	}
 
-	return workshop, nil
+	return workshop, created, nil
 }
 
 func mapWorkshopError(err error) error {
 	if errors.Is(err, sql.ErrNoRows) {
-		return errors.New("taller no encontrado o no disponible")
+		return repositories.ErrWorkshopNotFound
 	}
 
 	var sqlErr mssql.Error
@@ -52,13 +52,26 @@ func mapWorkshopError(err error) error {
 	if errors.As(err, &sqlErr) {
 		switch sqlErr.Number {
 		case 2601, 2627:
-			return errors.New("ya estas inscrito en este taller")
+			return repositories.ErrWorkshopInternal
 		case 547:
-			return errors.New("taller o usuario no existe")
+			return repositories.ErrWorkshopNotFound
+		case 51300:
+			return repositories.ErrWorkshopScheduleInvalid
+		case 51301:
+			return repositories.ErrWorkshopCapacity
+		case 1205:
+			return repositories.ErrWorkshopInternal
 		default:
-			return errors.New(sqlErr.Message)
+			return repositories.ErrWorkshopInternal
 		}
 	}
 
-	return err
+	var conflict *repositories.WorkshopScheduleConflictError
+	if errors.As(err, &conflict) ||
+		errors.Is(err, repositories.ErrWorkshopNotFound) ||
+		errors.Is(err, repositories.ErrWorkshopCapacity) ||
+		errors.Is(err, repositories.ErrWorkshopScheduleInvalid) {
+		return err
+	}
+	return repositories.ErrWorkshopInternal
 }

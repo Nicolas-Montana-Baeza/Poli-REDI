@@ -16,6 +16,7 @@ import { useActivitiesStore } from '@/stores/activities'
 import { useWorkshopsStore } from '@/stores/workshops'
 import { reservationsService } from '@/services/reservations.service'
 import { buildWorkshopAvailabilityItems } from '@/utils/workshopSchedule'
+import { hasRut } from '@/utils/validators'
 import {
   getBusinessDateKey,
   parseReservationDateTime
@@ -152,7 +153,7 @@ const reservationBlockingError = computed(() => {
   if (
     authStore.user &&
     authStore.user.isAdmin !== true &&
-    !authStore.user.rut
+    !hasRut(authStore.user.rut)
   ) {
     return 'Debes registrar tu RUT antes de crear reservas.'
   }

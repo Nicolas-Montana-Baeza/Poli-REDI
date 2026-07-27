@@ -520,6 +520,32 @@ END;
 GO
 
 -- ============================================================
+-- TABLE: workshop_occurrences
+-- Horario normalizado; weekday_iso usa lunes=1 ... domingo=7.
+-- Los intervalos son semiabiertos [inicio, fin), por lo que pueden ser contiguos.
+-- ============================================================
+
+IF OBJECT_ID('dbo.workshop_occurrences', 'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.workshop_occurrences (
+        id INT IDENTITY(1,1) NOT NULL CONSTRAINT pk_workshop_occurrences PRIMARY KEY,
+        workshop_id INT NOT NULL,
+        weekday_iso TINYINT NOT NULL,
+        start_minute SMALLINT NOT NULL,
+        end_minute SMALLINT NOT NULL,
+        CONSTRAINT fk_workshop_occurrences_workshop FOREIGN KEY (workshop_id) REFERENCES dbo.workshops(id) ON DELETE CASCADE,
+        CONSTRAINT ck_workshop_occurrences_weekday CHECK (weekday_iso BETWEEN 1 AND 7),
+        CONSTRAINT ck_workshop_occurrences_minutes CHECK (
+            start_minute >= 0 AND start_minute < 1440
+            AND end_minute > 0 AND end_minute <= 1440
+            AND start_minute < end_minute
+        ),
+        CONSTRAINT uq_workshop_occurrences_slot UNIQUE (workshop_id, weekday_iso, start_minute, end_minute)
+    );
+END;
+GO
+
+-- ============================================================
 -- TABLE: workshop_enrollments
 -- Inscripciones de estudiantes a talleres deportivos.
 -- ============================================================
@@ -651,6 +677,8 @@ IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'idx_workshops_active' AND
 GO
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'idx_workshops_resource_id' AND object_id = OBJECT_ID('dbo.workshops')) CREATE INDEX idx_workshops_resource_id ON dbo.workshops(resource_id);
 GO
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'idx_workshop_occurrences_overlap' AND object_id = OBJECT_ID('dbo.workshop_occurrences')) CREATE INDEX idx_workshop_occurrences_overlap ON dbo.workshop_occurrences(weekday_iso, start_minute, end_minute, workshop_id);
+GO
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'idx_workshop_enrollments_workshop_id' AND object_id = OBJECT_ID('dbo.workshop_enrollments')) CREATE INDEX idx_workshop_enrollments_workshop_id ON dbo.workshop_enrollments(workshop_id);
 GO
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'idx_workshop_enrollments_user_id' AND object_id = OBJECT_ID('dbo.workshop_enrollments')) CREATE INDEX idx_workshop_enrollments_user_id ON dbo.workshop_enrollments(user_id);
@@ -681,6 +709,24 @@ CREATE OR ALTER TRIGGER dbo.trg_users_updated_at ON dbo.users AFTER UPDATE AS
 BEGIN
     SET NOCOUNT ON; IF TRIGGER_NESTLEVEL() > 1 RETURN;
     UPDATE target SET updated_at = SYSUTCDATETIME() FROM dbo.users target INNER JOIN inserted i ON i.id = target.id;
+END;
+GO
+
+CREATE OR ALTER TRIGGER dbo.trg_users_rut_write_once ON dbo.users AFTER UPDATE AS
+BEGIN
+    SET NOCOUNT ON;
+    IF EXISTS (
+        SELECT 1
+        FROM inserted i
+        JOIN deleted d ON d.id = i.id
+        WHERE NULLIF(LTRIM(RTRIM(d.rut)), '') IS NOT NULL
+          AND (
+              NULLIF(LTRIM(RTRIM(i.rut)), '') IS NULL
+              OR UPPER(REPLACE(REPLACE(LTRIM(RTRIM(d.rut)), '.', ''), ' ', ''))
+                 <> UPPER(REPLACE(REPLACE(LTRIM(RTRIM(i.rut)), '.', ''), ' ', ''))
+          )
+    )
+        THROW 51010, 'El RUT no puede modificarse una vez registrado.', 1;
 END;
 GO
 
@@ -813,6 +859,69 @@ BEGIN
     IF EXISTS (SELECT 1 FROM deleted)
 	   OR EXISTS (SELECT 1 FROM inserted i INNER JOIN dbo.reservation_policies p ON p.id = i.policy_id WHERE p.is_published = 1)
         THROW 51014, 'Las duraciones de una version publicada son inmutables.', 1;
+END;
+GO
+
+CREATE OR ALTER TRIGGER dbo.trg_workshop_enrollments_validate
+ON dbo.workshop_enrollments
+AFTER INSERT, UPDATE
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    -- El repositorio toma primero un lock de usuario y luego del taller. Ese es
+    -- el camino soportado para serializar altas concurrentes sin deadlocks.
+    IF EXISTS (
+        SELECT 1
+        FROM inserted i
+        JOIN dbo.workshops w WITH (UPDLOCK, HOLDLOCK) ON w.id=i.workshop_id
+        WHERE i.status='CONFIRMED'
+          AND (
+              w.is_active=0
+              OR NOT EXISTS (
+                  SELECT 1 FROM dbo.workshop_occurrences o WITH (HOLDLOCK)
+                  WHERE o.workshop_id=i.workshop_id
+                    AND o.weekday_iso BETWEEN 1 AND 7
+                    AND o.start_minute>=0 AND o.end_minute<=1440
+                    AND o.start_minute<o.end_minute
+              )
+          )
+    )
+        THROW 51300, 'El taller no esta activo o no tiene horario valido.', 1;
+
+    IF EXISTS (
+        SELECT 1
+        FROM inserted i
+        JOIN dbo.workshops w WITH (UPDLOCK, HOLDLOCK) ON w.id=i.workshop_id
+        CROSS APPLY (
+            SELECT COUNT_BIG(*) AS confirmed_count
+            FROM dbo.workshop_enrollments e WITH (UPDLOCK, HOLDLOCK)
+            WHERE e.workshop_id=i.workshop_id AND e.status='CONFIRMED'
+        ) counts
+        WHERE i.status='CONFIRMED' AND counts.confirmed_count>w.capacity
+    )
+        THROW 51301, 'El taller no tiene cupos disponibles.', 1;
+
+    IF EXISTS (
+        SELECT 1
+        FROM inserted i
+        JOIN dbo.workshops target_w WITH (HOLDLOCK)
+          ON target_w.id=i.workshop_id AND target_w.is_active=1
+        JOIN dbo.workshop_occurrences target_o WITH (HOLDLOCK)
+          ON target_o.workshop_id=i.workshop_id
+        JOIN dbo.workshop_enrollments existing WITH (UPDLOCK, HOLDLOCK)
+          ON existing.user_id=i.user_id AND existing.status='CONFIRMED'
+         AND existing.id<>i.id AND existing.workshop_id<>i.workshop_id
+        JOIN dbo.workshops existing_w WITH (HOLDLOCK)
+          ON existing_w.id=existing.workshop_id AND existing_w.is_active=1
+        JOIN dbo.workshop_occurrences existing_o WITH (HOLDLOCK)
+          ON existing_o.workshop_id=existing.workshop_id
+         AND existing_o.weekday_iso=target_o.weekday_iso
+         AND existing_o.start_minute<target_o.end_minute
+         AND target_o.start_minute<existing_o.end_minute
+        WHERE i.status='CONFIRMED'
+    )
+        THROW 51300, 'El horario se superpone con otro taller confirmado.', 1;
 END;
 GO
 

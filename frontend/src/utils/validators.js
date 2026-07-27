@@ -69,4 +69,4 @@ export const isValidRut = (value) => {
   return verifier === expected
 }
 
-export const hasRut = value => normalizeRut(value) !== ''
+export const hasRut = value => isValidRut(value)

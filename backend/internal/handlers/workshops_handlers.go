@@ -1,8 +1,11 @@
 package handlers
 
 import (
+	"errors"
 	"poli-redi-api/internal/middleware"
+	"poli-redi-api/internal/repositories"
 	"poli-redi-api/internal/services"
+	"poli-redi-api/internal/validators"
 	"strconv"
 
 	"github.com/gofiber/fiber/v2"
@@ -21,8 +24,7 @@ func GetWorkshops(c *fiber.Ctx) error {
 
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error":  "No se pudieron cargar los talleres",
-			"detail": err.Error(),
+			"error": "No se pudieron cargar los talleres",
 		})
 	}
 
@@ -38,7 +40,7 @@ func EnrollInWorkshop(c *fiber.Ctx) error {
 		})
 	}
 
-	if !user.IsAdmin && user.RUT == "" {
+	if !user.IsAdmin && !validators.HasRUT(user.RUT) {
 		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
 			"error": "Debes registrar tu RUT antes de inscribirte en talleres.",
 		})
@@ -52,27 +54,47 @@ func EnrollInWorkshop(c *fiber.Ctx) error {
 		})
 	}
 
-	workshop, err := services.EnrollInWorkshop(
+	workshop, created, err := services.EnrollInWorkshop(
 		workshopID,
 		user,
 	)
 
 	if err != nil {
-		status := fiber.StatusBadRequest
+		status := fiber.StatusInternalServerError
+		message := "No se pudo procesar la inscripción al taller."
 
-		switch err.Error() {
-		case "taller no encontrado o no disponible":
+		switch {
+		case errors.Is(err, repositories.ErrWorkshopNotFound):
 			status = fiber.StatusNotFound
-		case "el taller no tiene cupos disponibles":
+			message = "Taller no encontrado o no disponible."
+		case errors.Is(err, repositories.ErrWorkshopCapacity):
 			status = fiber.StatusConflict
-		case "ya estas inscrito en este taller":
+			message = "El taller no tiene cupos disponibles."
+		case errors.Is(err, repositories.ErrWorkshopScheduleInvalid):
 			status = fiber.StatusConflict
+			message = "El taller no tiene un horario válido."
+		}
+
+		var conflict *repositories.WorkshopScheduleConflictError
+		if errors.As(err, &conflict) {
+			status = fiber.StatusConflict
+			return c.Status(status).JSON(fiber.Map{
+				"code":  "WORKSHOP_SCHEDULE_CONFLICT",
+				"error": "El horario se superpone con otro taller en el que ya estás inscrito.",
+				"conflict": fiber.Map{
+					"title": conflict.Title, "dayText": conflict.DayText,
+					"scheduleText": conflict.ScheduleText,
+				},
+			})
 		}
 
 		return c.Status(status).JSON(fiber.Map{
-			"error": err.Error(),
+			"error": message,
 		})
 	}
 
-	return c.Status(fiber.StatusCreated).JSON(workshop)
+	if created {
+		return c.Status(fiber.StatusCreated).JSON(workshop)
+	}
+	return c.Status(fiber.StatusOK).JSON(workshop)
 }

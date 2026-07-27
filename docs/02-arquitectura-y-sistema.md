@@ -34,6 +34,7 @@ La persitencia se realiza en **Azure SQL Database** mediante scripts T-SQL ubica
 5. `reservation_join_code_secrets`: Secreto cifrado versionado para recuperación owner-only.
 6. `reservation_group_expirations`: Marca idempotente de expiración bajo el mínimo.
 7. `activities`: Catálogo de actividades; la programación institucional usa entidades separadas.
+8. `workshop_occurrences`: Días ISO e intervalos normalizados `[inicio, fin)` de cada taller.
 
 ---
 
@@ -97,3 +98,13 @@ El deadline inclusivo se aplica a objetivo, confirmación y retiro. Una persona 
 `OPEN_USE` no requiere participantes ni consume la frecuencia institucional. Aun así, el mismo usuario no puede mantener reservas activas solapadas entre sí; los horarios contiguos sí se permiten.
 
 > **Estado:** Flujo grupal `ACCEPTED LOCALLY`. Migración 004, idempotencia y concurrencia real en Azure SQL pendientes.
+
+## 6. Integridad de RUT y Talleres
+
+El frontend y el backend normalizan el RUT y validan su formato y dígito verificador. La migración 005 valida y canonicaliza el estado existente; posteriormente la base garantiza unicidad filtrada y write-once, pero no revalida permanentemente el dígito verificador ante escrituras SQL externas. `PATCH /api/me/rut` es write-once: el mismo valor es idempotente y un cambio o duplicado responde `409`. La UI lo solicita únicamente cuando `/api/me` está listo, el usuario no es administrador y falta un RUT válido; después lo presenta solo lectura. Dev Auth no reinicia el dato.
+
+La exención administrativa aplica a crear reservas normales/grupales e inscribirse en talleres, pero no a confirmar como participante. Esta última operación siempre exige cuenta activa con RUT.
+
+Los talleres usan ocurrencias normalizadas y admiten múltiples días. El solape usa intervalos semiabiertos (`inicio < fin`): horarios contiguos no chocan. Solo se comparan inscripciones `CONFIRMED` entre talleres activos; filas `CANCELLED` y talleres inactivos no bloquean. Repetir la misma inscripción es idempotente (`200`); una creación nueva devuelve `201`. Un choque responde `409` con `code: WORKSHOP_SCHEDULE_CONFLICT` y detalle `title`, `dayText` y `scheduleText`.
+
+El repositorio serializa por usuario y luego por taller, verifica cupo y horario y falla de forma cerrada ante ocurrencias faltantes o errores. El trigger protege escrituras externas set-based, sin reemplazar el orden de locks del repositorio. Migraciones 005/006 y carreras reales en Azure SQL permanecen pendientes.

@@ -114,3 +114,40 @@ El `POSTCHECK` devuelve doce indicadores para tabla, columnas/tipos/nulabilidad,
 PK/unicidad, FK, CHECK y
 DEFAULT. Todos deben valer `1`. No continuar con el despliegue si alguno vale
 `0`.
+
+## `005_rut_integrity_and_admin_exemption.sql`
+
+Ejecutar después de `004`. Normaliza blancos y mayúsculas, se detiene ante
+formatos inválidos o duplicados, reinstala el índice único filtrado y protege el
+RUT como dato de escritura única. También reinstala completa la definición
+canónica del trigger de reservas (incluidas las reglas de 003 y 004), con
+exención administrativa solamente para la exigencia de RUT del titular grupal.
+Su `POSTCHECK` confirma la protección de RUT y esa cláusula administrativa.
+
+Crear un backup recuperable antes de ejecutarla. El preflight valida estructura, normalización, formato, dígito verificador y duplicados antes de abrir la transacción. La verificación en Azure SQL real, incluida la reejecución idempotente, sigue pendiente.
+
+Si 005 falla antes de `BEGIN TRANSACTION`, no modificó ningún RUT. Si falla
+dentro de la transacción, abrir una sesión nueva, confirmar
+`@@TRANCOUNT = 0` y `XACT_STATE() = 0`, corregir solo el dato o estructura
+reportada y volver a ejecutar 005 completo. El preflight acepta RUT legacy sin
+guion y calcula su representación canónica antes de escribir.
+
+## `006_workshop_occurrences.sql`
+
+Recuperación parcial: abrir una sesión nueva y revisar tabla, columnas, PK, FK,
+CHECK, UNIQUE, índice y trigger con los nombres del `POSTCHECK`. La migración
+completa objetos faltantes cuando la estructura es compatible y se detiene con
+`56000`-`56011` ante divergencias; no borrar ni recrear la tabla para recuperar.
+El repositorio es el camino soportado para inscripciones y toma locks en orden
+usuario→taller. El trigger defiende escrituras externas de forma set-based,
+pero no sustituye ese orden para evitar deadlocks.
+
+Ejecutar después de `005`. Crea los horarios normalizados y carga el mapeo
+explícito del catálogo institucional. La migración falla de forma segura si
+encuentra un taller activo fuera de ese catálogo o si alguno queda sin horario.
+
+Crear un backup antes de ejecutarla y revisar todos los indicadores del
+`POSTCHECK`. La semántica instalada compara únicamente talleres activos e
+inscripciones `CONFIRMED`, usa intervalos semiabiertos y admite múltiples días;
+inscripciones `CANCELLED` y talleres inactivos no bloquean. DDL, idempotencia y
+carreras reales en Azure SQL continúan pendientes.

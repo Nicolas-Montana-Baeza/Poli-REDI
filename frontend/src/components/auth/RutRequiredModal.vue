@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch } from 'vue'
+import { nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { IdCard } from 'lucide-vue-next'
 
@@ -21,6 +21,26 @@ const router = useRouter()
 const rutValue = ref('')
 const rutError = ref('')
 const saving = ref(false)
+const modalElement = ref(null)
+const rutInput = ref(null)
+let previouslyFocused = null
+
+const trapFocus = (event) => {
+  if (event.key !== 'Tab' || !modalElement.value) return
+  const focusable = [...modalElement.value.querySelectorAll(
+    'input:not(:disabled), button:not(:disabled)'
+  )]
+  if (!focusable.length) return
+  const first = focusable[0]
+  const last = focusable[focusable.length - 1]
+  if (event.shiftKey && document.activeElement === first) {
+    event.preventDefault()
+    last.focus()
+  } else if (!event.shiftKey && document.activeElement === last) {
+    event.preventDefault()
+    first.focus()
+  }
+}
 
 const handleRutInput = () => {
   rutValue.value = formatRutInput(rutValue.value)
@@ -64,11 +84,18 @@ watch(
   () => props.visible,
   (visible) => {
     if (visible) {
+      previouslyFocused = document.activeElement
       rutValue.value = formatRutInput(authStore.user?.rut || rutValue.value)
       rutError.value = ''
+      nextTick(() => rutInput.value?.focus())
+    } else {
+      previouslyFocused?.focus?.()
+      previouslyFocused = null
     }
   }
 )
+
+onBeforeUnmount(() => previouslyFocused?.focus?.())
 </script>
 
 <template>
@@ -78,10 +105,13 @@ watch(
       class="rut-overlay"
     >
       <section
+        ref="modalElement"
         class="rut-modal"
         role="dialog"
         aria-modal="true"
         aria-labelledby="rut-required-title"
+        aria-describedby="rut-required-description"
+        @keydown="trapFocus"
       >
         <div class="icon-wrap">
           <IdCard :size="26" />
@@ -92,7 +122,7 @@ watch(
             Registra tu RUT
           </h2>
 
-          <p>
+          <p id="rut-required-description">
             Necesitamos este dato para crear y asociar tus reservas.
           </p>
         </header>
@@ -106,6 +136,7 @@ watch(
           </label>
 
           <input
+            ref="rutInput"
             id="requiredRut"
             v-model="rutValue"
             type="text"
@@ -119,6 +150,7 @@ watch(
           <p
             v-if="rutError"
             class="rut-error"
+            role="alert"
           >
             {{ rutError }}
           </p>

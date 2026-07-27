@@ -4,10 +4,28 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 
 	"poli-redi-api/internal/database"
 	"poli-redi-api/internal/models"
 )
+
+var (
+	ErrWorkshopNotFound        = errors.New("taller no encontrado o no disponible")
+	ErrWorkshopCapacity        = errors.New("el taller no tiene cupos disponibles")
+	ErrWorkshopScheduleInvalid = errors.New("el taller no tiene un horario valido")
+	ErrWorkshopInternal        = errors.New("no se pudo procesar la inscripción al taller")
+)
+
+type WorkshopScheduleConflictError struct {
+	Title        string
+	DayText      string
+	ScheduleText string
+}
+
+func (e *WorkshopScheduleConflictError) Error() string {
+	return fmt.Sprintf("el horario se superpone con %s", e.Title)
+}
 
 func GetActiveWorkshopsForUser(userID int) ([]models.Workshop, error) {
 	rows, err := database.DB.QueryContext(
@@ -99,31 +117,37 @@ func GetActiveWorkshops() ([]models.Workshop, error) {
 func EnrollUserInWorkshop(
 	workshopID int,
 	userID int,
-) (models.Workshop, error) {
+) (models.Workshop, bool, error) {
+	ctx := context.Background()
 	tx, err := database.DB.BeginTx(
-		context.Background(),
+		ctx,
 		&sql.TxOptions{Isolation: sql.LevelSerializable},
 	)
 
 	if err != nil {
-		return models.Workshop{}, err
+		return models.Workshop{}, false, err
 	}
 
 	defer tx.Rollback()
 
 	var capacity int
-	var resourceID int
-	var isActive bool
 	var enrolledCount int
 	var isAlreadyEnrolled bool
 
+	// Serializa todas las inscripciones de un usuario para evitar carreras entre talleres.
+	var lockedUserID int
+	if err := tx.QueryRowContext(ctx,
+		`SELECT id FROM dbo.users WITH (UPDLOCK, HOLDLOCK) WHERE id = @p1;`,
+		userID,
+	).Scan(&lockedUserID); err != nil {
+		return models.Workshop{}, false, err
+	}
+
 	err = tx.QueryRowContext(
-		context.Background(),
+		ctx,
 		`
 		SELECT
-			w.resource_id,
 			w.capacity,
-			w.is_active,
 			(
 				SELECT COUNT(*)
 				FROM dbo.workshop_enrollments we
@@ -148,52 +172,110 @@ func EnrollUserInWorkshop(
 		workshopID,
 		userID,
 	).Scan(
-		&resourceID,
 		&capacity,
-		&isActive,
 		&enrolledCount,
 		&isAlreadyEnrolled,
 	)
 
 	if err != nil {
-		return models.Workshop{}, err
-	}
-
-	if !isActive {
-		return models.Workshop{}, errors.New("el taller no esta disponible")
+		if errors.Is(err, sql.ErrNoRows) {
+			return models.Workshop{}, false, ErrWorkshopNotFound
+		}
+		return models.Workshop{}, false, err
 	}
 
 	if isAlreadyEnrolled {
-		return models.Workshop{}, errors.New("ya estas inscrito en este taller")
+		if err := tx.Commit(); err != nil {
+			return models.Workshop{}, false, err
+		}
+		workshop, err := GetWorkshopForUser(workshopID, userID)
+		return workshop, false, err
 	}
 
 	if enrolledCount >= capacity {
-		return models.Workshop{}, errors.New("el taller no tiene cupos disponibles")
+		return models.Workshop{}, false, ErrWorkshopCapacity
 	}
 
-	_, err = tx.ExecContext(
-		context.Background(),
+	var occurrenceCount int
+	if err := tx.QueryRowContext(ctx, `
+		SELECT COUNT(*)
+		FROM dbo.workshop_occurrences WITH (UPDLOCK, HOLDLOCK)
+		WHERE workshop_id = @p1
+		  AND weekday_iso BETWEEN 1 AND 7
+		  AND start_minute >= 0 AND end_minute <= 1440
+		  AND start_minute < end_minute;`,
+		workshopID,
+	).Scan(&occurrenceCount); err != nil {
+		return models.Workshop{}, false, err
+	}
+	if occurrenceCount == 0 {
+		return models.Workshop{}, false, ErrWorkshopScheduleInvalid
+	}
+
+	var conflict WorkshopScheduleConflictError
+	err = tx.QueryRowContext(ctx, `
+		SELECT TOP (1) existing_w.title, existing_w.day_text, existing_w.schedule_text
+		FROM dbo.workshop_enrollments existing_e WITH (UPDLOCK, HOLDLOCK)
+		JOIN dbo.workshops existing_w WITH (HOLDLOCK)
+		  ON existing_w.id = existing_e.workshop_id AND existing_w.is_active = 1
+		JOIN dbo.workshop_occurrences existing_o WITH (HOLDLOCK)
+		  ON existing_o.workshop_id = existing_w.id
+		JOIN dbo.workshop_occurrences target_o WITH (HOLDLOCK)
+		  ON target_o.workshop_id = @p2
+		 AND target_o.weekday_iso = existing_o.weekday_iso
+		 AND existing_o.start_minute < target_o.end_minute
+		 AND target_o.start_minute < existing_o.end_minute
+		WHERE existing_e.user_id = @p1
+		  AND existing_e.status = 'CONFIRMED'
+		  AND existing_e.workshop_id <> @p2
+		ORDER BY existing_w.title;`,
+		userID, workshopID,
+	).Scan(&conflict.Title, &conflict.DayText, &conflict.ScheduleText)
+	if err == nil {
+		return models.Workshop{}, false, &conflict
+	}
+	if !errors.Is(err, sql.ErrNoRows) {
+		return models.Workshop{}, false, err
+	}
+
+	result, err := tx.ExecContext(
+		ctx,
 		`
-		INSERT INTO dbo.workshop_enrollments (
-			workshop_id,
-			user_id,
-			status
-		)
-		VALUES (@p1, @p2, 'CONFIRMED');
+		UPDATE dbo.workshop_enrollments
+		   SET status = 'CONFIRMED'
+		 WHERE id = (
+			SELECT TOP (1) id FROM dbo.workshop_enrollments WITH (UPDLOCK, HOLDLOCK)
+			WHERE workshop_id = @p1 AND user_id = @p2 AND status = 'CANCELLED'
+			ORDER BY id DESC
+		 );
 		`,
 		workshopID,
 		userID,
 	)
 
 	if err != nil {
-		return models.Workshop{}, err
+		return models.Workshop{}, false, err
+	}
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return models.Workshop{}, false, err
+	}
+	if affected == 0 {
+		if _, err = tx.ExecContext(ctx, `
+			INSERT INTO dbo.workshop_enrollments (workshop_id, user_id, status)
+			VALUES (@p1, @p2, 'CONFIRMED');`,
+			workshopID, userID,
+		); err != nil {
+			return models.Workshop{}, false, err
+		}
 	}
 
 	if err := tx.Commit(); err != nil {
-		return models.Workshop{}, err
+		return models.Workshop{}, false, err
 	}
 
-	return GetWorkshopForUser(workshopID, userID)
+	workshop, err := GetWorkshopForUser(workshopID, userID)
+	return workshop, true, err
 }
 
 func GetWorkshopForUser(

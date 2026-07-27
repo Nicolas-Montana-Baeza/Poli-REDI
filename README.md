@@ -10,7 +10,7 @@ El MVP 1 cubre el flujo base de reservas deportivas:
 
 - Login institucional con Microsoft Entra ID.
 - Login local de prueba para desarrollo.
-- Registro/actualizacion de RUT para usuarios normales mediante modal obligatorio.
+- Registro único de RUT para usuarios normales mediante modal obligatorio; después queda visible en modo solo lectura.
 - Consulta de disponibilidad por recurso y fecha.
 - Creacion de reservas con usuario autenticado.
 - Seleccion de actividades desde catalogo aprobado.
@@ -150,7 +150,8 @@ Para preparar una base limpia:
 Para actualizar una base MVP 1 existente sin reconstruirla, seguir
 [`database/migrations/README.md`](database/migrations/README.md) y ejecutar,
 en orden, `001_mvp2_group_participants.sql`, `002_mvp2_target_participants.sql`,
-`003_open_use_frequency_scope.sql` y `004_group_flow_completion.sql` con una
+`003_open_use_frequency_scope.sql`, `004_group_flow_completion.sql`,
+`005_rut_integrity_and_admin_exemption.sql` y `006_workshop_occurrences.sql` con una
 herramienta compatible con `GO`. Ante un intento fallido sobre la unica base,
 no ejecutar `drop.sql`, `schema.sql` ni `seed.sql`.
 4. Configurar `backend/.env`.
@@ -267,13 +268,17 @@ Antes de una demo local:
 2. Levantar frontend en `http://localhost:5173`.
 3. Entrar con usuario normal local.
 4. Confirmar que solicita RUT en un modal si el usuario no tiene uno.
-5. Guardar RUT y verificar que permite avanzar.
+5. Guardar RUT una vez, verificar que permite avanzar y que luego se muestra solo lectura.
 6. Crear una reserva desde Disponibilidad.
 7. Seleccionar una actividad del catalogo o dejarla sin actividad especifica.
 8. Revisar Mis Reservas, Detalle e Historial.
 9. Cancelar una reserva propia.
 10. Entrar como admin local y verificar acceso al panel administrador.
 11. Confirmar que usuario normal no ve ni accede a rutas administrativas.
+
+El modal de RUT aparece solamente cuando `/api/me` terminó de cargar, el usuario no es administrador y no posee un RUT válido. El login local no borra el RUT existente. Reenviar el mismo RUT es idempotente; intentar cambiarlo o reutilizar uno de otra cuenta responde `409`.
+
+Un administrador sin RUT puede crear reservas normales o grupales e inscribirse en talleres, pero no puede confirmar como participante de una reserva ajena. Las inscripciones a talleres comparan únicamente talleres activos con inscripciones `CONFIRMED`; ignoran inscripciones `CANCELLED` y talleres inactivos.
 12. Confirmar que la hora de una reserva coincide entre local y demo online para `America/Santiago`; la regla ya esta implementada y verificada localmente, pero falta evidencia online.
 
 El checklist histórico está en [Checklist demo MVP 1](docs/historico_y_checklists/12-checklist-demo-mvp1.md). La cobertura automatizada sigue siendo parcial y no reemplaza la validación integrada, manual ni online.

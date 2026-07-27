@@ -13,7 +13,7 @@ import {
 import SkeletonLoader from '@/components/ui/SkeletonLoader.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useNotificationsStore } from '@/stores/notifications'
-import { formatRutInput, isValidRut, normalizeRut } from '@/utils/validators'
+import { formatRutInput, hasRut, isValidRut, normalizeRut } from '@/utils/validators'
 
 const authStore = useAuthStore()
 const notificationsStore = useNotificationsStore()
@@ -61,9 +61,10 @@ const statusLabel = computed(() => {
 const rutRequired = computed(() => {
   return authStore.user?.isAdmin !== true
 })
+const hasRegisteredRut = computed(() => hasRut(authStore.user?.rut))
 
 const rutStatusLabel = computed(() => {
-  if (authStore.user?.rut) {
+  if (hasRegisteredRut.value) {
     return authStore.user.rut
   }
 
@@ -252,7 +253,7 @@ watch(
           </strong>
 
           <form
-            v-if="rutRequired && !authStore.user?.rut"
+            v-if="rutRequired && !hasRegisteredRut"
             class="rut-form"
             @submit.prevent="handleRutSubmit"
           >
@@ -275,7 +276,7 @@ watch(
 
           </form>
 
-          <p v-else-if="authStore.user?.rut" class="hint">
+          <p v-else-if="hasRegisteredRut" class="hint">
             El RUT registrado es de solo lectura.
           </p>
 
@@ -284,7 +285,7 @@ watch(
           </p>
 
           <p
-            v-if="rutRequired && !authStore.user?.rut"
+            v-if="rutRequired && !hasRegisteredRut"
             class="hint warning"
           >
             Debes registrar tu RUT antes de crear reservas.

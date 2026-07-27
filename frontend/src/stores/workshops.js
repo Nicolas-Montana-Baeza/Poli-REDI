@@ -40,6 +40,10 @@ export const useWorkshopsStore =
       },
 
       async enroll(workshopId) {
+        if (this.enrollingId !== null) {
+          return null
+        }
+
         this.enrollingId = workshopId
         this.actionError = null
         this.actionSuccess = null
@@ -65,7 +69,14 @@ export const useWorkshopsStore =
               'No se pudo registrar la inscripción.'
             )
 
-          this.actionError = message
+          const payload = error.response?.data
+          this.actionError = payload?.code === 'WORKSHOP_SCHEDULE_CONFLICT'
+            ? {
+                code: payload.code,
+                message,
+                conflict: payload.conflict
+              }
+            : { message }
 
           throw new Error(message)
         } finally {

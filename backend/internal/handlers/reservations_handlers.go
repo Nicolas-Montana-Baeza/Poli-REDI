@@ -5,7 +5,7 @@ import (
 	"poli-redi-api/internal/middleware"
 	"poli-redi-api/internal/models"
 	"poli-redi-api/internal/services"
-	"strings"
+	"poli-redi-api/internal/validators"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -105,7 +105,7 @@ func CreateReservation(c *fiber.Ctx) error {
 			"error": "Datos inválidos o campos no permitidos",
 		})
 	}
-	if !user.IsAdmin && strings.TrimSpace(user.RUT) == "" {
+	if !user.IsAdmin && !validators.HasRUT(user.RUT) {
 		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"error": "Debes registrar tu RUT antes de crear reservas."})
 	}
 

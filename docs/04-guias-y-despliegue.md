@@ -47,8 +47,10 @@
    2. `002_mvp2_target_participants.sql`
    3. `003_open_use_frequency_scope.sql`
    4. `004_group_flow_completion.sql`
+   5. `005_rut_integrity_and_admin_exemption.sql`
+   6. `006_workshop_occurrences.sql`
 
-   Verificar el `POSTCHECK` de cada migración antes de continuar. Los 12 indicadores de `004` deben valer `1`. Si una fase falla, abrir una sesión nueva, confirmar `@@TRANCOUNT = 0` y `XACT_STATE() = 0`, y seguir la recuperación de `database/migrations/README.md`; no ejecutar `drop.sql`, `schema.sql` ni `seed.sql` sobre la base única.
+   Ejecutar los prechecks y verificar el `POSTCHECK` de cada migración antes de continuar. Los 12 indicadores de `004` deben valer `1`. Antes de 005/006 crear backup: 005 se detiene ante RUT inválidos/duplicados y 006 ante catálogo activo incompleto o estructura divergente. Si una fase falla, abrir una sesión nueva, confirmar `@@TRANCOUNT = 0` y `XACT_STATE() = 0`, y seguir la recuperación de `database/migrations/README.md`; no ejecutar `drop.sql`, `schema.sql` ni `seed.sql` sobre la base única.
 5. Ejecutar servidor API:
    ```bash
    cd backend
@@ -79,7 +81,7 @@ La infraestructura de demostración online utiliza:
 1. Asegurar que `CORS_ALLOWED_ORIGINS` en Azure App Service incluya la URL de Static Web Apps.
 2. Configurar `JOIN_CODE_ENCRYPTION_KEYS` y `JOIN_CODE_KEY_VERSION` en App Service sin exponer sus valores; conservar versiones anteriores mientras existan secretos cifrados con ellas.
 3. Configurar las variables `VITE_API_BASE_URL` y `VITE_ENTRA_*` en el pipeline de **GitHub Actions**.
-4. Ejecutar y verificar migraciones `001 → 004`; Azure SQL real para `004`, idempotencia y concurrencia siguen pendientes.
+4. Ejecutar y verificar migraciones `001 → 006`; Azure SQL real para `004`–`006`, idempotencia, DDL y carreras/concurrencia siguen pendientes.
 5. Ejecutar push a rama principal para disparar despliegue automático.
 
 ---

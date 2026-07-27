@@ -34,6 +34,8 @@ IF OBJECT_ID('dbo.trg_reservation_target_audit_append_only', 'TR') IS NOT NULL D
 IF OBJECT_ID('dbo.trg_activities_updated_at', 'TR') IS NOT NULL DROP TRIGGER dbo.trg_activities_updated_at;
 IF OBJECT_ID('dbo.trg_resources_updated_at', 'TR') IS NOT NULL DROP TRIGGER dbo.trg_resources_updated_at;
 IF OBJECT_ID('dbo.trg_users_updated_at', 'TR') IS NOT NULL DROP TRIGGER dbo.trg_users_updated_at;
+IF OBJECT_ID('dbo.trg_users_rut_write_once', 'TR') IS NOT NULL DROP TRIGGER dbo.trg_users_rut_write_once;
+IF OBJECT_ID('dbo.trg_workshop_enrollments_validate', 'TR') IS NOT NULL DROP TRIGGER dbo.trg_workshop_enrollments_validate;
 IF OBJECT_ID('dbo.trg_venues_updated_at', 'TR') IS NOT NULL DROP TRIGGER dbo.trg_venues_updated_at;
 GO
 
@@ -44,6 +46,7 @@ IF OBJECT_ID('dbo.notifications', 'U') IS NOT NULL DROP TABLE dbo.notifications;
 IF OBJECT_ID('dbo.violations', 'U') IS NOT NULL DROP TABLE dbo.violations;
 IF OBJECT_ID('dbo.priority_reservations', 'U') IS NOT NULL DROP TABLE dbo.priority_reservations;
 IF OBJECT_ID('dbo.workshop_enrollments', 'U') IS NOT NULL DROP TABLE dbo.workshop_enrollments;
+IF OBJECT_ID('dbo.workshop_occurrences', 'U') IS NOT NULL DROP TABLE dbo.workshop_occurrences;
 IF OBJECT_ID('dbo.workshops', 'U') IS NOT NULL DROP TABLE dbo.workshops;
 IF OBJECT_ID('dbo.scheduled_activities', 'U') IS NOT NULL DROP TABLE dbo.scheduled_activities;
 IF OBJECT_ID('dbo.availability_blocks', 'U') IS NOT NULL DROP TABLE dbo.availability_blocks;

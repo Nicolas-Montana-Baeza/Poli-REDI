@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, nextTick, onMounted, ref } from 'vue'
 import {
   CalendarDays,
   CheckCircle2,
@@ -13,6 +13,7 @@ import { useWorkshopsStore } from '@/stores/workshops'
 
 const workshopsStore = useWorkshopsStore()
 const search = ref('')
+const actionErrorElement = ref(null)
 
 onMounted(async () => {
   workshopsStore.clearMessages()
@@ -49,6 +50,7 @@ const availableSlots = (workshop) => {
 
 const canEnroll = (workshop) => {
   return (
+    workshopsStore.enrollingId === null &&
     !workshop.isEnrolled &&
     availableSlots(workshop) > 0
   )
@@ -62,7 +64,8 @@ const enroll = async (workshop) => {
   try {
     await workshopsStore.enroll(workshop.id)
   } catch {
-    // El store deja el mensaje listo para mostrar.
+    await nextTick()
+    actionErrorElement.value?.focus()
   }
 }
 </script>
@@ -96,9 +99,17 @@ const enroll = async (workshop) => {
 
     <div
       v-if="workshopsStore.actionError"
+      ref="actionErrorElement"
       class="state-card error"
+      role="alert"
+      tabindex="-1"
     >
-      {{ workshopsStore.actionError }}
+      <strong>{{ workshopsStore.actionError.message }}</strong>
+      <span v-if="workshopsStore.actionError.conflict">
+        {{ workshopsStore.actionError.conflict.title }}:
+        {{ workshopsStore.actionError.conflict.dayText }},
+        {{ workshopsStore.actionError.conflict.scheduleText }}.
+      </span>
     </div>
 
     <div
@@ -190,8 +201,7 @@ const enroll = async (workshop) => {
           type="button"
           class="enroll-button"
           :disabled="
-            !canEnroll(workshop) ||
-            workshopsStore.enrollingId === workshop.id
+            !canEnroll(workshop)
           "
           @click="enroll(workshop)"
         >
