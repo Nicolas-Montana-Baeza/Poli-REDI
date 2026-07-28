@@ -23,7 +23,7 @@ func Connect() {
 
 	db, err := sql.Open("sqlserver", connString)
 	if err != nil {
-		log.Fatal("Error creando pool de conexion a Azure SQL:", err)
+		log.Fatal("Error creando pool de conexion a SQL Server:", err)
 	}
 
 	db.SetMaxOpenConns(10)
@@ -34,12 +34,12 @@ func Connect() {
 	defer cancel()
 
 	if err := db.PingContext(ctx); err != nil {
-		log.Fatal("No se pudo conectar a Azure SQL Database:", err)
+		log.Fatal("No se pudo conectar a SQL Server:", err)
 	}
 
 	DB = db
 
-	log.Println("Conectado a Azure SQL Database correctamente")
+	log.Println("Conectado a SQL Server correctamente")
 }
 
 func buildConnectionString() string {

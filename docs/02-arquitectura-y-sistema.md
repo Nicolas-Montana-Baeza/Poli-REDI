@@ -76,6 +76,9 @@ La SPA desarrollada en **Vue 3** (Composition API) utiliza:
 - `/`: Inicio y resumen informativo.
 - `/disponibilidad`: Agenda interactiva para seleccionar cancha, fecha y bloque horario.
 - `/mis-reservas`: Vista personal del alumno con opciones de cancelación y visualización de código grupal.
+- `/history`: Historial básico de reservas en MVP 1; se ampliará con las
+  inscripciones propias a talleres en MVP 2 y con el historial institucional de
+  clases y otros eventos en MVP 3.
 - `/admin`: Panel administrativo restringido para gestión de recursos, bloqueos e indicadores.
 
 ---
@@ -108,3 +111,26 @@ La exención administrativa aplica a crear reservas normales/grupales e inscribi
 Los talleres usan ocurrencias normalizadas y admiten múltiples días. El solape usa intervalos semiabiertos (`inicio < fin`): horarios contiguos no chocan. Solo se comparan inscripciones `CONFIRMED` entre talleres activos; filas `CANCELLED` y talleres inactivos no bloquean. Repetir la misma inscripción es idempotente (`200`); una creación nueva devuelve `201`. Un choque responde `409` con `code: WORKSHOP_SCHEDULE_CONFLICT` y detalle `title`, `dayText` y `scheduleText`.
 
 El repositorio serializa por usuario y luego por taller, verifica cupo y horario y falla de forma cerrada ante ocurrencias faltantes o errores. El trigger protege escrituras externas set-based, sin reemplazar el orden de locks del repositorio. Migraciones 005/006 y carreras reales en Azure SQL permanecen pendientes.
+
+## 7. Modelo de lectura del historial
+
+El historial conserva la separación entre dominios y no convierte todos los
+elementos en reservas:
+
+* **Reserva:** solicitud particular o grupal asociada al propietario y, cuando
+  corresponde, a participantes confirmados.
+* **Taller:** oferta recurrente con cupo; su relación personal se determina por
+  `workshop_enrollments`.
+* **Actividad institucional programada:** clase, entrenamiento, campeonato u
+  otro evento registrado en `scheduled_activities`.
+
+La ampliación de MVP 2 debe consultar las inscripciones propias, incluidas las
+que deban conservarse históricamente, sin alterar el flujo de escritura de
+reservas. MVP 3 incorporará la lectura institucional de clases y otros eventos.
+Una actividad programada no forma parte del historial personal por el solo hecho
+de existir en la agenda: se requerirá una relación explícita usuario–actividad
+antes de atribuir participación o asistencia.
+
+El contrato de lectura deberá identificar el tipo de elemento y exponer solo los
+campos comunes necesarios para ordenar y filtrar, manteniendo detalles y
+autorización específicos por dominio.

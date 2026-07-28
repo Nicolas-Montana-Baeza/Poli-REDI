@@ -14,8 +14,11 @@ export const useWorkshopsStore =
   defineStore('workshops', {
     state: () => ({
       workshops: [],
+      myEnrollments: [],
       loading: false,
+      historyLoading: false,
       loadingError: null,
+      historyLoadingError: null,
       actionError: null,
       actionSuccess: null,
       enrollingId: null
@@ -36,6 +39,23 @@ export const useWorkshopsStore =
           )
         } finally {
           this.loading = false
+        }
+      },
+
+      async fetchMyEnrollments() {
+        this.historyLoading = true
+        this.historyLoadingError = null
+
+        try {
+          this.myEnrollments = await workshopsService.getMine()
+        } catch (error) {
+          this.myEnrollments = []
+          this.historyLoadingError = getFriendlyWorkshopError(
+            error,
+            'No se pudo cargar tu historial de talleres.'
+          )
+        } finally {
+          this.historyLoading = false
         }
       },
 

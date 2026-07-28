@@ -18,6 +18,15 @@ func GetWorkshops(userID int) ([]models.Workshop, error) {
 	return repositories.GetActiveWorkshopsForUser(userID)
 }
 
+func GetMyWorkshopEnrollments(
+	userID int,
+) ([]models.WorkshopEnrollmentHistory, error) {
+	if userID <= 0 {
+		return nil, errors.New("usuario autenticado es obligatorio")
+	}
+	return repositories.GetWorkshopEnrollmentsForUser(userID)
+}
+
 func EnrollInWorkshop(
 	workshopID int,
 	user models.LocalAuthUser,

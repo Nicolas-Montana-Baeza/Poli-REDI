@@ -14,12 +14,19 @@ El MVP 1 cubre el flujo base de reservas deportivas:
 - Consulta de disponibilidad por recurso y fecha.
 - Creacion de reservas con usuario autenticado.
 - Seleccion de actividades desde catalogo aprobado.
-- Listado de mis reservas, detalle, historial y cancelacion.
+- Listado de mis reservas, detalle, historial basico de reservas y cancelacion.
 - Panel administrador base con usuarios, recursos y reportes iniciales.
 - Notificaciones internas basicas.
 - Demo online inicial en Azure con frontend, backend, base de datos y autenticacion real.
 
 Quedan fuera del MVP 1 la gestion completa de bloqueos, CRUD avanzado de recursos, infracciones, programacion institucional y endurecimiento de despliegue productivo institucional.
+
+El historial incluido en MVP 1 corresponde exclusivamente a reservas propias o
+reservas en las que el usuario participa. La consulta de inscripciones a talleres
+se incorpora como una ampliacion controlada de MVP 2. El historial de clases,
+actividades institucionales y otros eventos se reserva para MVP 3; estos elementos
+solo podran formar parte del historial personal cuando exista una relacion
+explicita entre el usuario y la actividad.
 
 Estado de cierre: el MVP 1 esta funcional como demo. Zona horaria, estado controlado por servidor y limites de horario/duracion estan implementados y tienen pruebas locales, pero falta verificarlos en el ambiente integrado/online. Tambien permanecen pendientes la ampliacion de cobertura, la seguridad de errores y la coherencia responsive/accesible. El estado vigente está en [Resumen y estado actual](docs/01-resumen-y-estado-actual.md).
 
@@ -70,7 +77,7 @@ Poli-REDI/
 
 - Node.js y npm
 - Go compatible con `backend/go.mod`
-- Acceso a una base Azure SQL Database
+- Acceso a Azure SQL Database o Docker para ejecutar SQL Server localmente
 - Aplicacion registrada en Microsoft Entra ID para el frontend y la API
 
 ## Configuracion del backend
@@ -103,6 +110,35 @@ DEV_AUTH_ENABLED=false
 `DB_PASSWORD` debe existir solo en `backend/.env` local o en las variables de entorno del despliegue. No debe guardarse en archivos versionados.
 
 Tambien se puede usar `AZURE_SQL_CONNECTION_STRING` como alternativa a las variables `DB_*`, segun la plantilla incluida en `backend/.env.example`.
+
+### SQL Server local con Docker
+
+1. Copiar `.env.example` a `.env` en la raiz y reemplazar
+   `MSSQL_SA_PASSWORD` por una contraseña local fuerte.
+2. Iniciar SQL Server:
+
+```bash
+docker compose up -d db
+```
+
+3. Configurar `backend/.env` para conectarse al puerto publicado:
+
+```env
+DB_SERVER=localhost
+DB_PORT=1433
+DB_NAME=poli-redi-database
+DB_USER=poli-redi-admin
+DB_PASSWORD=<mismo valor de MSSQL_SA_PASSWORD>
+DB_ENCRYPT=true
+DB_TRUST_SERVER_CERTIFICATE=true
+```
+
+En el primer inicio se crean la base, el esquema y los datos iniciales. Los
+reinicios posteriores conservan la información en el volumen
+`poli-redi-mssql`. El contenedor también crea el login local
+`poli-redi-admin`, de modo que no es necesario cambiar `DB_USER` al alternar
+entre Azure y Docker. Para revisar el estado use `docker compose ps` y
+`docker compose logs db`.
 
 Para pruebas locales sin Microsoft, se puede usar:
 

@@ -38,6 +38,8 @@ El proceso de reserva del Polideportivo institucional (3 canchas y 1 sala multiu
 | **Prioridad Institucional** | `PENDIENTE` | La regla está aprobada, pero el flujo administrativo de resolución y cancelación automática aún no está implementado. |
 | **Cancelación de Reservas** | `IMPLEMENTADO` | Propietario o administrador pueden cancelar reservas activas (`PATCH /api/reservations/cancel`). |
 | **Talleres e Inscripciones** | `ACCEPTED LOCALLY` | Cupos, ocurrencias normalizadas y prevención de solapes taller↔taller para inscripciones activas. Contrato `POST /api/workshops/:id/enroll`. |
+| **Historial Personal** | `PARCIAL` | El historial básico de reservas propias o participadas pertenece a MVP 1 y está implementado. La consulta de talleres e inscripciones se incorpora como ampliación controlada de MVP 2. |
+| **Historial Institucional** | `PENDIENTE` | Las clases, actividades institucionales y otros eventos se incorporarán en MVP 3. No se atribuirán como participación personal mientras no exista una relación explícita usuario–actividad. |
 | **Notificaciones Internas** | `PARCIAL` | Consulta y contador (`GET /api/notifications`) y notificación única de expiración verificada localmente; lectura, destinos, otros eventos y sistema completo pendientes. |
 | **Panel Administrador** | `PARCIAL` | Lectura operacional, indicadores, imágenes de recursos y políticas; gestión completa de usuarios, recursos, bloqueos y programación pendiente. |
 | **Auditoría y Trazabilidad** | `PARCIAL` | El esquema registra cambios de reservas, participantes, objetivos y expiraciones; falta consulta administrativa integral. |
@@ -54,6 +56,18 @@ El proceso de reserva del Polideportivo institucional (3 canchas y 1 sala multiu
 > **Límite de verificación:** El MVP 2 está `ACCEPTED LOCALLY`. Continúan pendientes la ejecución de la migración 004, su idempotencia y las pruebas de concurrencia real en Azure SQL.
 
 Las extensiones de integridad de RUT y horarios de talleres también están `ACCEPTED LOCALLY`. Migraciones 005/006, DDL, idempotencia y carreras reales en Azure SQL siguen pendientes.
+
+### Alcance aprobado del historial
+
+1. **MVP 1:** historial básico de reservas propias o participadas, incluyendo
+   reservas pasadas y canceladas.
+2. **MVP 2 (ampliación controlada):** consulta de talleres e inscripciones del
+   usuario, sin presentar una inscripción como asistencia comprobada.
+3. **MVP 3:** historial institucional de clases, actividades programadas y otros
+   eventos, con acceso acorde al rol.
+4. Una clase o evento solo podrá aparecer en el historial personal cuando el
+   modelo registre una relación explícita de participación del usuario. La mera
+   existencia del evento en la agenda no permite inferir asistencia.
 
 ### Matriz RUT por rol y acción
 

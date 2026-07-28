@@ -21,9 +21,9 @@ gantt
     Reportes Avanzados                        :mvp4, 2026-09-01, 2026-10-31
 ```
 
-* **MVP 1 (Base Operativa):** Demo funcional. Inicios de sesión, disponibilidad en agenda, reservas simples, captura de RUT y panel admin inicial.
-* **MVP 2 (Reglas y Flujo Grupal):** `ACCEPTED LOCALLY`. Frecuencia semanal, mínimo y objetivo, código grupal cifrado, `/join`, participación, deadline y expiración. Migración 004 y concurrencia real en Azure SQL pendientes. La prioridad institucional no forma parte del cierre aceptado.
-* **MVP 3 (Administración Extendida):** Parcial. Bloqueo con motivos, notificaciones internas y pantalla informativa pública.
+* **MVP 1 (Base Operativa):** Demo funcional. Inicios de sesión, disponibilidad en agenda, reservas simples, historial básico de reservas propias o participadas, captura de RUT y panel admin inicial.
+* **MVP 2 (Reglas y Flujo Grupal):** `ACCEPTED LOCALLY`. Frecuencia semanal, mínimo y objetivo, código grupal cifrado, `/join`, participación, deadline y expiración. Como ampliación controlada incorpora la consulta de talleres e inscripciones propias. Migración 004 y concurrencia real en Azure SQL pendientes. La prioridad institucional no forma parte del cierre aceptado.
+* **MVP 3 (Administración Extendida):** Parcial. Bloqueo con motivos, notificaciones internas, pantalla informativa pública e historial institucional de clases, actividades programadas y otros eventos. La participación personal en estos eventos requerirá una relación explícita futura.
 * **MVP 4 (Trazabilidad y Futuro):** En desarrollo/Trabajo futuro. Reportes avanzados e integración con sistemas académicos institucionales.
 
 ---
@@ -35,6 +35,31 @@ gantt
 * **HU-03 (Estudiante - Flujo Grupal):** *Como estudiante organizador, quiero invitar a 9 compañeros mediante un código de unión para alcanzar el quorum mínimo requerido.*
 * **HU-04 (Administrador - Cancelación Excepcional):** *Como administrador, quiero cancelar una reserva particular ante un evento institucional prioritario para reasignar la cancha.*
 * **HU-05 (Estudiante - Inscripción a Talleres):** *Como estudiante, quiero inscribirme a talleres deportivos semanales según los cupos disponibles.*
+* **HU-07 (Estudiante - Consultar Actividad Personal):** *Como estudiante, quiero consultar mis reservas e inscripciones a talleres para reconocer mi actividad registrada sin que el sistema infiera asistencia a clases o eventos.*
+* **HU-08 (Administrador - Consultar Historial Institucional):** *Como administrador, quiero consultar clases, actividades programadas y otros eventos históricos para revisar la operación institucional.*
+
+### Criterios de aceptación del historial ampliado
+
+1. En MVP 1, el usuario consulta reservas propias o reservas en las que figura
+   como participante confirmado, pasadas o canceladas.
+2. La ampliación de MVP 2 muestra solo las inscripciones a talleres del usuario
+   autenticado; un usuario no puede consultar inscripciones ajenas.
+3. Una inscripción a taller se identifica como tal y no se presenta como reserva
+   ni como evidencia de asistencia.
+4. En MVP 3, las clases, actividades programadas y otros eventos se muestran en
+   el historial institucional conforme a los permisos del rol.
+5. Una clase o evento no aparece como actividad personal hasta que exista una
+   relación explícita usuario–actividad; la agenda por sí sola no demuestra
+   participación.
+6. Cada elemento informa su tipo, título, ubicación o recurso, fecha y horario
+   aplicables y estado semántico, sin mezclar estados incompatibles entre
+   reservas, talleres y eventos.
+7. Los filtros permiten distinguir tipo, estado y rango de fechas, mantienen
+   orden cronológico descendente y usan la zona horaria `America/Santiago`.
+8. Los detalles y autorizaciones se resuelven según el dominio del elemento; no
+   se reutiliza obligatoriamente el detalle de reserva para talleres o eventos.
+9. Los estados inactivos o cancelados que formen parte de la trazabilidad siguen
+   siendo consultables por el actor autorizado.
 * **HU-06 (Perfil - Registrar RUT):** *Como usuario normal, quiero registrar una vez mi RUT para habilitar operaciones personales sin que el dato pueda ser reemplazado posteriormente.*
 
 ---

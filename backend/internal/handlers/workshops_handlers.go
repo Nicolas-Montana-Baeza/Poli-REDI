@@ -31,6 +31,23 @@ func GetWorkshops(c *fiber.Ctx) error {
 	return c.JSON(workshops)
 }
 
+func GetMyWorkshopEnrollments(c *fiber.Ctx) error {
+	user, ok := middleware.GetLocalUser(c)
+	if !ok {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error": "usuario no autenticado",
+		})
+	}
+
+	enrollments, err := services.GetMyWorkshopEnrollments(user.ID)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "No se pudo cargar tu historial de talleres.",
+		})
+	}
+	return c.JSON(enrollments)
+}
+
 func EnrollInWorkshop(c *fiber.Ctx) error {
 	user, ok := middleware.GetLocalUser(c)
 

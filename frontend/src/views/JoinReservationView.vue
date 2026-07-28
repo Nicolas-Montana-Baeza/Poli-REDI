@@ -1,6 +1,7 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
+import { Info, KeyRound, ShieldCheck, UsersRound } from 'lucide-vue-next'
 import ParticipantsProgress from '@/components/ui/ParticipantsProgress.vue'
 import PrimaryButton from '@/components/ui/PrimaryButton.vue'
 import { reservationsService } from '@/services/reservations.service'
@@ -139,8 +140,11 @@ onBeforeUnmount(() => {
 <template>
   <section class="join-page" aria-labelledby="join-title">
     <header class="app-section-header join-header">
+      <span class="join-icon" aria-hidden="true">
+        <UsersRound :size="30" :stroke-width="2" />
+      </span>
       <h1 id="join-title">Unirse a una reserva grupal</h1>
-      <p>Consulta la invitación y confirma tu participación antes del plazo indicado.</p>
+      <p>Ingresa el código que recibiste para consultar la invitación.</p>
     </header>
     <p class="sr-only" aria-live="polite" aria-atomic="true">{{ liveAnnouncement }}</p>
 
@@ -148,23 +152,36 @@ onBeforeUnmount(() => {
       <form novalidate :aria-busy="busy" @submit.prevent="load">
         <div class="form-field">
           <label for="join-code">Código de invitación</label>
-          <p id="join-code-help" class="field-help">Pega el código exactamente como lo recibiste. Se respetan mayúsculas y minúsculas.</p>
           <div class="join-controls">
-            <input
-              id="join-code"
-              ref="codeInput"
-              v-model="code"
-              type="text"
-              autocomplete="off"
-              autocapitalize="off"
-              spellcheck="false"
-              :aria-describedby="describedBy"
-              :aria-invalid="Boolean(error)"
-              :disabled="busy"
-            >
+            <div class="code-input">
+              <KeyRound :size="21" aria-hidden="true" />
+              <input
+                id="join-code"
+                ref="codeInput"
+                v-model="code"
+                type="text"
+                autocomplete="off"
+                autocapitalize="off"
+                spellcheck="false"
+                placeholder="Pega o escribe el código"
+                :aria-describedby="describedBy"
+                :aria-invalid="Boolean(error)"
+                :disabled="busy"
+              >
+            </div>
             <PrimaryButton type="submit" :loading="operation === 'consultar'" :disabled="busy">
-              {{ operation === 'consultar' ? 'Consultando…' : 'Consultar invitación' }}
+              {{ operation === 'consultar' ? 'Consultando…' : 'Consultar reserva' }}
             </PrimaryButton>
+          </div>
+          <div id="join-code-help" class="join-notes">
+            <p>
+              <Info :size="17" aria-hidden="true" />
+              El código distingue mayúsculas y minúsculas.
+            </p>
+            <p>
+              <ShieldCheck :size="17" aria-hidden="true" />
+              Tu código solo se utiliza para consultar esta invitación.
+            </p>
           </div>
         </div>
       </form>
@@ -186,15 +203,22 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
-.join-page{width:100%;max-width:760px;margin:0 auto;display:grid;gap:var(--space-5)}
-.join-header h1,.join-header p{margin:0}.join-header{display:grid;gap:var(--space-2)}
-.join-card{display:grid;gap:var(--space-4);padding:var(--space-5);min-width:0}
-.form-field,.join-controls{min-width:0}.field-help{margin:0;color:var(--color-text-muted);font-size:var(--text-help);line-height:1.45}
-.join-controls{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:var(--space-3);align-items:end}
-.join-controls input{width:100%;min-width:0;min-height:44px;padding:0 var(--space-3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;background:var(--color-surface)}
-.join-controls :deep(.btn-ui){min-height:44px;white-space:nowrap}
-.empty-state,.operation-status{margin:0;color:var(--color-text-muted);font-weight:650}.state-card{margin:0}.progress-card{min-width:0}
+.join-page{width:100%;max-width:820px;margin:0 auto;display:grid;gap:var(--space-5);padding:clamp(var(--space-4),5vw,var(--space-7));border-radius:var(--radius-xl,24px);background:#f3f7ff}
+.join-header h1,.join-header p{margin:0}.join-header{display:grid;justify-items:center;gap:var(--space-2);text-align:center}
+.join-header h1{max-width:620px}.join-header p{max-width:560px;color:var(--color-text-muted);line-height:1.55}
+.join-icon{display:grid;place-items:center;width:64px;height:64px;margin-bottom:var(--space-2);border-radius:50%;background:#e3edff;color:var(--color-primary);box-shadow:inset 0 0 0 1px rgba(37,99,235,.1)}
+.join-card{display:grid;gap:var(--space-4);padding:clamp(var(--space-4),4vw,var(--space-6));min-width:0;border-radius:var(--radius-xl,20px);box-shadow:0 16px 40px rgba(28,57,107,.1),0 2px 8px rgba(28,57,107,.06)}
+.form-field,.join-controls{min-width:0}.form-field{display:grid;gap:var(--space-3)}.form-field>label{font-size:var(--text-body);font-weight:750;color:var(--color-text)}
+.join-controls{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:var(--space-3);align-items:stretch}
+.code-input{display:flex;align-items:center;min-width:0;min-height:52px;padding-left:var(--space-4);border:1px solid var(--color-border);border-radius:var(--radius-md,10px);background:var(--color-surface);color:var(--color-text-muted);transition:border-color .15s ease,box-shadow .15s ease}
+.code-input:focus-within{border-color:var(--color-primary);box-shadow:var(--shadow-focus)}
+.code-input input{width:100%;min-width:0;min-height:50px;padding:0 var(--space-4) 0 var(--space-3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;border:0;background:transparent;box-shadow:none;outline:0}
+.code-input:has(input[aria-invalid="true"]){border-color:var(--color-error)}
+.join-controls :deep(.btn-ui){min-height:52px;padding-inline:var(--space-5);white-space:nowrap;border-radius:var(--radius-md,10px)}
+.join-notes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--space-3);padding-top:var(--space-1);border-top:1px solid var(--color-border-soft,var(--color-border))}
+.join-notes p{display:flex;align-items:flex-start;gap:var(--space-2);margin:0;color:var(--color-text-muted);font-size:var(--text-help);line-height:1.45}.join-notes svg{flex:0 0 auto;margin-top:2px;color:var(--color-primary)}
+.empty-state,.operation-status{margin:0;text-align:center;color:var(--color-text-muted);font-weight:650}.state-card{margin:0}.progress-card{min-width:0}
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
-@media(max-width:600px){.join-page{gap:var(--space-4)}.join-card{padding:var(--space-4)}.join-controls{grid-template-columns:minmax(0,1fr)}.join-controls :deep(.btn-ui){width:100%}}
-@media(max-width:360px){.join-card{padding:var(--space-3)}}
+@media(max-width:600px){.join-page{gap:var(--space-4);padding:var(--space-4)}.join-icon{width:56px;height:56px}.join-card{padding:var(--space-4)}.join-controls,.join-notes{grid-template-columns:minmax(0,1fr)}.join-controls :deep(.btn-ui){width:100%}}
+@media(max-width:360px){.join-page,.join-card{padding:var(--space-3)}}
 </style>

@@ -31,6 +31,7 @@ func RegisterRoutes(app *fiber.App) {
 	protected.Get("/activities", handlers.GetActivities)
 	protected.Get("/notifications", handlers.GetNotifications)
 	protected.Get("/workshops", handlers.GetWorkshops)
+	protected.Get("/workshop-enrollments/mine", handlers.GetMyWorkshopEnrollments)
 	protected.Post("/workshops/:id/enroll", handlers.EnrollInWorkshop)
 	protected.Get("/availability/reservations", handlers.GetAvailabilityReservations)
 	protected.Get("/reservation-policy/current", handlers.GetCurrentReservationPolicy)

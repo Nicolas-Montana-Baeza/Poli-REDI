@@ -2,9 +2,11 @@
 import { computed, onMounted, ref } from 'vue'
 
 import ReservationListCard from '@/components/reservations/ReservationListCard.vue'
+import WorkshopEnrollmentHistoryCard from '@/components/workshops/WorkshopEnrollmentHistoryCard.vue'
 import SkeletonLoader from '@/components/ui/SkeletonLoader.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useReservationsStore } from '@/stores/reservations'
+import { useWorkshopsStore } from '@/stores/workshops'
 import {
   getReservationDateKey,
   isReservationHistorical,
@@ -12,7 +14,9 @@ import {
 } from '@/utils/reservationTime'
 
 const reservationsStore = useReservationsStore()
+const workshopsStore = useWorkshopsStore()
 const authStore = useAuthStore()
+const typeFilter = ref('ALL')
 const statusFilter = ref('ALL')
 const fromDate = ref('')
 const toDate = ref('')
@@ -21,11 +25,17 @@ onMounted(async () => {
   const user = await authStore.loadAuthUser()
 
   if (user?.isAdmin) {
-    await reservationsStore.fetchReservations()
+    await Promise.all([
+      reservationsStore.fetchReservations(),
+      workshopsStore.fetchMyEnrollments()
+    ])
     return
   }
 
-  await reservationsStore.fetchMyReservations()
+  await Promise.all([
+    reservationsStore.fetchMyReservations(),
+    workshopsStore.fetchMyEnrollments()
+  ])
 })
 
 const reservations = computed(() => {
@@ -51,42 +61,66 @@ const reservations = computed(() => {
 })
 
 const isLoading = computed(() => {
-  return authStore.user?.isAdmin
+  const reservationsLoading = authStore.user?.isAdmin
     ? reservationsStore.loading
     : reservationsStore.myLoading
+  return reservationsLoading || workshopsStore.historyLoading
 })
 
 const loadingError = computed(() => {
-  return authStore.user?.isAdmin
+  const reservationError = authStore.user?.isAdmin
     ? reservationsStore.loadingError
     : reservationsStore.myLoadingError
+  return reservationError || workshopsStore.historyLoadingError
 })
 
 const emptyMessage = computed(() => {
   return authStore.user?.isAdmin
-    ? 'Aún no hay reservas históricas registradas.'
-    : 'Aún no tienes reservas históricas.'
+    ? 'Aún no hay reservas históricas ni inscripciones propias a talleres.'
+    : 'Aún no tienes reservas históricas ni inscripciones a talleres.'
 })
 
-const filteredReservations = computed(() => {
-  return reservations.value.filter((reservation) => {
-    const start = parseReservationDateTime(reservation.startTime)
-    const reservationDate = start
-      ? getReservationDateKey(start)
-      : ''
+const historyItems = computed(() => {
+  const reservationItems = reservations.value.map((reservation) => ({
+    kind: 'RESERVATION',
+    id: `reservation-${reservation.id}`,
+    date: parseReservationDateTime(reservation.startTime),
+    status: reservation.status,
+    value: reservation
+  }))
+  const workshopItems = workshopsStore.myEnrollments.map((enrollment) => ({
+    kind: 'WORKSHOP',
+    id: `workshop-enrollment-${enrollment.id}`,
+    date: parseReservationDateTime(enrollment.enrolledAt),
+    status: enrollment.status,
+    value: enrollment
+  }))
+
+  return [...reservationItems, ...workshopItems].sort((first, second) => (
+    (second.date?.getTime() || 0) - (first.date?.getTime() || 0)
+  ))
+})
+
+const filteredHistory = computed(() => {
+  return historyItems.value.filter((item) => {
+    const itemDate = item.date ? getReservationDateKey(item.date) : ''
 
     if (
       statusFilter.value !== 'ALL' &&
-      reservation.status !== statusFilter.value
+      item.status !== statusFilter.value
     ) {
       return false
     }
 
-    if (fromDate.value && reservationDate < fromDate.value) {
+    if (typeFilter.value !== 'ALL' && item.kind !== typeFilter.value) {
       return false
     }
 
-    if (toDate.value && reservationDate > toDate.value) {
+    if (fromDate.value && itemDate < fromDate.value) {
+      return false
+    }
+
+    if (toDate.value && itemDate > toDate.value) {
       return false
     }
 
@@ -116,13 +150,22 @@ const getReservationDetailTo = (reservation) => {
 
       <p>
         {{ authStore.user?.isAdmin
-          ? 'Revisa todo el historial de reservas del sistema.'
-          : 'Revisa tus reservas pasadas o canceladas.' }}
+          ? 'Revisa las reservas del sistema y tus inscripciones a talleres.'
+          : 'Revisa tus reservas pasadas o canceladas e inscripciones a talleres.' }}
       </p>
 
     </header>
 
     <section class="filters app-card">
+
+      <label class="form-field">
+        Tipo
+        <select v-model="typeFilter">
+          <option value="ALL">Todos</option>
+          <option value="RESERVATION">Reservas</option>
+          <option value="WORKSHOP">Talleres</option>
+        </select>
+      </label>
 
       <label class="form-field">
         Estado
@@ -158,6 +201,10 @@ const getReservationDetailTo = (reservation) => {
         />
       </label>
 
+      <p class="filter-hint">
+        Para los talleres, el rango considera la fecha de inscripción.
+      </p>
+
     </section>
 
     <div
@@ -178,17 +225,17 @@ const getReservationDetailTo = (reservation) => {
     </div>
 
     <div
-      v-else-if="!reservations.length"
+      v-else-if="!historyItems.length"
       class="state-card"
     >
       {{ emptyMessage }}
     </div>
 
     <div
-      v-else-if="!filteredReservations.length"
+      v-else-if="!filteredHistory.length"
       class="state-card"
     >
-      No hay reservas que coincidan con los filtros.
+      No hay elementos que coincidan con los filtros.
     </div>
 
     <section
@@ -196,13 +243,19 @@ const getReservationDetailTo = (reservation) => {
       class="history-list"
     >
 
-      <ReservationListCard
-        v-for="reservation in filteredReservations"
-        :key="reservation.id"
-        :reservation="reservation"
-        mode="history"
-        :detail-to="getReservationDetailTo(reservation)"
-      />
+      <template v-for="item in filteredHistory" :key="item.id">
+        <ReservationListCard
+          v-if="item.kind === 'RESERVATION'"
+          :reservation="item.value"
+          mode="history"
+          :detail-to="getReservationDetailTo(item.value)"
+        />
+
+        <WorkshopEnrollmentHistoryCard
+          v-else
+          :enrollment="item.value"
+        />
+      </template>
 
     </section>
 
@@ -252,6 +305,14 @@ const getReservationDetailTo = (reservation) => {
   padding: 0 12px;
 
   box-sizing: border-box;
+}
+
+.filter-hint {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-weight: 500;
 }
 
 .history-list {

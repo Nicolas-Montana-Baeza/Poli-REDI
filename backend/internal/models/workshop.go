@@ -26,3 +26,17 @@ type WorkshopEnrollment struct {
 	Status     string    `json:"status"`
 	CreatedAt  time.Time `json:"createdAt"`
 }
+
+type WorkshopEnrollmentHistory struct {
+	ID             int       `json:"id"`
+	WorkshopID     int       `json:"workshopId"`
+	Title          string    `json:"title"`
+	Description    string    `json:"description"`
+	Location       string    `json:"location"`
+	InstructorName string    `json:"instructorName"`
+	DayText        string    `json:"dayText"`
+	ScheduleText   string    `json:"scheduleText"`
+	Status         string    `json:"status"`
+	IsActive       bool      `json:"isActive"`
+	EnrolledAt     time.Time `json:"enrolledAt"`
+}

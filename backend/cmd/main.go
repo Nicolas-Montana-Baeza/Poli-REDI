@@ -99,7 +99,6 @@ func loadEnv() {
 		".env",
 		"backend/.env",
 		"../backend/.env",
-		"../.env",
 	}
 
 	if ok {

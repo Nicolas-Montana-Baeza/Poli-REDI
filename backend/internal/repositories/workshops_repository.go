@@ -114,6 +114,62 @@ func GetActiveWorkshops() ([]models.Workshop, error) {
 	return GetActiveWorkshopsForUser(0)
 }
 
+func GetWorkshopEnrollmentsForUser(
+	userID int,
+) ([]models.WorkshopEnrollmentHistory, error) {
+	rows, err := database.DB.QueryContext(
+		context.Background(),
+		`
+		SELECT
+			we.id,
+			w.id,
+			w.title,
+			COALESCE(w.description, '') AS description,
+			COALESCE(w.location, '') AS location,
+			COALESCE(w.instructor_name, '') AS instructor_name,
+			w.day_text,
+			w.schedule_text,
+			we.status,
+			w.is_active,
+			we.created_at
+		FROM dbo.workshop_enrollments we
+		INNER JOIN dbo.workshops w ON w.id = we.workshop_id
+		WHERE we.user_id = @p1
+		ORDER BY we.created_at DESC, we.id DESC;
+		`,
+		userID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	enrollments := []models.WorkshopEnrollmentHistory{}
+	for rows.Next() {
+		var enrollment models.WorkshopEnrollmentHistory
+		if err := rows.Scan(
+			&enrollment.ID,
+			&enrollment.WorkshopID,
+			&enrollment.Title,
+			&enrollment.Description,
+			&enrollment.Location,
+			&enrollment.InstructorName,
+			&enrollment.DayText,
+			&enrollment.ScheduleText,
+			&enrollment.Status,
+			&enrollment.IsActive,
+			&enrollment.EnrolledAt,
+		); err != nil {
+			return nil, err
+		}
+		enrollments = append(enrollments, enrollment)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return enrollments, nil
+}
+
 func EnrollUserInWorkshop(
 	workshopID int,
 	userID int,

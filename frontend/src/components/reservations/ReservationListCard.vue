@@ -97,6 +97,7 @@ const handleCancel = () => {
           :status="badgeStatus"
           :label="displayStatus.label"
         />
+        <span v-if="mode === 'history'" class="type-badge">Reserva</span>
 
         <h2>
           {{ reservation.title || 'Reserva' }}
@@ -214,6 +215,17 @@ const handleCancel = () => {
 
 .reservation-status {
   cursor: default;
+}
+
+.type-badge {
+  display: inline-flex;
+  margin-left: 8px;
+  padding: 5px 9px;
+  border-radius: var(--radius-pill);
+  background: var(--color-primary-soft);
+  color: var(--color-primary-strong);
+  font-size: 12px;
+  font-weight: 800;
 }
 
 .reservation-status.cancelled {
