@@ -8,8 +8,10 @@ const props = defineProps({
   enrollment: {
     type: Object,
     required: true
-  }
+  },
+  selectable: { type: Boolean, default: false }
 })
+const emit = defineEmits(['open-detail'])
 
 const status = computed(() => {
   if (props.enrollment.status === 'CANCELLED') {
@@ -35,7 +37,15 @@ const enrolledAt = computed(() => {
 </script>
 
 <template>
-  <article class="workshop-history-card">
+  <component
+    :is="selectable ? 'button' : 'article'"
+    class="workshop-history-card"
+    :class="{ interactive: selectable }"
+    :type="selectable ? 'button' : undefined"
+    :data-history-id="`workshop-enrollment-${enrollment.id}`"
+    :aria-label="selectable ? `Ver detalle del taller ${enrollment.title}` : undefined"
+    @click="selectable ? emit('open-detail', enrollment, $event) : null"
+  >
     <div class="card-heading">
       <div>
         <span class="type-badge">Taller</span>
@@ -63,11 +73,13 @@ const enrolledAt = computed(() => {
         Inscripción: {{ enrolledAt }}
       </span>
     </div>
-  </article>
+  </component>
 </template>
 
 <style scoped>
 .workshop-history-card {
+  width: 100%;
+  box-sizing: border-box;
   padding: var(--space-4);
   display: flex;
   flex-direction: column;
@@ -76,6 +88,16 @@ const enrolledAt = computed(() => {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-card);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+.workshop-history-card.interactive { cursor: pointer; transition: border-color .2s, box-shadow .2s; }
+.workshop-history-card.interactive:hover,
+.workshop-history-card.interactive:focus-visible {
+  border-color: var(--color-primary, #2563eb);
+  box-shadow: 0 0 0 3px var(--color-primary-soft, #dbeafe), var(--shadow-card);
+  outline: none;
 }
 
 .card-heading > div {

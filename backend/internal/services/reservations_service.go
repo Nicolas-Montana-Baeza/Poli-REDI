@@ -122,7 +122,6 @@ func createReservationAt(
 	reservation models.Reservation,
 	now time.Time,
 ) (models.Reservation, error) {
-	reservation = enforceInitialReservationStatus(reservation)
 	codeBytes := make([]byte, 24)
 	if _, err := rand.Read(codeBytes); err != nil {
 		return models.Reservation{}, err
@@ -206,13 +205,6 @@ func validateReservationPolicySnapshot(reservation models.Reservation, now time.
 		return err
 	}
 	return reservationrules.ValidateReservableWindow(now, reservation.StartTime, policy.ReservableWindowDays)
-}
-
-func enforceInitialReservationStatus(
-	reservation models.Reservation,
-) models.Reservation {
-	reservation.Status = models.ReservationStatusConfirmed
-	return reservation
 }
 
 func validateWorkshopAvailability(reservation models.Reservation) error {

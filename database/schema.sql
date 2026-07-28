@@ -853,7 +853,18 @@ AFTER INSERT, UPDATE, DELETE
 AS
 BEGIN
  IF EXISTS(SELECT 1 FROM deleted d INNER JOIN dbo.reservation_policies p ON p.id=d.policy_id WHERE p.is_published=1)
-    OR EXISTS(SELECT 1 FROM inserted i INNER JOIN dbo.reservation_policies p ON p.id=i.policy_id WHERE p.is_published=1)
+    OR EXISTS(
+        SELECT 1
+        FROM inserted i
+        INNER JOIN dbo.reservation_policies p ON p.id=i.policy_id
+        WHERE p.is_published=1
+          AND NOT (
+              TRY_CONVERT(INT, SESSION_CONTEXT(N'legacy_policy_scope_bootstrap'))=1
+              AND p.idempotency_key IS NULL
+              AND p.id=(SELECT TOP(1) id FROM dbo.reservation_policies ORDER BY effective_from,id)
+              AND NOT EXISTS(SELECT 1 FROM dbo.reservation_policy_scope_migrations m WHERE m.policy_id=p.id)
+          )
+    )
   THROW 51018, 'Los recursos grupales de una politica publicada son inmutables.', 1;
  IF EXISTS(SELECT 1 FROM inserted i INNER JOIN dbo.reservation_policies p ON p.id=i.policy_id INNER JOIN dbo.resources r ON r.id=i.resource_id WHERE r.capacity IS NULL OR r.capacity<p.minimum_participants OR r.reservation_mode='OPEN_USE')
   THROW 51019, 'El recurso grupal requiere capacidad suficiente y no puede ser OPEN_USE.', 1;

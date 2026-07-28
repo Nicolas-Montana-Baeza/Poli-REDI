@@ -10,26 +10,6 @@ import (
 	"poli-redi-api/internal/reservationrules"
 )
 
-func TestEnforceInitialReservationStatusIgnoresCallerStatus(t *testing.T) {
-	for _, suppliedStatus := range []string{
-		"",
-		models.ReservationStatusPending,
-		models.ReservationStatusCancelled,
-		models.ReservationStatusRejected,
-		models.ReservationStatusExpired,
-	} {
-		t.Run(suppliedStatus, func(t *testing.T) {
-			reservation := enforceInitialReservationStatus(models.Reservation{
-				Status: suppliedStatus,
-			})
-
-			if reservation.Status != models.ReservationStatusConfirmed {
-				t.Fatalf("status = %q, expected %q", reservation.Status, models.ReservationStatusConfirmed)
-			}
-		})
-	}
-}
-
 func TestValidateCancellationStatus(t *testing.T) {
 	tests := []struct {
 		status  string

@@ -103,6 +103,24 @@ BEGIN TRY
                 AND existing.resource_id = r.id
           );
 
+        INSERT INTO dbo.reservation_policy_group_resources (policy_id, resource_id)
+        SELECT @bootstrap_policy_id, r.id
+        FROM dbo.resources AS r
+        WHERE r.id IN (1, 2, 7)
+          AND r.is_active = 1
+          AND r.reservation_mode <> N'OPEN_USE'
+          AND r.capacity >= (
+              SELECT p.minimum_participants
+              FROM dbo.reservation_policies AS p
+              WHERE p.id = @bootstrap_policy_id
+          )
+          AND NOT EXISTS (
+              SELECT 1
+              FROM dbo.reservation_policy_group_resources AS existing
+              WHERE existing.policy_id = @bootstrap_policy_id
+                AND existing.resource_id = r.id
+          );
+
         IF NOT EXISTS (SELECT 1 FROM dbo.reservation_policy_scope_migrations WHERE policy_id = @bootstrap_policy_id)
         BEGIN
             INSERT INTO dbo.reservation_policy_scope_migrations (policy_id)

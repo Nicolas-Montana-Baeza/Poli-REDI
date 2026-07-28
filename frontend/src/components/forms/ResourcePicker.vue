@@ -1,290 +1,130 @@
-﻿<script setup>
-defineProps({
-  resources: {
-    type: Array,
-    default: () => []
-  },
+<script setup>
+import { computed } from 'vue'
 
-  selectedId: {
-    type: Number,
-    default: null
-  }
+const props = defineProps({
+  resources: { type: Array, default: () => [] },
+  selectedId: { type: [Number, String], default: null },
+  disabled: { type: Boolean, default: false },
+  loading: { type: Boolean, default: false },
+  error: { type: String, default: '' }
 })
 
-const emit = defineEmits([
-  'select'
-])
+const emit = defineEmits(['select'])
 
-const handleSelect = (resource) => {
-  emit('select', resource)
+const selectedValue = computed(() => (
+  props.selectedId === null || props.selectedId === undefined
+    ? ''
+    : String(props.selectedId)
+))
+
+const handleChange = (event) => {
+  const resource = props.resources.find(
+    item => String(item.id) === event.target.value
+  )
+
+  emit('select', resource || null)
 }
 </script>
 
 <template>
-  <div class="picker">
+  <div class="resource-field">
+    <label for="reservation-resource">Instalación</label>
 
-    <!-- HEADER -->
-    <div class="header">
-
-      <h3>
-        Instalación
-      </h3>
-
-      <p>
-        Selecciona un recurso.
-      </p>
-
-    </div>
-
-    <!-- EMPTY -->
-    <div
-      v-if="!resources || resources.length === 0"
-      class="empty"
+    <select
+      id="reservation-resource"
+      :value="selectedValue"
+      :disabled="disabled || loading || !resources.length"
+      :aria-invalid="Boolean(error)"
+      :aria-describedby="error ? 'reservation-resource-error' : undefined"
+      @change="handleChange"
     >
-      No hay instalaciones disponibles.
-    </div>
+      <option value="" disabled>
+        {{ loading ? 'Cargando instalaciones...' : 'Selecciona una instalación' }}
+      </option>
 
-    <!-- LIST -->
-    <div
-      v-else
-      class="resources"
-      role="radiogroup"
-      aria-label="Instalación"
-    >
-
-      <button
+      <option
         v-for="resource in resources"
         :key="resource.id"
-        type="button"
-        role="radio"
-        class="resource-card"
-        :aria-checked="selectedId === resource.id"
-        :aria-label="`${resource.name}, ${resource.type}`"
-        :class="{
-          selected:
-            selectedId === resource.id
-        }"
-
-        @click="handleSelect(resource)"
+        :value="String(resource.id)"
       >
+        {{ resource.name }}
+      </option>
+    </select>
 
-        <!-- LEFT -->
-        <div class="left">
+    <p
+      v-if="error"
+      id="reservation-resource-error"
+      class="field-error"
+      role="alert"
+    >
+      {{ error }}
+    </p>
 
-          <div
-            class="status-dot"
-            :class="resource.status"
-          />
-
-          <div class="info">
-
-            <strong>
-              {{ resource.name }}
-            </strong>
-
-            <span>
-              {{ resource.type }}
-            </span>
-
-          </div>
-
-        </div>
-
-        <!-- RIGHT -->
-        <div
-          v-if="selectedId === resource.id"
-          class="badge"
-        >
-          Seleccionado
-        </div>
-
-      </button>
-
-    </div>
-
+    <p v-else-if="!loading && !resources.length" class="empty-message">
+      No hay instalaciones disponibles.
+    </p>
   </div>
 </template>
 
 <style scoped>
-.picker {
+.resource-field {
   display: flex;
-  flex-direction: column;
-
-  gap: 16px;
-}
-
-/* HEADER */
-.header h3 {
-  margin: 0;
-
-  font-size: 18px;
-  font-weight: 800;
-
-  color: #0f172a;
-}
-
-.header p {
-  margin-top: 4px;
-
-  font-size: 14px;
-
-  color: #64748b;
-}
-
-/* EMPTY */
-.empty {
-  padding: 18px;
-
-  border-radius: 18px;
-
-  background: #f8fafc;
-
-  border: 1px dashed #cbd5e1;
-
-  color: #64748b;
-
-  font-size: 14px;
-}
-
-/* LIST */
-.resources {
-  display: flex;
-  flex-direction: column;
-
-  gap: 12px;
-}
-
-/* CARD */
-.resource-card {
   width: 100%;
-
-  min-height: 72px;
-
-  padding: 16px;
-
-  border-radius: 18px;
-
-  border: 1px solid #e2e8f0;
-
-  background: white;
-  color: inherit;
-
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-
-  gap: 14px;
-
-  cursor: pointer;
-
-  font: inherit;
-  text-align: left;
-
-  transition: 0.2s;
-
-  box-sizing: border-box;
-}
-
-.resource-card:hover {
-  background: #eff6ff;
-
-  border-color: #bfdbfe;
-}
-
-.resource-card:focus-visible {
-  outline: 3px solid rgba(37, 99, 235, 0.28);
-  outline-offset: 2px;
-}
-
-/* SELECTED */
-.resource-card.selected {
-  background: #dbeafe;
-
-  border-color: #2563eb;
-
-  box-shadow:
-    0 0 0 4px rgba(37,99,235,0.08);
-}
-
-/* LEFT */
-.left {
-  display: flex;
-  align-items: center;
-
-  gap: 14px;
-
   min-width: 0;
-}
-
-/* STATUS */
-.status-dot {
-  width: 12px;
-  height: 12px;
-
-  border-radius: 999px;
-
-  flex-shrink: 0;
-}
-
-.status-dot.available {
-  background: #22c55e;
-}
-
-.status-dot.busy {
-  background: #ef4444;
-}
-
-.status-dot.maintenance {
-  background: #f59e0b;
-}
-
-/* INFO */
-.info {
-  display: flex;
   flex-direction: column;
-
-  min-width: 0;
+  gap: 8px;
 }
 
-.info strong {
-  font-size: 15px;
-  font-weight: 800;
-
-  color: #0f172a;
-}
-
-.info span {
-  margin-top: 2px;
-
-  font-size: 13px;
-
-  color: #64748b;
-}
-
-/* BADGE */
-.badge {
-  padding: 6px 12px;
-
-  border-radius: 999px;
-
-  background: #2563eb;
-
-  color: white;
-
-  font-size: 12px;
+.resource-field label {
+  color: #334155;
+  font-size: 14px;
   font-weight: 700;
-
-  white-space: nowrap;
 }
 
-/* MOBILE */
-@media (max-width: 768px) {
-  .resource-card {
-    padding: 14px;
-  }
+.resource-field select {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  height: 50px;
+  padding: 0 44px 0 16px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background-color: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
 
-  .badge {
-    display: none;
-  }
+.resource-field select:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.resource-field select[aria-invalid='true'] {
+  border-color: var(--color-error-strong);
+  box-shadow: var(--shadow-danger-focus);
+}
+
+.resource-field select:disabled {
+  cursor: not-allowed;
+  background-color: var(--color-surface-muted);
+  color: var(--color-text-soft);
+}
+
+.field-error,
+.empty-message {
+  margin: 0;
+  font-size: 13px;
+}
+
+.field-error {
+  color: var(--color-error);
+  font-weight: 700;
+}
+
+.empty-message {
+  color: var(--color-text-muted);
 }
 </style>

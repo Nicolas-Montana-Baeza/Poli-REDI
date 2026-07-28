@@ -1,12 +1,15 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, nextTick, onMounted, ref } from 'vue'
 
+import ReservationDetailModal from '@/components/availability/ReservationDetailModal.vue'
 import ReservationListCard from '@/components/reservations/ReservationListCard.vue'
 import SkeletonLoader from '@/components/ui/SkeletonLoader.vue'
 import ConfirmModal from '@/components/ui/ConfirmModal.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useReservationsStore } from '@/stores/reservations'
+import { reservationsService } from '@/services/reservations.service'
 import {
+  canUserEditReservationTarget,
   canUserCancelReservation,
   isReservationActionable,
   parseReservationDateTime
@@ -16,6 +19,9 @@ const reservationsStore = useReservationsStore()
 const authStore = useAuthStore()
 const cancellingId = ref(null)
 const pendingCancellation = ref(null)
+const selectedReservation = ref(null)
+const selectedCard = ref(null)
+const selectedCardId = ref(null)
 
 onMounted(async () => {
   reservationsStore.clearActionError()
@@ -81,6 +87,76 @@ const canCancel = (reservation) => {
   return canUserCancelReservation(reservation, authStore.user)
 }
 
+const isGroupReservation = (reservation) => (
+  reservation?.targetParticipants != null ||
+  reservation?.capacity != null
+)
+
+const canManageSelectedJoinCode = computed(() => {
+  const reservation = selectedReservation.value
+  return Boolean(
+    reservation &&
+    isGroupReservation(reservation) &&
+    Number(reservation.userId) === Number(authStore.user?.id) &&
+    (reservation.status === 'PENDING' || reservation.status === 'CONFIRMED')
+  )
+})
+const canEditSelectedTarget = computed(() =>
+  canUserEditReservationTarget(selectedReservation.value, authStore.user)
+)
+
+const openReservationDetail = (reservation, event) => {
+  reservationsStore.clearActionError()
+  reservationsStore.clearActionSuccess()
+  selectedCard.value = event?.currentTarget || document.activeElement
+  selectedCardId.value = reservation.id
+  selectedReservation.value = reservation
+}
+
+const restoreSelectedCardFocus = async () => {
+  await nextTick()
+  const currentCard = Array.from(
+    document.querySelectorAll('[data-reservation-id]')
+  ).find((element) => String(element.dataset.reservationId) === String(selectedCardId.value))
+  ;(currentCard || selectedCard.value)?.focus?.()
+  selectedCard.value = null
+  selectedCardId.value = null
+}
+
+const closeReservationDetail = async () => {
+  selectedReservation.value = null
+  reservationsStore.clearActionError()
+  await restoreSelectedCardFocus()
+}
+
+const refreshReservations = async () => {
+  if (authStore.user?.isAdmin) {
+    await reservationsStore.fetchReservations()
+  } else {
+    await reservationsStore.fetchMyReservations()
+  }
+}
+
+const updateSelectedTarget = async (targetParticipants) => {
+  if (!canEditSelectedTarget.value) {
+    return
+  }
+
+  try {
+    const updated = await reservationsService.updateTarget(
+      selectedReservation.value.id,
+      Number(targetParticipants)
+    )
+    selectedReservation.value = { ...selectedReservation.value, ...updated }
+    await refreshReservations()
+    reservationsStore.setActionSuccess('Objetivo de participantes actualizado.')
+  } catch (error) {
+    reservationsStore.setActionError(
+      error.response?.data?.error || 'No se pudo actualizar el objetivo.'
+    )
+  }
+}
+
 const cancelReservation = async (reservation) => {
   pendingCancellation.value = reservation
 }
@@ -97,6 +173,9 @@ const confirmCancellation = async () => {
     reservationsStore.setActionSuccess(
       'Reserva cancelada correctamente'
     )
+    selectedReservation.value = null
+    await refreshReservations()
+    await restoreSelectedCardFocus()
   } catch {
     // El store deja el mensaje listo para mostrar en la vista.
   } finally {
@@ -175,15 +254,24 @@ const confirmCancellation = async () => {
           v-for="reservation in reservations"
           :key="reservation.id"
           :reservation="reservation"
-          :detail-to="`/reservations/${reservation.id}`"
-          :show-cancel="canCancel(reservation)"
-          :cancel-disabled="cancellingId === reservation.id"
-          @cancel="cancelReservation"
+          selectable
+          @open-detail="(item, event) => openReservationDetail(item, event)"
         />
 
       </section>
 
     </section>
+    <ReservationDetailModal
+      :visible="Boolean(selectedReservation)"
+      :reservation="selectedReservation"
+      :can-edit-target="canEditSelectedTarget"
+      :can-manage-join-code="canManageSelectedJoinCode"
+      :can-cancel="selectedReservation ? canCancel(selectedReservation) : false"
+      :error-message="reservationsStore.actionError"
+      @close="closeReservationDetail"
+      @cancel="cancelReservation(selectedReservation)"
+      @update-target="updateSelectedTarget"
+    />
     <ConfirmModal
       :show="Boolean(pendingCancellation)"
       title="Cancelar reserva"

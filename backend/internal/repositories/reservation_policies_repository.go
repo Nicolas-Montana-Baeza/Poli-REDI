@@ -89,7 +89,7 @@ func loadPolicyCollections(ctx context.Context, q interface {
 
 func GetCurrentReservationPolicyComplete() (models.ReservationPolicy, error) {
 	ctx := context.Background()
-	p, err := scanPolicy(database.DB.QueryRowContext(ctx, `SELECT TOP (1) `+policyColumns+` FROM dbo.reservation_policies WHERE effective_from <= SYSUTCDATETIME() AND (effective_to IS NULL OR effective_to > SYSUTCDATETIME()) ORDER BY effective_from DESC, id DESC`))
+	p, err := scanPolicy(database.DB.QueryRowContext(ctx, `SELECT TOP (1) `+policyColumns+` FROM dbo.reservation_policies WHERE is_published = 1 AND effective_from <= SYSUTCDATETIME() AND (effective_to IS NULL OR effective_to > SYSUTCDATETIME()) ORDER BY effective_from DESC, id DESC`))
 	if err != nil {
 		return p, err
 	}

@@ -226,4 +226,37 @@ h3 {
   background: #fff7ed;
   color: #f97316;
 }
+
+@media (max-width: 600px) {
+  .card {
+    height: auto;
+    min-height: 0;
+    border-radius: 16px;
+  }
+
+  .image,
+  .image img,
+  .image.fallback {
+    width: 100%;
+    height: min(42vw, 150px);
+    aspect-ratio: 16 / 9;
+  }
+
+  .image img {
+    object-fit: cover;
+  }
+
+  .content {
+    min-height: 104px;
+    padding: 12px 13px 14px;
+  }
+
+  h3 {
+    font-size: 15px;
+  }
+
+  .type {
+    margin: 4px 0 9px;
+  }
+}
 </style>

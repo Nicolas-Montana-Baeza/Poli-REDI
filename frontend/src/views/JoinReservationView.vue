@@ -2,7 +2,7 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { Info, KeyRound, ShieldCheck, UsersRound } from 'lucide-vue-next'
-import ParticipantsProgress from '@/components/ui/ParticipantsProgress.vue'
+import ReservationDetailModal from '@/components/availability/ReservationDetailModal.vue'
 import PrimaryButton from '@/components/ui/PrimaryButton.vue'
 import { reservationsService } from '@/services/reservations.service'
 
@@ -17,6 +17,8 @@ const operation = ref('')
 const codeInput = ref(null)
 const errorElement = ref(null)
 const liveAnnouncement = ref('')
+const detailOpen = ref(false)
+const consultTrigger = ref(null)
 let mounted = true
 let requestGeneration = 0
 const describedBy = computed(() => error.value ? 'join-code-help join-code-error' : 'join-code-help')
@@ -47,6 +49,7 @@ const validate = token => {
 }
 const clearResultState = () => {
   requestGeneration += 1
+  detailOpen.value = false
   activeCode.value = ''
   progress.value = null
   error.value = ''
@@ -73,11 +76,13 @@ const load = async () => {
     if (!mounted || generation !== requestGeneration || code.value.trim() !== token) return
     activeCode.value = token
     progress.value = response
+    detailOpen.value = true
     liveAnnouncement.value = progressAnnouncement(response)
   } catch (errorValue) {
     if (!mounted || generation !== requestGeneration || code.value.trim() !== token) return
     activeCode.value = ''
     progress.value = null
+    detailOpen.value = false
     error.value = messageFor(errorValue)
     await focusError()
   } finally {
@@ -113,6 +118,13 @@ const change = async confirm => {
       operation.value = ''
     }
   }
+}
+const closeDetail = async () => {
+  detailOpen.value = false
+  await nextTick()
+  const trigger = consultTrigger.value?.$el
+  if (trigger?.focus) trigger.focus()
+  else codeInput.value?.focus()
 }
 onMounted(() => {
   if (code.value) load()
@@ -169,7 +181,7 @@ onBeforeUnmount(() => {
                 :disabled="busy"
               >
             </div>
-            <PrimaryButton type="submit" :loading="operation === 'consultar'" :disabled="busy">
+            <PrimaryButton ref="consultTrigger" type="submit" :loading="operation === 'consultar'" :disabled="busy">
               {{ operation === 'consultar' ? 'Consultando…' : 'Consultar reserva' }}
             </PrimaryButton>
           </div>
@@ -196,9 +208,18 @@ onBeforeUnmount(() => {
       <p v-if="success" class="state-card success" role="status">{{ success }}</p>
     </article>
 
-    <div v-if="progress" class="progress-card">
-      <ParticipantsProgress :progress="progress" :busy="busy" :announce="false" @confirm="change(true)" @withdraw="change(false)" />
-    </div>
+    <ReservationDetailModal
+      :visible="detailOpen"
+      :reservation="progress"
+      participation-mode
+      :participation-busy="busy"
+      :participation-message="success"
+      :error-message="error"
+      :can-cancel="false"
+      @close="closeDetail"
+      @confirm-participation="change(true)"
+      @withdraw-participation="change(false)"
+    />
   </section>
 </template>
 

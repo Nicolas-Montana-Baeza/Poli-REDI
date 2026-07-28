@@ -72,7 +72,50 @@ describe('ReservationDetailView: código de invitación', () => {
   })
   afterEach(() => {
     document.body.innerHTML = ''
+    Object.defineProperty(navigator, 'share', { configurable: true, value: undefined })
     vi.clearAllMocks()
+  })
+
+  it('muestra la gestión del código al propietario aunque los identificadores tengan distinto tipo', async () => {
+    const ownGroup = {
+      ...reservation(1),
+      userId: '7',
+      targetParticipants: undefined,
+      capacity: 20
+    }
+    state.reservations.myReservations.splice(0, state.reservations.myReservations.length, ownGroup)
+    state.getJoinCode.mockResolvedValueOnce({ joinCode: 'codigo-visible' })
+    const wrapper = mount(ReservationDetailView)
+    await flushPromises()
+
+    expect(button(wrapper, 'Código de invitación')).toBeTruthy()
+    await button(wrapper, 'Código de invitación').trigger('click')
+    await flushPromises()
+    expect(wrapper.text()).toContain('codigo-visible')
+    wrapper.unmount()
+  })
+
+  it('no ofrece el código a terceros ni en reservas canceladas', async () => {
+    state.reservations.myReservations.splice(
+      0,
+      state.reservations.myReservations.length,
+      { ...reservation(1), userId: 99 }
+    )
+    const thirdPartyWrapper = mount(ReservationDetailView)
+    await flushPromises()
+    expect(button(thirdPartyWrapper, 'Código de invitación')).toBeUndefined()
+    thirdPartyWrapper.unmount()
+
+    state.reservations.myReservations.splice(
+      0,
+      state.reservations.myReservations.length,
+      { ...reservation(1), status: 'CANCELLED' }
+    )
+    const cancelledWrapper = mount(ReservationDetailView)
+    await flushPromises()
+    expect(button(cancelledWrapper, 'Código de invitación')).toBeUndefined()
+    cancelledWrapper.unmount()
+    expect(state.getJoinCode).not.toHaveBeenCalled()
   })
 
   it('permite generar código para una reserva legacy y marca la confirmación como destructiva', async () => {
@@ -96,7 +139,7 @@ describe('ReservationDetailView: código de invitación', () => {
     wrapper.unmount()
   })
 
-  it('copia el enlace sin persistirlo y limpia estado al cambiar de ruta', async () => {
+  it('copia el código sin persistirlo y limpia estado al cambiar de ruta', async () => {
     Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: state.clipboard.mockResolvedValue() } })
     state.reservations.myReservations.splice(0, state.reservations.myReservations.length, reservation(1), reservation(2))
     state.getJoinCode.mockResolvedValueOnce({ joinCode: 'a/b c' })
@@ -104,15 +147,70 @@ describe('ReservationDetailView: código de invitación', () => {
     await flushPromises()
     await button(wrapper, 'Código de invitación').trigger('click')
     await flushPromises()
-    await button(wrapper, 'Copiar enlace').trigger('click')
+    await button(wrapper, 'Copiar código').trigger('click')
     await flushPromises()
-    expect(state.clipboard).toHaveBeenCalledWith(`${window.location.origin}/join/a%2Fb%20c`)
-    expect(wrapper.text()).toContain('Enlace de invitación copiado.')
+    expect(state.clipboard).toHaveBeenCalledWith('a/b c')
+    expect(wrapper.text()).toContain('Código copiado al portapapeles.')
     state.route.params.id = '2'
     await flushPromises()
     expect(wrapper.text()).not.toContain('a/b c')
-    expect(wrapper.text()).not.toContain('Enlace de invitación copiado.')
+    expect(wrapper.text()).not.toContain('Código copiado al portapapeles.')
     expect(button(wrapper, 'Código de invitación').attributes('aria-expanded')).toBe('false')
+    wrapper.unmount()
+  })
+
+  it('permite ajustar el objetivo con controles accesibles sin exponer el RUT', async () => {
+    state.reservations.myReservations.splice(
+      0,
+      state.reservations.myReservations.length,
+      { ...reservation(1), canEditTarget: true, userRut: '12.345.678-5' }
+    )
+    const wrapper = mount(ReservationDetailView)
+    await flushPromises()
+
+    const target = wrapper.get('#owner-target')
+    expect(target.element.value).toBe('12')
+    await wrapper.get('[aria-label="Aumentar objetivo"]').trigger('click')
+    expect(target.element.value).toBe('13')
+    await wrapper.get('[aria-label="Disminuir objetivo"]').trigger('click')
+    expect(target.element.value).toBe('12')
+    expect(wrapper.text()).not.toContain('12.345.678-5')
+    expect(wrapper.text()).toContain('Responsable')
+    expect(wrapper.text()).toContain('Participantes')
+    expect(wrapper.text()).toContain('1 de 12 participantes confirmados')
+    expect(wrapper.text()).toContain('La reserva se confirmará automáticamente al llegar a 10 participantes.')
+    expect(wrapper.text()).toContain('Mínimo 10')
+    expect(wrapper.text()).toContain('Capacidad 20')
+    expect(wrapper.text()).toContain('Objetivo de participantes')
+    expect(wrapper.text()).toContain('Puedes cambiarlo hasta una hora antes')
+    expect(button(wrapper, 'Guardar cambios')).toBeTruthy()
+    expect(button(wrapper, 'Cancelar reserva')).toBeTruthy()
+    expect(wrapper.text()).not.toContain('Progreso de participantes')
+    expect(wrapper.text()).not.toContain('Guardar objetivo')
+    expect(wrapper.text()).not.toContain('Define cuántas personas esperas reunir.')
+    wrapper.unmount()
+  })
+
+  it('comparte con Web Share y conserva el copiado de enlace como alternativa', async () => {
+    const share = vi.fn().mockResolvedValue()
+    Object.defineProperty(navigator, 'share', { configurable: true, value: share })
+    Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: state.clipboard.mockResolvedValue() } })
+    state.reservations.myReservations.splice(0, state.reservations.myReservations.length, reservation(1))
+    state.getJoinCode.mockResolvedValueOnce({ joinCode: 'codigo seguro' })
+    const wrapper = mount(ReservationDetailView)
+    await flushPromises()
+    await button(wrapper, 'Código de invitación').trigger('click')
+    await flushPromises()
+
+    await button(wrapper, 'Compartir invitación').trigger('click')
+    expect(share).toHaveBeenCalledWith({
+      title: 'Invitación a reserva grupal',
+      url: `${window.location.origin}/join/codigo%20seguro`
+    })
+    expect(wrapper.text()).toContain('Invitación compartida.')
+
+    expect(wrapper.text()).toContain('Invita a tu grupo')
+    expect(button(wrapper, 'Copiar código')).toBeTruthy()
     wrapper.unmount()
   })
 

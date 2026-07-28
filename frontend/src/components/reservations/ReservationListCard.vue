@@ -36,6 +36,11 @@ const props = defineProps({
     default: 'Detalle'
   },
 
+  selectable: {
+    type: Boolean,
+    default: false
+  },
+
   showCancel: {
     type: Boolean,
     default: false
@@ -58,7 +63,7 @@ const badgeStatus = computed(() => ({
 }[displayStatus.value.className] || props.reservation.status))
 
 const handleCardKeydown = (event) => {
-  if (props.detailTo) {
+  if (props.selectable || props.detailTo) {
     return
   }
 
@@ -70,21 +75,28 @@ const handleCardKeydown = (event) => {
   emit('open-detail', props.reservation)
 }
 
+const handleOpenDetail = (event) => {
+  emit('open-detail', props.reservation, event)
+}
+
 const handleCancel = () => {
   emit('cancel', props.reservation)
 }
 </script>
 
 <template>
-  <article
+  <component
+    :is="selectable ? 'button' : 'article'"
     class="reservation-list-card"
-    :class="{ interactive: !detailTo && mode === 'history' }"
-    :role="!detailTo && mode === 'history' ? 'link' : undefined"
-    :tabindex="!detailTo && mode === 'history' ? 0 : undefined"
-    :aria-label="!detailTo && mode === 'history'
+    :class="{ interactive: selectable || (!detailTo && mode === 'history') }"
+    :type="selectable ? 'button' : undefined"
+    :data-reservation-id="reservation.id"
+    :role="!selectable && !detailTo && mode === 'history' ? 'link' : undefined"
+    :tabindex="!selectable && !detailTo && mode === 'history' ? 0 : undefined"
+    :aria-label="selectable || (!detailTo && mode === 'history')
       ? `Ver detalle de ${reservation.title || 'reserva'}`
       : undefined"
-    @click="!detailTo && mode === 'history' ? emit('open-detail', reservation) : null"
+    @click="selectable || (!detailTo && mode === 'history') ? handleOpenDetail($event) : null"
     @keydown="handleCardKeydown"
   >
 
@@ -164,11 +176,14 @@ const handleCancel = () => {
 
     </div>
 
-  </article>
+  </component>
 </template>
 
 <style scoped>
 .reservation-list-card {
+  width: 100%;
+  box-sizing: border-box;
+
   background: var(--color-surface);
 
   border: 1px solid var(--color-border);
@@ -186,6 +201,10 @@ const handleCancel = () => {
   transition:
     border-color 0.2s,
     box-shadow 0.2s;
+
+  color: inherit;
+  font: inherit;
+  text-align: left;
 }
 
 .reservation-list-card.interactive {
@@ -194,9 +213,9 @@ const handleCancel = () => {
 
 .reservation-list-card.interactive:hover,
 .reservation-list-card.interactive:focus-visible {
-  border-color: #bfdbfe;
+  border-color: var(--color-primary, #2563eb);
 
-  box-shadow: var(--shadow-card);
+  box-shadow: 0 0 0 3px var(--color-primary-soft, #dbeafe), var(--shadow-card);
 
   outline: none;
 }

@@ -135,3 +135,28 @@ func TestJoinCodeUsesUniform404ForAdminWhoIsNotOwner(t *testing.T) {
 		t.Fatalf("status=%d", response.StatusCode)
 	}
 }
+
+func TestJoinCodeIsUnavailableForTerminalReservations(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	previous := database.DB
+	database.DB = db
+	defer func() { database.DB = previous }()
+
+	mock.ExpectQuery(`r.status IN\('PENDING','CONFIRMED'\)`).
+		WithArgs(8, 3).
+		WillReturnError(sql.ErrNoRows)
+	user := models.LocalAuthUser{ID: 3}
+	response, _ := participantTestApp(&user).Test(
+		httptest.NewRequest(http.MethodGet, "/reservations/8/join-code", nil),
+	)
+	if response.StatusCode != 404 {
+		t.Fatalf("status=%d", response.StatusCode)
+	}
+	if err = mock.ExpectationsWereMet(); err != nil {
+		t.Fatal(err)
+	}
+}

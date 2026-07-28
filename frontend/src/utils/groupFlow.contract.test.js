@@ -18,9 +18,11 @@ test('rutas join están autenticadas y admiten código manual o URL', () => {
 
 test('progreso muestra contrato completo y protege retiro del owner', () => {
   const component = read('src/components/ui/ParticipantsProgress.vue')
-  for (const label of ['Mínimo requerido', 'Objetivo', 'Capacidad', 'Estado', 'Plazo']) {
+  for (const label of ['Participantes', 'Mínimo', 'Capacidad', 'Disponible hasta el']) {
     assert.ok(component.includes(label), label)
   }
+  assert.match(component, /participantes confirmados/)
+  assert.match(component, /se confirmará automáticamente/)
   assert.match(component, /!props\.progress\.isOwner/)
 })
 
@@ -37,5 +39,6 @@ test('detalle propio integra progreso, objetivo y código bajo demanda', () => {
   assert.match(detail, /ParticipantsProgress/)
   assert.match(detail, /updateTarget/)
   assert.match(detail, /toggleJoinCode/)
-  assert.match(detail, /reservation\.value\?\.userId === authStore\.user\?\.id/)
+  assert.match(detail, /Number\(reservation\.value\?\.userId\) === Number\(authStore\.user\?\.id\)/)
+  assert.match(detail, /status === 'PENDING' \|\| status === 'CONFIRMED'/)
 })

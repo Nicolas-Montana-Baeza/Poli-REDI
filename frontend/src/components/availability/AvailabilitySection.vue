@@ -18,6 +18,7 @@ import { reservationsService } from '@/services/reservations.service'
 import { buildWorkshopAvailabilityItems } from '@/utils/workshopSchedule'
 import { hasRut } from '@/utils/validators'
 import {
+  canUserEditReservationTarget,
   getBusinessDateKey,
   parseReservationDateTime
 } from '@/utils/reservationTime'
@@ -196,6 +197,9 @@ const canManageSelectedJoinCode = computed(() =>
   Boolean(selectedReservation.value?.targetParticipants) &&
   selectedReservation.value?.userId === authStore.user?.id
 )
+const canEditSelectedTarget = computed(() =>
+  canUserEditReservationTarget(selectedReservation.value, authStore.user)
+)
 
 /* MODAL */
 const showReservationForm = ref(false)
@@ -270,6 +274,10 @@ const closeReservationDetail = () => {
   reservationsStore.clearActionError?.()
 }
 const updateSelectedTarget = async (targetParticipants) => {
+  if (!canEditSelectedTarget.value) {
+    return
+  }
+
   try {
     const updated = await reservationsService.updateTarget(selectedReservation.value.id, Number(targetParticipants))
     selectedReservation.value = { ...selectedReservation.value, ...updated }
@@ -660,6 +668,7 @@ const goToday = () => {
     <ReservationDetailModal
       :visible="Boolean(selectedReservation)"
       :reservation="selectedReservation"
+      :can-edit-target="canEditSelectedTarget"
       :can-manage-join-code="canManageSelectedJoinCode"
       :can-cancel="canCancelSelectedReservation"
       :error-message="reservationsStore.actionError"

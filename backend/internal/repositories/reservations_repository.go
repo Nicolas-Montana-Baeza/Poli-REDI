@@ -251,13 +251,7 @@ func AddReservationWithPolicy(reservation models.Reservation, validate func(mode
 	if !policyAllowsResource(policy, reservation.ResourceID) {
 		return models.Reservation{}, ErrResourceNotAllowedByPolicy
 	}
-	isGroup := false
-	for _, id := range policy.GroupResourceIDs {
-		if id == reservation.ResourceID {
-			isGroup = true
-			break
-		}
-	}
+	isGroup := policyRequiresGroupConfirmation(policy, reservation.ResourceID)
 	var joinHash any
 	var capacitySnapshot any
 	var frozenCapacity int
@@ -410,6 +404,15 @@ func AddReservationWithPolicy(reservation models.Reservation, validate func(mode
 	}
 
 	return reservation, nil
+}
+
+func policyRequiresGroupConfirmation(policy models.ReservationPolicy, resourceID int) bool {
+	for _, id := range policy.GroupResourceIDs {
+		if id == resourceID {
+			return true
+		}
+	}
+	return false
 }
 
 func insertJoinCodeSecretTx(ctx context.Context, tx *sql.Tx, reservationID int, code string) error {

@@ -7,7 +7,8 @@ import PrimaryButton from './PrimaryButton.vue'
 const props = defineProps({
   progress: { type: Object, required: true },
   busy: { type: Boolean, default: false },
-  announce: { type: Boolean, default: true }
+  announce: { type: Boolean, default: true },
+  showStatus: { type: Boolean, default: true }
 })
 defineEmits(['confirm', 'withdraw'])
 const count = computed(() => Math.max(0, Number(props.progress.participantCount) || 0))
@@ -40,7 +41,8 @@ const deadlineOpen = computed(() => {
 const canConfirm = computed(() => active.value && deadlineOpen.value && !props.progress.isMember)
 const canWithdraw = computed(() => active.value && deadlineOpen.value && props.progress.isMember && !props.progress.isOwner)
 const statusText = { PENDING: 'Pendiente', CONFIRMED: 'Confirmada', CANCELLED: 'Cancelada', EXPIRED: 'Vencida', REJECTED: 'Rechazada' }
-const summary = computed(() => `${count.value} confirmados · mínimo ${props.progress.minimumParticipants || 0} · objetivo ${target.value} · capacidad ${capacity.value}`)
+const summary = computed(() => `${count.value} de ${target.value} participantes confirmados`)
+const deadline = computed(() => formatBusinessDateTime(props.progress.confirmationDeadline))
 const terminalMessage = computed(() => status.value === 'CANCELLED'
   ? 'Esta reserva fue cancelada.'
   : 'El plazo para reunir participantes terminó y la reserva no fue confirmada.')
@@ -58,11 +60,11 @@ const closedMessage = computed(() => {
 <template>
   <section class="participants-progress" :class="{ terminal: isTerminal }" :role="announce ? 'status' : 'region'" :aria-live="announce ? 'polite' : 'off'" :aria-label="accessibleLabel">
     <template v-if="isTerminal">
-      <div class="heading"><h2>Estado de la invitación</h2><StatusBadge :status="status" /></div>
+      <div class="heading"><h2>Estado de la invitación</h2><StatusBadge v-if="showStatus" :status="status" /></div>
       <p class="terminal-message">{{ terminalMessage }}</p>
     </template>
     <template v-else>
-      <div class="heading"><h2>Progreso de participantes</h2><StatusBadge :status="status" /></div>
+      <div class="heading"><h2>Participantes</h2><StatusBadge v-if="showStatus" :status="status" /></div>
       <p class="count">{{ summary }}</p>
       <progress class="sr-only" :value="count" :max="capacity || 1" :aria-label="semanticProgressLabel">{{ capacityProgressPercent }}%</progress>
       <div class="visual-progress" aria-hidden="true">
@@ -73,16 +75,10 @@ const closedMessage = computed(() => {
       </div>
       <div class="progress-legend" aria-hidden="true">
         <span>Mínimo {{ minimum }}</span>
-        <span>Objetivo {{ target }}</span>
         <span>Capacidad {{ capacity }}</span>
       </div>
-      <dl>
-        <div><dt>Mínimo requerido</dt><dd>{{ progress.minimumParticipants || 0 }}</dd></div>
-        <div><dt>Objetivo</dt><dd>{{ target }}</dd></div>
-        <div><dt>Capacidad</dt><dd>{{ capacity }}</dd></div>
-        <div><dt>Plazo</dt><dd>{{ formatBusinessDateTime(progress.confirmationDeadline) }}</dd></div>
-      </dl>
-      <p>La reserva se confirma al alcanzar el mínimo requerido.</p>
+      <p>La reserva se confirmará automáticamente al llegar a {{ minimum }} participantes.</p>
+      <p class="deadline">Disponible hasta el {{ deadline }}</p>
       <div class="actions">
         <PrimaryButton v-if="canConfirm" :loading="busy" @click="$emit('confirm')">Confirmar participación</PrimaryButton>
         <PrimaryButton v-else-if="canWithdraw" variant="danger" :loading="busy" @click="$emit('withdraw')">Retirar participación</PrimaryButton>

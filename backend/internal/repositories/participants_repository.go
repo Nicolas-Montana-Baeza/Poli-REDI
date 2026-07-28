@@ -242,7 +242,7 @@ func ExpirePendingGroupReservations(now time.Time) error {
 func GetOwnerJoinCode(reservationID, userID int) (string, error) {
 	var nonce, ciphertext []byte
 	var version int
-	err := database.DB.QueryRowContext(context.Background(), `SELECT s.nonce,s.ciphertext,s.key_version FROM dbo.reservations r INNER JOIN dbo.reservation_join_code_secrets s ON s.reservation_id=r.id WHERE r.id=@p1 AND r.user_id=@p2 AND r.group_capacity_snapshot IS NOT NULL`, reservationID, userID).Scan(&nonce, &ciphertext, &version)
+	err := database.DB.QueryRowContext(context.Background(), `SELECT s.nonce,s.ciphertext,s.key_version FROM dbo.reservations r INNER JOIN dbo.reservation_join_code_secrets s ON s.reservation_id=r.id WHERE r.id=@p1 AND r.user_id=@p2 AND r.group_capacity_snapshot IS NOT NULL AND r.status IN('PENDING','CONFIRMED')`, reservationID, userID).Scan(&nonce, &ciphertext, &version)
 	if errors.Is(err, sql.ErrNoRows) {
 		return "", ErrInvalidJoinCode
 	}
@@ -260,7 +260,7 @@ func RotateOwnerJoinCode(reservationID, userID int) (string, error) {
 	}
 	defer tx.Rollback()
 	var owner int
-	if err = tx.QueryRowContext(ctx, `SELECT user_id FROM dbo.reservations WITH(UPDLOCK,HOLDLOCK) WHERE id=@p1 AND group_capacity_snapshot IS NOT NULL`, reservationID).Scan(&owner); errors.Is(err, sql.ErrNoRows) || owner != userID {
+	if err = tx.QueryRowContext(ctx, `SELECT user_id FROM dbo.reservations WITH(UPDLOCK,HOLDLOCK) WHERE id=@p1 AND group_capacity_snapshot IS NOT NULL AND status IN('PENDING','CONFIRMED')`, reservationID).Scan(&owner); errors.Is(err, sql.ErrNoRows) || owner != userID {
 		return "", ErrInvalidJoinCode
 	}
 	if err != nil {

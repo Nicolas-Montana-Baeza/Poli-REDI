@@ -118,6 +118,24 @@ export const canUserCancelReservation = (reservation, user) => {
   )
 }
 
+export const canUserEditReservationTarget = (reservation, user) => {
+  if (!reservation || !user || reservation.canEditTarget !== true) {
+    return false
+  }
+
+  const isOwner = reservation.isOwner === true ||
+    Number(reservation.userId) === Number(user.id)
+  const status = String(reservation.status || '').toUpperCase()
+  const deadline = new Date(reservation.confirmationDeadline).getTime()
+
+  return (
+    isOwner &&
+    ['PENDING', 'CONFIRMED'].includes(status) &&
+    Number.isFinite(deadline) &&
+    Date.now() <= deadline
+  )
+}
+
 export const getReservationDisplayStatus = (reservation) => {
   if (reservation?.isScheduledActivity) {
     return {

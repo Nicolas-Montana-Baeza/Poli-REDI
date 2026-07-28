@@ -77,9 +77,18 @@ const getDefaultActivityId = () => {
 const isOpenUseResource = computed(() => {
   return form.value.resource?.reservationMode === 'OPEN_USE'
 })
-const isGroupResource = computed(() => props.policy?.groupResourceIds?.includes(form.value.resource?.id))
+const isGroupResourceId = (resourceId) => {
+  const normalizedResourceId = Number(resourceId)
+  return Number.isInteger(normalizedResourceId) &&
+    (props.policy?.groupResourceIds || []).some(id => Number(id) === normalizedResourceId)
+}
+const isGroupResource = computed(() => isGroupResourceId(form.value.resource?.id))
 const minimumParticipants = computed(() => Number(props.policy?.minimumParticipants || 1))
 const resourceCapacity = computed(() => Number(form.value.resource?.capacity || minimumParticipants.value))
+const defaultTargetParticipants = () => Math.min(
+  resourceCapacity.value,
+  Math.max(10, minimumParticipants.value)
+)
 
 const handleActivityUpdate = () => {
   fieldErrors.value.activityId = ''
@@ -116,8 +125,8 @@ watch(
       slot.resource?.reservationMode === 'OPEN_USE'
         ? null
         : form.value.activityId || getDefaultActivityId()
-    form.value.targetParticipants = slot.resource && props.policy?.groupResourceIds?.includes(slot.resource.id)
-      ? minimumParticipants.value : null
+    form.value.targetParticipants = slot.resource && isGroupResourceId(slot.resource.id)
+      ? defaultTargetParticipants() : null
   },
   {
     immediate: true
@@ -151,8 +160,8 @@ const handleResourceSelect = (resource) => {
   } else if (!form.value.activityId) {
     form.value.activityId = getDefaultActivityId()
   }
-  form.value.targetParticipants = props.policy?.groupResourceIds?.includes(resource?.id)
-    ? minimumParticipants.value : null
+  form.value.targetParticipants = isGroupResourceId(resource?.id)
+    ? defaultTargetParticipants() : null
 
   fieldErrors.value.resource = ''
 }
@@ -328,15 +337,10 @@ const handleClose = () => {
         <ResourcePicker
           :resources="resources"
           :selected-id="form.resource?.id"
+          :disabled="submitting"
+          :error="fieldErrors.resource"
           @select="handleResourceSelect"
         />
-
-        <p
-          v-if="fieldErrors.resource"
-          class="field-error"
-        >
-          {{ fieldErrors.resource }}
-        </p>
 
         <!-- DATE TIME -->
         <DateTimePicker

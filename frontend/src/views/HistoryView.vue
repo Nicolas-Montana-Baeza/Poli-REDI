@@ -1,6 +1,7 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, nextTick, onMounted, ref } from 'vue'
 
+import ReservationDetailModal from '@/components/availability/ReservationDetailModal.vue'
 import ReservationListCard from '@/components/reservations/ReservationListCard.vue'
 import WorkshopEnrollmentHistoryCard from '@/components/workshops/WorkshopEnrollmentHistoryCard.vue'
 import SkeletonLoader from '@/components/ui/SkeletonLoader.vue'
@@ -20,6 +21,9 @@ const typeFilter = ref('ALL')
 const statusFilter = ref('ALL')
 const fromDate = ref('')
 const toDate = ref('')
+const selectedItem = ref(null)
+const selectedTrigger = ref(null)
+const selectedHistoryId = ref('')
 
 onMounted(async () => {
   const user = await authStore.loadAuthUser()
@@ -128,13 +132,29 @@ const filteredHistory = computed(() => {
   })
 })
 
-const getReservationDetailTo = (reservation) => {
+const selectedDetail = computed(() => {
+  if (!selectedItem.value) return null
+  if (selectedItem.value.kind === 'RESERVATION') return selectedItem.value.value
+  const enrollment = selectedItem.value.value
   return {
-    path: `/reservations/${reservation.id}`,
-    query: {
-      from: 'history'
-    }
+    ...enrollment,
+    isWorkshop: true,
+    resourceName: enrollment.location || 'Lugar por confirmar',
+    status: enrollment.status === 'CANCELLED' ? 'CANCELLED' : enrollment.isActive ? 'CONFIRMED' : 'COMPLETED'
   }
+})
+const openDetail = (item, event) => {
+  selectedItem.value = item
+  selectedTrigger.value = event?.currentTarget || document.activeElement
+  selectedHistoryId.value = item.id
+}
+const closeDetail = async () => {
+  selectedItem.value = null
+  await nextTick()
+  const current = document.querySelector(`[data-history-id="${selectedHistoryId.value}"]`)
+  ;(current || selectedTrigger.value)?.focus?.()
+  selectedTrigger.value = null
+  selectedHistoryId.value = ''
 }
 
 </script>
@@ -248,16 +268,29 @@ const getReservationDetailTo = (reservation) => {
           v-if="item.kind === 'RESERVATION'"
           :reservation="item.value"
           mode="history"
-          :detail-to="getReservationDetailTo(item.value)"
+          selectable
+          :data-history-id="item.id"
+          @open-detail="(value, event) => openDetail(item, event)"
         />
 
         <WorkshopEnrollmentHistoryCard
           v-else
           :enrollment="item.value"
+          selectable
+          @open-detail="(value, event) => openDetail(item, event)"
         />
       </template>
 
     </section>
+
+    <ReservationDetailModal
+      :visible="Boolean(selectedItem)"
+      :reservation="selectedDetail"
+      read-only
+      :workshop-enrollment-mode="selectedItem?.kind === 'WORKSHOP'"
+      :can-cancel="false"
+      @close="closeDetail"
+    />
 
   </main>
 </template>

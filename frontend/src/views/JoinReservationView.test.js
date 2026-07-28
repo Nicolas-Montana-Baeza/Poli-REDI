@@ -24,6 +24,17 @@ vi.mock('@/services/reservations.service', () => ({
 import source from './JoinReservationView.vue?raw'
 import JoinReservationView from './JoinReservationView.vue'
 
+const mountJoin = (options = {}) => mount(JoinReservationView, {
+  ...options,
+  global: {
+    ...options.global,
+    stubs: {
+      Teleport: true,
+      ...options.global?.stubs
+    }
+  }
+})
+
 const progress = overrides => ({
   participantCount: 1, minimumParticipants: 10, targetParticipants: 12,
   capacity: 20, status: 'PENDING', confirmationDeadline: '2099-01-01T00:00:00Z',
@@ -49,7 +60,7 @@ describe('JoinReservationView', () => {
   })
 
   it('renderiza sin main anidado y cumple el contrato responsive de 320 px', () => {
-    const wrapper = mount(JoinReservationView, { attachTo: document.body })
+    const wrapper = mountJoin({ attachTo: document.body })
     expect(wrapper.find('main').exists()).toBe(false)
     expect(wrapper.get('article.app-card').exists()).toBe(true)
     expect(wrapper.get('[role="status"]').text()).toContain('Ingresa un código')
@@ -64,7 +75,7 @@ describe('JoinReservationView', () => {
   it('trata el token como opaco, recorta solo al enviar y no persiste ni cambia la URL manual', async () => {
     const token = `  AbC/${'x'.repeat(120)}  `
     state.get.mockResolvedValue(progress())
-    const wrapper = mount(JoinReservationView, { attachTo: document.body })
+    const wrapper = mountJoin({ attachTo: document.body })
     const input = wrapper.get('#join-code')
     await input.setValue(token)
     expect(input.element.value).toBe(token)
@@ -89,7 +100,7 @@ describe('JoinReservationView', () => {
   it('consulta automáticamente un código explícito en la URL', async () => {
     state.route.params = { code: 'UrlToken-123' }
     state.get.mockResolvedValue(progress())
-    const wrapper = mount(JoinReservationView)
+    const wrapper = mountJoin()
     await flushPromises()
     expect(state.get).toHaveBeenCalledWith('UrlToken-123')
     expect(wrapper.get('#join-code').element.value).toBe('UrlToken-123')
@@ -101,7 +112,7 @@ describe('JoinReservationView', () => {
     const requestB = deferred()
     state.route.params = { code: 'token-A-123' }
     state.get.mockReturnValueOnce(requestA.promise).mockReturnValueOnce(requestB.promise)
-    const wrapper = mount(JoinReservationView)
+    const wrapper = mountJoin()
     await flushPromises()
     state.route.params.code = 'token-B-456'
     await flushPromises()
@@ -112,15 +123,15 @@ describe('JoinReservationView', () => {
     else requestA.reject({ response: { status: 404 } })
     await flushPromises()
     expect(wrapper.get('#join-code').element.value).toBe('token-B-456')
-    expect(wrapper.text()).toContain('5 confirmados')
-    expect(wrapper.text()).not.toContain('99 confirmados')
+    expect(wrapper.text()).toContain('5 de 12 confirmados')
+    expect(wrapper.text()).not.toContain('99 de 12 confirmados')
     expect(wrapper.find('[role="alert"]').exists()).toBe(false)
     expect(wrapper.get('form').attributes('aria-busy')).toBe('false')
     wrapper.unmount()
   })
 
   it('valida vacío y longitud mínima enfocando el campo', async () => {
-    const wrapper = mount(JoinReservationView, { attachTo: document.body })
+    const wrapper = mountJoin({ attachTo: document.body })
     await submit(wrapper)
     expect(wrapper.text()).toContain('Ingresa un código de invitación.')
     expect(document.activeElement).toBe(wrapper.get('#join-code').element)
@@ -135,7 +146,7 @@ describe('JoinReservationView', () => {
   it('anuncia loading, error de red y errores HTTP seguros con foco', async () => {
     let resolveRequest
     state.get.mockReturnValueOnce(new Promise(resolve => { resolveRequest = resolve }))
-    const wrapper = mount(JoinReservationView, { attachTo: document.body })
+    const wrapper = mountJoin({ attachTo: document.body })
     await wrapper.get('#join-code').setValue('token-valido')
     await submit(wrapper)
     expect(wrapper.get('form').attributes('aria-busy')).toBe('true')
@@ -167,7 +178,7 @@ describe('JoinReservationView', () => {
     state.get.mockResolvedValue(progress())
     state.confirm.mockResolvedValue(progress({ isMember: true, participantCount: 2 }))
     state.withdraw.mockResolvedValue(progress({ isMember: false, participantCount: 1 }))
-    const wrapper = mount(JoinReservationView)
+    const wrapper = mountJoin()
     await wrapper.get('#join-code').setValue('token-valido')
     await submit(wrapper)
     await flushPromises()
@@ -189,7 +200,7 @@ describe('JoinReservationView', () => {
       .mockResolvedValueOnce(progress({ participantCount: 1 }))
       .mockResolvedValueOnce(progress({ participantCount: 5 }))
     state.confirm.mockReturnValueOnce(pendingConfirm.promise)
-    const wrapper = mount(JoinReservationView)
+    const wrapper = mountJoin()
     await flushPromises()
     await wrapper.findAll('button').find(item => item.text() === 'Confirmar participación').trigger('click')
     await flushPromises()
@@ -197,8 +208,8 @@ describe('JoinReservationView', () => {
     await flushPromises()
     pendingConfirm.resolve(progress({ participantCount: 99, isMember: true }))
     await flushPromises()
-    expect(wrapper.text()).toContain('5 confirmados')
-    expect(wrapper.text()).not.toContain('99 confirmados')
+    expect(wrapper.text()).toContain('5 de 12 confirmados')
+    expect(wrapper.text()).not.toContain('99 de 12 confirmados')
     expect(wrapper.text()).not.toContain('Participación confirmada.')
     expect(wrapper.get('form').attributes('aria-busy')).toBe('false')
     wrapper.unmount()
@@ -209,7 +220,7 @@ describe('JoinReservationView', () => {
     state.route.params = { code: 'token-A-123' }
     state.get.mockResolvedValueOnce(progress({ isMember: true, participantCount: 2 }))
     state.withdraw.mockReturnValueOnce(pendingWithdraw.promise)
-    const wrapper = mount(JoinReservationView, { attachTo: document.body })
+    const wrapper = mountJoin({ attachTo: document.body })
     await flushPromises()
     await wrapper.findAll('button').find(item => item.text() === 'Retirar participación').trigger('click')
     await flushPromises()
@@ -217,13 +228,13 @@ describe('JoinReservationView', () => {
     pendingWithdraw.resolve(progress({ isMember: false, participantCount: 1 }))
     await flushPromises()
     expect(document.body.textContent).not.toContain('Participación retirada.')
-    expect(document.body.textContent).not.toContain('1 confirmados')
+    expect(document.body.textContent).not.toContain('1 de 12 participantes confirmados')
   })
 
   it('ignora respuestas al desmontar y no conserva el código localmente', async () => {
     let resolveRequest
     state.get.mockReturnValue(new Promise(resolve => { resolveRequest = resolve }))
-    const wrapper = mount(JoinReservationView, { attachTo: document.body })
+    const wrapper = mountJoin({ attachTo: document.body })
     await wrapper.get('#join-code').setValue('token-secreto')
     await submit(wrapper)
     wrapper.unmount()
