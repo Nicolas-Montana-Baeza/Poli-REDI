@@ -1,5 +1,8 @@
 # Poli-REDI - Especificación de Arquitectura, Sistema y Base de Datos
 
+> **Delta 2026-07-30:** detalle de reserva compartido con capacidades explicitas,
+> endurecimiento accesible y migraciones prospectivas `007`/`008`.
+
 > **Fecha de consolidación:** 2026-07-23  
 > **Propósito:** Consolidar en una guía técnica única el diseño de arquitectura desacoplada, el esquema de Azure SQL Database, la API REST en Go y la SPA en Vue 3.
 
@@ -67,6 +70,16 @@ El backend está construido en **Go** estructurado en paquetes modulares (`backe
 
 ## 4. Capa Frontend (Vue 3 + Vite + Pinia)
 
+El detalle de reserva es un componente comun para Disponibilidad, Mis Reservas,
+Historial y union por codigo. Recibe capacidades explicitas de lectura,
+cancelacion, edicion de objetivo, consulta de codigo y
+confirmacion/retiro; no infiere autorizacion desde la ruta. El secreto no viaja
+en listados: se consulta bajo demanda mediante el endpoint owner-only.
+
+Los dialogos comparten administracion de foco, cierre con Escape, bloqueo de
+fondo y restauracion del foco. Las tarjetas de reservas, la linea temporal y el
+progreso admiten operacion/semantica accesible.
+
 La SPA desarrollada en **Vue 3** (Composition API) utiliza:
 * **Pinia Stores:** Manejo de estado centralizado (`authStore`, `reservationStore`, `resourceStore`).
 * **Vue Router:** Control de navegación y guardias de seguridad por rol (`AdminGuard`).
@@ -113,6 +126,17 @@ Los talleres usan ocurrencias normalizadas y admiten múltiples días. El solape
 El repositorio serializa por usuario y luego por taller, verifica cupo y horario y falla de forma cerrada ante ocurrencias faltantes o errores. El trigger protege escrituras externas set-based, sin reemplazar el orden de locks del repositorio. Migraciones 005/006 y carreras reales en Azure SQL permanecen pendientes.
 
 ## 7. Modelo de lectura del historial
+
+### Deltas de base de datos 007/008
+
+`007_repair_bootstrap_group_policy.sql` reconoce por identidad, modo, alcance y
+huella una politica bootstrap concreta. Ante divergencia falla cerrada; no
+repara una politica administrada ni altera reservas historicas.
+
+`008_personal_overlap_includes_participations.sql` protege la agenda personal al
+considerar reservas propias y participaciones `CONFIRMED`. Usa intervalos
+semiabiertos, por lo que los extremos contiguos son validos. Sus triggers
+complementan, pero no sustituyen, las validaciones de servicio.
 
 El historial conserva la separación entre dominios y no convierte todos los
 elementos en reservas:

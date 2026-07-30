@@ -1,5 +1,8 @@
 # Poli-REDI - Requisitos, Historias de Usuario, Casos de Uso y Roadmap MVP
 
+> **Revision UX 2026-07-30:** los criterios comunes de detalle, accesibilidad y
+> privacidad se aplican sin ampliar permisos.
+
 > **Fecha de consolidación:** 2026-07-23  
 > **Propósito:** Agrupar el catálogo funcional, historias de usuario, casos de uso formales y la hoja de ruta de incrementos de software (MVP 1 a MVP 4).
 
@@ -29,6 +32,19 @@ gantt
 ---
 
 ## 2. Historias de Usuario (HU)
+
+### Criterios UX comunes
+
+1. Consultar una reserva desde Disponibilidad, Mis Reservas, Historial o un
+   codigo utiliza el mismo detalle visual y semantico.
+2. Cada accion se habilita por capacidades explicitas del actor y estado.
+3. En Mis Reservas, toda la tarjeta abre el detalle mediante puntero, Enter o
+   Espacio; no depende de un boton interno.
+4. El dialogo gestiona foco, Escape y devuelve el foco al elemento que lo abrio.
+5. El codigo se obtiene bajo demanda; no se incluye en listados ni se expone a
+   terceros o en estados terminales.
+6. La agenda personal rechaza solapes reales por reservas propias o
+   participaciones confirmadas; los extremos contiguos se permiten.
 
 * **HU-01 (Estudiante - Consultar Disponibilidad):** *Como estudiante, quiero consultar la disponibilidad de las canchas por fecha y hora para saber cuándo puedo reservar.*
 * **HU-02 (Estudiante - Crear Reserva Particular):** *Como estudiante, quiero reservar una cancha ingresando mis datos para asegurar un bloque horario de juego.*

@@ -1,5 +1,45 @@
 # Migraciones de base de datos
 
+> **Secuencia vigente:** `001` a `008`. `007` y `008` se documentan primero
+> porque son los deltas pendientes de despliegue del corte 2026-07-30.
+
+## `007_repair_bootstrap_group_policy.sql`
+
+Ejecutar despues de `006` y solamente con backup/export recuperable. La
+migracion reconoce una politica bootstrap inequivoca mediante recursos, modos,
+alcance e identidad esperados. No infiere configuraciones administrativas ni
+modifica reservas historicas. Si cualquier preflight diverge, detener: no
+publicar ni editar politicas manualmente.
+
+Conservar los separadores `GO`. El cambio crea una politica prospectiva y deja
+trazabilidad idempotente por clave y hash de payload. Verificar el `POSTCHECK`,
+volver a ejecutar el archivo completo para probar idempotencia y confirmar que
+la politica anterior y las reservas existentes no fueron reescritas.
+
+Recuperacion: abrir una sesion nueva, confirmar `@@TRANCOUNT = 0` y
+`XACT_STATE() = 0`, inspeccionar politicas y tablas de alcance sin escribir. Si
+no puede demostrarse compatibilidad, restaurar el backup y escalar a
+Arquitectura. Nunca usar `drop.sql`, `schema.sql` o `seed.sql` para recuperar la
+base unica.
+
+## `008_personal_overlap_includes_participations.sql`
+
+Ejecutar despues del postcheck e idempotencia de `007`. Instala dos guards
+complementarios: una nueva reserva no puede solaparse con una reserva donde el
+titular ya participa con estado `CONFIRMED`, y una nueva confirmacion no puede
+solaparse con una reserva propia u otra participacion confirmada. Los intervalos
+contiguos siguen permitidos.
+
+La migracion usa `CREATE OR ALTER TRIGGER`, es reejecutable y no rellena ni
+reclasifica datos historicos. Verificar ambos indicadores finales y ejecutar
+pruebas integradas de solape/contiguidad. Ante fallo, usar una sesion limpia,
+inspeccionar `OBJECT_DEFINITION` de ambos triggers y reejecutar el archivo; si el
+estado no es explicable, restaurar el backup.
+
+La revision local de contratos no reemplaza la ejecucion en Azure SQL real. No
+avanzar el despliegue mientras `007` y `008` no tengan evidencia de precheck,
+postcheck, segunda ejecucion idempotente y prueba de recuperacion.
+
 El archivo principal [../schema.sql](../schema.sql) representa el estado canónico de la base de datos y sirve como referencia para lectura y uso diario. Las migraciones en esta carpeta quedan como deltas incrementales, reejecutables y ordenados para evolución controlada.
 
 ## `001_mvp2_group_participants.sql`

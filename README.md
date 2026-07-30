@@ -28,9 +28,22 @@ actividades institucionales y otros eventos se reserva para MVP 3; estos element
 solo podran formar parte del historial personal cuando exista una relacion
 explicita entre el usuario y la actividad.
 
-Estado de cierre: el MVP 1 esta funcional como demo. Zona horaria, estado controlado por servidor y limites de horario/duracion estan implementados y tienen pruebas locales, pero falta verificarlos en el ambiente integrado/online. Tambien permanecen pendientes la ampliacion de cobertura, la seguridad de errores y la coherencia responsive/accesible. El estado vigente está en [Resumen y estado actual](docs/01-resumen-y-estado-actual.md).
+Estado de cierre: el MVP 1 esta funcional como demo. Zona horaria, estado controlado por servidor, limites de horario/duracion y el endurecimiento responsive/accesible de los flujos criticos estan implementados y tienen pruebas locales. Falta verificarlos en el ambiente integrado/online. El estado vigente está en [Resumen y estado actual](docs/01-resumen-y-estado-actual.md).
 
 Para MVP 2 y MVP 3 se aprobaron reglas de ventana, frecuencia, participantes y prioridad institucional. El cierre del flujo grupal esta ACCEPTED LOCALLY: objetivo, progreso, codigo/enlace, confirmar, retirar, reconfirmar, deadline inclusivo y expiracion `CANCELLED`. El codigo es recuperable solo por el propietario, se almacena cifrado y puede rotarse. La expiracion genera una notificacion unica localmente; siguen pendientes el sistema completo de notificaciones, lectura, destinos y otros eventos, ademas de administracion.
+
+Revision tecnica del 2026-07-30: el detalle de reserva se reutiliza en
+Disponibilidad, Mis Reservas, Historial y confirmacion mediante codigo; las
+tarjetas personales son seleccionables completas y los dialogos restauran foco,
+admiten Escape y operacion por teclado. El dashboard evita duplicar la proxima
+reserva. Los talleres y sus inscripciones propias son alcance de MVP 2; clases,
+campeonatos y otros eventos institucionales permanecen en MVP 3.
+
+Las migraciones evolutivas vigentes llegan hasta `008`. `007` repara solamente
+la politica bootstrap inequivocamente reconocible, sin alterar reservas
+historicas; `008` impide solapes de agenda personal considerando reservas propias
+y participaciones confirmadas. Ambas requieren backup, precheck, postcheck,
+reejecucion idempotente y validacion en Azure SQL antes del despliegue.
 
 ## Stack
 

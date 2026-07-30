@@ -1,5 +1,10 @@
 # Poli-REDI - Resumen Ejecutivo y Estado Actual del Producto
 
+> **Revision vigente:** 2026-07-30. El resultado local es `APROBABLE` para
+> continuar el cierre condicionado de MVP 2. La evidencia, riesgos y limites
+> constan en el
+> [acta integral](./historico_y_checklists/15-acta-revision-integral-2026-07-30.md).
+
 > **Fecha de consolidación:** 2026-07-23  
 > **Propósito:** Documento único para comprender la visión ejecutiva, el estado funcional de cada módulo, las reglas vigentes y la matriz de brechas del prototipo.
 
@@ -25,6 +30,28 @@ El proceso de reserva del Polideportivo institucional (3 canchas y 1 sala multiu
 ---
 
 ## 3. Estado Funcional por Módulos
+
+### Delta verificado el 2026-07-30
+
+* La revision de roles y contratos no mantiene hallazgos P0/P1 abiertos dentro
+  del alcance revisado. Esto no equivale a una prueba de penetracion.
+* La politica de reservas falla cerrada si no existe una politica publicada
+  valida; la interfaz filtra recursos segun estado, modalidad y rol.
+* Disponibilidad, Mis Reservas, Historial y confirmacion por codigo reutilizan el
+  mismo detalle con capacidades explicitas. El codigo se obtiene bajo demanda y
+  solo para el propietario autorizado.
+* Las tarjetas personales son seleccionables completas. Los dialogos administran
+  foco, Escape y restauracion; la linea de tiempo y el progreso tienen semantica
+  de teclado/ARIA.
+* El dashboard evita duplicar la proxima reserva.
+* Talleres e inscripciones propias son MVP 2; clases, campeonatos y otros eventos
+  institucionales son MVP 3 y requieren relacion explicita antes de atribuir
+  participacion personal.
+* `007` y `008` son prospectivas y no reescriben reservas historicas.
+
+**Validacion local exacta:** 18 pruebas Node, 77 pruebas Vitest y build frontend
+de produccion aprobados. Siguen pendientes Azure SQL `007`/`008` y el flujo
+online completo con Entra ID/CORS/API.
 
 | Módulo | Estado | Descripción y Evidencia |
 | :--- | :---: | :--- |

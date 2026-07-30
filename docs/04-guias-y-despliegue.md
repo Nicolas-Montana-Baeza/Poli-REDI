@@ -1,5 +1,8 @@
 # Poli-REDI - Guías de Instalación, Ejecución y Despliegue en la Nube
 
+> **Revision operativa:** 2026-07-30. La secuencia evolutiva vigente llega hasta
+> `008`.
+
 > **Fecha de consolidación:** 2026-07-23  
 > **Propósito:** Unificar las instrucciones operativas de ejecución local en desarrollo, despliegue en Microsoft Azure y el plan de transición desde Google Calendar.
 
@@ -49,6 +52,15 @@
    4. `004_group_flow_completion.sql`
    5. `005_rut_integrity_and_admin_exemption.sql`
    6. `006_workshop_occurrences.sql`
+   7. `007_repair_bootstrap_group_policy.sql`
+   8. `008_personal_overlap_includes_participations.sql`
+
+   Para `007` y `008`: crear backup/export recuperable, ejecutar cada archivo
+   completo conservando `GO`, verificar todos los prechecks/postchecks y
+   reejecutar para demostrar idempotencia. `007` debe detenerse si no reconoce
+   inequivocamente el bootstrap; no editar politicas para forzarla. `008` debe
+   probar solape en ambas direcciones y permitir extremos contiguos. Ninguna
+   migra datos historicos.
 
    Ejecutar los prechecks y verificar el `POSTCHECK` de cada migración antes de continuar. Los 12 indicadores de `004` deben valer `1`. Antes de 005/006 crear backup: 005 se detiene ante RUT inválidos/duplicados y 006 ante catálogo activo incompleto o estructura divergente. Si una fase falla, abrir una sesión nueva, confirmar `@@TRANCOUNT = 0` y `XACT_STATE() = 0`, y seguir la recuperación de `database/migrations/README.md`; no ejecutar `drop.sql`, `schema.sql` ni `seed.sql` sobre la base única.
 5. Ejecutar servidor API:
@@ -81,8 +93,16 @@ La infraestructura de demostración online utiliza:
 1. Asegurar que `CORS_ALLOWED_ORIGINS` en Azure App Service incluya la URL de Static Web Apps.
 2. Configurar `JOIN_CODE_ENCRYPTION_KEYS` y `JOIN_CODE_KEY_VERSION` en App Service sin exponer sus valores; conservar versiones anteriores mientras existan secretos cifrados con ellas.
 3. Configurar las variables `VITE_API_BASE_URL` y `VITE_ENTRA_*` en el pipeline de **GitHub Actions**.
-4. Ejecutar y verificar migraciones `001 → 006`; Azure SQL real para `004`–`006`, idempotencia, DDL y carreras/concurrencia siguen pendientes.
+4. Ejecutar y verificar migraciones `001` a `008`; Azure SQL real para `004` a
+   `008`, idempotencia, DDL y carreras/concurrencia siguen pendientes.
 5. Ejecutar push a rama principal para disparar despliegue automático.
+
+### Recuperacion de 007/008
+
+Ante un fallo, detener el despliegue. Abrir una sesion nueva y confirmar
+`@@TRANCOUNT = 0` y `XACT_STATE() = 0`; conservar la evidencia e inspeccionar sin
+escribir. No ejecutar `drop.sql`, `schema.sql` ni `seed.sql`. Si no puede
+demostrarse un estado compatible, restaurar el backup y escalar a Arquitectura.
 
 ---
 
