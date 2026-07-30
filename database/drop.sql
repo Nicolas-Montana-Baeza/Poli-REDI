@@ -32,6 +32,8 @@ IF OBJECT_ID('dbo.trg_violations_notify', 'TR') IS NOT NULL DROP TRIGGER dbo.trg
 IF OBJECT_ID('dbo.trg_scheduled_activities_validate_conflicts', 'TR') IS NOT NULL DROP TRIGGER dbo.trg_scheduled_activities_validate_conflicts;
 IF OBJECT_ID('dbo.trg_blocks_validate_conflicts', 'TR') IS NOT NULL DROP TRIGGER dbo.trg_blocks_validate_conflicts;
 IF OBJECT_ID('dbo.trg_reservations_validate_conflicts', 'TR') IS NOT NULL DROP TRIGGER dbo.trg_reservations_validate_conflicts;
+IF OBJECT_ID('dbo.trg_reservations_validate_participant_overlap', 'TR') IS NOT NULL DROP TRIGGER dbo.trg_reservations_validate_participant_overlap;
+IF OBJECT_ID('dbo.trg_participants_validate_personal_overlap', 'TR') IS NOT NULL DROP TRIGGER dbo.trg_participants_validate_personal_overlap;
 IF OBJECT_ID('dbo.trg_scheduled_activities_updated_at', 'TR') IS NOT NULL DROP TRIGGER dbo.trg_scheduled_activities_updated_at;
 IF OBJECT_ID('dbo.trg_workshops_updated_at', 'TR') IS NOT NULL DROP TRIGGER dbo.trg_workshops_updated_at;
 IF OBJECT_ID('dbo.trg_reservations_updated_at', 'TR') IS NOT NULL DROP TRIGGER dbo.trg_reservations_updated_at;

@@ -13,7 +13,7 @@ const (
 type Reservation struct {
 	ID              int       `json:"id"`
 	PolicyID        int       `json:"policyId"`
-	UserID          int       `json:"userId"`
+	UserID          int       `json:"userId,omitempty"`
 	ResourceID      int       `json:"resourceId"`
 	ActivityID      *int      `json:"activityId"`
 	StartTime       time.Time `json:"startTime"`
@@ -27,9 +27,9 @@ type Reservation struct {
 	Title                string     `json:"title"`
 	Type                 string     `json:"type"`
 	ResourceName         string     `json:"resourceName"`
-	UserFullName         string     `json:"userFullName"`
-	UserEmail            string     `json:"userEmail"`
-	UserRUT              string     `json:"userRut"`
+	UserFullName         string     `json:"userFullName,omitempty"`
+	UserEmail            string     `json:"userEmail,omitempty"`
+	UserRUT              string     `json:"userRut,omitempty"`
 	JoinCode             string     `json:"joinCode,omitempty"`
 	ParticipantCount     int        `json:"participantCount"`
 	MinimumParticipants  int        `json:"minimumParticipants"`

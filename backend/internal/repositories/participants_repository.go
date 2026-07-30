@@ -14,6 +14,8 @@ import (
 	"poli-redi-api/internal/models"
 	"poli-redi-api/internal/validators"
 	"time"
+
+	mssql "github.com/microsoft/go-mssqldb"
 )
 
 var ErrInvalidJoinCode = errors.New("solicitud grupal no encontrada")
@@ -50,13 +52,34 @@ func GetReservationProgress(code string, userID int) (models.ReservationProgress
 	return assembleReservationProgress(p.ReservationID, p.Status, p.ParticipantCount, p.MinimumParticipants, p.TargetParticipants, p.Capacity, start, deadlineMinutes, p.IsOwner, p.IsMember), err
 }
 
+const userActiveOverlapSQL = `SELECT TOP (1) 1
+	FROM dbo.reservations existing WITH(UPDLOCK,HOLDLOCK)
+	WHERE existing.id<>@p2
+	  AND existing.status IN('PENDING','CONFIRMED')
+	  AND existing.start_time < DATEADD(MINUTE, @p3, @p4)
+	  AND DATEADD(MINUTE, existing.duration_minutes, existing.start_time) > @p5
+	  AND (
+		existing.user_id=@p1
+		OR EXISTS (
+			SELECT 1
+			FROM dbo.participants membership WITH(UPDLOCK,HOLDLOCK)
+			WHERE membership.reservation_id=existing.id
+			  AND membership.user_id=@p1
+			  AND membership.status='CONFIRMED'
+		)
+	  )`
+
 func userHasActiveOverlapTx(ctx context.Context, tx *sql.Tx, userID, reservationID int, start time.Time, durationMinutes int) (bool, error) {
 	var found int
-	err := tx.QueryRowContext(ctx, `SELECT TOP (1) 1 FROM dbo.reservations existing WITH(UPDLOCK,HOLDLOCK)
-		WHERE existing.user_id=@p1 AND existing.id<>@p2
-		  AND existing.status IN('PENDING','CONFIRMED')
-		  AND existing.start_time < DATEADD(MINUTE, @p3, @p4)
-		  AND DATEADD(MINUTE, existing.duration_minutes, existing.start_time) > @p5`, userID, reservationID, durationMinutes, start, start).Scan(&found)
+	err := tx.QueryRowContext(
+		ctx,
+		userActiveOverlapSQL,
+		userID,
+		reservationID,
+		durationMinutes,
+		start,
+		start,
+	).Scan(&found)
 	if errors.Is(err, sql.ErrNoRows) {
 		return false, nil
 	}
@@ -70,7 +93,7 @@ func ChangeParticipation(code string, userID int, confirm bool) (models.Reservat
 	ctx := context.Background()
 	tx, err := database.DB.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelSerializable})
 	if err != nil {
-		return models.ReservationProgress{}, err
+		return models.ReservationProgress{}, mapParticipationDatabaseError(err)
 	}
 	defer tx.Rollback()
 	var reservationID, capacity, minimum, deadlineMinutes, ownerID int
@@ -83,7 +106,7 @@ func ChangeParticipation(code string, userID int, confirm bool) (models.Reservat
 		return models.ReservationProgress{}, ErrInvalidJoinCode
 	}
 	if err != nil {
-		return models.ReservationProgress{}, err
+		return models.ReservationProgress{}, mapParticipationDatabaseError(err)
 	}
 	if oldReservationStatus == models.ReservationStatusCancelled {
 		if cancellationReason == "CONFIRMATION_DEADLINE" {
@@ -162,15 +185,23 @@ func ChangeParticipation(code string, userID int, confirm bool) (models.Reservat
 		newReservationStatus = "CONFIRMED"
 	}
 	if _, err = tx.ExecContext(ctx, `UPDATE dbo.reservations SET status=@p2,updated_at=SYSUTCDATETIME() WHERE id=@p1`, reservationID, newReservationStatus); err != nil {
-		return models.ReservationProgress{}, err
+		return models.ReservationProgress{}, mapParticipationDatabaseError(err)
 	}
 	if _, err = tx.ExecContext(ctx, `INSERT INTO dbo.reservation_participant_audit(reservation_id,actor_user_id,participant_user_id,action,previous_status,new_status,previous_reservation_status,new_reservation_status) VALUES(@p1,@p2,@p2,@p3,@p4,@p5,@p6,@p7)`, reservationID, userID, action, sql.NullString{String: oldStatus, Valid: oldStatus != ""}, newStatus, oldReservationStatus, newReservationStatus); err != nil {
 		return models.ReservationProgress{}, err
 	}
 	if err = tx.Commit(); err != nil {
-		return models.ReservationProgress{}, err
+		return models.ReservationProgress{}, mapParticipationDatabaseError(err)
 	}
 	return assembleReservationProgress(reservationID, newReservationStatus, count, minimum, target, capacity, start, deadlineMinutes, ownerID == userID, newStatus == "CONFIRMED"), nil
+}
+
+func mapParticipationDatabaseError(err error) error {
+	var sqlErr mssql.Error
+	if errors.As(err, &sqlErr) && sqlErr.Number == 51023 {
+		return ErrParticipantConflict
+	}
+	return err
 }
 
 func expirePendingGroupTx(ctx context.Context, tx *sql.Tx, reservationID, ownerID, minimum int) (bool, error) {

@@ -50,11 +50,7 @@ func main() {
 
 	app := fiber.New()
 
-	app.Use(cors.New(cors.Config{
-		AllowOrigins: envOrDefault("CORS_ALLOWED_ORIGINS", "http://localhost:5173"),
-		AllowMethods: "GET,POST,PUT,PATCH,DELETE,OPTIONS",
-		AllowHeaders: "Origin, Content-Type, Accept, Authorization, X-Dev-Auth-Email, X-Dev-Auth-Name, x-dev-auth-email, x-dev-auth-name",
-	}))
+	app.Use(cors.New(corsConfig()))
 
 	routes.RegisterRoutes(app)
 
@@ -67,6 +63,14 @@ func main() {
 	log.Println("Servidor iniciado en http://localhost:" + port)
 
 	log.Fatal(app.Listen(":" + port))
+}
+
+func corsConfig() cors.Config {
+	return cors.Config{
+		AllowOrigins: envOrDefault("CORS_ALLOWED_ORIGINS", "http://localhost:5173"),
+		AllowMethods: "GET,POST,PUT,PATCH,DELETE,OPTIONS",
+		AllowHeaders: "Origin, Content-Type, Accept, Authorization, Idempotency-Key, X-Dev-Auth-Email, X-Dev-Auth-Name",
+	}
 }
 
 func parseJoinCodeKeyVersion(value string) (int, error) {

@@ -50,4 +50,21 @@ describe('ResourcePicker', () => {
     expect(invalid.get('[role="alert"]').text()).toBe('Selecciona una instalación.')
     expect(invalid.text()).toContain('Selecciona una instalación.')
   })
+
+  it('fails closed for inactive, informative and admin-only resources', () => {
+    const guarded = [
+      { id: 1, name: 'Activa', status: 'available', reservationMode: 'RESERVABLE' },
+      { id: 2, name: 'Inactiva', isActive: false, reservationMode: 'RESERVABLE' },
+      { id: 3, name: 'Informativa', status: 'available', reservationMode: 'INFORMATIVE' },
+      { id: 4, name: 'Solo administración', status: 'available', reservationMode: 'ADMIN_ONLY' }
+    ]
+    const user = mount(ResourcePicker, { props: { resources: guarded } })
+    expect(user.findAll('option').map(option => option.text())).toEqual([
+      'Selecciona una instalación',
+      'Activa'
+    ])
+
+    const admin = mount(ResourcePicker, { props: { resources: guarded, isAdmin: true } })
+    expect(admin.text()).toContain('Solo administración')
+  })
 })

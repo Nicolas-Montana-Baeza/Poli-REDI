@@ -140,7 +140,7 @@ func TestUserReservationOverlapGuardBlocksConfirmingJoinCode(t *testing.T) {
 		t.Fatal(err)
 	}
 	start := time.Date(2026, 7, 23, 10, 0, 0, 0, time.UTC)
-	mock.ExpectQuery(regexp.QuoteMeta("SELECT TOP (1) 1 FROM dbo.reservations existing WITH(UPDLOCK,HOLDLOCK) WHERE existing.user_id=@p1 AND existing.id<>@p2 AND existing.status IN('PENDING','CONFIRMED') AND existing.start_time < DATEADD(MINUTE, @p3, @p4) AND DATEADD(MINUTE, existing.duration_minutes, existing.start_time) > @p5")).
+	mock.ExpectQuery("(?s)SELECT TOP \\(1\\) 1.*existing\\.id<>@p2.*existing\\.user_id=@p1.*dbo\\.participants membership.*membership\\.status='CONFIRMED'").
 		WithArgs(4, 7, 60, start, start).
 		WillReturnRows(sqlmock.NewRows([]string{"overlap"}).AddRow(1))
 	overlaps, err := userHasActiveOverlapTx(context.Background(), tx, 4, 7, start, 60)
@@ -154,6 +154,47 @@ func TestUserReservationOverlapGuardBlocksConfirmingJoinCode(t *testing.T) {
 	_ = tx.Rollback()
 	if err = mock.ExpectationsWereMet(); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestUserOverlapGuardAllowsContiguousIntervals(t *testing.T) {
+	mock, done := withMockDB(t)
+	defer done()
+	mock.ExpectBegin()
+	tx, err := database.DB.Begin()
+	if err != nil {
+		t.Fatal(err)
+	}
+	start := time.Date(2026, 7, 23, 11, 0, 0, 0, time.UTC)
+	mock.ExpectQuery("(?s)existing\\.start_time < DATEADD\\(MINUTE, @p3, @p4\\).*DATEADD\\(MINUTE, existing\\.duration_minutes, existing\\.start_time\\) > @p5").
+		WithArgs(4, 0, 60, start, start).
+		WillReturnError(sql.ErrNoRows)
+	overlaps, err := userHasActiveOverlapTx(context.Background(), tx, 4, 0, start, 60)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if overlaps {
+		t.Fatal("strict interval comparison must allow a reservation that starts exactly when another ends")
+	}
+	mock.ExpectRollback()
+	_ = tx.Rollback()
+	if err = mock.ExpectationsWereMet(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestPersonalOverlapQueryCoversOwnedAndConfirmedParticipations(t *testing.T) {
+	for _, expected := range []string{
+		"existing.user_id=@p1",
+		"FROM dbo.participants membership WITH(UPDLOCK,HOLDLOCK)",
+		"membership.user_id=@p1",
+		"membership.status='CONFIRMED'",
+		"existing.start_time < DATEADD(MINUTE, @p3, @p4)",
+		"DATEADD(MINUTE, existing.duration_minutes, existing.start_time) > @p5",
+	} {
+		if !strings.Contains(userActiveOverlapSQL, expected) {
+			t.Fatalf("personal overlap query lost %q", expected)
+		}
 	}
 }
 

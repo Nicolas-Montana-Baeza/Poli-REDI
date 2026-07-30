@@ -111,7 +111,29 @@ func GetMyReservations(userID int) ([]models.Reservation, error) {
 		return nil, errors.New("usuario autenticado es obligatorio")
 	}
 
-	return repositories.GetReservationsByUserID(userID)
+	reservations, err := repositories.GetReservationsByUserID(userID)
+	if err != nil {
+		return nil, err
+	}
+	return sanitizeMyReservations(reservations, userID), nil
+}
+
+// sanitizeMyReservations applies the audience contract of GET /reservations/mine.
+// A user may receive reservations owned by them and reservations where they are
+// a confirmed participant. Only owners need their own identity fields in this
+// response; participants must not learn the owner's identity or identifiers.
+func sanitizeMyReservations(reservations []models.Reservation, audienceUserID int) []models.Reservation {
+	for index := range reservations {
+		if reservations[index].UserID == audienceUserID {
+			continue
+		}
+		reservations[index].UserID = 0
+		reservations[index].UserFullName = ""
+		reservations[index].UserEmail = ""
+		reservations[index].UserRUT = ""
+		reservations[index].CanEditTarget = false
+	}
+	return reservations
 }
 
 func CreateReservation(reservation models.Reservation) (models.Reservation, error) {
@@ -450,6 +472,8 @@ func mapDatabaseReservationError(err error) error {
 			return errors.New("el recurso no esta permitido por la politica vigente")
 		case 51017:
 			return errors.New("debes registrar tu RUT antes de crear reservas")
+		case 51023:
+			return repositories.ErrParticipantConflict
 		case 547:
 			return errors.New("usuario, recurso o actividad no existe, o los datos no cumplen restricciones")
 		case 2601, 2627:

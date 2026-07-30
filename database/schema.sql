@@ -1118,6 +1118,72 @@ BEGIN
 END;
 GO
 
+-- La agenda personal incluye tanto reservas propias como participaciones
+-- confirmadas. Estos dos guards complementan el trigger canonico: uno protege
+-- la creacion de una reserva por alguien que ya participa en otra y el otro
+-- protege la confirmacion de una participacion contra toda su agenda activa.
+CREATE OR ALTER TRIGGER dbo.trg_reservations_validate_participant_overlap
+ON dbo.reservations
+AFTER INSERT, UPDATE
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF EXISTS (
+        SELECT 1
+        FROM inserted i
+        INNER JOIN dbo.reservations existing WITH (UPDLOCK, HOLDLOCK)
+            ON existing.id <> i.id
+           AND existing.status IN ('PENDING', 'CONFIRMED')
+           AND i.start_time < DATEADD(MINUTE, existing.duration_minutes, existing.start_time)
+           AND DATEADD(MINUTE, i.duration_minutes, i.start_time) > existing.start_time
+        WHERE i.status IN ('PENDING', 'CONFIRMED')
+          AND EXISTS (
+              SELECT 1
+              FROM dbo.participants membership WITH (UPDLOCK, HOLDLOCK)
+              WHERE membership.reservation_id = existing.id
+                AND membership.user_id = i.user_id
+                AND membership.status = 'CONFIRMED'
+          )
+    )
+        THROW 51023, 'El usuario ya participa en una reserva activa en ese horario.', 1;
+END;
+GO
+
+CREATE OR ALTER TRIGGER dbo.trg_participants_validate_personal_overlap
+ON dbo.participants
+AFTER INSERT, UPDATE
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF EXISTS (
+        SELECT 1
+        FROM inserted membership
+        INNER JOIN dbo.reservations joined_reservation
+            ON joined_reservation.id = membership.reservation_id
+           AND joined_reservation.status IN ('PENDING', 'CONFIRMED')
+        INNER JOIN dbo.reservations existing WITH (UPDLOCK, HOLDLOCK)
+            ON existing.id <> joined_reservation.id
+           AND existing.status IN ('PENDING', 'CONFIRMED')
+           AND joined_reservation.start_time < DATEADD(MINUTE, existing.duration_minutes, existing.start_time)
+           AND DATEADD(MINUTE, joined_reservation.duration_minutes, joined_reservation.start_time) > existing.start_time
+        WHERE membership.status = 'CONFIRMED'
+          AND (
+              existing.user_id = membership.user_id
+              OR EXISTS (
+                  SELECT 1
+                  FROM dbo.participants other_membership WITH (UPDLOCK, HOLDLOCK)
+                  WHERE other_membership.reservation_id = existing.id
+                    AND other_membership.user_id = membership.user_id
+                    AND other_membership.status = 'CONFIRMED'
+              )
+          )
+    )
+        THROW 51023, 'El usuario ya tiene una reserva o participacion activa en ese horario.', 1;
+END;
+GO
+
 CREATE OR ALTER TRIGGER dbo.trg_blocks_validate_conflicts
 ON dbo.availability_blocks
 AFTER INSERT, UPDATE

@@ -43,20 +43,8 @@ func UpdateReservationTarget(c *fiber.Ctx) error {
 	}
 	progress, err := repositories.UpdateReservationTarget(id, u.ID, request.TargetParticipants, businessclock.Now())
 	if err != nil {
-		status := 400
-		if errors.Is(err, repositories.ErrTargetForbidden) {
-			status = 403
-		}
-		if errors.Is(err, repositories.ErrInvalidJoinCode) {
-			status = 404
-		}
-		if errors.Is(err, repositories.ErrTargetDeadline) {
-			status = 410
-		}
-		if errors.Is(err, repositories.ErrTargetBelowConfirmed) {
-			status = 409
-		}
-		return c.Status(status).JSON(fiber.Map{"error": err.Error()})
+		status, message := targetUpdateErrorResponse(err)
+		return c.Status(status).JSON(fiber.Map{"error": message})
 	}
 	return c.JSON(progress)
 }
@@ -69,23 +57,46 @@ func changeParticipation(c *fiber.Ctx, confirm bool) error {
 	}
 	p, e := repositories.ChangeParticipation(participantCode(c), u.ID, confirm)
 	if e != nil {
-		return c.Status(participationHTTPStatus(e)).JSON(fiber.Map{"error": e.Error()})
+		status, message := participationErrorResponse(e)
+		return c.Status(status).JSON(fiber.Map{"error": message})
 	}
 	return c.JSON(p)
 }
 
 func participationHTTPStatus(err error) int {
+	status, _ := participationErrorResponse(err)
+	return status
+}
+
+func participationErrorResponse(err error) (int, string) {
 	switch {
 	case errors.Is(err, repositories.ErrInvalidJoinCode):
-		return 404
+		return fiber.StatusNotFound, repositories.ErrInvalidJoinCode.Error()
 	case errors.Is(err, repositories.ErrParticipantIneligible):
-		return 403
+		return fiber.StatusForbidden, repositories.ErrParticipantIneligible.Error()
 	case errors.Is(err, repositories.ErrGroupCapacity), errors.Is(err, repositories.ErrOwnerCannotWithdraw), errors.Is(err, repositories.ErrParticipantConflict):
-		return 409
+		return fiber.StatusConflict, err.Error()
 	case errors.Is(err, repositories.ErrParticipationDeadline):
-		return 410
+		return fiber.StatusGone, repositories.ErrParticipationDeadline.Error()
 	default:
-		return 400
+		return fiber.StatusInternalServerError, "no se pudo cambiar la participacion"
+	}
+}
+
+func targetUpdateErrorResponse(err error) (int, string) {
+	switch {
+	case errors.Is(err, repositories.ErrTargetForbidden):
+		return fiber.StatusForbidden, repositories.ErrTargetForbidden.Error()
+	case errors.Is(err, repositories.ErrInvalidJoinCode):
+		return fiber.StatusNotFound, repositories.ErrInvalidJoinCode.Error()
+	case errors.Is(err, repositories.ErrTargetDeadline):
+		return fiber.StatusGone, repositories.ErrTargetDeadline.Error()
+	case errors.Is(err, repositories.ErrTargetBelowConfirmed):
+		return fiber.StatusConflict, repositories.ErrTargetBelowConfirmed.Error()
+	case errors.Is(err, repositories.ErrInvalidTargetParticipants):
+		return fiber.StatusBadRequest, repositories.ErrInvalidTargetParticipants.Error()
+	default:
+		return fiber.StatusInternalServerError, "no se pudo actualizar el objetivo de participantes"
 	}
 }
 

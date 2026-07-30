@@ -6,10 +6,17 @@ const props = defineProps({
   selectedId: { type: [Number, String], default: null },
   disabled: { type: Boolean, default: false },
   loading: { type: Boolean, default: false },
-  error: { type: String, default: '' }
+  error: { type: String, default: '' },
+  isAdmin: { type: Boolean, default: false }
 })
 
 const emit = defineEmits(['select'])
+const eligibleResources = computed(() => props.resources.filter(resource => {
+  if (resource.isActive === false || ['inactive', 'maintenance'].includes(resource.status)) return false
+  if (resource.reservationMode === 'INFORMATIVE') return false
+  if (resource.reservationMode === 'ADMIN_ONLY' && !props.isAdmin) return false
+  return true
+}))
 
 const selectedValue = computed(() => (
   props.selectedId === null || props.selectedId === undefined
@@ -18,7 +25,7 @@ const selectedValue = computed(() => (
 ))
 
 const handleChange = (event) => {
-  const resource = props.resources.find(
+  const resource = eligibleResources.value.find(
     item => String(item.id) === event.target.value
   )
 
@@ -33,7 +40,7 @@ const handleChange = (event) => {
     <select
       id="reservation-resource"
       :value="selectedValue"
-      :disabled="disabled || loading || !resources.length"
+      :disabled="disabled || loading || !eligibleResources.length"
       :aria-invalid="Boolean(error)"
       :aria-describedby="error ? 'reservation-resource-error' : undefined"
       @change="handleChange"
@@ -43,7 +50,7 @@ const handleChange = (event) => {
       </option>
 
       <option
-        v-for="resource in resources"
+        v-for="resource in eligibleResources"
         :key="resource.id"
         :value="String(resource.id)"
       >
@@ -60,7 +67,7 @@ const handleChange = (event) => {
       {{ error }}
     </p>
 
-    <p v-else-if="!loading && !resources.length" class="empty-message">
+    <p v-else-if="!loading && !eligibleResources.length" class="empty-message">
       No hay instalaciones disponibles.
     </p>
   </div>

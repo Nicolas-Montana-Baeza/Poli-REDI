@@ -19,6 +19,7 @@ import {
   isReservationCancelable
 } from '@/utils/reservationTime'
 import { formatBusinessDateTime } from '@/utils/businessTime'
+import { useAccessibleDialog } from '@/composables/useAccessibleDialog'
 
 const props = defineProps({
   visible: { type: Boolean, default: false },
@@ -34,6 +35,12 @@ const props = defineProps({
   workshopEnrollmentMode: { type: Boolean, default: false }
 })
 const emit = defineEmits(['close', 'cancel', 'update-target', 'confirm-participation', 'withdraw-participation'])
+const closeDialog = () => emit('close')
+const { dialogRef, onKeydown } = useAccessibleDialog({
+  visible: computed(() => props.visible),
+  close: closeDialog,
+  focusOnOpen: computed(() => !props.participationMode)
+})
 
 const targetValue = ref(null)
 const joinCode = ref('')
@@ -170,15 +177,15 @@ const shareJoinCode = async () => {
 
 <template>
   <Teleport to="body">
-    <div v-if="visible" class="detail-overlay" @click.self="emit('close')">
-      <article class="detail-modal" role="dialog" aria-modal="true" aria-labelledby="reservation-detail-title">
+    <div v-if="visible" class="detail-overlay" @click.self="closeDialog">
+      <article ref="dialogRef" class="detail-modal" role="dialog" aria-modal="true" aria-labelledby="reservation-detail-title" tabindex="-1" @keydown="onKeydown">
         <header class="detail-header">
           <div class="header-copy">
             <span v-if="isInstitutional" class="eyebrow">Actividad institucional</span>
             <h2 id="reservation-detail-title">{{ participationMode ? 'Detalle de la invitación' : isInstitutional ? title : 'Detalle de reserva' }}</h2>
             <p>{{ participationMode ? 'Revisa el estado y confirma tu participación.' : workshopEnrollmentMode ? 'Información de tu inscripción al taller.' : isInstitutional ? 'Información del taller seleccionado.' : 'Información de la reserva seleccionada.' }}</p>
           </div>
-          <button class="close-button" type="button" aria-label="Cerrar" @click="emit('close')">
+          <button class="close-button" type="button" aria-label="Cerrar" @click="closeDialog">
             <X class="icon close-icon" :size="22" aria-hidden="true" />
           </button>
         </header>
@@ -333,7 +340,7 @@ const shareJoinCode = async () => {
         </div>
 
         <footer class="detail-actions">
-          <button class="app-button secondary" type="button" @click="emit('close')">{{ isInstitutional ? 'Entendido' : 'Cerrar' }}</button>
+          <button class="app-button secondary" type="button" @click="closeDialog">{{ isInstitutional ? 'Entendido' : 'Cerrar' }}</button>
           <button v-if="showCancelAction" class="app-button danger" type="button" @click="emit('cancel')">Cancelar reserva</button>
         </footer>
       </article>

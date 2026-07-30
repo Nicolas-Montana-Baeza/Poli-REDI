@@ -190,6 +190,15 @@ describe('ReservationDetailModal', () => {
     expect(wrapper.emitted('confirm-participation')).toHaveLength(1)
   })
 
+  it('closes with Escape and exposes a modal dialog', async () => {
+    const wrapper = mountModal({})
+    const dialog = wrapper.get('[role="dialog"]')
+    expect(dialog.attributes('aria-modal')).toBe('true')
+    expect(dialog.attributes('tabindex')).toBe('-1')
+    await dialog.trigger('keydown', { key: 'Escape' })
+    expect(wrapper.emitted('close')).toHaveLength(1)
+  })
+
   it('offers withdrawal only to a non-owner member in participation mode', async () => {
     const wrapper = mountModal({
       participantCount: 2,

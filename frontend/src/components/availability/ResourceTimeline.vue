@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 
 import ReservationBlock from './ReservationBlock.vue'
 import {
@@ -330,6 +330,43 @@ const statusLabel = (status) => {
   }
 }
 
+const keyboardMinute = ref(props.startHour * 60)
+const isSelectableMinute = minute => (
+  minute >= props.startHour * 60 &&
+  minute < props.endHour * 60 &&
+  !isPastMinute(minute) &&
+  !isMinuteReserved(minute)
+)
+const moveKeyboardCursor = direction => {
+  const lower = props.startHour * 60
+  const upper = props.endHour * 60 - RESERVATION_SLOT_MINUTES
+  let candidate = Math.min(upper, Math.max(lower, keyboardMinute.value + direction * RESERVATION_SLOT_MINUTES))
+  while (candidate >= lower && candidate <= upper && !isSelectableMinute(candidate)) {
+    candidate += direction * RESERVATION_SLOT_MINUTES
+  }
+  if (candidate >= lower && candidate <= upper) keyboardMinute.value = candidate
+}
+const handleTimelineKeydown = event => {
+  if (event.key === 'ArrowDown' || event.key === 'ArrowRight') {
+    event.preventDefault()
+    moveKeyboardCursor(1)
+  } else if (event.key === 'ArrowUp' || event.key === 'ArrowLeft') {
+    event.preventDefault()
+    moveKeyboardCursor(-1)
+  } else if (event.key === 'Home') {
+    event.preventDefault()
+    keyboardMinute.value = props.startHour * 60
+    if (!isSelectableMinute(keyboardMinute.value)) moveKeyboardCursor(1)
+  } else if (event.key === 'End') {
+    event.preventDefault()
+    keyboardMinute.value = props.endHour * 60 - RESERVATION_SLOT_MINUTES
+    if (!isSelectableMinute(keyboardMinute.value)) moveKeyboardCursor(-1)
+  } else if ((event.key === 'Enter' || event.key === ' ') && isSelectableMinute(keyboardMinute.value)) {
+    event.preventDefault()
+    emit('slot-selected', { resource: props.resource, hour: formatMinuteToHour(keyboardMinute.value) })
+  }
+}
+
 const modeLabel = (mode) => {
   switch (mode) {
     case 'ADMIN_ONLY':
@@ -389,7 +426,11 @@ const modeLabel = (mode) => {
     <div
       class="timeline"
       :style="{ height: timelineHeight }"
+      role="button"
+      tabindex="0"
+      :aria-label="`Disponibilidad de ${resource.name}. Horario seleccionado ${formatMinuteToHour(keyboardMinute)}. Usa las flechas para cambiar y Enter para reservar.`"
       @click="handleTimelineClick"
+      @keydown="handleTimelineKeydown"
     >
 
       <div

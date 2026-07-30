@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"database/sql"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -79,11 +80,20 @@ func TestParticipationErrorStatusContract(t *testing.T) {
 		{repositories.ErrGroupCapacity, 409},
 		{repositories.ErrOwnerCannotWithdraw, 409},
 		{repositories.ErrParticipationDeadline, 410},
+		{repositories.ErrParticipantConflict, 409},
+		{sql.ErrConnDone, 500},
 	}
 	for _, item := range cases {
 		if got := participationHTTPStatus(item.err); got != item.want {
 			t.Fatalf("%v => %d, want %d", item.err, got, item.want)
 		}
+	}
+}
+
+func TestParticipationUnknownErrorDoesNotLeak(t *testing.T) {
+	status, message := participationErrorResponse(errors.New("SECRET SQL ERROR"))
+	if status != fiber.StatusInternalServerError || strings.Contains(message, "SECRET") {
+		t.Fatalf("unknown participation error leaked: %d %q", status, message)
 	}
 }
 

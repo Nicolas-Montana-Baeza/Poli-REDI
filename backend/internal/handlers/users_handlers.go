@@ -11,8 +11,7 @@ func GetUsers(c *fiber.Ctx) error {
 
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error":  "Error obteniendo usuarios",
-			"detail": err.Error(),
+			"error": "Error obteniendo usuarios",
 		})
 	}
 

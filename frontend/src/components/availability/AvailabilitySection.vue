@@ -205,6 +205,8 @@ const canEditSelectedTarget = computed(() =>
 const showReservationForm = ref(false)
 const isCreatingReservation = ref(false)
 const currentPolicy = ref(null)
+const policyLoading = ref(true)
+const policyError = ref('')
 
 /* LOAD DATA */
 onMounted(async () => {
@@ -215,13 +217,30 @@ onMounted(async () => {
     activitiesStore.fetchActivities(),
     workshopsStore.fetchWorkshops()
   ])
-  try { currentPolicy.value = await reservationsService.getCurrentPolicy() } catch { currentPolicy.value = null }
+  try {
+    currentPolicy.value = await reservationsService.getCurrentPolicy()
+    if (!currentPolicy.value || !Array.isArray(currentPolicy.value.groupResourceIds)) {
+      throw new Error('invalid policy')
+    }
+  } catch {
+    currentPolicy.value = null
+    policyError.value = 'No se pudo validar la política de reservas. Por seguridad, la creación de reservas está temporalmente deshabilitada.'
+  } finally {
+    policyLoading.value = false
+  }
 })
 
 /* SLOT SELECT */
 const handleSlotSelected = (slot) => {
   reservationsStore.clearActionError?.()
   reservationsStore.clearActionSuccess?.()
+
+  if (policyLoading.value || !currentPolicy.value) {
+    reservationsStore.setActionError(
+      policyError.value || 'Espera mientras se valida la política de reservas.'
+    )
+    return
+  }
 
   if (reservationBlockingError.value) {
     reservationsStore.setActionError(
@@ -660,6 +679,7 @@ const goToday = () => {
       :error-message="reservationsStore.actionError"
       :submitting="isCreatingReservation"
       :policy="currentPolicy"
+      :is-admin="authStore.user?.isAdmin === true"
       @close="closeReservationForm"
       @submit="submitReservation"
     />

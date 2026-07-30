@@ -8,6 +8,7 @@ import {
   parseReservationDateTime
 } from '@/utils/reservationTime'
 import { getReservationScheduleError } from '@/utils/reservationRules'
+import { useAccessibleDialog } from '@/composables/useAccessibleDialog'
 
 const props = defineProps({
   visible: {
@@ -39,7 +40,8 @@ const props = defineProps({
     type: Boolean,
     default: false
   },
-  policy: { type: Object, default: null }
+  policy: { type: Object, default: null },
+  isAdmin: { type: Boolean, default: false }
 })
 
 const emit = defineEmits([
@@ -66,7 +68,8 @@ const fieldErrors = ref({})
 const canSubmit = computed(() => {
   return (
     !props.submitting &&
-    props.resources.length > 0
+    props.resources.length > 0 &&
+    props.policy !== null
   )
 })
 
@@ -261,6 +264,10 @@ const handleClose = () => {
 
   emit('close')
 }
+const { dialogRef, onKeydown } = useAccessibleDialog({
+  visible: computed(() => props.visible),
+  close: handleClose
+})
 </script>
 
 <template>
@@ -272,14 +279,14 @@ const handleClose = () => {
       @click.self="handleClose"
     >
 
-      <div class="modal">
+      <div ref="dialogRef" class="modal" role="dialog" aria-modal="true" aria-labelledby="reservation-form-title" tabindex="-1" @keydown="onKeydown">
 
         <!-- HEADER -->
         <div class="modal-header">
 
           <div>
 
-            <h2>
+            <h2 id="reservation-form-title">
               Crear Reserva
             </h2>
 
@@ -339,6 +346,7 @@ const handleClose = () => {
           :selected-id="form.resource?.id"
           :disabled="submitting"
           :error="fieldErrors.resource"
+          :is-admin="isAdmin"
           @select="handleResourceSelect"
         />
 
@@ -389,11 +397,10 @@ const handleClose = () => {
           class="field"
         >
 
-          <label>
-            Actividad
-          </label>
+          <label for="reservation-activity">Actividad</label>
 
           <select
+            id="reservation-activity"
             v-model.number="form.activityId"
             :disabled="submitting"
             :class="{ invalid: fieldErrors.activityId }"

@@ -58,7 +58,7 @@ const closedMessage = computed(() => {
 })
 </script>
 <template>
-  <section class="participants-progress" :class="{ terminal: isTerminal }" :role="announce ? 'status' : 'region'" :aria-live="announce ? 'polite' : 'off'" :aria-label="accessibleLabel">
+  <section class="participants-progress" :class="{ terminal: isTerminal }" :role="announce ? 'status' : 'region'" :aria-live="announce ? 'polite' : 'off'" :aria-label="accessibleLabel" tabindex="0">
     <template v-if="isTerminal">
       <div class="heading"><h2>Estado de la invitación</h2><StatusBadge v-if="showStatus" :status="status" /></div>
       <p class="terminal-message">{{ terminalMessage }}</p>
@@ -80,8 +80,8 @@ const closedMessage = computed(() => {
       <p>La reserva se confirmará automáticamente al llegar a {{ minimum }} participantes.</p>
       <p class="deadline">Disponible hasta el {{ deadline }}</p>
       <div class="actions">
-        <PrimaryButton v-if="canConfirm" :loading="busy" @click="$emit('confirm')">Confirmar participación</PrimaryButton>
-        <PrimaryButton v-else-if="canWithdraw" variant="danger" :loading="busy" @click="$emit('withdraw')">Retirar participación</PrimaryButton>
+        <PrimaryButton v-if="canConfirm" :loading="busy" aria-pressed="false" @click="$emit('confirm')">Confirmar participación</PrimaryButton>
+        <PrimaryButton v-else-if="canWithdraw" variant="danger" :loading="busy" aria-pressed="true" @click="$emit('withdraw')">Retirar participación</PrimaryButton>
         <p v-if="closedMessage" class="closed-message">{{ closedMessage }}</p>
       </div>
     </template>

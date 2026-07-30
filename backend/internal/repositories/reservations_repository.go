@@ -286,6 +286,20 @@ func AddReservationWithPolicy(reservation models.Reservation, validate func(mode
 	if err := validate(policy); err != nil {
 		return models.Reservation{}, err
 	}
+	overlaps, err := userHasActiveOverlapTx(
+		ctx,
+		tx,
+		reservation.UserID,
+		0,
+		businessclock.ToDatabaseWallTime(reservation.StartTime),
+		reservation.DurationMinutes,
+	)
+	if err != nil {
+		return models.Reservation{}, err
+	}
+	if overlaps {
+		return models.Reservation{}, ErrParticipantConflict
+	}
 
 	var activityName string
 	var resourceName string

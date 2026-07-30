@@ -17,8 +17,7 @@ func GetResources(c *fiber.Ctx) error {
 
 	if err != nil {
 		return c.Status(500).JSON(fiber.Map{
-			"error":  "Error obteniendo recursos",
-			"detail": err.Error(),
+			"error": "Error obteniendo recursos",
 		})
 	}
 
@@ -66,8 +65,7 @@ func UpdateResourceImage(c *fiber.Ctx) error {
 
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error":  "No se pudo actualizar la imagen",
-			"detail": err.Error(),
+			"error": "No se pudo actualizar la imagen",
 		})
 	}
 
