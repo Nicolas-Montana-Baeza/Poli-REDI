@@ -189,9 +189,15 @@ Pendiente relacionado: `REP-001`, `REP-002`, `REP-003`.
 
 ### RF-019 - Talleres deportivos
 
-El sistema debe permitir que usuarios autenticados consulten talleres activos e inscribirse cuando tengan RUT y existan cupos.
+El sistema debe permitir que usuarios autenticados consulten talleres activos,
+se inscriban cuando tengan RUT y existan cupos, y cancelen idempotentemente su
+propia inscripcion `CONFIRMED` sin exigir RUT. La cancelacion solo procede si el
+taller esta activo, cambia el episodio a `CANCELLED`, libera cupo, deja de
+bloquear solapes y permanece en historial. Una reinscripcion crea un episodio
+nuevo y no reactiva el cancelado.
 
-Estado actual: Implementado.
+Estado actual: Implementado y verificado localmente el 2026-08-04. No existe
+retiro de terceros ni corte horario hasta que el taller tenga un periodo formal.
 
 ### RF-020 - Restriccion semanal de reservas particulares
 
@@ -469,7 +475,9 @@ Criterios de aceptacion:
 
 ### HU-014 - Inscribirse en taller deportivo
 
-Como usuario normal, quiero revisar talleres deportivos disponibles e inscribirme en uno con cupos para participar en actividades institucionales.
+Como usuario normal, quiero revisar talleres deportivos disponibles,
+inscribirme en uno con cupos y cancelar mi propia inscripcion activa para
+administrar mi participacion sin perder su historial.
 
 Criterios de aceptacion:
 
@@ -478,6 +486,11 @@ Criterios de aceptacion:
 - Si ya estoy inscrito, el sistema lo indica y no duplica la inscripcion.
 - Si no tengo RUT, el backend rechaza la inscripcion.
 - Si no hay cupos, el sistema impide la inscripcion.
+- Puedo cancelar solo mi inscripcion `CONFIRMED`; la operacion no exige RUT y es idempotente.
+- Un taller inactivo rechaza la cancelacion con `409 WORKSHOP_ENROLLMENT_CLOSED`.
+- La cancelacion libera cupo y solapes y se muestra como `Inscripcion cancelada` en Historial.
+- Una reinscripcion posterior crea un episodio nuevo `CONFIRMED`.
+- No puedo retirar a terceros y no se aplica corte horario sin un periodo formal del taller.
 
 ### HU-015 - Reunir participantes para una reserva grupal
 
@@ -706,7 +719,7 @@ Flujos alternativos:
 
 - Si no hay sesion, la campana no consulta la API.
 
-### CU-008 - Inscribirse en taller
+### CU-008 - Gestionar inscripcion en taller
 
 Actor principal: Usuario normal.
 
@@ -724,16 +737,29 @@ Flujo principal:
 4. El usuario solicita inscribirse.
 5. El backend valida usuario, RUT, taller activo, cupo disponible e inscripcion duplicada.
 6. El sistema registra la inscripcion y actualiza el taller.
+7. Si decide retirarse, solicita `DELETE /api/workshops/:id/enrollment`.
+8. El servidor usa la identidad autenticada, sin exigir RUT ni aceptar un
+   usuario objetivo, y cancela idempotentemente solo su episodio `CONFIRMED`.
+9. La cancelacion libera cupo y solapes, conserva el episodio en Historial y
+   registra `WORKSHOP_ENROLLMENT_CANCELLED`.
 
 Postcondiciones:
 
-- El usuario queda inscrito en el taller seleccionado.
+- El usuario queda inscrito en el taller seleccionado o conserva su episodio
+  cancelado, segun la accion ejecutada.
 
 Flujos alternativos:
 
 - Si falta RUT, el backend rechaza la inscripcion.
 - Si el taller esta lleno, el sistema muestra error.
 - Si el usuario ya estaba inscrito, el sistema evita duplicar la inscripcion.
+- Si cancela una inscripcion ya cancelada o inexistente, la respuesta sigue
+  siendo idempotente y no afecta a terceros.
+- Si el taller esta inactivo, la cancelacion responde `409` con
+  `WORKSHOP_ENROLLMENT_CLOSED`.
+- Una reinscripcion crea un episodio nuevo `CONFIRMED` y registra
+  `WORKSHOP_ENROLLMENT_CREATED`; no reactiva el episodio cancelado.
+- No existe corte horario hasta definir un periodo formal del taller.
 
 ### CU-009 - Confirmar participantes de una solicitud grupal
 
