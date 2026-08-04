@@ -1,6 +1,7 @@
 <script setup>
 import { computed } from 'vue'
 import AvailabilityTypeChip from './AvailabilityTypeChip.vue'
+import WorkshopEnrollmentBadge from './WorkshopEnrollmentBadge.vue'
 import {
   formatReservationTimeRange,
   getReservationDisplayStatus,
@@ -10,6 +11,10 @@ import {
   getAvailabilityDisplayTitle,
   getAvailabilityType
 } from '@/utils/availabilityType'
+import {
+  getWorkshopEnrollmentLabel,
+  isWorkshopAvailabilityItem
+} from '@/utils/workshopEnrollment'
 
 const props = defineProps({
   reservation: {
@@ -91,12 +96,21 @@ const reservationStatus = computed(() =>
     ? { label: 'Programada', className: 'confirmed' }
     : getReservationDisplayStatus(props.reservation)
 )
+const showWorkshopEnrollment = computed(() =>
+  isWorkshopAvailabilityItem(props.reservation)
+)
+const workshopEnrollmentLabel = computed(() =>
+  showWorkshopEnrollment.value
+    ? getWorkshopEnrollmentLabel(props.reservation)
+    : ''
+)
 
 const accessibleLabel = computed(() => {
   return [
     availabilityType.value.label,
     reservationTitle.value,
     reservationStatus.value.label,
+    workshopEnrollmentLabel.value,
     reservationTime.value,
     'Abrir detalle'
   ].filter(Boolean).join('. ')
@@ -136,7 +150,26 @@ const statusClass = computed(() => {
         {{ reservationTitle }}
       </strong>
 
+      <span
+        v-if="isCompact && showWorkshopEnrollment"
+        class="block-indicators"
+      >
+        <WorkshopEnrollmentBadge
+          :item="reservation"
+          compact
+          aria-hidden
+        />
+
+        <AvailabilityTypeChip
+          :item="reservation"
+          :resource="resource"
+          :compact="isCompact"
+          aria-hidden
+        />
+      </span>
+
       <AvailabilityTypeChip
+        v-else
         :item="reservation"
         :resource="resource"
         :compact="isCompact"
@@ -144,8 +177,17 @@ const statusClass = computed(() => {
       />
     </span>
 
-    <span class="reservation-time">
-      {{ reservationTime }}
+    <span class="block-meta">
+      <span class="reservation-time">
+        {{ reservationTime }}
+      </span>
+
+      <WorkshopEnrollmentBadge
+        v-if="!isCompact && showWorkshopEnrollment"
+        :item="reservation"
+        compact
+        aria-hidden
+      />
     </span>
   </button>
 </template>
@@ -212,6 +254,14 @@ const statusClass = computed(() => {
   text-overflow: ellipsis;
 }
 
+.block-indicators {
+  display: inline-flex;
+  flex: 0 0 auto;
+  min-width: 0;
+  align-items: center;
+  gap: 4px;
+}
+
 .block-heading :deep(.availability-type-chip) {
   flex: 0 0 auto;
   max-width: none;
@@ -236,7 +286,19 @@ const statusClass = computed(() => {
   white-space: nowrap;
 }
 
-.reservation-block.compact .reservation-time {
+.block-meta {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.block-meta .reservation-time {
+  flex: 1 1 auto;
+}
+
+.reservation-block.compact .block-meta {
   display: none;
 }
 

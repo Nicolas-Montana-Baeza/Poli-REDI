@@ -9,11 +9,13 @@ import (
 	"poli-redi-api/internal/services"
 	"poli-redi-api/internal/validators"
 	"strings"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 )
 
 var getAvailabilityItems = services.GetAvailabilityItems
+var getAvailabilityItemsForRange = services.GetAvailabilityItemsForRange
 
 func GetReservations(c *fiber.Ctx) error {
 	reservations, err := services.GetReservations()
@@ -36,7 +38,23 @@ func GetAvailabilityReservations(c *fiber.Ctx) error {
 		})
 	}
 
-	items, err := getAvailabilityItems()
+	fromRaw := strings.TrimSpace(c.Query("from"))
+	toRaw := strings.TrimSpace(c.Query("to"))
+
+	var items []models.AvailabilityItem
+	var err error
+	if fromRaw == "" && toRaw == "" {
+		items, err = getAvailabilityItems()
+	} else {
+		from, toExclusive, validationCode, validationMessage := parseAvailabilityRange(fromRaw, toRaw)
+		if validationCode != "" {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"code":  validationCode,
+				"error": validationMessage,
+			})
+		}
+		items, err = getAvailabilityItemsForRange(from, toExclusive, user.ID)
+	}
 
 	if err != nil {
 		return c.Status(500).JSON(fiber.Map{
@@ -57,6 +75,36 @@ func GetAvailabilityReservations(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(items)
+}
+
+func parseAvailabilityRange(fromRaw, toRaw string) (
+	time.Time,
+	time.Time,
+	string,
+	string,
+) {
+	if fromRaw == "" || toRaw == "" {
+		return time.Time{}, time.Time{},
+			"AVAILABILITY_RANGE_REQUIRED",
+			"Debes indicar from y to juntos."
+	}
+
+	const dateLayout = "2006-01-02"
+	from, fromErr := time.ParseInLocation(dateLayout, fromRaw, businessclock.Location())
+	to, toErr := time.ParseInLocation(dateLayout, toRaw, businessclock.Location())
+	if fromErr != nil || toErr != nil || from.After(to) {
+		return time.Time{}, time.Time{},
+			"AVAILABILITY_RANGE_INVALID",
+			"from y to deben usar el formato YYYY-MM-DD y formar un rango valido."
+	}
+
+	if to.After(from.AddDate(0, 0, 30)) {
+		return time.Time{}, time.Time{},
+			"AVAILABILITY_RANGE_TOO_LARGE",
+			"El rango de disponibilidad no puede superar 31 dias."
+	}
+
+	return from, to.AddDate(0, 0, 1), "", ""
 }
 
 func GetMyReservations(c *fiber.Ctx) error {

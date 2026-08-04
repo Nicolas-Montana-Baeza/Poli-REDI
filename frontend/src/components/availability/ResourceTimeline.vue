@@ -13,6 +13,7 @@ import {
   RESERVATION_SLOT_MINUTES,
   snapToReservationSlot
 } from '@/utils/reservationRules'
+import { doesAvailabilityItemBlockInterval } from '@/utils/availabilityRules'
 
 const props = defineProps({
   resource: {
@@ -21,6 +22,11 @@ const props = defineProps({
   },
 
   reservations: {
+    type: Array,
+    default: () => []
+  },
+
+  allReservations: {
     type: Array,
     default: () => []
   },
@@ -34,6 +40,14 @@ const props = defineProps({
     type: Number,
     default: RESERVATION_CLOSING_HOUR
   },
+
+  openingMinute: { type: Number, default: null },
+  closingMinute: { type: Number, default: null },
+  slotIntervalMinutes: {
+    type: Number,
+    default: RESERVATION_SLOT_MINUTES
+  },
+  currentUserId: { type: [Number, String], default: null },
 
   selectedDate: {
     type: String,
@@ -53,6 +67,16 @@ const emit = defineEmits([
 
 const timelineTopPadding = 18
 const timelineBottomPadding = 24
+const timelineStartMinute = computed(() => (
+  Number.isFinite(props.openingMinute)
+    ? Number(props.openingMinute)
+    : props.startHour * 60
+))
+const timelineEndMinute = computed(() => (
+  Number.isFinite(props.closingMinute)
+    ? Number(props.closingMinute)
+    : props.endHour * 60
+))
 
 const now = computed(() => new Date())
 
@@ -69,11 +93,8 @@ const pastOverlayHeight = computed(() => {
     return 0
   }
 
-  const startMinute =
-    props.startHour * 60
-
-  const endMinute =
-    props.endHour * 60
+  const startMinute = timelineStartMinute.value
+  const endMinute = timelineEndMinute.value
 
   const clampedMinute =
     Math.min(
@@ -91,15 +112,15 @@ const pastOverlayHeight = computed(() => {
 const nowLineTop = computed(() => {
   if (
     !isToday.value ||
-    currentMinuteOfDay.value < props.startHour * 60 ||
-    currentMinuteOfDay.value > props.endHour * 60
+    currentMinuteOfDay.value < timelineStartMinute.value ||
+    currentMinuteOfDay.value > timelineEndMinute.value
   ) {
     return null
   }
 
   return (
     timelineTopPadding +
-    (currentMinuteOfDay.value - props.startHour * 60) *
+    (currentMinuteOfDay.value - timelineStartMinute.value) *
     props.pixelsPerMinute
   )
 })
@@ -117,9 +138,7 @@ const isOpenUse = computed(() => {
 
 /* HEIGHT */
 const totalMinutes = computed(() => {
-  return (
-    props.endHour - props.startHour
-  ) * 60
+  return timelineEndMinute.value - timelineStartMinute.value
 })
 
 const timelineHeight = computed(() => {
@@ -133,19 +152,28 @@ const timelineHeight = computed(() => {
 /* HOUR LINES */
 const hourLines = computed(() => {
   const lines = []
+  const firstFullHour = Math.ceil(timelineStartMinute.value / 60) * 60
+  const minutes = [timelineStartMinute.value]
 
   for (
-    let hour = props.startHour;
-    hour <= props.endHour;
-    hour++
+    let minute = firstFullHour;
+    minute <= timelineEndMinute.value;
+    minute += 60
   ) {
+    if (!minutes.includes(minute)) minutes.push(minute)
+  }
+
+  if (!minutes.includes(timelineEndMinute.value)) {
+    minutes.push(timelineEndMinute.value)
+  }
+
+  for (const minute of minutes) {
     lines.push({
-      hour,
-      label: `${String(hour).padStart(2, '0')}:00`,
+      minute,
+      label: formatMinuteToHour(minute),
       top:
         timelineTopPadding +
-        (hour - props.startHour) *
-        60 *
+        (minute - timelineStartMinute.value) *
         props.pixelsPerMinute
     })
   }
@@ -170,31 +198,24 @@ const getReservationStartMinutes = (reservation) => {
 }
 
 const isMinuteReserved = (minuteOfDay) => {
-  if (isOpenUse.value) {
-    return false
-  }
-
-  return resourceReservations.value.some(
-    (reservation) => {
-      const start =
-        getReservationStartMinutes(reservation)
-
-      if (start === null) {
-        return false
-      }
-
-      const duration =
-        reservation.durationMinutes || 60
-
-      const end =
-        start + duration
-
-      return (
-        minuteOfDay >= start &&
-        minuteOfDay < end
-      )
-    }
+  const candidateStart = new Date(
+    `${props.selectedDate}T${formatMinuteToHour(minuteOfDay)}:00`
   )
+  const candidateEnd = new Date(
+    candidateStart.getTime() + props.slotIntervalMinutes * 60000
+  )
+  const source = props.allReservations.length
+    ? props.allReservations
+    : props.reservations
+
+  return source.some(item => doesAvailabilityItemBlockInterval({
+    item,
+    candidateResourceId: props.resource.id,
+    candidateStart,
+    candidateEnd,
+    resources: [props.resource],
+    currentUserId: props.currentUserId
+  }))
 }
 
 const formatMinuteToHour = (minuteOfDay) => {
@@ -212,10 +233,10 @@ const heatmapSegments = computed(() => {
     return []
   }
 
-  const segmentMinutes = RESERVATION_SLOT_MINUTES
+  const segmentMinutes = props.slotIntervalMinutes
   const segments = []
-  const startMinute = props.startHour * 60
-  const endMinute = props.endHour * 60
+  const startMinute = timelineStartMinute.value
+  const endMinute = timelineEndMinute.value
 
   for (
     let minute = startMinute;
@@ -257,6 +278,38 @@ const heatmapSegments = computed(() => {
   return segments
 })
 
+const blockingSegments = computed(() => {
+  const segments = []
+  const interval = props.slotIntervalMinutes
+  let active = null
+
+  for (
+    let minute = timelineStartMinute.value;
+    minute < timelineEndMinute.value;
+    minute += interval
+  ) {
+    const blocked = isMinuteReserved(minute)
+
+    if (blocked && !active) {
+      active = { start: minute, end: Math.min(minute + interval, timelineEndMinute.value) }
+    } else if (blocked && active) {
+      active.end = Math.min(minute + interval, timelineEndMinute.value)
+    } else if (!blocked && active) {
+      segments.push(active)
+      active = null
+    }
+  }
+
+  if (active) segments.push(active)
+
+  return segments.map(segment => ({
+    ...segment,
+    top: timelineTopPadding +
+      (segment.start - timelineStartMinute.value) * props.pixelsPerMinute,
+    height: (segment.end - segment.start) * props.pixelsPerMinute
+  }))
+})
+
 const heatmapClass = (count) => {
   if (count >= 4) {
     return 'high'
@@ -286,16 +339,17 @@ const handleTimelineClick = (event) => {
     event.clientY - rect.top - timelineTopPadding
 
   const minutesFromStart = snapToReservationSlot(
-    y / props.pixelsPerMinute
+    y / props.pixelsPerMinute,
+    props.slotIntervalMinutes
   )
 
   const minuteOfDay =
-    props.startHour * 60 +
+    timelineStartMinute.value +
     minutesFromStart
 
   const isOutsideRange =
-    minuteOfDay < props.startHour * 60 ||
-    minuteOfDay >= props.endHour * 60
+    minuteOfDay < timelineStartMinute.value ||
+    minuteOfDay >= timelineEndMinute.value
 
   if (isOutsideRange) {
     return
@@ -331,19 +385,19 @@ const statusLabel = (status) => {
   }
 }
 
-const keyboardMinute = ref(props.startHour * 60)
+const keyboardMinute = ref(timelineStartMinute.value)
 const isSelectableMinute = minute => (
-  minute >= props.startHour * 60 &&
-  minute < props.endHour * 60 &&
+  minute >= timelineStartMinute.value &&
+  minute < timelineEndMinute.value &&
   !isPastMinute(minute) &&
   !isMinuteReserved(minute)
 )
 const moveKeyboardCursor = direction => {
-  const lower = props.startHour * 60
-  const upper = props.endHour * 60 - RESERVATION_SLOT_MINUTES
-  let candidate = Math.min(upper, Math.max(lower, keyboardMinute.value + direction * RESERVATION_SLOT_MINUTES))
+  const lower = timelineStartMinute.value
+  const upper = timelineEndMinute.value - props.slotIntervalMinutes
+  let candidate = Math.min(upper, Math.max(lower, keyboardMinute.value + direction * props.slotIntervalMinutes))
   while (candidate >= lower && candidate <= upper && !isSelectableMinute(candidate)) {
-    candidate += direction * RESERVATION_SLOT_MINUTES
+    candidate += direction * props.slotIntervalMinutes
   }
   if (candidate >= lower && candidate <= upper) keyboardMinute.value = candidate
 }
@@ -356,11 +410,11 @@ const handleTimelineKeydown = event => {
     moveKeyboardCursor(-1)
   } else if (event.key === 'Home') {
     event.preventDefault()
-    keyboardMinute.value = props.startHour * 60
+    keyboardMinute.value = timelineStartMinute.value
     if (!isSelectableMinute(keyboardMinute.value)) moveKeyboardCursor(1)
   } else if (event.key === 'End') {
     event.preventDefault()
-    keyboardMinute.value = props.endHour * 60 - RESERVATION_SLOT_MINUTES
+    keyboardMinute.value = timelineEndMinute.value - props.slotIntervalMinutes
     if (!isSelectableMinute(keyboardMinute.value)) moveKeyboardCursor(-1)
   } else if ((event.key === 'Enter' || event.key === ' ') && isSelectableMinute(keyboardMinute.value)) {
     event.preventDefault()
@@ -461,6 +515,18 @@ const modeLabel = (mode) => {
         </span>
       </div>
 
+      <div class="blocking-layer" aria-hidden="true">
+        <div
+          v-for="segment in blockingSegments"
+          :key="`${segment.start}-${segment.end}`"
+          class="blocking-segment"
+          :style="{
+            top: `${segment.top}px`,
+            height: `${segment.height}px`
+          }"
+        />
+      </div>
+
       <!-- HOUR LINES -->
       <div
         v-for="line in hourLines"
@@ -501,7 +567,7 @@ const modeLabel = (mode) => {
           :key="reservation.availabilityKey || reservation.id"
           :reservation="reservation"
           :resource="resource"
-          :start-hour="startHour"
+          :start-hour="timelineStartMinute / 60"
           :pixels-per-minute="pixelsPerMinute"
           :top-offset="timelineTopPadding"
           @select="handleReservationSelected"
@@ -728,6 +794,29 @@ const modeLabel = (mode) => {
   inset: 0;
   z-index: 1;
   pointer-events: none;
+}
+
+.blocking-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.blocking-segment {
+  position: absolute;
+  left: 0;
+  right: 0;
+  border-top: 1px solid rgba(100, 116, 139, 0.18);
+  border-bottom: 1px solid rgba(100, 116, 139, 0.18);
+  background:
+    repeating-linear-gradient(
+      -45deg,
+      rgba(148, 163, 184, 0.12),
+      rgba(148, 163, 184, 0.12) 6px,
+      rgba(226, 232, 240, 0.24) 6px,
+      rgba(226, 232, 240, 0.24) 12px
+    );
 }
 
 .heatmap-segment {

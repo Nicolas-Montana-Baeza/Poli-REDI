@@ -60,6 +60,7 @@ vi.mock('@/services/reservations.service', () => ({
 }))
 
 import AvailabilitySection from './AvailabilitySection.vue'
+import ReservationBlock from './ReservationBlock.vue'
 
 const activeWorkshop = {
   id: 3,
@@ -79,6 +80,7 @@ const activeWorkshop = {
 }
 
 const ScheduleGridStub = {
+  components: { ReservationBlock },
   props: ['reservations'],
   emits: ['reservation-selected'],
   computed: {
@@ -89,9 +91,12 @@ const ScheduleGridStub = {
   template: `
     <div>
       <output class="workshop-block-count">{{ reservations.filter(item => item.isWorkshop).length }}</output>
-      <button v-if="workshop" class="open-workshop" type="button" @click="$emit('reservation-selected', workshop)">
-        Abrir taller
-      </button>
+      <ReservationBlock
+        v-if="workshop"
+        class="open-workshop"
+        :reservation="workshop"
+        @select="$emit('reservation-selected', $event)"
+      />
     </div>
   `
 }
@@ -154,6 +159,8 @@ describe('AvailabilitySection - inscripcion y desinscripcion de taller', () => {
     expect(wrapper.find('[role="dialog"]').exists()).toBe(true)
     expect(wrapper.text()).toContain('Desinscribirme')
     expect(wrapper.text()).not.toContain('Inscribirme')
+    expect(wrapper.get('[data-workshop-enrollment="enrolled"]').text())
+      .toBe('Inscrito')
     expect(state.workshopService.getAll).toHaveBeenCalledOnce()
   })
 
@@ -181,6 +188,7 @@ describe('AvailabilitySection - inscripcion y desinscripcion de taller', () => {
     const wrapper = await mountAvailability()
 
     expect(wrapper.text()).toContain('Inscribirme')
+    expect(wrapper.find('[data-workshop-enrollment]').exists()).toBe(false)
     await wrapper.get('.detail-actions .primary').trigger('click')
     await wrapper.get('.detail-actions .primary').trigger('click')
     await flushPromises()
@@ -199,6 +207,8 @@ describe('AvailabilitySection - inscripcion y desinscripcion de taller', () => {
     expect(wrapper.find('[role="dialog"]').exists()).toBe(true)
     expect(wrapper.text()).not.toContain('Inscribirme')
     expect(wrapper.text()).toContain('Desinscribirme')
+    expect(wrapper.get('[data-workshop-enrollment="enrolled"]').text())
+      .toBe('Inscrito')
     expect(wrapper.text()).toContain('Inscripción registrada correctamente.')
     expect(wrapper.get('.workshop-action-feedback').attributes('role'))
       .toBe('status')
@@ -221,6 +231,7 @@ describe('AvailabilitySection - inscripcion y desinscripcion de taller', () => {
     expect(wrapper.find('[role="dialog"]').exists()).toBe(true)
     expect(wrapper.text()).toContain('Inscribirme')
     expect(wrapper.text()).not.toContain('Desinscribirme')
+    expect(wrapper.find('[data-workshop-enrollment]').exists()).toBe(false)
     expect(wrapper.get('.workshop-block-count').text()).toBe('1')
   })
 

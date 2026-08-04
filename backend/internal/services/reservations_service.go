@@ -108,6 +108,164 @@ func GetAvailabilityItems() ([]models.AvailabilityItem, error) {
 	return items, nil
 }
 
+func GetAvailabilityItemsForRange(
+	from time.Time,
+	toExclusive time.Time,
+	userID int,
+) ([]models.AvailabilityItem, error) {
+	reservations, err := repositories.GetAvailabilityReservationsForRange(from, toExclusive, userID)
+	if err != nil {
+		return nil, err
+	}
+	scheduledActivities, err := repositories.GetScheduledActivitiesForRange(from, toExclusive)
+	if err != nil {
+		return nil, err
+	}
+	workshops, err := repositories.GetWorkshopOccurrencesForRange(from, toExclusive)
+	if err != nil {
+		return nil, err
+	}
+	blocks, err := repositories.GetAvailabilityBlocksForRange(from, toExclusive)
+	if err != nil {
+		return nil, err
+	}
+	return buildAvailabilityItems(reservations, scheduledActivities, workshops, blocks), nil
+}
+
+func buildAvailabilityItems(
+	reservations []models.AvailabilityReservation,
+	scheduledActivities []models.ScheduledActivity,
+	workshops []models.WorkshopAvailabilityOccurrence,
+	blocks []models.AvailabilityBlock,
+) []models.AvailabilityItem {
+	items := make([]models.AvailabilityItem, 0,
+		len(reservations)+len(scheduledActivities)+len(workshops)+len(blocks))
+	for _, source := range reservations {
+		reservation := source.Reservation
+		items = append(items, models.AvailabilityItem{
+			ID:                    reservation.ID,
+			AvailabilityKey:       "reservation-" + strconv.Itoa(reservation.ID),
+			AvailabilityKind:      models.AvailabilityKindReservation,
+			UserID:                reservation.UserID,
+			ResourceID:            reservation.ResourceID,
+			StartTime:             reservation.StartTime,
+			DurationMinutes:       reservation.DurationMinutes,
+			Status:                reservation.Status,
+			Hour:                  reservation.Hour,
+			Title:                 reservation.Title,
+			Type:                  reservation.Type,
+			ItemType:              reservation.Type,
+			ResourceName:          reservation.ResourceName,
+			UserFullName:          reservation.UserFullName,
+			UserEmail:             reservation.UserEmail,
+			UserRUT:               reservation.UserRUT,
+			ParticipantCount:      reservation.ParticipantCount,
+			MinimumParticipants:   reservation.MinimumParticipants,
+			TargetParticipants:    reservation.TargetParticipants,
+			Capacity:              reservation.Capacity,
+			ConfirmationDeadline:  reservation.ConfirmationDeadline,
+			BlocksResource:        source.ReservationMode != "OPEN_USE",
+			IsCurrentUserConflict: source.IsCurrentUserConflict,
+		})
+	}
+	for _, source := range scheduledActivities {
+		items = append(items, availabilityItemFromInterval(
+			source.ID,
+			"scheduled-"+strconv.Itoa(source.ID),
+			models.AvailabilityKindScheduled,
+			source.ResourceID,
+			source.StartTime,
+			source.EndTime,
+			source.Title,
+			"scheduled",
+			source.ResourceName,
+			source.ActivityType,
+			source.CreatedByUserID,
+			source.ReservationMode != "OPEN_USE",
+		))
+	}
+	for _, source := range workshops {
+		items = append(items, availabilityItemFromInterval(
+			source.ID,
+			"workshop-occurrence-"+strconv.Itoa(source.ID)+"-"+source.StartTime.Format("20060102"),
+			models.AvailabilityKindWorkshop,
+			source.ResourceID,
+			source.StartTime,
+			source.EndTime,
+			source.Title,
+			"workshop",
+			source.ResourceName,
+			"WORKSHOP",
+			0,
+			source.ReservationMode != "OPEN_USE",
+		))
+	}
+	for _, source := range blocks {
+		title := source.Reason
+		if strings.TrimSpace(title) == "" {
+			title = source.BlockType
+		}
+		item := availabilityItemFromInterval(
+			source.ID,
+			"availability-block-"+strconv.Itoa(source.ID),
+			models.AvailabilityKindBlock,
+			source.ResourceID,
+			source.StartTime,
+			source.EndTime,
+			title,
+			"block",
+			source.ResourceName,
+			source.BlockType,
+			source.CreatedByUserID,
+			true,
+		)
+		items = append(items, item)
+	}
+
+	sort.SliceStable(items, func(i, j int) bool {
+		if items[i].StartTime.Equal(items[j].StartTime) {
+			return items[i].AvailabilityKey < items[j].AvailabilityKey
+		}
+		return items[i].StartTime.Before(items[j].StartTime)
+	})
+	return items
+}
+
+func availabilityItemFromInterval(
+	id int,
+	key string,
+	kind string,
+	resourceID int,
+	startTime time.Time,
+	endTime time.Time,
+	title string,
+	itemType string,
+	resourceName string,
+	activityType string,
+	userID int,
+	blocksResource bool,
+) models.AvailabilityItem {
+	return models.AvailabilityItem{
+		ID:                    id,
+		AvailabilityKey:       key,
+		AvailabilityKind:      kind,
+		UserID:                userID,
+		ResourceID:            resourceID,
+		StartTime:             startTime,
+		DurationMinutes:       int(endTime.Sub(startTime).Minutes()),
+		Status:                models.ReservationStatusConfirmed,
+		Hour:                  startTime.Format("15:04"),
+		Title:                 title,
+		Type:                  itemType,
+		ItemType:              itemType,
+		ResourceName:          resourceName,
+		IsScheduledActivity:   kind == models.AvailabilityKindScheduled || kind == models.AvailabilityKindWorkshop,
+		ActivityType:          activityType,
+		BlocksResource:        blocksResource,
+		IsCurrentUserConflict: false,
+	}
+}
+
 func reservationAvailabilityKind(reservation models.Reservation) string {
 	if reservation.TargetParticipants != nil {
 		return models.AvailabilityKindGroupReservation
@@ -133,11 +291,32 @@ func SanitizeAvailabilityItemsForAudience(
 
 	for index := range sanitized {
 		item := &sanitized[index]
-		isOwnReservation := !item.IsScheduledActivity && item.UserID == audience.ID
+		isReservation := item.AvailabilityKind == models.AvailabilityKindReservation ||
+			item.AvailabilityKind == models.AvailabilityKindGroupReservation ||
+			(item.AvailabilityKind == "" && !item.IsScheduledActivity)
+		isOwnReservation := isReservation && item.UserID == audience.ID
 
 		item.UserFullName = ""
 		item.UserEmail = ""
 		item.UserRUT = ""
+
+		switch item.AvailabilityKind {
+		case models.AvailabilityKindWorkshop:
+			item.UserID = 0
+			item.CanEditTarget = false
+			continue
+		case models.AvailabilityKindBlock:
+			item.UserID = 0
+			item.Title = "No disponible"
+			item.ActivityType = ""
+			item.CanEditTarget = false
+			continue
+		case models.AvailabilityKindScheduled:
+			item.UserID = 0
+			item.Title = "Actividad institucional"
+			item.CanEditTarget = false
+			continue
+		}
 
 		if item.IsScheduledActivity {
 			item.UserID = 0
@@ -297,53 +476,20 @@ func validateWorkshopAvailability(reservation models.Reservation) error {
 		return nil
 	}
 
-	workshops, err := repositories.GetActiveWorkshops()
-
-	if err != nil {
-		return err
-	}
-
 	reservationStart := reservation.StartTime
 	reservationEnd := reservationStart.Add(
 		time.Duration(reservation.DurationMinutes) * time.Minute,
 	)
-
-	for _, workshop := range workshops {
-		if workshop.ResourceID != reservation.ResourceID {
-			continue
-		}
-
-		if !workshopOccursOnDate(workshop, reservationStart) {
-			continue
-		}
-
-		for _, timeRange := range workshopTimeRangesForDate(workshop, reservationStart) {
-			workshopStart := time.Date(
-				reservationStart.Year(),
-				reservationStart.Month(),
-				reservationStart.Day(),
-				timeRange.startHour,
-				timeRange.startMinute,
-				0,
-				0,
-				reservationStart.Location(),
-			)
-
-			workshopEnd := time.Date(
-				reservationStart.Year(),
-				reservationStart.Month(),
-				reservationStart.Day(),
-				timeRange.endHour,
-				timeRange.endMinute,
-				0,
-				0,
-				reservationStart.Location(),
-			)
-
-			if reservationStart.Before(workshopEnd) && reservationEnd.After(workshopStart) {
-				return errors.New("el recurso tiene un taller programado en ese horario")
-			}
-		}
+	conflict, err := repositories.HasWorkshopAvailabilityConflict(
+		reservation.ResourceID,
+		reservationStart,
+		reservationEnd,
+	)
+	if err != nil {
+		return err
+	}
+	if conflict {
+		return errors.New("el recurso tiene un taller programado en ese horario")
 	}
 
 	return nil

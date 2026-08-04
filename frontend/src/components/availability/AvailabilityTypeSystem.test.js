@@ -225,6 +225,69 @@ describe('ReservationBlock availability type', () => {
     expect(label).not.toContain('Taller: Entrenamiento funcional')
   })
 
+  it('shows an accessible enrolled state with text and icon', () => {
+    const wrapper = mount(ReservationBlock, {
+      props: {
+        reservation: {
+          ...futureReservation,
+          isWorkshop: true,
+          title: 'Taller: Entrenamiento funcional',
+          workshop: {
+            id: 3,
+            isEnrolled: true
+          }
+        }
+      }
+    })
+
+    const badge = wrapper.get('[data-workshop-enrollment="enrolled"]')
+
+    expect(badge.text()).toBe('Inscrito')
+    expect(badge.attributes('title')).toBe('Ya estás inscrito en este taller')
+    expect(badge.find('svg').exists()).toBe(true)
+    expect(wrapper.get('button').attributes('aria-label')).toContain('Inscrito')
+    expect(wrapper.get('.block-heading').element.lastElementChild)
+      .toBe(wrapper.get('[data-availability-type="workshop"]').element)
+    expect(wrapper.get('.block-meta').element.lastElementChild)
+      .toBe(badge.element)
+  })
+
+  it('uses absence of the badge to represent a workshop without enrollment', () => {
+    const wrapper = mount(ReservationBlock, {
+      props: {
+        reservation: {
+          ...futureReservation,
+          isWorkshop: true,
+          title: 'Taller: Entrenamiento funcional',
+          workshop: {
+            id: 3,
+            isEnrolled: false
+          }
+        }
+      }
+    })
+
+    expect(wrapper.find('[data-workshop-enrollment]').exists()).toBe(false)
+    expect(wrapper.get('button').attributes('aria-label'))
+      .not.toContain('Inscrito')
+  })
+
+  it('does not show workshop enrollment state for other availability types', () => {
+    const wrapper = mount(ReservationBlock, {
+      props: {
+        reservation: {
+          ...futureReservation,
+          availabilityKind: 'GROUP_RESERVATION',
+          workshop: { id: 3, isEnrolled: true }
+        }
+      }
+    })
+
+    expect(wrapper.find('[data-workshop-enrollment]').exists()).toBe(false)
+    expect(wrapper.get('button').attributes('aria-label'))
+      .not.toContain('Inscrito')
+  })
+
   it('keeps ordinary reservation titles intact', () => {
     const wrapper = mount(ReservationBlock, {
       props: {
@@ -393,7 +456,11 @@ describe('availability views', () => {
         reservations: [{
           ...futureReservation,
           isWorkshop: true,
-          title: 'Taller: Entrenamiento funcional'
+          title: 'Taller: Entrenamiento funcional',
+          workshop: {
+            id: 3,
+            isEnrolled: false
+          }
         }],
         selectedDate: '2099-07-28'
       }
@@ -405,6 +472,7 @@ describe('availability views', () => {
       .toBe('Taller')
     expect(wrapper.get('.reservation-title-row h3').text())
       .toBe('Entrenamiento funcional')
+    expect(wrapper.find('[data-workshop-enrollment]').exists()).toBe(false)
     expect(wrapper.get('.reservation-indicators').element.lastElementChild)
       .toBe(wrapper.get('[data-availability-type="workshop"]').element)
     expect(label.match(/Taller/g)).toHaveLength(1)

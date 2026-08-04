@@ -13,8 +13,11 @@ export const reservationsService = {
     return response.data
   },
 
-  async getAvailability() {
-    const response = await api.get('/availability/reservations')
+  async getAvailability(range = {}) {
+    const params = range?.from && range?.to
+      ? { from: range.from, to: range.to }
+      : undefined
+    const response = await api.get('/availability/reservations', { params })
 
     return response.data
   },

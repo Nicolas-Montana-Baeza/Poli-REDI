@@ -3,7 +3,8 @@ import ResourceTimeline from './ResourceTimeline.vue'
 import { getReservationDateKey } from '@/utils/reservationTime'
 import {
   RESERVATION_CLOSING_HOUR,
-  RESERVATION_OPENING_HOUR
+  RESERVATION_OPENING_HOUR,
+  RESERVATION_SLOT_MINUTES
 } from '@/utils/reservationRules'
 
 const props = defineProps({
@@ -31,6 +32,14 @@ const props = defineProps({
     type: Number,
     default: RESERVATION_CLOSING_HOUR
   },
+
+  openingMinute: { type: Number, default: null },
+  closingMinute: { type: Number, default: null },
+  slotIntervalMinutes: {
+    type: Number,
+    default: RESERVATION_SLOT_MINUTES
+  },
+  currentUserId: { type: [Number, String], default: null },
 
   pixelsPerMinute: {
     type: Number,
@@ -68,6 +77,16 @@ const filteredReservations = (resourceId) => {
 const handleSlotSelected = (slot) => {
   emit('slot-selected', slot)
 }
+
+const reservationsForDate = () => props.reservations.filter(
+  reservation => (
+    reservation.status !== 'CANCELLED' &&
+    (
+      !props.selectedDate ||
+      getDateFromReservation(reservation) === props.selectedDate
+    )
+  )
+)
 
 const handleReservationSelected = (reservation) => {
   emit('reservation-selected', reservation)
@@ -118,9 +137,19 @@ const handleReservationSelected = (reservation) => {
           filteredReservations(resource.id)
         "
 
+        :all-reservations="reservationsForDate()"
+
         :start-hour="startHour"
 
         :end-hour="endHour"
+
+        :opening-minute="openingMinute"
+
+        :closing-minute="closingMinute"
+
+        :slot-interval-minutes="slotIntervalMinutes"
+
+        :current-user-id="currentUserId"
 
         :selected-date="selectedDate"
 

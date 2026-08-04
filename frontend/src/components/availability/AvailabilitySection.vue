@@ -18,6 +18,7 @@ import { useActivitiesStore } from '@/stores/activities'
 import { useWorkshopsStore } from '@/stores/workshops'
 import { reservationsService } from '@/services/reservations.service'
 import { buildWorkshopAvailabilityItems } from '@/utils/workshopSchedule'
+import { hasConfirmedWorkshopEnrollment } from '@/utils/workshopEnrollment'
 import { hasRut } from '@/utils/validators'
 import {
   canUserEditReservationTarget,
@@ -149,11 +150,21 @@ const loadWarning = computed(() => {
   )
 })
 
+const availabilityWorkshops = computed(() => (
+  workshopsStore.workshops.map((workshop) => ({
+    ...workshop,
+    isEnrolled: hasConfirmedWorkshopEnrollment(
+      workshop,
+      workshopsStore.myEnrollments
+    )
+  }))
+))
+
 const availabilityItems = computed(() => {
   return [
     ...reservationsStore.availabilityReservations,
     ...buildWorkshopAvailabilityItems({
-      workshops: workshopsStore.workshops,
+      workshops: availabilityWorkshops.value,
       resources: resourcesStore.resources,
       selectedDate: selectedDate.value
     })
@@ -214,16 +225,10 @@ const currentWorkshop = computed(() => {
   ) || selectedReservation.value.workshop
 })
 const hasConfirmedSelectedWorkshopEnrollment = computed(() => {
-  if (currentWorkshop.value?.isEnrolled === true) {
-    return true
-  }
-
-  return workshopsStore.myEnrollments?.some(
-    (enrollment) => (
-      Number(enrollment.workshopId) === selectedWorkshopId.value &&
-      String(enrollment.status || '').toUpperCase() === 'CONFIRMED'
-    )
-  ) === true
+  return hasConfirmedWorkshopEnrollment(
+    currentWorkshop.value,
+    workshopsStore.myEnrollments
+  )
 })
 const canWithdrawSelectedWorkshop = computed(() => Boolean(
   authStore.user &&

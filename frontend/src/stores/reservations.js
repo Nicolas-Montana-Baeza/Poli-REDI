@@ -52,6 +52,8 @@ export const useReservationsStore =
 
       availabilityRequestId: 0,
 
+      availabilityRangeKey: '',
+
       myLoading: false,
 
       myLoadingError: null,
@@ -144,8 +146,14 @@ export const useReservationsStore =
 
       async fetchAvailabilityReservations(options = {}) {
         const force = options?.force === true
+        const from = String(options?.from || '')
+        const to = String(options?.to || '')
+        const rangeKey = from && to
+          ? `${from}:${to}`
+          : 'legacy'
         const promises = getQueryPromises(this)
-        const activePromise = promises.get('availability')
+        const promiseKey = `availability:${rangeKey}`
+        const activePromise = promises.get(promiseKey)
 
         if (activePromise && !force) {
           return activePromise
@@ -158,13 +166,16 @@ export const useReservationsStore =
 
         const fetchPromise = (async () => {
           try {
-            const reservations = await reservationsService.getAvailability()
+            const reservations = await reservationsService.getAvailability(
+              from && to ? { from, to } : {}
+            )
 
             if (requestId !== this.availabilityRequestId) {
               return reservations
             }
 
             this.availabilityReservations = reservations
+            this.availabilityRangeKey = rangeKey
             this.availabilityHasLoaded = true
             this.availabilityStatus = 'success'
 
@@ -190,13 +201,13 @@ export const useReservationsStore =
               this.availabilityLoading = false
             }
 
-            if (promises.get('availability') === fetchPromise) {
-              promises.delete('availability')
+            if (promises.get(promiseKey) === fetchPromise) {
+              promises.delete(promiseKey)
             }
           }
         })()
 
-        promises.set('availability', fetchPromise)
+        promises.set(promiseKey, fetchPromise)
 
         return fetchPromise
       },

@@ -8,6 +8,10 @@ import {
   parseReservationDateTime
 } from '@/utils/reservationTime'
 import { getReservationScheduleError } from '@/utils/reservationRules'
+import {
+  getReservationDateError,
+  getReservationPolicyRules
+} from '@/utils/reservationRules'
 import { useAccessibleDialog } from '@/composables/useAccessibleDialog'
 
 const props = defineProps({
@@ -72,6 +76,7 @@ const canSubmit = computed(() => {
     props.policy !== null
   )
 })
+const policyRules = computed(() => getReservationPolicyRules(props.policy))
 
 const getDefaultActivityId = () => {
   return props.activities[0]?.id || null
@@ -122,7 +127,9 @@ watch(
       slot.date ||
       getBusinessDateKey()
 
-    form.value.durationMinutes = 60
+    form.value.durationMinutes = policyRules.value.allowedDurations.includes(60)
+      ? 60
+      : policyRules.value.allowedDurations[0]
 
     form.value.activityId =
       slot.resource?.reservationMode === 'OPEN_USE'
@@ -215,11 +222,24 @@ const validateForm = () => {
   if (form.value.hour) {
     const scheduleError = getReservationScheduleError({
       hour: form.value.hour,
-      durationMinutes: form.value.durationMinutes
+      durationMinutes: form.value.durationMinutes,
+      policy: props.policy
     })
 
     if (scheduleError) {
       errors[scheduleError.field] = scheduleError.message
+    }
+  }
+
+  if (form.value.date) {
+    const dateError = getReservationDateError({
+      date: form.value.date,
+      policy: props.policy,
+      today: getBusinessDateKey()
+    })
+
+    if (dateError) {
+      errors.date = dateError
     }
   }
 
@@ -355,6 +375,7 @@ const { dialogRef, onKeydown } = useAccessibleDialog({
           :initial-date="form.date"
           :initial-hour="form.hour"
           :initial-duration="form.durationMinutes"
+          :policy="policy"
           @update="handleDateTimeUpdate"
         />
 

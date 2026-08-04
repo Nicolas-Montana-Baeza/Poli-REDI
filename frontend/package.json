@@ -3,6 +3,9 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "engines": {
+    "node": "^20.19.0 || ^22.13.0 || >=24.0.0"
+  },
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -12,6 +15,7 @@
   "dependencies": {
     "@azure/msal-browser": "^5.11.0",
     "axios": "^1.16.1",
+    "lucide-vue-next": "^1.0.0",
     "pinia": "^3.0.4",
     "vue": "^3.5.32",
     "vue-router": "^5.0.7"

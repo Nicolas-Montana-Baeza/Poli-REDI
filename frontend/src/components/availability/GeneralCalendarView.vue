@@ -1,6 +1,7 @@
 <script setup>
 import { computed } from 'vue'
 import AvailabilityTypeChip from './AvailabilityTypeChip.vue'
+import WorkshopEnrollmentBadge from './WorkshopEnrollmentBadge.vue'
 import {
   formatReservationTimeRange,
   getReservationDateKey,
@@ -11,6 +12,10 @@ import {
   getAvailabilityDisplayTitle,
   getAvailabilityType
 } from '@/utils/availabilityType'
+import {
+  getWorkshopEnrollmentLabel,
+  isWorkshopAvailabilityItem
+} from '@/utils/workshopEnrollment'
 
 const props = defineProps({
   resources: {
@@ -101,12 +106,17 @@ const statusFor = (reservation) => {
 
   return getReservationDisplayStatus(reservation)
 }
+const showWorkshopEnrollment = (reservation) =>
+  isWorkshopAvailabilityItem(reservation)
 
 const accessibleLabel = (reservation) => {
   return [
     typeFor(reservation).label,
     titleFor(reservation),
     statusFor(reservation).label,
+    showWorkshopEnrollment(reservation)
+      ? getWorkshopEnrollmentLabel(reservation)
+      : '',
     formatReservationTimeRange(
       reservation.startTime,
       reservation.durationMinutes
@@ -219,11 +229,18 @@ const selectReservation = (reservation) => {
 
             <div class="reservation-indicators">
               <span
+                v-if="!showWorkshopEnrollment(reservation)"
                 class="status-pill"
                 :class="statusFor(reservation).className"
               >
                 {{ statusFor(reservation).label }}
               </span>
+
+              <WorkshopEnrollmentBadge
+                v-else
+                :item="reservation"
+                aria-hidden
+              />
 
               <AvailabilityTypeChip
                 :item="reservation"
