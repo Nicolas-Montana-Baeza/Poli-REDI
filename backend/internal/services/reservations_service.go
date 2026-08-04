@@ -59,6 +59,7 @@ func GetAvailabilityItems() ([]models.AvailabilityItem, error) {
 		items = append(items, models.AvailabilityItem{
 			ID:                   reservation.ID,
 			AvailabilityKey:      "reservation-" + strconv.Itoa(reservation.ID),
+			AvailabilityKind:     reservationAvailabilityKind(reservation),
 			UserID:               reservation.UserID,
 			ResourceID:           reservation.ResourceID,
 			StartTime:            reservation.StartTime,
@@ -85,6 +86,7 @@ func GetAvailabilityItems() ([]models.AvailabilityItem, error) {
 		items = append(items, models.AvailabilityItem{
 			ID:                  activity.ID,
 			AvailabilityKey:     "scheduled-" + strconv.Itoa(activity.ID),
+			AvailabilityKind:    models.AvailabilityKindScheduled,
 			UserID:              activity.CreatedByUserID,
 			ResourceID:          activity.ResourceID,
 			StartTime:           activity.StartTime,
@@ -104,6 +106,61 @@ func GetAvailabilityItems() ([]models.AvailabilityItem, error) {
 	})
 
 	return items, nil
+}
+
+func reservationAvailabilityKind(reservation models.Reservation) string {
+	if reservation.TargetParticipants != nil {
+		return models.AvailabilityKindGroupReservation
+	}
+
+	return models.AvailabilityKindReservation
+}
+
+// SanitizeAvailabilityItemsForAudience applies the shared-calendar audience
+// contract. Administrators keep operational detail. A regular user can identify
+// their own reservation, while reservations owned by somebody else expose only
+// occupancy and a non-personal kind. Institutional programming keeps its public
+// category but not the creator's identity or its internal title.
+func SanitizeAvailabilityItemsForAudience(
+	items []models.AvailabilityItem,
+	audience models.LocalAuthUser,
+) []models.AvailabilityItem {
+	sanitized := append([]models.AvailabilityItem(nil), items...)
+
+	if audience.IsAdmin {
+		return sanitized
+	}
+
+	for index := range sanitized {
+		item := &sanitized[index]
+		isOwnReservation := !item.IsScheduledActivity && item.UserID == audience.ID
+
+		item.UserFullName = ""
+		item.UserEmail = ""
+		item.UserRUT = ""
+
+		if item.IsScheduledActivity {
+			item.UserID = 0
+			item.Title = "Actividad institucional"
+			item.CanEditTarget = false
+			continue
+		}
+
+		if isOwnReservation {
+			continue
+		}
+
+		item.UserID = 0
+		item.Title = "Reserva"
+		item.ParticipantCount = 0
+		item.MinimumParticipants = 0
+		item.TargetParticipants = nil
+		item.Capacity = nil
+		item.ConfirmationDeadline = nil
+		item.CanEditTarget = false
+	}
+
+	return sanitized
 }
 
 func GetMyReservations(userID int) ([]models.Reservation, error) {

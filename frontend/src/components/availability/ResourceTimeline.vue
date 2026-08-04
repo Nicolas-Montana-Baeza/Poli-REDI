@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue'
 
 import ReservationBlock from './ReservationBlock.vue'
+import AvailabilityTypeChip from './AvailabilityTypeChip.vue'
 import {
   getBusinessDateKey,
   getReservationStartMinutes as getReservationStartMinutesFromTime
@@ -415,11 +416,22 @@ const modeLabel = (mode) => {
     <div
       v-if="resource.reservationMode"
       class="mode"
+      :class="{ 'open-use-mode': isOpenUse }"
     >
-      Modo:
-      <strong>
-        {{ modeLabel(resource.reservationMode) }}
-      </strong>
+      <template v-if="isOpenUse">
+        <span class="mode-caption">
+          La intensidad indica la cantidad de reservas simultáneas.
+        </span>
+
+        <AvailabilityTypeChip :resource="resource" />
+      </template>
+
+      <template v-else>
+        Modo:
+        <strong>
+          {{ modeLabel(resource.reservationMode) }}
+        </strong>
+      </template>
     </div>
 
     <!-- TIMELINE -->
@@ -488,6 +500,7 @@ const modeLabel = (mode) => {
           v-for="reservation in resourceReservations"
           :key="reservation.availabilityKey || reservation.id"
           :reservation="reservation"
+          :resource="resource"
           :start-hour="startHour"
           :pixels-per-minute="pixelsPerMinute"
           :top-offset="timelineTopPadding"
@@ -592,6 +605,23 @@ const modeLabel = (mode) => {
 
 .mode strong {
   color: var(--color-text);
+}
+
+.mode-caption {
+  min-width: 0;
+  font-size: 12px;
+}
+
+.open-use-mode {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.open-use-mode :deep(.availability-type-chip) {
+  flex: 0 0 auto;
+  max-width: none;
 }
 
 /* TIMELINE */

@@ -11,10 +11,11 @@ import (
 )
 
 var (
-	ErrWorkshopNotFound        = errors.New("taller no encontrado o no disponible")
-	ErrWorkshopCapacity        = errors.New("el taller no tiene cupos disponibles")
-	ErrWorkshopScheduleInvalid = errors.New("el taller no tiene un horario valido")
-	ErrWorkshopInternal        = errors.New("no se pudo procesar la inscripción al taller")
+	ErrWorkshopNotFound         = errors.New("taller no encontrado o no disponible")
+	ErrWorkshopCapacity         = errors.New("el taller no tiene cupos disponibles")
+	ErrWorkshopScheduleInvalid  = errors.New("el taller no tiene un horario valido")
+	ErrWorkshopEnrollmentClosed = errors.New("el taller ya no admite cambios de inscripcion")
+	ErrWorkshopInternal         = errors.New("no se pudo procesar la inscripción al taller")
 )
 
 type WorkshopScheduleConflictError struct {
@@ -294,36 +295,24 @@ func EnrollUserInWorkshop(
 		return models.Workshop{}, false, err
 	}
 
-	result, err := tx.ExecContext(
-		ctx,
-		`
-		UPDATE dbo.workshop_enrollments
-		   SET status = 'CONFIRMED'
-		 WHERE id = (
-			SELECT TOP (1) id FROM dbo.workshop_enrollments WITH (UPDLOCK, HOLDLOCK)
-			WHERE workshop_id = @p1 AND user_id = @p2 AND status = 'CANCELLED'
-			ORDER BY id DESC
-		 );
-		`,
-		workshopID,
-		userID,
-	)
+	var enrollmentID int
+	if err = tx.QueryRowContext(ctx, `
+		DECLARE @created TABLE (id INT NOT NULL);
+		INSERT INTO dbo.workshop_enrollments (workshop_id, user_id, status)
+		OUTPUT inserted.id INTO @created(id)
+		VALUES (@p1, @p2, 'CONFIRMED');
+		SELECT id FROM @created;`,
+		workshopID, userID,
+	).Scan(&enrollmentID); err != nil {
+		return models.Workshop{}, false, err
+	}
 
-	if err != nil {
+	if _, err = tx.ExecContext(ctx, `
+		INSERT INTO dbo.audit_logs (user_id, action, entity_type, entity_id, description)
+		VALUES (@p1, 'WORKSHOP_ENROLLMENT_CREATED', 'workshop_enrollments', @p2, 'Inscripcion a taller registrada');`,
+		userID, enrollmentID,
+	); err != nil {
 		return models.Workshop{}, false, err
-	}
-	affected, err := result.RowsAffected()
-	if err != nil {
-		return models.Workshop{}, false, err
-	}
-	if affected == 0 {
-		if _, err = tx.ExecContext(ctx, `
-			INSERT INTO dbo.workshop_enrollments (workshop_id, user_id, status)
-			VALUES (@p1, @p2, 'CONFIRMED');`,
-			workshopID, userID,
-		); err != nil {
-			return models.Workshop{}, false, err
-		}
 	}
 
 	if err := tx.Commit(); err != nil {
@@ -332,6 +321,104 @@ func EnrollUserInWorkshop(
 
 	workshop, err := GetWorkshopForUser(workshopID, userID)
 	return workshop, true, err
+}
+
+func WithdrawUserFromWorkshop(
+	workshopID int,
+	userID int,
+) (models.WorkshopEnrollmentChange, error) {
+	ctx := context.Background()
+	tx, err := database.DB.BeginTx(
+		ctx,
+		&sql.TxOptions{Isolation: sql.LevelSerializable},
+	)
+	if err != nil {
+		return models.WorkshopEnrollmentChange{}, err
+	}
+	defer tx.Rollback()
+
+	var lockedUserID int
+	if err := tx.QueryRowContext(ctx,
+		`SELECT id FROM dbo.users WITH (UPDLOCK, HOLDLOCK) WHERE id = @p1;`,
+		userID,
+	).Scan(&lockedUserID); err != nil {
+		return models.WorkshopEnrollmentChange{}, err
+	}
+
+	var isActive bool
+	if err := tx.QueryRowContext(ctx, `
+		SELECT is_active
+		FROM dbo.workshops WITH (UPDLOCK, HOLDLOCK)
+		WHERE id = @p1;`, workshopID,
+	).Scan(&isActive); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return models.WorkshopEnrollmentChange{}, ErrWorkshopNotFound
+		}
+		return models.WorkshopEnrollmentChange{}, err
+	}
+	if !isActive {
+		return models.WorkshopEnrollmentChange{}, ErrWorkshopEnrollmentClosed
+	}
+
+	var enrollmentID int
+	err = tx.QueryRowContext(ctx, `
+		SELECT id
+		FROM dbo.workshop_enrollments WITH (UPDLOCK, HOLDLOCK)
+		WHERE workshop_id = @p1 AND user_id = @p2 AND status = 'CONFIRMED';`,
+		workshopID, userID,
+	).Scan(&enrollmentID)
+
+	changed := true
+	if errors.Is(err, sql.ErrNoRows) {
+		changed = false
+	} else if err != nil {
+		return models.WorkshopEnrollmentChange{}, err
+	}
+
+	if changed {
+		result, err := tx.ExecContext(ctx, `
+			UPDATE dbo.workshop_enrollments
+			SET status = 'CANCELLED'
+			WHERE id = @p1 AND status = 'CONFIRMED';`, enrollmentID)
+		if err != nil {
+			return models.WorkshopEnrollmentChange{}, err
+		}
+		affected, err := result.RowsAffected()
+		if err != nil {
+			return models.WorkshopEnrollmentChange{}, err
+		}
+		if affected != 1 {
+			return models.WorkshopEnrollmentChange{}, ErrWorkshopInternal
+		}
+
+		if _, err = tx.ExecContext(ctx, `
+			INSERT INTO dbo.audit_logs (user_id, action, entity_type, entity_id, description)
+			VALUES (@p1, 'WORKSHOP_ENROLLMENT_CANCELLED', 'workshop_enrollments', @p2, 'Desinscripcion de taller registrada');`,
+			userID, enrollmentID,
+		); err != nil {
+			return models.WorkshopEnrollmentChange{}, err
+		}
+	}
+
+	var enrolledCount int
+	if err := tx.QueryRowContext(ctx, `
+		SELECT COUNT(*)
+		FROM dbo.workshop_enrollments WITH (UPDLOCK, HOLDLOCK)
+		WHERE workshop_id = @p1 AND status = 'CONFIRMED';`, workshopID,
+	).Scan(&enrolledCount); err != nil {
+		return models.WorkshopEnrollmentChange{}, err
+	}
+
+	if err := tx.Commit(); err != nil {
+		return models.WorkshopEnrollmentChange{}, err
+	}
+
+	return models.WorkshopEnrollmentChange{
+		WorkshopID:    workshopID,
+		IsEnrolled:    false,
+		EnrolledCount: enrolledCount,
+		Changed:       changed,
+	}, nil
 }
 
 func GetWorkshopForUser(

@@ -12,6 +12,11 @@ import {
   X
 } from 'lucide-vue-next'
 import { reservationsService } from '@/services/reservations.service'
+import AvailabilityTypeChip from './AvailabilityTypeChip.vue'
+import {
+  getAvailabilityDisplayTitle,
+  getAvailabilityType
+} from '@/utils/availabilityType'
 import {
   formatReservationDate,
   formatReservationTimeRange,
@@ -57,16 +62,45 @@ watch(() => props.reservation, value => {
   copyFeedback.value = ''
 }, { immediate: true })
 
-const isInstitutional = computed(() => props.reservation?.isWorkshop || props.reservation?.isScheduledActivity)
+const availabilityType = computed(() =>
+  getAvailabilityType(props.reservation)
+)
+const isInstitutional = computed(() =>
+  ['workshop', 'institutional'].includes(availabilityType.value.family)
+)
+const isWorkshop = computed(() =>
+  availabilityType.value.key === 'workshop'
+)
 const date = computed(() => formatReservationDate(props.reservation?.startTime))
 const time = computed(() => formatReservationTimeRange(props.reservation?.startTime, props.reservation?.durationMinutes || 60))
-const title = computed(() => props.reservation?.title || (isInstitutional.value ? 'Actividad programada' : 'Reserva'))
-const status = computed(() => {
-  if (props.workshopEnrollmentMode) return getReservationDisplayStatus(props.reservation)
-  if (props.reservation?.isWorkshop) return { label: 'Taller programado', className: 'workshop' }
-  if (props.reservation?.isScheduledActivity) return { label: 'Actividad programada', className: 'scheduled' }
-  return getReservationDisplayStatus(props.reservation)
+const title = computed(() => getAvailabilityDisplayTitle(
+  props.reservation,
+  isInstitutional.value ? 'Actividad programada' : 'Reserva'
+))
+const status = computed(() =>
+  getReservationDisplayStatus(props.reservation)
+)
+const showInstitutionalStatus = computed(() => {
+  if (!isInstitutional.value || !props.workshopEnrollmentMode) return false
+
+  return ['CANCELLED', 'REJECTED', 'EXPIRED', 'COMPLETED'].includes(
+    String(props.reservation?.status || '').toUpperCase()
+  )
 })
+const institutionalDescription = computed(() => {
+  if (props.workshopEnrollmentMode) {
+    return 'Información de tu inscripción al taller.'
+  }
+
+  return isWorkshop.value
+    ? 'Información del taller seleccionado.'
+    : 'Información de la actividad seleccionada.'
+})
+const institutionalCallout = computed(() =>
+  isWorkshop.value
+    ? 'Este horario está reservado para el taller y no admite reservas particulares.'
+    : 'Este horario está reservado para la actividad y no admite reservas particulares.'
+)
 const participantCount = computed(() => Number(props.reservation?.participantCount) || 0)
 const target = computed(() => Number(props.reservation?.targetParticipants) || 0)
 const minimum = computed(() => Number(props.reservation?.minimumParticipants) || 0)
@@ -181,9 +215,15 @@ const shareJoinCode = async () => {
       <article ref="dialogRef" class="detail-modal" role="dialog" aria-modal="true" aria-labelledby="reservation-detail-title" tabindex="-1" @keydown="onKeydown">
         <header class="detail-header">
           <div class="header-copy">
-            <span v-if="isInstitutional" class="eyebrow">Actividad institucional</span>
-            <h2 id="reservation-detail-title">{{ participationMode ? 'Detalle de la invitación' : isInstitutional ? title : 'Detalle de reserva' }}</h2>
-            <p>{{ participationMode ? 'Revisa el estado y confirma tu participación.' : workshopEnrollmentMode ? 'Información de tu inscripción al taller.' : isInstitutional ? 'Información del taller seleccionado.' : 'Información de la reserva seleccionada.' }}</p>
+            <div v-if="isInstitutional" class="detail-title-row">
+              <AvailabilityTypeChip
+                :meta="availabilityType"
+                aria-hidden
+              />
+              <h2 id="reservation-detail-title">{{ title }}</h2>
+            </div>
+            <h2 v-else id="reservation-detail-title">{{ participationMode ? 'Detalle de la invitación' : 'Detalle de reserva' }}</h2>
+            <p>{{ participationMode ? 'Revisa el estado y confirma tu participación.' : isInstitutional ? institutionalDescription : 'Información de la reserva seleccionada.' }}</p>
           </div>
           <button class="close-button" type="button" aria-label="Cerrar" @click="closeDialog">
             <X class="icon close-icon" :size="22" aria-hidden="true" />
@@ -193,9 +233,17 @@ const shareJoinCode = async () => {
         <div class="detail-body">
           <template v-if="reservation">
             <section v-if="!participationMode" class="summary-card">
-              <div class="summary-heading">
+              <div v-if="isInstitutional" class="institutional-resource">
+                <MapPin class="icon note-icon" :size="20" aria-hidden="true" />
+                <span>
+                  <small>Instalación</small>
+                  <strong>{{ reservation.resourceName || 'Instalación' }}</strong>
+                </span>
+                <span v-if="showInstitutionalStatus" class="status-pill" :class="status.className">{{ status.label }}</span>
+              </div>
+              <div v-else class="summary-heading">
                 <div class="summary-copy">
-                  <span v-if="!isInstitutional" class="field-label">Actividad</span>
+                  <span class="field-label">Actividad</span>
                   <h3>{{ title }}</h3>
                   <p>{{ reservation.resourceName || 'Instalación' }}</p>
                 </div>
@@ -231,15 +279,11 @@ const shareJoinCode = async () => {
                 </div>
               </div>
 
-              <p v-if="isInstitutional && !workshopEnrollmentMode" class="resource-note">
-                <MapPin class="icon note-icon" :size="20" aria-hidden="true" />
-                Instalación reservada para este taller
-              </p>
             </section>
 
             <div v-if="isInstitutional && !workshopEnrollmentMode" class="info-callout">
               <Info class="icon callout-icon" :size="20" aria-hidden="true" />
-              <span>Este horario está reservado para el taller y no admite reservas particulares.</span>
+              <span>{{ institutionalCallout }}</span>
             </div>
 
             <section v-else-if="target" class="participants-card">
@@ -397,7 +441,6 @@ const shareJoinCode = async () => {
   font-size: 14px;
   line-height: 1.5;
 }
-.eyebrow,
 .field-label {
   color: var(--color-primary, #2563eb);
   font-size: 12px;
@@ -405,6 +448,13 @@ const shareJoinCode = async () => {
   letter-spacing: .04em;
   text-transform: uppercase;
 }
+.detail-title-row {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.detail-title-row h2 { min-width: 0; }
 .close-button {
   width: 44px;
   height: 44px;
@@ -464,6 +514,31 @@ const shareJoinCode = async () => {
   gap: 14px;
 }
 .summary-copy { min-width: 0; }
+.institutional-resource {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 2px;
+}
+.institutional-resource > span:not(.status-pill) {
+  min-width: 0;
+  display: grid;
+  flex: 1 1 auto;
+  gap: 3px;
+}
+.institutional-resource small {
+  color: var(--color-text-muted, #60708a);
+  font-size: 12px;
+}
+.institutional-resource strong {
+  overflow-wrap: anywhere;
+  color: var(--color-text, #14213d);
+  font-size: 14px;
+}
+.institutional-resource .note-icon {
+  color: var(--color-primary, #2563eb);
+}
 .summary-card h3,
 .participants-card h3 {
   margin: 3px 0 0;
@@ -501,7 +576,6 @@ const shareJoinCode = async () => {
   background: var(--color-surface-muted, #f7f9fc);
 }
 .fact .icon,
-.resource-note .icon,
 .info-callout .icon,
 .permission-note .icon {
   fill: none;
@@ -517,15 +591,6 @@ const shareJoinCode = async () => {
 }
 .fact small { color: var(--color-text-muted, #60708a); font-size: 12px; }
 .fact strong { overflow-wrap: anywhere; color: var(--color-text, #14213d); font-size: 13px; line-height: 1.35; }
-.fact .icon,
-.resource-note .icon { color: var(--color-primary, #2563eb); }
-.resource-note {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  color: var(--color-text, #14213d) !important;
-  font-weight: 750;
-}
 .info-callout,
 .permission-note {
   display: flex;
@@ -539,6 +604,22 @@ const shareJoinCode = async () => {
   font-size: 14px;
   font-weight: 650;
   line-height: 1.5;
+}
+.fact > svg.fact-icon {
+  width: 20px !important;
+  height: 20px !important;
+  min-width: 20px;
+  min-height: 20px;
+  max-width: 20px;
+  max-height: 20px;
+  flex: 0 0 20px;
+  box-sizing: border-box;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--color-primary, #2563eb);
+  overflow: visible;
 }
 .info-callout .icon,
 .permission-note .icon { color: var(--color-primary, #2563eb); margin-top: 1px; }
@@ -673,6 +754,8 @@ const shareJoinCode = async () => {
   .facts { grid-template-columns: 1fr; }
   .fact { align-items: center; }
   .summary-heading { align-items: flex-start; }
+  .institutional-resource { align-items: flex-start; flex-wrap: wrap; }
+  .institutional-resource .status-pill { margin-left: 30px; }
   .status-pill { white-space: normal; text-align: center; }
   .target-controls { align-items: stretch; flex-direction: column; }
   .join-code-heading { align-items: stretch; flex-direction: column; }

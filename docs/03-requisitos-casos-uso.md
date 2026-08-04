@@ -45,12 +45,43 @@ gantt
    terceros o en estados terminales.
 6. La agenda personal rechaza solapes reales por reservas propias o
    participaciones confirmadas; los extremos contiguos se permiten.
+7. Un skeleton solo sustituye contenido durante la primera carga y cuando no
+   existen datos. En un refresh se conservan los datos con un indicador
+   discreto; en una mutacion se usa un spinner local.
+8. Los skeletons conservan la geometria de la superficie, reservan 16:9 para
+   medios, exponen el estado de carga mediante una region accesible y respetan
+   la preferencia de movimiento reducido.
+9. Si Historial obtiene una de sus fuentes y falla la otra, muestra los datos
+   disponibles junto con una advertencia parcial.
+10. Join y los modales que ya poseen el objeto de detalle no reemplazan el
+    contenido por skeleton. Las acciones de confirmar, retirar, cancelar,
+    copiar, rotar o guardar mantienen el contexto visible.
+11. Cada bloque comunica por separado su tipo u origen y su estado. Los tipos
+    admitidos son Reserva, Reserva grupal, Uso libre, Taller, Clase,
+    Entrenamiento, Campeonato, Evento e Institucional; un chip de tipo no
+    sustituye los estados Pendiente, Confirmada, Cancelada o Programada.
+12. La leyenda `Tipos de bloque` y los chips usan el mismo helper de
+    clasificacion en Por recurso y Agenda del dia. `OPEN_USE` mantiene el
+    heatmap y explica textualmente que la intensidad representa reservas
+    simultaneas.
+13. La informacion de tipo y estado debe entenderse sin depender solo del
+    color. Los chips no reciben foco y cada bloque interactivo expone un nombre
+    accesible completo con tipo, titulo seguro, estado, horario y accion.
+14. Un usuario normal que consulta una reserva ajena solo ve ocupacion: titulo
+    `Reserva`, horario, recurso y el tipo grupal seguro si corresponde. No ve
+    PII, actividad, participantes, minimo, objetivo, capacidad ni plazo.
+15. La reserva propia conserva su informacion y acciones autorizadas; el
+    administrador recibe detalle operacional conforme a su rol. Una actividad
+    programada conserva su categoria mediante `activityType`, con
+    `Institucional` como alternativa generica.
+16. Este incremento no agrega bloqueos futuros entre talleres, clases,
+    entrenamientos, campeonatos, eventos u otras actividades institucionales.
 
 * **HU-01 (Estudiante - Consultar Disponibilidad):** *Como estudiante, quiero consultar la disponibilidad de las canchas por fecha y hora para saber cuándo puedo reservar.*
 * **HU-02 (Estudiante - Crear Reserva Particular):** *Como estudiante, quiero reservar una cancha ingresando mis datos para asegurar un bloque horario de juego.*
 * **HU-03 (Estudiante - Flujo Grupal):** *Como estudiante organizador, quiero invitar a 9 compañeros mediante un código de unión para alcanzar el quorum mínimo requerido.*
 * **HU-04 (Administrador - Cancelación Excepcional):** *Como administrador, quiero cancelar una reserva particular ante un evento institucional prioritario para reasignar la cancha.*
-* **HU-05 (Estudiante - Inscripción a Talleres):** *Como estudiante, quiero inscribirme a talleres deportivos semanales según los cupos disponibles.*
+* **HU-05 (Estudiante - Gestionar Inscripción a Talleres):** *Como estudiante, quiero inscribirme y cancelar mi propia inscripción a talleres deportivos para administrar mi participación sin perder su trazabilidad.*
 * **HU-07 (Estudiante - Consultar Actividad Personal):** *Como estudiante, quiero consultar mis reservas e inscripciones a talleres para reconocer mi actividad registrada sin que el sistema infiera asistencia a clases o eventos.*
 * **HU-08 (Administrador - Consultar Historial Institucional):** *Como administrador, quiero consultar clases, actividades programadas y otros eventos históricos para revisar la operación institucional.*
 
@@ -76,6 +107,9 @@ gantt
    se reutiliza obligatoriamente el detalle de reserva para talleres o eventos.
 9. Los estados inactivos o cancelados que formen parte de la trazabilidad siguen
    siendo consultables por el actor autorizado.
+10. Una inscripción de taller `CANCELLED` aparece como `Inscripción cancelada`,
+    deja de consumir cupo y no bloquea solapes; una reinscripción posterior se
+    registra como un episodio nuevo `CONFIRMED`.
 * **HU-06 (Perfil - Registrar RUT):** *Como usuario normal, quiero registrar una vez mi RUT para habilitar operaciones personales sin que el dato pueda ser reemplazado posteriormente.*
 
 ---
@@ -102,7 +136,7 @@ gantt
   3. El servidor cancela automáticamente la reserva particular afectada.
   4. El sistema emite una notificación interna explicativa al alumno desasociado.
 
-### CU-03: Inscribirse en un Taller
+### CU-03: Gestionar una Inscripción a Taller
 * **Actor:** Usuario autenticado.
 * **Precondición:** Usuario normal con RUT válido, o administrador; taller activo con ocurrencias válidas y cupo.
 * **Flujo Principal:**
@@ -111,6 +145,20 @@ gantt
   3. Usa intervalos semiabiertos; los horarios contiguos se permiten.
   4. Si no existe solape, crea la inscripción (`201`) o devuelve la inscripción ya vigente de forma idempotente (`200`).
 * **Alternativa:** Si existe solape, responde `409` con código y detalle estructurado del taller en conflicto. Inscripciones `CANCELLED` y talleres inactivos no bloquean.
+* **Cancelación propia:**
+  1. El usuario autenticado solicita `DELETE /api/workshops/:id/enrollment`.
+  2. El sistema identifica al actor por la sesión y busca únicamente su episodio
+     `CONFIRMED`; no admite indicar ni retirar a un tercero.
+  3. No se exige RUT y no se aplica corte horario mientras el taller carezca de
+     período formal.
+  4. Si el taller está activo, el episodio cambia a `CANCELLED`, libera cupo,
+     deja de bloquear solapes y registra `WORKSHOP_ENROLLMENT_CANCELLED`.
+  5. Repetir la operación es idempotente. Si el taller está inactivo, responde
+     `409` con `WORKSHOP_ENROLLMENT_CLOSED`.
+  6. Una reinscripción posterior crea un episodio nuevo `CONFIRMED`, registra
+     `WORKSHOP_ENROLLMENT_CREATED` y no reactiva el episodio cancelado.
+* **Resultado:** El historial conserva ambos episodios y presenta el cancelado
+  como `Inscripción cancelada`, sin convertirlo en evidencia de asistencia.
 
 ### CU-04: Registrar RUT
 * **Actor:** Usuario normal autenticado.

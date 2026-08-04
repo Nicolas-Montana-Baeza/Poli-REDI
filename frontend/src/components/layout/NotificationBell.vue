@@ -138,10 +138,12 @@ onBeforeUnmount(() => {
           v-if="notificationsStore.loading"
           class="notification-skeleton"
           aria-label="Cargando notificaciones"
+          role="status"
+          aria-live="polite"
         >
           <SkeletonLoader
-            variant="card"
-            :items="2"
+            variant="compact-rows"
+            :items="3"
           />
         </div>
 

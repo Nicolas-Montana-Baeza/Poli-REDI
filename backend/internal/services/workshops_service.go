@@ -51,6 +51,26 @@ func EnrollInWorkshop(
 	return workshop, created, nil
 }
 
+func WithdrawFromWorkshop(
+	workshopID int,
+	user models.LocalAuthUser,
+) (models.WorkshopEnrollmentChange, error) {
+	if workshopID <= 0 {
+		return models.WorkshopEnrollmentChange{}, errors.New("no se pudo identificar el taller")
+	}
+
+	if user.ID <= 0 {
+		return models.WorkshopEnrollmentChange{}, errors.New("usuario autenticado es obligatorio")
+	}
+
+	change, err := repositories.WithdrawUserFromWorkshop(workshopID, user.ID)
+	if err != nil {
+		return models.WorkshopEnrollmentChange{}, mapWorkshopError(err)
+	}
+
+	return change, nil
+}
+
 func mapWorkshopError(err error) error {
 	if errors.Is(err, sql.ErrNoRows) {
 		return repositories.ErrWorkshopNotFound
@@ -79,7 +99,8 @@ func mapWorkshopError(err error) error {
 	if errors.As(err, &conflict) ||
 		errors.Is(err, repositories.ErrWorkshopNotFound) ||
 		errors.Is(err, repositories.ErrWorkshopCapacity) ||
-		errors.Is(err, repositories.ErrWorkshopScheduleInvalid) {
+		errors.Is(err, repositories.ErrWorkshopScheduleInvalid) ||
+		errors.Is(err, repositories.ErrWorkshopEnrollmentClosed) {
 		return err
 	}
 	return repositories.ErrWorkshopInternal

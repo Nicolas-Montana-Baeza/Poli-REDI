@@ -13,6 +13,8 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
+var getAvailabilityItems = services.GetAvailabilityItems
+
 func GetReservations(c *fiber.Ctx) error {
 	reservations, err := services.GetReservations()
 
@@ -34,7 +36,7 @@ func GetAvailabilityReservations(c *fiber.Ctx) error {
 		})
 	}
 
-	items, err := services.GetAvailabilityItems()
+	items, err := getAvailabilityItems()
 
 	if err != nil {
 		return c.Status(500).JSON(fiber.Map{
@@ -51,19 +53,7 @@ func GetAvailabilityReservations(c *fiber.Ctx) error {
 	}
 
 	if !user.IsAdmin {
-		// La disponibilidad es compartida, pero los datos personales de reservas
-		// no. Admin ve detalle operacional; usuario normal solo ve ocupacion y
-		// bloques institucionales necesarios para decidir disponibilidad.
-		for index := range items {
-			items[index].UserID = 0
-			items[index].UserFullName = ""
-			items[index].UserEmail = ""
-			items[index].UserRUT = ""
-
-			if items[index].IsScheduledActivity {
-				items[index].Title = "Actividad institucional"
-			}
-		}
+		items = services.SanitizeAvailabilityItemsForAudience(items, user)
 	}
 
 	return c.JSON(items)

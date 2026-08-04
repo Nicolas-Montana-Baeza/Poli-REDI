@@ -8,7 +8,7 @@ import {
 } from 'lucide-vue-next'
 
 import FacilityCarousel from '@/components/dashboard/FacilityCarousel.vue'
-import SkeletonLoader from '@/components/ui/SkeletonLoader.vue'
+import AsyncRegion from '@/components/ui/AsyncRegion.vue'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useResourcesStore } from '@/stores/resources'
@@ -128,58 +128,58 @@ const nextReservationStatus = computed(() =>
           </RouterLink>
         </div>
 
-        <div
-          v-if="reservationsStore.myLoading"
-          aria-label="Cargando próxima reserva"
+        <AsyncRegion
+          :loading="reservationsStore.myLoading"
+          :error="reservationsStore.myLoadingError"
+          :empty="!nextReservation"
+          loading-label="Cargando próxima reserva"
+          skeleton-variant="compact-rows"
+          :skeleton-items="2"
         >
-          <SkeletonLoader variant="reservations" :items="1" />
-        </div>
+          <template #error="{ error }">
+            <div class="compact-state error" role="alert">{{ error }}</div>
+          </template>
 
-        <div
-          v-else-if="reservationsStore.myLoadingError"
-          class="compact-state error"
-          role="alert"
-        >
-          {{ reservationsStore.myLoadingError }}
-        </div>
+          <template #empty>
+            <div class="compact-state">
+              <h3>Aún no tienes reservas próximas</h3>
+              <p>Explora las instalaciones y agenda tu próxima actividad.</p>
+            </div>
+          </template>
 
-        <div v-else-if="nextReservation" class="next-content">
-          <StatusBadge
-            :status="nextReservation.status"
-            :label="nextReservationStatus.label"
-          />
+          <div class="next-content">
+            <StatusBadge
+              :status="nextReservation.status"
+              :label="nextReservationStatus.label"
+            />
 
-          <div>
-            <h3>{{ nextReservation.title || 'Reserva' }}</h3>
-            <p>{{ nextReservation.resourceName || 'Recurso' }}</p>
+            <div>
+              <h3>{{ nextReservation.title || 'Reserva' }}</h3>
+              <p>{{ nextReservation.resourceName || 'Recurso' }}</p>
+            </div>
+
+            <div class="next-meta">
+              <span>
+                <CalendarDays :size="16" />
+                {{ formatReservationDate(nextReservation.startTime) }}
+              </span>
+              <span>
+                <Clock :size="16" />
+                {{ formatReservationTimeRange(
+                  nextReservation.startTime,
+                  nextReservation.durationMinutes
+                ) }}
+              </span>
+            </div>
+
+            <RouterLink
+              class="app-button secondary detail-link"
+              :to="`/reservations/${nextReservation.id}`"
+            >
+              Ver detalle
+            </RouterLink>
           </div>
-
-          <div class="next-meta">
-            <span>
-              <CalendarDays :size="16" />
-              {{ formatReservationDate(nextReservation.startTime) }}
-            </span>
-            <span>
-              <Clock :size="16" />
-              {{ formatReservationTimeRange(
-                nextReservation.startTime,
-                nextReservation.durationMinutes
-              ) }}
-            </span>
-          </div>
-
-          <RouterLink
-            class="app-button secondary detail-link"
-            :to="`/reservations/${nextReservation.id}`"
-          >
-            Ver detalle
-          </RouterLink>
-        </div>
-
-        <div v-else class="compact-state">
-          <h3>Aún no tienes reservas próximas</h3>
-          <p>Explora las instalaciones y agenda tu próxima actividad.</p>
-        </div>
+        </AsyncRegion>
       </aside>
     </section>
 
@@ -217,33 +217,25 @@ const nextReservationStatus = computed(() =>
         </div>
       </div>
 
-      <div
-        v-if="resourcesStore.loading"
-        aria-label="Cargando instalaciones"
+      <AsyncRegion
+        :loading="resourcesStore.loading"
+        :error="resourcesStore.error"
+        :empty="!filteredFacilities.length"
+        loading-label="Cargando instalaciones"
+        skeleton-variant="media-grid"
+        :skeleton-items="4"
+        :skeleton-columns="4"
+        mobile-carousel
       >
-        <SkeletonLoader variant="dashboard" :items="4" />
-      </div>
+        <template #empty>
+          <div class="state-card empty">
+            <h3>No encontramos instalaciones</h3>
+            <p>Prueba con otro nombre o selecciona una categoría diferente.</p>
+          </div>
+        </template>
 
-      <div
-        v-else-if="resourcesStore.error"
-        class="state-card error"
-        role="alert"
-      >
-        {{ resourcesStore.error }}
-      </div>
-
-      <div
-        v-else-if="!filteredFacilities.length"
-        class="state-card empty"
-      >
-        <h3>No encontramos instalaciones</h3>
-        <p>Prueba con otro nombre o selecciona una categoría diferente.</p>
-      </div>
-
-      <FacilityCarousel
-        v-else
-        :facilities="filteredFacilities"
-      />
+        <FacilityCarousel :facilities="filteredFacilities" />
+      </AsyncRegion>
     </section>
   </main>
 </template>

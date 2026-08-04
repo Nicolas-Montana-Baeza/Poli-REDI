@@ -53,8 +53,7 @@ const mountDashboard = () =>
   mount(DashboardView, {
     global: {
       stubs: {
-        RouterLink: RouterLinkStub,
-        SkeletonLoader: { template: '<div class="skeleton-stub" />' }
+        RouterLink: RouterLinkStub
       }
     }
   })
@@ -142,7 +141,8 @@ describe('DashboardView', () => {
     state.reservations.myLoading = true
     const loadingWrapper = mountDashboard()
     await flushPromises()
-    expect(loadingWrapper.findAll('.skeleton-stub')).toHaveLength(2)
+    expect(loadingWrapper.findAll('.skeleton')).toHaveLength(2)
+    expect(loadingWrapper.findAll('[aria-busy="true"]')).toHaveLength(2)
     loadingWrapper.unmount()
 
     state.resources.loading = false

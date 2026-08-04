@@ -1,7 +1,0 @@
-./activities_handlers.go
-./health_handlers.go
-./me_handler.go
-./notifications_handlers.go
-./reservations_handlers.go
-./resources_handlers.go
-./users_handlers.go

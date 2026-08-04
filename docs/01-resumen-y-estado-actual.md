@@ -49,9 +49,55 @@ El proceso de reserva del Polideportivo institucional (3 canchas y 1 sala multiu
   participacion personal.
 * `007` y `008` son prospectivas y no reescriben reservas historicas.
 
-**Validacion local exacta:** 18 pruebas Node, 77 pruebas Vitest y build frontend
-de produccion aprobados. Siguen pendientes Azure SQL `007`/`008` y el flujo
-online completo con Entra ID/CORS/API.
+**Validacion local exacta:** `go test ./...`, 18 pruebas Node, 119 pruebas
+Vitest, build frontend de produccion y `diff-check` aprobados. El build conserva
+la advertencia conocida
+por un bundle de 531.79 kB. Siguen pendientes Azure SQL `007`/`008`, el flujo
+online completo con Entra ID/CORS/API y QA visual en 377, 500, 768 y 1440 px.
+
+### Tipos de bloque y privacidad de disponibilidad
+
+* La taxonomia visual distingue `Reserva`, `Reserva grupal`, `Uso libre`,
+  `Taller`, `Clase`, `Entrenamiento`, `Campeonato`, `Evento` e
+  `Institucional`. El chip comunica el tipo u origen del bloque; `Pendiente`,
+  `Confirmada`, `Cancelada` o `Programada` se mantienen como estado separado.
+* Un helper unico resuelve el tipo y los componentes
+  `AvailabilityTypeChip`/`AvailabilityTypeLegend` lo presentan de forma
+  consistente en las vistas Por recurso y Agenda del dia. La leyenda se titula
+  `Tipos de bloque`.
+* `OPEN_USE` conserva su mapa de intensidad y agrega un chip en la cabecera del
+  recurso con la explicacion de que la intensidad representa reservas
+  simultaneas; no convierte cada asistencia en una tarjeta individual.
+* El backend entrega `availabilityKind` con los valores
+  `RESERVATION`, `GROUP_RESERVATION` o `SCHEDULED_ACTIVITY`. Para un usuario
+  normal, una reserva ajena conserva solamente el tipo grupal seguro cuando
+  corresponde y se presenta como `Reserva`: no expone PII, actividad, metricas
+  de participantes ni plazo. La reserva propia conserva el detalle funcional;
+  el administrador conserva el detalle operacional segun su audiencia.
+* Una actividad programada se presenta con su `activityType`, usando una
+  categoria institucional generica cuando no existe una correspondencia
+  conocida. La definicion de nuevos bloqueos entre tipos institucionales queda
+  fuera del alcance de este incremento.
+
+### Delta de estados asincronos y skeletons
+
+* Se corrigio la regresion de Disponibilidad: su carga inicial ahora incluye la
+  politica y las actividades, ademas de autenticacion, recursos, reservas y
+  talleres. La omision de `policyLoading` y `activities` permitia retirar el
+  estado de carga antes de completar el contrato necesario para reservar.
+* El skeleton se presenta solo durante `initialLoading` y cuando aun no existen
+  datos. Un refresh conserva los datos visibles y usa un indicador discreto; una
+  mutacion mantiene el contenido y muestra un spinner local en su accion.
+* Las superficies cubiertas son Disponibilidad, Dashboard, Mis Reservas,
+  detalle de reserva por ruta, Historial, Notificaciones y las vistas
+  administrativas de usuarios, recursos, reservas, talleres, reportes y
+  configuracion.
+* Historial conserva y muestra los datos disponibles cuando falla solo una de
+  sus fuentes, acompañado por una advertencia parcial. Solo muestra error
+  terminal cuando no existe ningun dato util.
+* No se usa skeleton en Join, en mutaciones ni en un modal que ya dispone del
+  objeto seleccionado; esos casos conservan el contenido y comunican la accion
+  localmente.
 
 | Módulo | Estado | Descripción y Evidencia |
 | :--- | :---: | :--- |
@@ -64,8 +110,8 @@ online completo con Entra ID/CORS/API.
 | **Control de Frecuencia Semanal** | `IMPLEMENTADO` | Restricción de 7 días corridos entre reservas solicitadas por el mismo usuario. |
 | **Prioridad Institucional** | `PENDIENTE` | La regla está aprobada, pero el flujo administrativo de resolución y cancelación automática aún no está implementado. |
 | **Cancelación de Reservas** | `IMPLEMENTADO` | Propietario o administrador pueden cancelar reservas activas (`PATCH /api/reservations/cancel`). |
-| **Talleres e Inscripciones** | `ACCEPTED LOCALLY` | Cupos, ocurrencias normalizadas y prevención de solapes taller↔taller para inscripciones activas. Contrato `POST /api/workshops/:id/enroll`. |
-| **Historial Personal** | `PARCIAL` | El historial básico de reservas propias o participadas pertenece a MVP 1 y está implementado. La consulta de talleres e inscripciones se incorpora como ampliación controlada de MVP 2. |
+| **Talleres e Inscripciones** | `ACCEPTED LOCALLY` | Cupos, ocurrencias normalizadas, prevención de solapes taller↔taller y desinscripción propia idempotente. `POST /api/workshops/:id/enroll` crea un episodio `CONFIRMED`; `DELETE /api/workshops/:id/enrollment` cancela solo la inscripción activa del usuario autenticado. |
+| **Historial Personal** | `PARCIAL` | El historial básico de reservas propias o participadas pertenece a MVP 1 y está implementado. La ampliación de MVP 2 conserva inscripciones de taller confirmadas y canceladas; una cancelada aparece como `Inscripción cancelada` y no demuestra asistencia. |
 | **Historial Institucional** | `PENDIENTE` | Las clases, actividades institucionales y otros eventos se incorporarán en MVP 3. No se atribuirán como participación personal mientras no exista una relación explícita usuario–actividad. |
 | **Notificaciones Internas** | `PARCIAL` | Consulta y contador (`GET /api/notifications`) y notificación única de expiración verificada localmente; lectura, destinos, otros eventos y sistema completo pendientes. |
 | **Panel Administrador** | `PARCIAL` | Lectura operacional, indicadores, imágenes de recursos y políticas; gestión completa de usuarios, recursos, bloqueos y programación pendiente. |
@@ -83,6 +129,18 @@ online completo con Entra ID/CORS/API.
 > **Límite de verificación:** El MVP 2 está `ACCEPTED LOCALLY`. Continúan pendientes la ejecución de la migración 004, su idempotencia y las pruebas de concurrencia real en Azure SQL.
 
 Las extensiones de integridad de RUT y horarios de talleres también están `ACCEPTED LOCALLY`. Migraciones 005/006, DDL, idempotencia y carreras reales en Azure SQL siguen pendientes.
+
+La desinscripción de talleres pertenece a la ampliación controlada de MVP 2. No
+exige RUT ni permite retirar inscripciones ajenas: cambia únicamente el episodio
+`CONFIRMED` propio a `CANCELLED`, libera el cupo y deja de bloquear solapes. El
+taller debe continuar activo; de lo contrario la API responde `409` con
+`WORKSHOP_ENROLLMENT_CLOSED`. Mientras no exista un período formal del taller,
+no se aplica corte horario. Una reinscripción posterior crea un episodio nuevo
+`CONFIRMED` y conserva el cancelado en el historial.
+
+Para este incremento están verificadas 18 pruebas Node, 144 pruebas Vitest y el
+build frontend de producción. La validación backend final permanece pendiente y
+no se considera aprobada por esta actualización documental.
 
 ### Alcance aprobado del historial
 

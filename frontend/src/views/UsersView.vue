@@ -75,10 +75,12 @@ const initials = (user) => {
     <div
       v-if="usersStore.loading"
       aria-label="Cargando usuarios"
+      role="status"
+      aria-live="polite"
     >
       <SkeletonLoader
-        variant="reservations"
-        :items="5"
+        variant="metrics-table"
+        :items="4"
       />
     </div>
 

@@ -5,15 +5,18 @@ import {
   CheckCircle2,
   MapPin,
   Search,
+  UserMinus,
   Users
 } from 'lucide-vue-next'
 
 import SkeletonLoader from '@/components/ui/SkeletonLoader.vue'
+import ConfirmModal from '@/components/ui/ConfirmModal.vue'
 import { useWorkshopsStore } from '@/stores/workshops'
 
 const workshopsStore = useWorkshopsStore()
 const search = ref('')
 const actionErrorElement = ref(null)
+const pendingWithdrawal = ref(null)
 
 onMounted(async () => {
   workshopsStore.clearMessages()
@@ -24,11 +27,15 @@ const filteredWorkshops = computed(() => {
   const term =
     search.value.trim().toLowerCase()
 
-  if (!term) {
-    return workshopsStore.workshops
-  }
-
   return workshopsStore.workshops.filter((workshop) => {
+    if (workshop.isActive === false) {
+      return false
+    }
+
+    if (!term) {
+      return true
+    }
+
     return [
       workshop.title,
       workshop.dayText,
@@ -51,9 +58,43 @@ const availableSlots = (workshop) => {
 const canEnroll = (workshop) => {
   return (
     workshopsStore.enrollingId === null &&
+    workshop.isActive !== false &&
     !workshop.isEnrolled &&
     availableSlots(workshop) > 0
   )
+}
+
+const canWithdraw = (workshop) => {
+  return (
+    workshopsStore.withdrawingId === null &&
+    workshop.isActive !== false &&
+    workshop.isEnrolled
+  )
+}
+
+const requestWithdrawal = (workshop) => {
+  if (!canWithdraw(workshop)) {
+    return
+  }
+
+  pendingWithdrawal.value = workshop
+}
+
+const confirmWithdrawal = async () => {
+  const workshop = pendingWithdrawal.value
+
+  if (!workshop || workshopsStore.withdrawingId !== null) {
+    return
+  }
+
+  try {
+    await workshopsStore.withdraw(workshop.id)
+  } catch {
+    await nextTick()
+    actionErrorElement.value?.focus()
+  } finally {
+    pendingWithdrawal.value = null
+  }
 }
 
 const enroll = async (workshop) => {
@@ -122,9 +163,11 @@ const enroll = async (workshop) => {
     <div
       v-if="workshopsStore.loading"
       aria-label="Cargando talleres"
+      role="status"
+      aria-live="polite"
     >
       <SkeletonLoader
-        variant="reservations"
+        variant="card-grid"
         :items="4"
       />
     </div>
@@ -198,6 +241,25 @@ const enroll = async (workshop) => {
         </div>
 
         <button
+          v-if="workshop.isEnrolled"
+          type="button"
+          class="enroll-button withdraw"
+          :disabled="!canWithdraw(workshop)"
+          @click="requestWithdrawal(workshop)"
+        >
+          <UserMinus :size="18" />
+
+          <span>
+            {{
+              workshopsStore.withdrawingId === workshop.id
+                ? 'Desinscribiendo…'
+                : 'Desinscribirme'
+            }}
+          </span>
+        </button>
+
+        <button
+          v-else
           type="button"
           class="enroll-button"
           :disabled="
@@ -209,9 +271,7 @@ const enroll = async (workshop) => {
 
           <span>
             {{
-              workshop.isEnrolled
-                ? 'Ya estás inscrito'
-                : availableSlots(workshop) === 0
+              availableSlots(workshop) === 0
                   ? 'Sin cupos'
                   : workshopsStore.enrollingId === workshop.id
                     ? 'Inscribiendo...'
@@ -221,6 +281,19 @@ const enroll = async (workshop) => {
         </button>
       </article>
     </section>
+
+    <ConfirmModal
+      :show="Boolean(pendingWithdrawal)"
+      :title="pendingWithdrawal ? `¿Desinscribirte de ${pendingWithdrawal.title}?` : 'Desinscribirte del taller'"
+      :message="pendingWithdrawal ? `Tu cupo en ${pendingWithdrawal.title} quedará disponible para otra persona. Podrás volver a inscribirte solo si el taller sigue activo, tiene cupos y no se cruza con otro taller.` : ''"
+      confirm-text="Sí, desinscribirme"
+      cancel-text="Mantener inscripción"
+      variant="danger"
+      destructive
+      :loading="workshopsStore.withdrawingId !== null"
+      @confirm="confirmWithdrawal"
+      @cancel="pendingWithdrawal = null"
+    />
 
   </main>
 </template>
@@ -389,6 +462,17 @@ const enroll = async (workshop) => {
   background: var(--color-surface-soft);
   color: var(--color-text-muted);
   cursor: not-allowed;
+}
+
+.enroll-button.withdraw {
+  border-color: var(--color-error-border, #fecaca);
+  background: var(--color-error-soft, #fee2e2);
+  color: var(--color-error, #c62828);
+}
+
+.enroll-button.withdraw:disabled {
+  opacity: .65;
+  cursor: wait;
 }
 
 @media (max-width: 768px) {

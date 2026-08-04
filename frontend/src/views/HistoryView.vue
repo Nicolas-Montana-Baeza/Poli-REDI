@@ -24,22 +24,27 @@ const toDate = ref('')
 const selectedItem = ref(null)
 const selectedTrigger = ref(null)
 const selectedHistoryId = ref('')
+const initializing = ref(true)
 
 onMounted(async () => {
-  const user = await authStore.loadAuthUser()
+  try {
+    const user = await authStore.loadAuthUser()
 
-  if (user?.isAdmin) {
+    if (user?.isAdmin) {
+      await Promise.all([
+        reservationsStore.fetchReservations(),
+        workshopsStore.fetchMyEnrollments()
+      ])
+      return
+    }
+
     await Promise.all([
-      reservationsStore.fetchReservations(),
+      reservationsStore.fetchMyReservations(),
       workshopsStore.fetchMyEnrollments()
     ])
-    return
+  } finally {
+    initializing.value = false
   }
-
-  await Promise.all([
-    reservationsStore.fetchMyReservations(),
-    workshopsStore.fetchMyEnrollments()
-  ])
 })
 
 const reservations = computed(() => {
@@ -65,18 +70,27 @@ const reservations = computed(() => {
 })
 
 const isLoading = computed(() => {
-  const reservationsLoading = authStore.user?.isAdmin
-    ? reservationsStore.loading
-    : reservationsStore.myLoading
-  return reservationsLoading || workshopsStore.historyLoading
+  const reservationsInitialLoading = authStore.user?.isAdmin
+    ? (reservationsStore.initialLoading ??
+      (reservationsStore.loading && !reservationsStore.hasLoaded))
+    : (reservationsStore.myInitialLoading ??
+      (reservationsStore.myLoading && !reservationsStore.myHasLoaded))
+  const workshopsInitialLoading =
+    workshopsStore.historyInitialLoading ??
+    (workshopsStore.historyLoading && !workshopsStore.historyHasLoaded)
+
+  return (
+    initializing.value ||
+    reservationsInitialLoading ||
+    workshopsInitialLoading
+  )
 })
 
-const loadingError = computed(() => {
-  const reservationError = authStore.user?.isAdmin
+const reservationLoadingError = computed(() => (
+  authStore.user?.isAdmin
     ? reservationsStore.loadingError
     : reservationsStore.myLoadingError
-  return reservationError || workshopsStore.historyLoadingError
-})
+))
 
 const emptyMessage = computed(() => {
   return authStore.user?.isAdmin
@@ -104,6 +118,25 @@ const historyItems = computed(() => {
     (second.date?.getTime() || 0) - (first.date?.getTime() || 0)
   ))
 })
+
+const loadingErrors = computed(() => (
+  [
+    reservationLoadingError.value,
+    workshopsStore.historyLoadingError
+  ].filter(Boolean)
+))
+
+const terminalLoadingError = computed(() => (
+  !historyItems.value.length && loadingErrors.value.length
+    ? loadingErrors.value.join(' ')
+    : ''
+))
+
+const partialLoadingWarning = computed(() => (
+  historyItems.value.length && loadingErrors.value.length
+    ? `Se muestran los datos disponibles. ${loadingErrors.value.join(' ')}`
+    : ''
+))
 
 const filteredHistory = computed(() => {
   return historyItems.value.filter((item) => {
@@ -228,20 +261,31 @@ const closeDetail = async () => {
     </section>
 
     <div
+      v-if="!isLoading && partialLoadingWarning"
+      class="state-card warning"
+      role="status"
+    >
+      {{ partialLoadingWarning }}
+    </div>
+
+    <div
       v-if="isLoading"
       aria-label="Cargando historial"
+      role="status"
+      aria-live="polite"
     >
       <SkeletonLoader
-        variant="reservations"
+        variant="list"
         :items="4"
       />
     </div>
 
     <div
-      v-else-if="loadingError"
+      v-else-if="terminalLoadingError"
       class="state-card error"
+      role="alert"
     >
-      {{ loadingError }}
+      {{ terminalLoadingError }}
     </div>
 
     <div

@@ -162,10 +162,12 @@ watch(
     <div
       v-if="authStore.loading"
       aria-label="Cargando usuario"
+      role="status"
+      aria-live="polite"
     >
       <SkeletonLoader
-        variant="resources"
-        :items="3"
+        variant="detail"
+        :items="1"
       />
     </div>
 

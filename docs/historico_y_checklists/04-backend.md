@@ -26,6 +26,7 @@ La estructura principal esta organizada por capas:
 - La cancelacion valida que el usuario sea propietario de la reserva o administrador.
 - Los usuarios normales sin RUT no pueden crear reservas.
 - La inscripcion a talleres usa el usuario autenticado, exige RUT a usuarios normales y valida cupos.
+- La desinscripcion de talleres usa el usuario autenticado, no exige RUT y solo cancela su propia inscripcion `CONFIRMED`; no acepta identidad de terceros.
 - La ruta de usuarios y la consulta completa de reservas usan `RequireAdmin`.
 - La imagen de un recurso se actualiza con ruta administrativa protegida por `RequireAdmin`.
 - La disponibilidad cuenta con endpoint sanitizado para ocultar datos personales de reservas ajenas a usuarios normales.
@@ -46,6 +47,7 @@ La estructura principal esta organizada por capas:
 - `GET /api/notifications`
 - `GET /api/workshops`
 - `POST /api/workshops/:id/enroll`
+- `DELETE /api/workshops/:id/enrollment`
 - `GET /api/availability/reservations`
 - `GET /api/reservations/mine`
 - `POST /api/reservations`
@@ -213,6 +215,13 @@ La prioridad debe estar en reglas de negocio y permisos.
 - Rechazar taller inexistente o inactivo.
 - Rechazar taller sin cupos.
 - Rechazar inscripcion duplicada.
+- Cancelar idempotentemente la inscripcion `CONFIRMED` propia sin exigir RUT.
+- Rechazar con `409 WORKSHOP_ENROLLMENT_CLOSED` cuando el taller esta inactivo.
+- Liberar cupo y solapes al cambiar el episodio a `CANCELLED`.
+- Conservar la cancelacion en historial como `Inscripcion cancelada`.
+- Crear un episodio nuevo `CONFIRMED` al reinscribir, sin reactivar el cancelado.
+- Registrar `WORKSHOP_ENROLLMENT_CANCELLED` y `WORKSHOP_ENROLLMENT_CREATED` en auditoria.
+- No aplicar retiro de terceros ni corte horario mientras no exista un periodo formal del taller.
 
 ## Prioridades sugeridas
 

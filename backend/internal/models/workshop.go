@@ -40,3 +40,10 @@ type WorkshopEnrollmentHistory struct {
 	IsActive       bool      `json:"isActive"`
 	EnrolledAt     time.Time `json:"enrolledAt"`
 }
+
+type WorkshopEnrollmentChange struct {
+	WorkshopID    int  `json:"workshopId"`
+	IsEnrolled    bool `json:"isEnrolled"`
+	EnrolledCount int  `json:"enrolledCount"`
+	Changed       bool `json:"changed"`
+}

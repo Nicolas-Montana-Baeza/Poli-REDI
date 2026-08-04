@@ -13,6 +13,8 @@ const modeFilter = ref('ALL')
 const statusFilter = ref('ALL')
 const editingImageId = ref(null)
 const imageDraft = ref('')
+const loadedImages = ref(new Set())
+const failedImages = ref(new Set())
 
 onMounted(() => {
   resourcesStore.fetchResources()
@@ -112,6 +114,12 @@ const saveImageEdit = async (resource) => {
     // El store deja el mensaje visible para el usuario.
   }
 }
+
+const imageKey = (resource) => `${resource.id}:${resource.imageUrl || ''}`
+const isImageLoaded = (resource) => loadedImages.value.has(imageKey(resource))
+const hasImageFailed = (resource) => failedImages.value.has(imageKey(resource))
+const markImageLoaded = (resource) => loadedImages.value.add(imageKey(resource))
+const markImageFailed = (resource) => failedImages.value.add(imageKey(resource))
 </script>
 
 <template>
@@ -197,9 +205,11 @@ const saveImageEdit = async (resource) => {
     <div
       v-if="resourcesStore.loading"
       aria-label="Cargando instalaciones"
+      role="status"
+      aria-live="polite"
     >
       <SkeletonLoader
-        variant="resources"
+        variant="media-grid"
         :items="6"
       />
     </div>
@@ -252,12 +262,20 @@ const saveImageEdit = async (resource) => {
       >
 
         <div
-          v-if="resource.imageUrl"
+          v-if="resource.imageUrl && !hasImageFailed(resource)"
           class="resource-image"
+          :class="{ loaded: isImageLoaded(resource) }"
         >
+          <span
+            v-if="!isImageLoaded(resource)"
+            class="resource-image-placeholder"
+            aria-hidden="true"
+          />
           <img
             :src="resource.imageUrl"
             :alt="resource.name"
+            @load="markImageLoaded(resource)"
+            @error="markImageFailed(resource)"
           />
         </div>
 
@@ -455,17 +473,38 @@ const saveImageEdit = async (resource) => {
 }
 
 .resource-image {
-  height: 150px;
+  position: relative;
+  width: calc(100% + 40px);
+  aspect-ratio: 16 / 9;
   margin: -20px -20px 0;
   overflow: hidden;
   background: var(--color-surface-soft);
 }
 
 .resource-image img {
+  display: block;
   width: 100%;
   height: 100%;
+  opacity: 0;
   object-fit: cover;
-  display: block;
+  transition: opacity 0.18s ease;
+}
+
+.resource-image.loaded img {
+  opacity: 1;
+}
+
+.resource-image-placeholder {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    var(--color-border-soft) 0%,
+    var(--color-surface-muted) 45%,
+    var(--color-border-soft) 90%
+  );
+  background-size: 220% 100%;
+  animation: resource-image-shimmer 1.35s ease-in-out infinite;
 }
 
 .resource-image.fallback {
@@ -570,6 +609,22 @@ const saveImageEdit = async (resource) => {
 
   .search-field {
     grid-column: auto;
+  }
+}
+
+@keyframes resource-image-shimmer {
+  from { background-position: 120% 0; }
+  to { background-position: -120% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .resource-image img {
+    transition: none;
+  }
+
+  .resource-image-placeholder {
+    animation: none;
+    background: var(--color-border-soft);
   }
 }
 </style>

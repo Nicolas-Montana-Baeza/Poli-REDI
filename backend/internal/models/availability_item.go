@@ -2,10 +2,17 @@ package models
 
 import "time"
 
+const (
+	AvailabilityKindReservation      = "RESERVATION"
+	AvailabilityKindGroupReservation = "GROUP_RESERVATION"
+	AvailabilityKindScheduled        = "SCHEDULED_ACTIVITY"
+)
+
 type AvailabilityItem struct {
 	ID                   int        `json:"id"`
 	AvailabilityKey      string     `json:"availabilityKey"`
-	UserID               int        `json:"userId"`
+	AvailabilityKind     string     `json:"availabilityKind"`
+	UserID               int        `json:"userId,omitempty"`
 	ResourceID           int        `json:"resourceId"`
 	StartTime            time.Time  `json:"startTime"`
 	DurationMinutes      int        `json:"durationMinutes"`
@@ -14,9 +21,9 @@ type AvailabilityItem struct {
 	Title                string     `json:"title"`
 	Type                 string     `json:"type"`
 	ResourceName         string     `json:"resourceName"`
-	UserFullName         string     `json:"userFullName"`
-	UserEmail            string     `json:"userEmail"`
-	UserRUT              string     `json:"userRut"`
+	UserFullName         string     `json:"userFullName,omitempty"`
+	UserEmail            string     `json:"userEmail,omitempty"`
+	UserRUT              string     `json:"userRut,omitempty"`
 	IsScheduledActivity  bool       `json:"isScheduledActivity"`
 	ActivityType         string     `json:"activityType,omitempty"`
 	ParticipantCount     int        `json:"participantCount,omitempty"`

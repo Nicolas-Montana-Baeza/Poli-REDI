@@ -45,6 +45,7 @@ const cancelModalOpen = ref(false)
 const rotateModalOpen = ref(false)
 const copyFeedback = ref('')
 const joinCodeUnavailable = ref(false)
+const initializing = ref(true)
 let joinOperationGeneration = 0
 let componentMounted = true
 
@@ -53,14 +54,18 @@ const reservationId = computed(() => {
 })
 
 onMounted(async () => {
-  const user = await authStore.loadAuthUser()
+  try {
+    const user = await authStore.loadAuthUser()
 
-  if (user?.isAdmin) {
-    await reservationsStore.fetchReservations()
-    return
+    if (user?.isAdmin) {
+      await reservationsStore.fetchReservations()
+      return
+    }
+
+    await reservationsStore.fetchMyReservations()
+  } finally {
+    initializing.value = false
   }
-
-  await reservationsStore.fetchMyReservations()
 })
 
 const reservation = computed(() => {
@@ -90,9 +95,13 @@ onBeforeUnmount(() => {
 })
 
 const isLoading = computed(() => {
-  return authStore.user?.isAdmin
-    ? reservationsStore.loading
-    : reservationsStore.myLoading
+  const queryInitialLoading = authStore.user?.isAdmin
+    ? (reservationsStore.initialLoading ??
+      (reservationsStore.loading && !reservationsStore.hasLoaded))
+    : (reservationsStore.myInitialLoading ??
+      (reservationsStore.myLoading && !reservationsStore.myHasLoaded))
+
+  return initializing.value || queryInitialLoading
 })
 
 const loadingError = computed(() => {
@@ -284,10 +293,12 @@ const goBack = () => {
     <div
       v-if="isLoading"
       aria-label="Cargando reserva"
+      role="status"
+      aria-live="polite"
     >
       <SkeletonLoader
-        variant="resources"
-        :items="4"
+        variant="detail"
+        :items="1"
       />
     </div>
 

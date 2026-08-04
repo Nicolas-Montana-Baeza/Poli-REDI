@@ -22,6 +22,7 @@ const statusLabel = computed(() => {
 
 const imageFailed = ref(false)
 const fallbackFailed = ref(false)
+const imageLoaded = ref(false)
 
 const fallbackImage = computed(() => {
   const name = props.name?.toLowerCase() || ''
@@ -66,6 +67,8 @@ const displayImage = computed(() => {
 })
 
 const handleImageError = () => {
+  imageLoaded.value = false
+
   if (props.image && !imageFailed.value) {
     imageFailed.value = true
     return
@@ -73,6 +76,13 @@ const handleImageError = () => {
 
   fallbackFailed.value = true
 }
+
+watch(
+  displayImage,
+  () => {
+    imageLoaded.value = false
+  }
+)
 
 watch(
   () => props.image,
@@ -89,13 +99,12 @@ watch(
     to="/availability"
   >
 
-    <div
-      v-if="displayImage"
-      class="image"
-    >
+    <div v-if="displayImage" class="image" :class="{ loaded: imageLoaded }">
+      <span v-if="!imageLoaded" class="image-placeholder" aria-hidden="true" />
       <img
         :src="displayImage"
         :alt="name"
+        @load="imageLoaded = true"
         @error="handleImageError"
       />
     </div>
@@ -146,13 +155,39 @@ watch(
   box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
 }
 
+.image {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  background: var(--color-surface-muted);
+}
+
 .image img {
   display: block;
   width: 100%;
-  aspect-ratio: 16 / 9;
-  height: auto;
+  height: 100%;
+  opacity: 0;
   object-fit: cover;
   object-position: center;
+  transition: opacity 0.18s ease;
+}
+
+.image.loaded img {
+  opacity: 1;
+}
+
+.image-placeholder {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    var(--color-border-soft) 0%,
+    var(--color-surface-muted) 45%,
+    var(--color-border-soft) 90%
+  );
+  background-size: 220% 100%;
+  animation: facility-image-shimmer 1.35s ease-in-out infinite;
 }
 
 .image.fallback {
@@ -257,6 +292,22 @@ h3 {
 
   .type {
     margin: 4px 0 9px;
+  }
+}
+
+@keyframes facility-image-shimmer {
+  from { background-position: 120% 0; }
+  to { background-position: -120% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .image img {
+    transition: none;
+  }
+
+  .image-placeholder {
+    animation: none;
+    background: var(--color-border-soft);
   }
 }
 </style>

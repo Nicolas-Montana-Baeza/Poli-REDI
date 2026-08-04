@@ -115,3 +115,40 @@ func EnrollInWorkshop(c *fiber.Ctx) error {
 	}
 	return c.Status(fiber.StatusOK).JSON(workshop)
 }
+
+func WithdrawFromWorkshop(c *fiber.Ctx) error {
+	user, ok := middleware.GetLocalUser(c)
+	if !ok {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error": "usuario no autenticado",
+		})
+	}
+
+	workshopID, err := strconv.Atoi(c.Params("id"))
+	if err != nil || workshopID <= 0 {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Taller inválido",
+		})
+	}
+
+	change, err := services.WithdrawFromWorkshop(workshopID, user)
+	if err != nil {
+		switch {
+		case errors.Is(err, repositories.ErrWorkshopNotFound):
+			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+				"error": "Taller no encontrado o no disponible.",
+			})
+		case errors.Is(err, repositories.ErrWorkshopEnrollmentClosed):
+			return c.Status(fiber.StatusConflict).JSON(fiber.Map{
+				"code":  "WORKSHOP_ENROLLMENT_CLOSED",
+				"error": "Este taller ya no admite cambios de inscripción.",
+			})
+		default:
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"error": "No se pudo procesar la desinscripción del taller.",
+			})
+		}
+	}
+
+	return c.Status(fiber.StatusOK).JSON(change)
+}

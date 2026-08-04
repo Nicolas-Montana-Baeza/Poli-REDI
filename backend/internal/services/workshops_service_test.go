@@ -4,6 +4,7 @@ import (
 	"errors"
 	"testing"
 
+	"poli-redi-api/internal/models"
 	"poli-redi-api/internal/repositories"
 
 	mssql "github.com/microsoft/go-mssqldb"
@@ -36,6 +37,20 @@ func TestMapWorkshopErrorNeverLeaksSQLDetails(t *testing.T) {
 				t.Fatal("SQL detail leaked")
 			}
 		})
+	}
+}
+
+func TestWithdrawFromWorkshopValidatesIdentityAndPreservesClosedError(t *testing.T) {
+	t.Parallel()
+
+	if _, err := WithdrawFromWorkshop(0, models.LocalAuthUser{ID: 1}); err == nil {
+		t.Fatal("expected invalid workshop id")
+	}
+	if _, err := WithdrawFromWorkshop(1, models.LocalAuthUser{}); err == nil {
+		t.Fatal("expected invalid user")
+	}
+	if err := mapWorkshopError(repositories.ErrWorkshopEnrollmentClosed); !errors.Is(err, repositories.ErrWorkshopEnrollmentClosed) {
+		t.Fatalf("closed error was not preserved: %v", err)
 	}
 }
 

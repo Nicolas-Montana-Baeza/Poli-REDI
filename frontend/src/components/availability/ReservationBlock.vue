@@ -1,14 +1,25 @@
 <script setup>
 import { computed } from 'vue'
+import AvailabilityTypeChip from './AvailabilityTypeChip.vue'
 import {
   formatReservationTimeRange,
+  getReservationDisplayStatus,
   getReservationStartMinutes
 } from '@/utils/reservationTime'
+import {
+  getAvailabilityDisplayTitle,
+  getAvailabilityType
+} from '@/utils/availabilityType'
 
 const props = defineProps({
   reservation: {
     type: Object,
     required: true
+  },
+
+  resource: {
+    type: Object,
+    default: null
   },
 
   startHour: {
@@ -56,9 +67,9 @@ const blockStyle = computed(() => {
   }
 })
 
-const reservationTitle = computed(() => {
-  return props.reservation.title || 'Reserva'
-})
+const reservationTitle = computed(() =>
+  getAvailabilityDisplayTitle(props.reservation)
+)
 
 const reservationTime = computed(() => {
   return formatReservationTimeRange(
@@ -71,15 +82,27 @@ const isCompact = computed(() => {
   return duration.value < 60
 })
 
+const availabilityType = computed(() =>
+  getAvailabilityType(props.reservation, props.resource)
+)
+
+const reservationStatus = computed(() =>
+  props.reservation.isScheduledActivity
+    ? { label: 'Programada', className: 'confirmed' }
+    : getReservationDisplayStatus(props.reservation)
+)
+
+const accessibleLabel = computed(() => {
+  return [
+    availabilityType.value.label,
+    reservationTitle.value,
+    reservationStatus.value.label,
+    reservationTime.value,
+    'Abrir detalle'
+  ].filter(Boolean).join('. ')
+})
+
 const statusClass = computed(() => {
-  if (props.reservation.isWorkshop) {
-    return 'workshop'
-  }
-
-  if (props.reservation.isScheduledActivity) {
-    return 'scheduled'
-  }
-
   if (props.reservation.status === 'PENDING') {
     return 'pending'
   }
@@ -105,14 +128,23 @@ const statusClass = computed(() => {
       { compact: isCompact }
     ]"
     :style="blockStyle"
-    :aria-label="`Ver reserva ${reservationTitle}`"
+    :aria-label="accessibleLabel"
     @click.stop="emit('select', reservation)"
   >
-    <strong>
-      {{ reservationTitle }}
-    </strong>
+    <span class="block-heading">
+      <strong>
+        {{ reservationTitle }}
+      </strong>
 
-    <span>
+      <AvailabilityTypeChip
+        :item="reservation"
+        :resource="resource"
+        :compact="isCompact"
+        aria-hidden
+      />
+    </span>
+
+    <span class="reservation-time">
       {{ reservationTime }}
     </span>
   </button>
@@ -127,15 +159,19 @@ const statusClass = computed(() => {
 
   border-radius: var(--radius-md);
 
-  padding: 9px 11px;
+  min-height: 28px;
+
+  box-sizing: border-box;
+
+  padding: 7px 10px;
 
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 3px;
 
   overflow: hidden;
 
-  z-index: 3;
+  z-index: 5;
 
   box-shadow: 0 8px 16px rgba(37, 99, 235, 0.14);
 
@@ -153,12 +189,21 @@ const statusClass = computed(() => {
 .reservation-block.compact {
   justify-content: center;
 
-  gap: 2px;
+  gap: 0;
 
-  padding: 5px 9px;
+  padding: 4px 8px;
 }
 
-.reservation-block strong {
+.block-heading {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 6px;
+}
+
+.block-heading strong {
+  flex: 1 1 auto;
+  min-width: 0;
   font-size: 13px;
   font-weight: 800;
 
@@ -167,23 +212,32 @@ const statusClass = computed(() => {
   text-overflow: ellipsis;
 }
 
-.reservation-block.compact strong {
+.block-heading :deep(.availability-type-chip) {
+  flex: 0 0 auto;
+  max-width: none;
+}
+
+.reservation-block.compact .block-heading strong {
   font-size: 12px;
 
   line-height: 1.15;
 }
 
-.reservation-block span {
+.reservation-time {
+  min-width: 0;
+
   font-size: 12px;
   font-weight: 600;
 
   opacity: 0.9;
+
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.reservation-block.compact span {
-  font-size: 11px;
-
-  line-height: 1.15;
+.reservation-block.compact .reservation-time {
+  display: none;
 }
 
 /* STATUS */
@@ -209,22 +263,6 @@ const statusClass = computed(() => {
   color: #c2410c;
 
   border-color: #fed7aa;
-}
-
-.workshop {
-  background: #fff3e6;
-
-  color: #c2410c;
-
-  border-color: #fdba74;
-}
-
-.scheduled {
-  background: #ffedd5;
-
-  color: #c2410c;
-
-  border-color: #fb923c;
 }
 
 .cancelled {

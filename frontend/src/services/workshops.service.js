@@ -19,5 +19,13 @@ export const workshopsService = {
     )
 
     return response.data
+  },
+
+  async withdraw(workshopId) {
+    const response = await api.delete(
+      `/workshops/${workshopId}/enrollment`
+    )
+
+    return response.data
   }
 }

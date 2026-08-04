@@ -1,11 +1,16 @@
 <script setup>
 import { computed } from 'vue'
+import AvailabilityTypeChip from './AvailabilityTypeChip.vue'
 import {
   formatReservationTimeRange,
   getReservationDateKey,
   getReservationDisplayStatus,
   getReservationStartMinutes
 } from '@/utils/reservationTime'
+import {
+  getAvailabilityDisplayTitle,
+  getAvailabilityType
+} from '@/utils/availabilityType'
 
 const props = defineProps({
   resources: {
@@ -68,6 +73,46 @@ const resourceName = (reservation) => {
   )
 
   return resource?.name || 'Recurso'
+}
+
+const resourceFor = (reservation) => {
+  return props.resources.find(
+    item => String(item.id) === String(reservation.resourceId)
+  ) || null
+}
+
+const typeFor = (reservation) => {
+  return getAvailabilityType(
+    reservation,
+    resourceFor(reservation)
+  )
+}
+
+const titleFor = (reservation) =>
+  getAvailabilityDisplayTitle(reservation)
+
+const statusFor = (reservation) => {
+  if (reservation.isScheduledActivity) {
+    return {
+      label: 'Programada',
+      className: 'confirmed'
+    }
+  }
+
+  return getReservationDisplayStatus(reservation)
+}
+
+const accessibleLabel = (reservation) => {
+  return [
+    typeFor(reservation).label,
+    titleFor(reservation),
+    statusFor(reservation).label,
+    formatReservationTimeRange(
+      reservation.startTime,
+      reservation.durationMinutes
+    ),
+    'Abrir detalle'
+  ].filter(Boolean).join('. ')
 }
 
 const userName = (reservation) => {
@@ -150,6 +195,7 @@ const selectReservation = (reservation) => {
         :key="reservation.availabilityKey || reservation.id"
         type="button"
         class="agenda-item"
+        :aria-label="accessibleLabel(reservation)"
         @click="selectReservation(reservation)"
       >
         <div class="time-block">
@@ -168,15 +214,23 @@ const selectReservation = (reservation) => {
         <div class="reservation-main">
           <div class="reservation-title-row">
             <h3>
-              {{ reservation.title || 'Reserva' }}
+              {{ titleFor(reservation) }}
             </h3>
 
-            <span
-              class="status-pill"
-              :class="getReservationDisplayStatus(reservation).className"
-            >
-              {{ getReservationDisplayStatus(reservation).label }}
-            </span>
+            <div class="reservation-indicators">
+              <span
+                class="status-pill"
+                :class="statusFor(reservation).className"
+              >
+                {{ statusFor(reservation).label }}
+              </span>
+
+              <AvailabilityTypeChip
+                :item="reservation"
+                :resource="resourceFor(reservation)"
+                aria-hidden
+              />
+            </div>
           </div>
 
           <div class="reservation-meta">
@@ -312,12 +366,14 @@ const selectReservation = (reservation) => {
 
 .reservation-title-row {
   display: flex;
+  min-width: 0;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
 }
 
 .reservation-title-row h3 {
+  flex: 1 1 auto;
   margin: 0;
   min-width: 0;
   overflow: hidden;
@@ -326,6 +382,18 @@ const selectReservation = (reservation) => {
   font-weight: 900;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.reservation-indicators {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.reservation-indicators :deep(.availability-type-chip) {
+  flex: 0 0 auto;
+  max-width: none;
 }
 
 .status-pill {
@@ -383,8 +451,26 @@ const selectReservation = (reservation) => {
   }
 
   .reservation-title-row {
+    align-items: center;
+  }
+
+  .reservation-indicators {
+    gap: 6px;
+  }
+}
+
+@media (max-width: 480px) {
+  .reservation-title-row {
     align-items: flex-start;
-    flex-direction: column;
+  }
+
+  .reservation-indicators {
+    flex-direction: column-reverse;
+    align-items: flex-end;
+  }
+
+  .status-pill {
+    padding: 4px 8px;
   }
 }
 </style>

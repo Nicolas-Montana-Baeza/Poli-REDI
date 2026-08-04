@@ -104,6 +104,62 @@ Ante un fallo, detener el despliegue. Abrir una sesion nueva y confirmar
 escribir. No ejecutar `drop.sql`, `schema.sql` ni `seed.sql`. Si no puede
 demostrarse un estado compatible, restaurar el backup y escalar a Arquitectura.
 
+### Verificacion frontend del incremento asincrono
+
+La evidencia local del 2026-07-30 comprende:
+
+* 18 pruebas Node aprobadas.
+* `go test ./...` aprobado.
+* 119 pruebas Vitest aprobadas.
+* Build frontend de produccion aprobado.
+* `diff-check` aprobado.
+* Advertencia no bloqueante: bundle frontend de 531.79 kB.
+
+Antes del cierre de despliegue se debe ejecutar QA visual con anchos de 377,
+500, 768 y 1440 px. La revision debe confirmar geometria de skeletons, ausencia
+de saltos en medios 16:9, indicadores discretos durante refresh, spinners
+locales en mutaciones, advertencia parcial del Historial, navegacion por teclado,
+lectores de pantalla y `prefers-reduced-motion`. La optimizacion o division del
+bundle permanece pendiente y no debe confundirse con un fallo del build.
+
+La matriz de QA debe incluir ademas:
+
+* chips y leyenda `Tipos de bloque` coherentes entre Por recurso y Agenda del
+  dia para Reserva, Reserva grupal, Uso libre, Taller, Clase, Entrenamiento,
+  Campeonato, Evento e Institucional;
+* estado visible por separado del tipo y comprensible sin depender solo del
+  color;
+* `OPEN_USE` representado como heatmap, con caption de intensidad y sin bloques
+  individuales por asistencia;
+* chips no enfocables, ausencia de focos adicionales y `aria-label` completo
+  en cada bloque interactivo;
+* consulta como usuario propietario, usuario ajeno y administrador. La reserva
+  ajena debe mostrar `Reserva` y, si corresponde, el tipo grupal, sin PII,
+  actividad, metricas ni plazo; la programacion institucional debe conservar
+  su categoria segura mediante `activityType`.
+
+### Verificacion de desinscripcion de talleres
+
+Antes de liberar el incremento de MVP 2 se debe comprobar:
+
+* `DELETE /api/workshops/:id/enrollment` solo afecta la inscripcion
+  `CONFIRMED` del usuario autenticado y no exige RUT;
+* repetir la cancelacion es idempotente y no crea episodios ni auditorias
+  duplicadas;
+* un taller inactivo responde `409` con `WORKSHOP_ENROLLMENT_CLOSED`;
+* la cancelacion libera cupo, deja de bloquear solapes y aparece en Historial
+  como `Inscripcion cancelada`;
+* una reinscripcion crea un episodio nuevo `CONFIRMED`, sin reactivar la fila
+  cancelada;
+* la auditoria registra `WORKSHOP_ENROLLMENT_CANCELLED` y
+  `WORKSHOP_ENROLLMENT_CREATED`;
+* no existe retiro de terceros ni corte horario hasta definir formalmente el
+  periodo del taller.
+
+Evidencia disponible del incremento: 18 pruebas Node, 144 pruebas Vitest y
+build frontend de produccion aprobado. La validacion backend final debe
+completarse antes de marcar este bloque como cerrado.
+
 ---
 
 ## 3. Plan de Transición y Corte desde Google Calendar

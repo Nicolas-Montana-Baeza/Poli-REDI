@@ -5,6 +5,7 @@ import CalendarToolbar from './CalendarToolbar.vue'
 import CalendarMini from './CalendarMini.vue'
 import ScheduleGrid from './ScheduleGrid.vue'
 import GeneralCalendarView from './GeneralCalendarView.vue'
+import AvailabilityTypeLegend from './AvailabilityTypeLegend.vue'
 import ReservationDetailModal from './ReservationDetailModal.vue'
 import ReservationForm from '../forms/ReservationForm.vue'
 import SkeletonLoader from '@/components/ui/SkeletonLoader.vue'
@@ -122,10 +123,17 @@ const currentDateLabel = computed(() => {
 
 const isLoadingAvailability = computed(() => {
   return (
+    policyLoading.value ||
     authStore.loading ||
-    resourcesStore.loading ||
-    reservationsStore.availabilityLoading ||
-    workshopsStore.loading
+    (resourcesStore.initialLoading ??
+      (resourcesStore.loading && !resourcesStore.hasLoaded)) ||
+    (reservationsStore.availabilityInitialLoading ??
+      (reservationsStore.availabilityLoading &&
+        !reservationsStore.availabilityHasLoaded)) ||
+    (workshopsStore.initialLoading ??
+      (workshopsStore.loading && !workshopsStore.hasLoaded)) ||
+    (activitiesStore.initialLoading ??
+      (activitiesStore.loading && !activitiesStore.hasLoaded))
   )
 })
 
@@ -135,6 +143,7 @@ const loadWarning = computed(() => {
     reservationsStore.availabilityLoadingError ||
     activitiesStore.error ||
     workshopsStore.loadingError ||
+    policyError.value ||
     ''
   )
 })
@@ -208,6 +217,28 @@ const currentPolicy = ref(null)
 const policyLoading = ref(true)
 const policyError = ref('')
 
+const loadCurrentPolicy = async () => {
+  policyLoading.value = true
+  policyError.value = ''
+
+  try {
+    const policy = await reservationsService.getCurrentPolicy()
+
+    if (!policy || !Array.isArray(policy.groupResourceIds)) {
+      throw new Error('invalid policy')
+    }
+
+    currentPolicy.value = policy
+    return policy
+  } catch {
+    currentPolicy.value = null
+    policyError.value = 'No se pudo validar la política de reservas. Por seguridad, la creación de reservas está temporalmente deshabilitada.'
+    return null
+  } finally {
+    policyLoading.value = false
+  }
+}
+
 /* LOAD DATA */
 onMounted(async () => {
   await Promise.all([
@@ -215,19 +246,9 @@ onMounted(async () => {
     resourcesStore.fetchResources(),
     reservationsStore.fetchAvailabilityReservations(),
     activitiesStore.fetchActivities(),
-    workshopsStore.fetchWorkshops()
+    workshopsStore.fetchWorkshops(),
+    loadCurrentPolicy()
   ])
-  try {
-    currentPolicy.value = await reservationsService.getCurrentPolicy()
-    if (!currentPolicy.value || !Array.isArray(currentPolicy.value.groupResourceIds)) {
-      throw new Error('invalid policy')
-    }
-  } catch {
-    currentPolicy.value = null
-    policyError.value = 'No se pudo validar la política de reservas. Por seguridad, la creación de reservas está temporalmente deshabilitada.'
-  } finally {
-    policyLoading.value = false
-  }
 })
 
 /* SLOT SELECT */
@@ -623,25 +644,33 @@ const goToday = () => {
         <!-- RIGHT -->
         <div class="grid-container">
 
-          <div
-            class="view-switch"
-            aria-label="Modo de vista"
-          >
-            <button
-              type="button"
-              :class="{ active: viewMode === 'resources' }"
-              @click="viewMode = 'resources'"
+          <div class="view-controls">
+            <div
+              class="view-switch"
+              aria-label="Modo de vista"
             >
-              Por recurso
-            </button>
+              <button
+                type="button"
+                :class="{ active: viewMode === 'resources' }"
+                @click="viewMode = 'resources'"
+              >
+                Por recurso
+              </button>
 
-            <button
-              type="button"
-              :class="{ active: viewMode === 'general' }"
-              @click="viewMode = 'general'"
-            >
-              Agenda del día
-            </button>
+              <button
+                type="button"
+                :class="{ active: viewMode === 'general' }"
+                @click="viewMode = 'general'"
+              >
+                Agenda del día
+              </button>
+            </div>
+
+            <AvailabilityTypeLegend
+              :resources="resourcesStore.resources"
+              :reservations="availabilityItems"
+              :selected-date="selectedDate"
+            />
           </div>
 
           <ScheduleGrid
@@ -778,11 +807,20 @@ const goToday = () => {
   min-width: 0;
 }
 
+.view-controls {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
 .view-switch {
   display: inline-flex;
+  flex: 0 0 auto;
   align-items: center;
   gap: 4px;
-  margin-bottom: 16px;
   padding: 4px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
@@ -865,6 +903,12 @@ const goToday = () => {
 @media (max-width: 768px) {
   .availability-section {
     gap: 20px;
+  }
+
+  .view-controls {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 10px;
   }
 
   .section-header h2 {

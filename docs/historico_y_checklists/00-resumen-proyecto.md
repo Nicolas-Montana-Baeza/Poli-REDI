@@ -37,7 +37,7 @@ Un elemento puede estar implementado sin estar aprobado y puede estar implementa
 | Creacion de reservas | IMPLEMENTADO PARCIAL | Propietario, zona horaria, jornada y duraciones son controlados por servidor. El backend crea `PENDING` para recursos grupales versionados y `CONFIRMED` para los demas; falta integrar la experiencia en frontend. |
 | Reglas institucionales | APROBADO / IMPLEMENTACION PARCIAL | Flujo grupal completo ACCEPTED LOCALLY, incluidos deadline, expiracion e interfaz. Interfaz administrativa, correccion excepcional y verificacion SQL/Azure real siguen pendientes. |
 | Cancelacion | IMPLEMENTADO PARCIAL | Propietario o administrador pueden cancelar estados activos no finalizados; la confirmacion visible no es consistente en todos los accesos. |
-| Talleres | IMPLEMENTADO | Consulta e inscripcion con RUT, cupo y duplicado controlados; no existe desinscripcion. |
+| Talleres | IMPLEMENTADO LOCAL | Consulta e inscripcion con RUT, cupo y duplicado controlados. La desinscripcion propia no exige RUT, es idempotente, libera cupo, conserva el episodio `CANCELLED` en historial y permite reinscribir mediante un episodio nuevo. Validacion backend final pendiente. |
 | Notificaciones | IMPLEMENTADO PARCIAL | Consulta y contador existen; no se marcan como leidas y la generacion cubre solo eventos limitados. |
 | Administracion | IMPLEMENTADO PARCIAL | Panel, lectura de usuarios, recursos, reservas e indicadores; faltan gestion del inventario oficial, usuarios, bloqueos, programacion, conflictos institucionales e infracciones. |
 | Reportes | IMPLEMENTADO PARCIAL | Indicadores calculados en frontend; no constituyen reportes institucionales completos ni consumen las vistas SQL dedicadas. |

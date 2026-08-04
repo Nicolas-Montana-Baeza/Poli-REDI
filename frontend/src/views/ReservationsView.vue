@@ -22,19 +22,24 @@ const pendingCancellation = ref(null)
 const selectedReservation = ref(null)
 const selectedCard = ref(null)
 const selectedCardId = ref(null)
+const initializing = ref(true)
 
 onMounted(async () => {
   reservationsStore.clearActionError()
   reservationsStore.clearActionSuccess()
 
-  const user = await authStore.loadAuthUser()
+  try {
+    const user = await authStore.loadAuthUser()
 
-  if (user?.isAdmin) {
-    await reservationsStore.fetchReservations()
-    return
+    if (user?.isAdmin) {
+      await reservationsStore.fetchReservations()
+      return
+    }
+
+    await reservationsStore.fetchMyReservations()
+  } finally {
+    initializing.value = false
   }
-
-  await reservationsStore.fetchMyReservations()
 })
 
 const reservations = computed(() => {
@@ -66,9 +71,13 @@ const reservations = computed(() => {
 })
 
 const isLoading = computed(() => {
-  return authStore.user?.isAdmin
-    ? reservationsStore.loading
-    : reservationsStore.myLoading
+  const queryInitialLoading = authStore.user?.isAdmin
+    ? (reservationsStore.initialLoading ??
+      (reservationsStore.loading && !reservationsStore.hasLoaded))
+    : (reservationsStore.myInitialLoading ??
+      (reservationsStore.myLoading && !reservationsStore.myHasLoaded))
+
+  return initializing.value || queryInitialLoading
 })
 
 const loadingError = computed(() => {
@@ -205,9 +214,11 @@ const confirmCancellation = async () => {
     <div
       v-if="isLoading"
       aria-label="Cargando reservas"
+      role="status"
+      aria-live="polite"
     >
       <SkeletonLoader
-        variant="reservations"
+        variant="list"
         :items="4"
       />
     </div>

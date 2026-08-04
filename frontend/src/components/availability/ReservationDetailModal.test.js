@@ -36,10 +36,14 @@ describe('ReservationDetailModal', () => {
   })
 
   it('shows a workshop summary without irrelevant progress', () => {
-    const wrapper = mountModal({ isWorkshop: true, title: 'Entrenamiento funcional' })
+    const wrapper = mountModal({ isWorkshop: true, title: 'Taller: Entrenamiento funcional' })
 
-    expect(wrapper.text()).toContain('Actividad institucional')
-    expect(wrapper.text()).toContain('Taller programado')
+    expect(wrapper.text().match(/Entrenamiento funcional/g)).toHaveLength(1)
+    expect(wrapper.findAll('[data-availability-type="workshop"]')).toHaveLength(1)
+    expect(wrapper.get('[data-availability-type="workshop"]').text()).toBe('Taller')
+    expect(wrapper.text()).not.toContain('Actividad institucional')
+    expect(wrapper.text()).not.toContain('Taller programado')
+    expect(wrapper.text()).not.toContain('Taller: Entrenamiento funcional')
     expect(wrapper.text()).toContain('Este horario está reservado para el taller y no admite reservas particulares.')
     expect(wrapper.text()).toContain('Entendido')
     expect(wrapper.text()).not.toContain('Progreso')
@@ -47,10 +51,49 @@ describe('ReservationDetailModal', () => {
     expect(wrapper.findAll('.fact')).toHaveLength(3)
     expect(wrapper.findAll('.fact svg')).toHaveLength(3)
     expect(wrapper.findAll('.fact .icon')).toHaveLength(3)
-    expect(wrapper.find('.resource-note .note-icon').exists()).toBe(true)
+    expect(wrapper.get('.institutional-resource strong').text()).toBe('Cancha 2, Centro Deportivo')
+    expect(wrapper.find('.institutional-resource .note-icon').exists()).toBe(true)
     expect(wrapper.find('.info-callout .callout-icon').exists()).toBe(true)
     expect(wrapper.find('.detail-body').exists()).toBe(true)
     expect(wrapper.find('.detail-actions').exists()).toBe(true)
+  })
+
+  it('mounts the real location, date, time and duration Lucide SVGs', () => {
+    const wrapper = mountModal({ isWorkshop: true, title: 'Taller: Entrenamiento funcional' })
+    const selectors = [
+      '.institutional-resource svg.lucide-map-pin',
+      '.facts svg.lucide-calendar-days',
+      '.facts svg.lucide-clock',
+      '.facts svg.lucide-timer'
+    ]
+    const icons = selectors.map(selector => wrapper.get(selector))
+
+    expect(icons).toHaveLength(4)
+    expect(new Set(icons.map(icon => icon.element.innerHTML)).size).toBe(4)
+    icons.forEach(icon => {
+      expect(icon.attributes('aria-hidden')).toBe('true')
+      expect(icon.attributes('width')).toBe('20')
+      expect(icon.attributes('height')).toBe('20')
+      expect(icon.findAll('path, rect, circle, line, polyline').length).toBeGreaterThan(0)
+    })
+  })
+
+  it.each([
+    ['CLASS', 'Clase: Yoga', 'Clase', 'Yoga'],
+    ['TRAINING', 'Entrenamiento - Selección', 'Entrenamiento', 'Selección'],
+    ['EVENT', 'Evento: Bienvenida', 'Evento', 'Bienvenida']
+  ])('uses one type chip and a clean name for scheduled %s', (activityType, activityTitle, chip, name) => {
+    const wrapper = mountModal({
+      availabilityKind: 'SCHEDULED_ACTIVITY',
+      isScheduledActivity: true,
+      activityType,
+      title: activityTitle
+    })
+
+    expect(wrapper.get('[data-availability-type]').text()).toBe(chip)
+    expect(wrapper.text().match(new RegExp(name, 'g'))).toHaveLength(1)
+    expect(wrapper.text()).not.toContain(activityTitle)
+    expect(wrapper.find('.summary-heading').exists()).toBe(false)
   })
 
   it('shows group progress, bounded stepper and permission information', async () => {
@@ -124,6 +167,8 @@ describe('ReservationDetailModal', () => {
     expect(source).toContain('flex: 0 0 20px')
     expect(source).toContain('display: block')
     expect(source).toContain('flex-shrink: 0')
+    expect(source).toContain('.fact > svg.fact-icon')
+    expect(source).not.toMatch(/\.fact \.icon,\s*\.info-callout\s*,/)
   })
 
   it('consults the invitation code only on demand for an authorized owner', async () => {

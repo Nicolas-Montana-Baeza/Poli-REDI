@@ -149,9 +149,11 @@ const actions = [
     <div
       v-if="resourcesStore.loading || reservationsStore.loading"
       aria-label="Cargando panel administrativo"
+      role="status"
+      aria-live="polite"
     >
       <SkeletonLoader
-        variant="resources"
+        variant="metrics-table"
         :items="5"
       />
     </div>

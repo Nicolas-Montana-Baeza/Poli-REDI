@@ -150,9 +150,11 @@ const stats = computed(() => [
     <div
       v-if="resourcesStore.loading || reservationsStore.loading"
       aria-label="Cargando reportes"
+      role="status"
+      aria-live="polite"
     >
       <SkeletonLoader
-        variant="resources"
+        variant="metrics-table"
         :items="6"
       />
     </div>

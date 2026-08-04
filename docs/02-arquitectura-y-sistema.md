@@ -59,6 +59,7 @@ El backend está construido en **Go** estructurado en paquetes modulares (`backe
 * `PATCH /api/reservations/cancel`: Cancelación de reservas.
 * `GET /api/activities`: Catálogo de actividades.
 * `GET /api/workshops` | `POST /api/workshops/:id/enroll`: Talleres e inscripciones.
+* `DELETE /api/workshops/:id/enrollment`: Cancelar idempotentemente la inscripción `CONFIRMED` propia.
 * `GET /api/group-reservations/:code`: Progreso agregado del flujo grupal.
 * `PUT /api/group-reservations/:code/confirmation`: Confirmar o reconfirmar participación.
 * `DELETE /api/group-reservations/:code/confirmation`: Retirar participación propia.
@@ -84,6 +85,77 @@ La SPA desarrollada en **Vue 3** (Composition API) utiliza:
 * **Pinia Stores:** Manejo de estado centralizado (`authStore`, `reservationStore`, `resourceStore`).
 * **Vue Router:** Control de navegación y guardias de seguridad por rol (`AdminGuard`).
 * **Axios:** Cliente HTTP con interceptores automáticos para inyección del Token Bearer.
+
+### Contrato de lectura asincrona
+
+Los stores de recursos, reservas, actividades y talleres separan el estado de
+la consulta del contenido almacenado. Cada consulta mantiene `status`,
+`hasLoaded`, `refreshing` y un `requestId`; las promesas concurrentes
+equivalentes se deduplican. El identificador de solicitud impide que una
+respuesta obsoleta (`stale`) sobrescriba una respuesta mas reciente.
+
+El contrato visual resultante es:
+
+1. `initialLoading` sin datos: reemplazar temporalmente la superficie por un
+   skeleton con geometria equivalente.
+2. Refresh con datos: conservar los datos y presentar un indicador discreto de
+   actualizacion.
+3. Mutacion: conservar la superficie y mostrar un spinner local en el control
+   que ejecuta la accion.
+4. Error parcial con datos: conservarlos y exponer una advertencia. Historial
+   aplica esta regla al combinar reservas y talleres.
+5. Error inicial sin datos: presentar el estado de error terminal.
+
+`AsyncRegion` centraliza carga inicial, error, vacio y contenido; expone
+`aria-busy`, estado accesible y anuncio para lectores de pantalla.
+`SkeletonLoader` define `availability-timelines`, `media-grid`, `card-grid`,
+`list`, `detail`, `metrics-table` y `compact-rows`. Los medios reservan 16:9 para
+evitar saltos de layout. Shimmer y transiciones respetan
+`prefers-reduced-motion`.
+
+Disponibilidad incluye politica y actividades en su barrera inicial. La
+regresion corregida se debia a la omision de `policyLoading` y `activities`.
+Join, mutaciones y modales que ya poseen el objeto seleccionado conservan su
+contenido y no montan un skeleton.
+
+### Contrato de tipos de disponibilidad y audiencia
+
+El dominio separa el **tipo u origen** del bloque de su **estado operativo**. El
+backend publica `availabilityKind` como `RESERVATION`, `GROUP_RESERVATION` o
+`SCHEDULED_ACTIVITY`. Las actividades programadas agregan `activityType`;
+`CLASS`, `WORKSHOP`, `TRAINING`, `CHAMPIONSHIP`, `EVENT` y `OTHER` se traducen
+respectivamente a Clase, Taller, Entrenamiento, Campeonato, Evento y Actividad
+institucional. Los valores desconocidos usan la categoria institucional
+generica y nunca se infieren desde el titulo, estado o datos personales.
+
+En frontend, `getAvailabilityType` es el helper unico de clasificacion.
+`AvailabilityTypeChip` representa Reserva individual, Reserva grupal, Uso
+libre, Taller, Clase, Entrenamiento, Campeonato, Evento o Actividad
+institucional. `AvailabilityTypeLegend` deduplica los tipos visibles y los
+presenta en orden estable bajo `Tipos de bloque`. El chip no es interactivo ni
+recibe foco; cuando su texto ya forma parte del nombre accesible del bloque se
+oculta del anuncio duplicado.
+
+La integracion cubre Por recurso y Agenda del dia. En recursos `OPEN_USE` se
+mantiene el heatmap de concurrencia y se muestra un unico chip en la cabecera,
+acompañado por la leyenda textual de intensidad. Los bloques y elementos de
+agenda exponen un `aria-label` completo con tipo, titulo seguro, estado, horario
+y accion; la informacion no depende solo del color.
+
+La sanitizacion se aplica por audiencia:
+
+* una reserva propia conserva titulo y capacidades de gestion necesarias, pero
+  omite nombre, correo y RUT del payload de disponibilidad;
+* una reserva ajena se titula `Reserva`, elimina identidad, actividad,
+  participantes, minimo, objetivo, capacidad, plazo y permisos de edicion, y
+  conserva solamente `GROUP_RESERVATION` cuando ese tipo seguro aplica;
+* una actividad programada ajena conserva `activityType`, pero usa el titulo
+  generico `Actividad institucional` y omite la identidad de quien la creo;
+* un administrador conserva el payload operacional completo.
+
+Este contrato es de presentacion y privacidad de disponibilidad. No introduce
+nuevas reglas de conflicto o bloqueo entre clases, entrenamientos, campeonatos,
+eventos y otras categorias institucionales.
 
 ### Vistas Principales:
 - `/`: Inicio y resumen informativo.
@@ -123,6 +195,18 @@ La exención administrativa aplica a crear reservas normales/grupales e inscribi
 
 Los talleres usan ocurrencias normalizadas y admiten múltiples días. El solape usa intervalos semiabiertos (`inicio < fin`): horarios contiguos no chocan. Solo se comparan inscripciones `CONFIRMED` entre talleres activos; filas `CANCELLED` y talleres inactivos no bloquean. Repetir la misma inscripción es idempotente (`200`); una creación nueva devuelve `201`. Un choque responde `409` con `code: WORKSHOP_SCHEDULE_CONFLICT` y detalle `title`, `dayText` y `scheduleText`.
 
+La desinscripción obtiene el usuario exclusivamente de la sesión autenticada y
+opera solo sobre su inscripción `CONFIRMED`. No exige RUT, no admite retirar a
+terceros y, hasta que exista un período formal del taller, no aplica corte
+horario. Si el taller está inactivo responde `409` con
+`WORKSHOP_ENROLLMENT_CLOSED`; repetir una desinscripción ya aplicada es
+idempotente. La transición a `CANCELLED` libera cupo y excluye ese episodio de
+los solapes. Una reinscripción no reactiva la fila cancelada: crea un nuevo
+episodio `CONFIRMED` y preserva la trazabilidad histórica.
+
+Creación y cancelación registran respectivamente
+`WORKSHOP_ENROLLMENT_CREATED` y `WORKSHOP_ENROLLMENT_CANCELLED` en la auditoría.
+
 El repositorio serializa por usuario y luego por taller, verifica cupo y horario y falla de forma cerrada ante ocurrencias faltantes o errores. El trigger protege escrituras externas set-based, sin reemplazar el orden de locks del repositorio. Migraciones 005/006 y carreras reales en Azure SQL permanecen pendientes.
 
 ## 7. Modelo de lectura del historial
@@ -144,7 +228,9 @@ elementos en reservas:
 * **Reserva:** solicitud particular o grupal asociada al propietario y, cuando
   corresponde, a participantes confirmados.
 * **Taller:** oferta recurrente con cupo; su relación personal se determina por
-  `workshop_enrollments`.
+  `workshop_enrollments`. Cada inscripción es un episodio: `CONFIRMED` representa
+  una inscripción activa y `CANCELLED` permanece visible como
+  `Inscripción cancelada`.
 * **Actividad institucional programada:** clase, entrenamiento, campeonato u
   otro evento registrado en `scheduled_activities`.
 

@@ -93,3 +93,100 @@ MVP 1 permanece demostrable. MVP 2 es **APROBABLE para cierre tecnico
 condicionado**, no cerrado: el flujo local y su UX tienen evidencia automatizada,
 pero faltan migraciones reales e integracion online. No adelantar funcionalidad
 de MVP 3 para declarar cerrado MVP 2.
+
+---
+
+## Actualizacion: estados asincronos y skeletons
+
+Esta seccion agrega evidencia al acta sin sustituir las conclusiones historicas
+anteriores.
+
+### Causa y contrato corregido
+
+La regresion de Disponibilidad se origino porque el calculo de carga inicial
+omitia `policyLoading` y la carga de actividades. El contrato corregido espera
+autenticacion, politica, recursos, reservas, talleres y actividades antes de
+retirar el skeleton inicial.
+
+El skeleton se limita a `initialLoading` sin datos. Un refresh conserva datos y
+presenta un indicador discreto; una mutacion conserva el contexto y presenta un
+spinner local. Los stores mantienen `status`, `hasLoaded`, `refreshing`,
+deduplicacion de consultas, `requestId` y proteccion contra respuestas obsoletas.
+Historial conserva resultados parciales y advierte cuando falla una sola fuente.
+
+### Sistema visual y accesibilidad
+
+`SkeletonLoader` incorpora los arquetipos `availability-timelines`,
+`media-grid`, `card-grid`, `list`, `detail`, `metrics-table` y `compact-rows`.
+`AsyncRegion` comunica `aria-busy`, estado y anuncios para lectores de pantalla.
+El movimiento reducido desactiva shimmer y transiciones; los medios reservan
+una proporcion 16:9.
+
+Las superficies cubiertas son Disponibilidad, Dashboard, Mis Reservas, detalle
+por ruta, Historial, Notificaciones y vistas administrativas de usuarios,
+recursos, reservas, talleres, reportes y configuracion. No se aplica skeleton a
+Join, mutaciones ni modales que ya disponen del objeto de detalle.
+
+### Evidencia y pendientes de esta actualizacion
+
+| Verificacion | Resultado |
+| :--- | :--- |
+| Pruebas Node | 18 aprobadas |
+| Pruebas Vitest | 98 aprobadas |
+| Build frontend de produccion | Aprobado |
+| `diff-check` | Aprobado |
+| Bundle frontend | Advertencia conocida: 527.73 kB |
+
+Permanece pendiente QA visual con anchos de 377, 500, 768 y 1440 px, incluyendo
+teclado, lectores de pantalla y movimiento reducido. Tambien permanece pendiente
+la optimizacion o division del bundle.
+
+---
+
+## Actualizacion: taxonomia visual y privacidad de disponibilidad
+
+Esta actualizacion amplia el acta sin reemplazar las decisiones ni la evidencia
+historica anteriores.
+
+### Contrato incorporado
+
+Se separo el tipo u origen del bloque de su estado. La taxonomia visible incluye
+Reserva, Reserva grupal, Uso libre, Taller, Clase, Entrenamiento, Campeonato,
+Evento e Institucional. El helper unico y
+`AvailabilityTypeChip`/`AvailabilityTypeLegend` mantienen la misma
+clasificacion en Por recurso y Agenda del dia; la leyenda se denomina `Tipos de
+bloque`. `OPEN_USE` conserva el heatmap y explica que su intensidad corresponde
+a reservas simultaneas.
+
+El backend publica `availabilityKind` como `RESERVATION`,
+`GROUP_RESERVATION` o `SCHEDULED_ACTIVITY`. Las actividades programadas
+conservan la categoria segura mediante `activityType` y usan Institucional ante
+un valor generico o desconocido.
+
+### Privacidad por audiencia
+
+Una reserva ajena se presenta como `Reserva` y no expone identidad, actividad,
+metricas de participantes, capacidad, plazo ni permisos. Solo conserva el tipo
+grupal seguro cuando corresponde. La reserva propia conserva el detalle y las
+acciones necesarias; el administrador conserva el detalle operacional. Una
+actividad institucional no expone la identidad de quien la creo.
+
+La accesibilidad usa texto ademas de color, no agrega foco a los chips y compone
+un `aria-label` con tipo, titulo seguro, estado, horario y accion. La definicion
+de futuros bloqueos entre categorias institucionales no forma parte de este
+incremento.
+
+### Evidencia actualizada
+
+| Verificacion | Resultado |
+| :--- | :--- |
+| Backend | `go test ./...` aprobado |
+| Pruebas Node | 18 aprobadas |
+| Pruebas Vitest | 119 aprobadas |
+| Build frontend de produccion | Aprobado |
+| `diff-check` | Aprobado |
+| Bundle frontend | Advertencia conocida: 531.79 kB |
+
+El alcance queda **APROBABLE condicionado** a QA visual y de privacidad por
+audiencia, sin declarar implementados bloqueos futuros ni ampliar el cierre de
+MVP 2 con funciones institucionales de MVP 3.

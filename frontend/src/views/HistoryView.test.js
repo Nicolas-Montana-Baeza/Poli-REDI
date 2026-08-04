@@ -47,6 +47,9 @@ describe('HistoryView', () => {
     authStore.loadAuthUser.mockReset().mockResolvedValue(authStore.user)
     reservationsStore.fetchMyReservations.mockReset().mockResolvedValue()
     workshopsStore.fetchMyEnrollments.mockReset().mockResolvedValue()
+    reservationsStore.myLoadingError = null
+    reservationsStore.loadingError = null
+    workshopsStore.historyLoadingError = null
     reservationsStore.myReservations = [{
       id: 1,
       title: 'Fútbol',
@@ -115,12 +118,28 @@ describe('HistoryView', () => {
     await card.trigger('click')
 
     const dialog = wrapper.get('[role="dialog"]')
-    expect(dialog.text()).toContain('Actividad institucional')
+    expect(dialog.get('[data-availability-type="workshop"]').text())
+      .toBe('Taller')
+    expect(dialog.text()).not.toContain('Actividad institucional')
     expect(dialog.text()).toContain('Escalada')
     expect(dialog.text()).toContain('Martes')
     expect(dialog.text()).toContain('18:00 - 19:00')
     expect(dialog.text()).toContain('Fecha de inscripción')
     expect(dialog.text()).not.toContain('Objetivo de participantes')
     expect(dialog.text()).not.toContain('Cancelar reserva')
+  })
+
+  it('conserva reservas disponibles si falla el historial de talleres', async () => {
+    workshopsStore.myEnrollments = []
+    workshopsStore.historyLoadingError =
+      'No se pudo cargar tu historial de talleres.'
+
+    const wrapper = mountHistory()
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('Se muestran los datos disponibles.')
+    expect(wrapper.text()).toContain('Fútbol')
+    expect(wrapper.find('.state-card.warning').exists()).toBe(true)
+    expect(wrapper.find('.state-card.error').exists()).toBe(false)
   })
 })
