@@ -156,9 +156,9 @@ Antes de liberar el incremento de MVP 2 se debe comprobar:
 * no existe retiro de terceros ni corte horario hasta definir formalmente el
   periodo del taller.
 
-Evidencia disponible del incremento: 18 pruebas Node, 144 pruebas Vitest y
-build frontend de produccion aprobado. La validacion backend final debe
-completarse antes de marcar este bloque como cerrado.
+Evidencia del 2026-08-04: `go test ./... -count=1` aprobado en todos los
+paquetes, 18 pruebas Node, 144 pruebas Vitest, build frontend de produccion y
+`diff-check` aprobados.
 
 ---
 

@@ -190,3 +190,39 @@ incremento.
 El alcance queda **APROBABLE condicionado** a QA visual y de privacidad por
 audiencia, sin declarar implementados bloqueos futuros ni ampliar el cierre de
 MVP 2 con funciones institucionales de MVP 3.
+
+---
+
+## Actualizacion 2026-08-04: desinscripcion de talleres
+
+Esta actualizacion incorpora al alcance controlado de MVP 2 la cancelacion de
+la inscripcion propia a talleres. No sustituye la evidencia historica anterior.
+
+### Decisiones registradas
+
+1. `DELETE /api/workshops/:id/enrollment` usa al usuario autenticado y cancela
+   solo su episodio `CONFIRMED`; no recibe ni permite seleccionar a un tercero.
+2. La desinscripcion no exige RUT. El requisito de RUT permanece en el alta.
+3. La operacion es idempotente y solo procede sobre un taller activo. Un taller
+   inactivo responde `409` con `WORKSHOP_ENROLLMENT_CLOSED`.
+4. La transicion a `CANCELLED` libera cupo, deja de bloquear solapes y conserva
+   el episodio en Historial como `Inscripcion cancelada`.
+5. Una reinscripcion crea un episodio nuevo `CONFIRMED`; no reactiva ni elimina
+   el episodio cancelado.
+6. La auditoria distingue `WORKSHOP_ENROLLMENT_CANCELLED` y
+   `WORKSHOP_ENROLLMENT_CREATED`.
+7. No existe corte horario hasta definir formalmente el periodo del taller.
+
+### Evidencia del incremento
+
+| Verificacion | Resultado |
+| :--- | :--- |
+| Backend | `go test ./... -count=1` aprobado en todos los paquetes |
+| Pruebas Node | 18 aprobadas |
+| Pruebas Vitest | 144 aprobadas |
+| Build frontend de produccion | Aprobado |
+| `diff-check` | Aprobado |
+
+El incremento queda **IMPLEMENTADO Y VERIFICADO LOCALMENTE**. La validacion
+integrada/online y las condiciones generales que mantienen al MVP 2 como cierre
+condicionado no cambian.

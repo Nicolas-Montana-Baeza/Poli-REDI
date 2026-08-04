@@ -57,6 +57,20 @@ Este checklist no reemplaza pruebas automatizadas. Sirve como prueba de humo man
 | Abrir `Historial` | Muestra reservas pasadas, canceladas o finalizadas | Pendiente |  |
 | Ver reserva confirmada por otro usuario | El propietario ve la reserva en su listado propio y el participante confirmado la ve en su perfil | Pendiente |  |
 
+## Validacion de inscripcion y desinscripcion de talleres
+
+| Paso | Resultado esperado | Estado | Evidencia / observacion |
+| --- | --- | --- | --- |
+| Inscribirse con RUT en taller activo con cupo | Crea un episodio `CONFIRMED`, descuenta cupo y registra `WORKSHOP_ENROLLMENT_CREATED` | Pendiente |  |
+| Cancelar la inscripcion propia sin RUT | Cambia solo el episodio `CONFIRMED` propio a `CANCELLED` | Pendiente |  |
+| Repetir la cancelacion | Respuesta idempotente, sin duplicar auditoria ni modificar terceros | Pendiente |  |
+| Consultar taller inactivo | Responde `409 WORKSHOP_ENROLLMENT_CLOSED` y no cambia la inscripcion | Pendiente |  |
+| Revisar cupo y solapes despues de cancelar | El cupo queda liberado y el episodio cancelado ya no bloquea | Pendiente |  |
+| Abrir Historial | La fila permanece visible como `Inscripcion cancelada` | Pendiente |  |
+| Reinscribirse | Crea un episodio nuevo `CONFIRMED`; no reactiva el cancelado | Pendiente |  |
+| Intentar retirar a otro usuario | No existe parametro ni ruta que permita la operacion | Pendiente |  |
+| Cancelar cerca del horario | Se permite mientras el taller este activo; no hay corte hasta definir un periodo formal | Pendiente |  |
+
 ## Validacion de flujo grupal por codigo
 
 | Paso | Resultado esperado | Estado | Evidencia / observacion |

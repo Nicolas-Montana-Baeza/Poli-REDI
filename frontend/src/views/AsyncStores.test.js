@@ -157,6 +157,54 @@ describe('contrato asincrono de stores', () => {
     expect(store.historyInitialLoading).toBe(false)
   })
 
+  it('inscribe una sola vez y refresca el historial autoritativo', async () => {
+    const enrollmentRequest = deferred()
+    services.workshops.enroll.mockReturnValueOnce(enrollmentRequest.promise)
+    services.workshops.getMine.mockResolvedValueOnce([{
+      id: 41,
+      workshopId: 3,
+      status: 'CONFIRMED'
+    }])
+    const store = useWorkshopsStore()
+    store.workshops = [{
+      id: 3,
+      title: 'Esgrima',
+      isActive: true,
+      isEnrolled: false,
+      enrolledCount: 8,
+      capacity: 20
+    }]
+    store.historyHasLoaded = true
+    store.myEnrollments = []
+
+    const first = store.enroll(3)
+    const duplicate = store.enroll(3)
+
+    expect(store.enrollingId).toBe(3)
+    expect(services.workshops.enroll).toHaveBeenCalledOnce()
+    await expect(duplicate).resolves.toBeNull()
+
+    enrollmentRequest.resolve({
+      ...store.workshops[0],
+      isEnrolled: true,
+      enrolledCount: 9
+    })
+    await first
+
+    expect(store.enrollingId).toBeNull()
+    expect(store.workshops[0]).toMatchObject({
+      isEnrolled: true,
+      enrolledCount: 9
+    })
+    expect(store.myEnrollments).toEqual([{
+      id: 41,
+      workshopId: 3,
+      status: 'CONFIRMED'
+    }])
+    expect(services.workshops.getMine).toHaveBeenCalledOnce()
+    expect(store.actionSuccess).toBe('Inscripción registrada correctamente.')
+  })
+
   it('desinscribe una sola vez y conserva los episodios del historial', async () => {
     const withdrawalRequest = deferred()
     services.workshops.withdraw.mockReturnValueOnce(withdrawalRequest.promise)
@@ -183,12 +231,10 @@ describe('contrato asincrono de stores', () => {
     await expect(duplicate).resolves.toBeNull()
 
     withdrawalRequest.resolve({
-      id: 3,
-      title: 'Esgrima',
-      isActive: true,
+      workshopId: 3,
       isEnrolled: false,
       enrolledCount: 8,
-      capacity: 20
+      changed: true
     })
     await first
 
@@ -203,6 +249,46 @@ describe('contrato asincrono de stores', () => {
       .toEqual(['CANCELLED', 'CANCELLED', 'CONFIRMED'])
     expect(store.actionSuccess)
       .toBe('Te desinscribiste de Esgrima. Tu cupo quedó disponible.')
+  })
+
+  it('reconcilia una baja idempotente sin cancelar otro episodio historico', async () => {
+    services.workshops.withdraw.mockResolvedValueOnce({
+      workshopId: 3,
+      isEnrolled: false,
+      enrolledCount: 8,
+      changed: false
+    })
+    const store = useWorkshopsStore()
+    store.workshops = [{
+      id: 3,
+      title: 'Esgrima',
+      isActive: true,
+      isEnrolled: true,
+      enrolledCount: 9,
+      capacity: 20
+    }]
+    store.myEnrollments = [{
+      id: 41,
+      workshopId: 3,
+      status: 'CONFIRMED'
+    }]
+
+    await store.withdraw(3)
+
+    expect(store.workshops[0]).toMatchObject({
+      id: 3,
+      title: 'Esgrima',
+      isEnrolled: false,
+      enrolledCount: 8,
+      capacity: 20
+    })
+    expect(store.myEnrollments).toEqual([{
+      id: 41,
+      workshopId: 3,
+      status: 'CONFIRMED'
+    }])
+    expect(store.actionSuccess)
+      .toBe('Ya no estás inscrito en este taller.')
   })
 
   it('conserva talleres e historial si falla la desinscripcion', async () => {

@@ -58,6 +58,84 @@ describe('ReservationDetailModal', () => {
     expect(wrapper.find('.detail-actions').exists()).toBe(true)
   })
 
+  it('ofrece desinscripcion solo con capacidad explicita y mantiene el detalle abierto', async () => {
+    const wrapper = mountModal({
+      isWorkshop: true,
+      title: 'Taller: Entrenamiento funcional'
+    }, {
+      canWithdrawWorkshop: true,
+      workshopActionMessage: 'Te desinscribiste del taller. Tu cupo quedó disponible.'
+    })
+
+    expect(wrapper.text()).toContain('Desinscribirme')
+    expect(wrapper.get('.workshop-action-feedback').attributes('role'))
+      .toBe('status')
+    await wrapper.get('.detail-actions .danger').trigger('click')
+    expect(wrapper.emitted('withdraw-workshop')).toHaveLength(1)
+    expect(wrapper.find('[role="dialog"]').exists()).toBe(true)
+
+    await wrapper.setProps({ workshopWithdrawing: true })
+    expect(wrapper.text()).toContain('Desinscribiendo…')
+    expect(wrapper.get('.detail-actions .danger').attributes('disabled'))
+      .toBeDefined()
+  })
+
+  it('ofrece inscripcion al taller y bloquea el doble envio mientras procesa', async () => {
+    const wrapper = mountModal({
+      isWorkshop: true,
+      title: 'Taller: Entrenamiento funcional'
+    }, {
+      canEnrollWorkshop: true
+    })
+
+    const button = wrapper.get('.detail-actions .primary')
+    expect(button.text()).toBe('Inscribirme')
+    await button.trigger('click')
+    expect(wrapper.emitted('enroll-workshop')).toHaveLength(1)
+    expect(wrapper.find('[role="dialog"]').exists()).toBe(true)
+
+    await wrapper.setProps({ workshopEnrolling: true })
+    expect(wrapper.text()).toContain('Inscribiendo…')
+    expect(wrapper.get('.detail-actions .primary').attributes('disabled'))
+      .toBeDefined()
+    await wrapper.get('.detail-actions .primary').trigger('click')
+    expect(wrapper.emitted('enroll-workshop')).toHaveLength(1)
+  })
+
+  it.each([
+    ['sin capacidad explicita', {}],
+    ['historial', { canEnrollWorkshop: true, readOnly: true }],
+    ['actividad no taller', { canEnrollWorkshop: true, reservation: { ...base, isScheduledActivity: true, activityType: 'CLASS' } }]
+  ])('oculta inscripcion en %s', (_label, componentProps) => {
+    const reservation = componentProps.reservation || {
+      ...base,
+      isWorkshop: true,
+      title: 'Taller: Entrenamiento funcional'
+    }
+    const { reservation: _ignored, ...props } = componentProps
+    const wrapper = mountModal(reservation, props)
+
+    expect(wrapper.text()).not.toContain('Inscribirme')
+    expect(wrapper.emitted('enroll-workshop')).toBeUndefined()
+  })
+
+  it.each([
+    ['sin inscripcion', {}],
+    ['historial', { canWithdrawWorkshop: true, readOnly: true }],
+    ['actividad no taller', { canWithdrawWorkshop: true, reservation: { ...base, isScheduledActivity: true, activityType: 'CLASS' } }]
+  ])('oculta desinscripcion en %s', (_label, componentProps) => {
+    const reservation = componentProps.reservation || {
+      ...base,
+      isWorkshop: true,
+      title: 'Taller: Entrenamiento funcional'
+    }
+    const { reservation: _ignored, ...props } = componentProps
+    const wrapper = mountModal(reservation, props)
+
+    expect(wrapper.text()).not.toContain('Desinscribirme')
+    expect(wrapper.emitted('withdraw-workshop')).toBeUndefined()
+  })
+
   it('mounts the real location, date, time and duration Lucide SVGs', () => {
     const wrapper = mountModal({ isWorkshop: true, title: 'Taller: Entrenamiento funcional' })
     const selectors = [

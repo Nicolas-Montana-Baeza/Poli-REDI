@@ -174,7 +174,7 @@ Entregar una experiencia usable para el usuario normal, desde login hasta reserv
 - Cancelacion de reserva propia.
 - Historial de reservas.
 - Filtros de historial por estado y fecha.
-- Talleres deportivos con inscripcion.
+- Talleres deportivos con inscripcion, desinscripcion propia e historial por episodio.
 - Catalogo de recursos con datos reales.
 - Filtros basicos de recursos en frontend.
 - Imagenes configurables de recursos en catalogo y dashboard.
@@ -246,7 +246,14 @@ Entregar una experiencia usable para el usuario normal, desde login hasta reserv
 
 Avanzado con brechas obligatorias aprobadas.
 
-Incluye tambien una primera version funcional de talleres deportivos: listado de talleres activos, busqueda, cupos, estado de inscripcion e inscripcion protegida por RUT. La disponibilidad ya consume un endpoint sanitizado y muestra talleres como ocupacion recurrente; los recursos `OPEN_USE` operan como uso libre con intensidad de uso. El catalogo y dashboard ya pueden mostrar imagenes configuradas para recursos.
+Incluye tambien una primera version funcional de talleres deportivos: listado de
+talleres activos, busqueda, cupos, estado de inscripcion, alta protegida por RUT
+y desinscripcion propia idempotente sin RUT. La cancelacion cambia el episodio
+activo a `CANCELLED`, libera cupo y solapes y permanece en historial; una
+reinscripcion crea un episodio nuevo `CONFIRMED`. La disponibilidad ya consume
+un endpoint sanitizado y muestra talleres como ocupacion recurrente; los
+recursos `OPEN_USE` operan como uso libre con intensidad de uso. El catalogo y
+dashboard ya pueden mostrar imagenes configuradas para recursos.
 
 ### Pendientes para cierre completo
 
@@ -265,7 +272,15 @@ Incluye tambien una primera version funcional de talleres deportivos: listado de
 
 ### Criterio de cierre
 
-El MVP 2 se considera cerrado cuando un usuario normal puede autenticarse, completar su perfil, consultar disponibilidad, cumplir la ventana y frecuencia, crear una solicitud con estado acorde al recurso, reunir mediante cuentas y mantener 10 participantes dentro del plazo, observar el bloqueo `PENDING` y su cancelacion al vencer, cancelar una reserva propia, revisar reservas/historial/recursos, inscribirse en talleres y operar sin errores visibles en los flujos principales.
+El MVP 2 se considera cerrado cuando un usuario normal puede autenticarse,
+completar su perfil, consultar disponibilidad, cumplir la ventana y frecuencia,
+crear una solicitud con estado acorde al recurso, reunir mediante cuentas y
+mantener 10 participantes dentro del plazo, observar el bloqueo `PENDING` y su
+cancelacion al vencer, cancelar una reserva propia, revisar
+reservas/historial/recursos, inscribirse y desinscribirse de talleres propios y
+operar sin errores visibles en los flujos principales. La desinscripcion no
+retira a terceros ni aplica corte horario mientras no exista un periodo formal
+del taller.
 
 El objetivo no reemplaza el minimo. El flujo frontend, deadline y vencimiento estan ACCEPTED LOCALLY; SQL/Azure real y otras brechas mantienen abierto MVP 2.
 

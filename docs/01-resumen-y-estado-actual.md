@@ -138,9 +138,9 @@ taller debe continuar activo; de lo contrario la API responde `409` con
 no se aplica corte horario. Una reinscripción posterior crea un episodio nuevo
 `CONFIRMED` y conserva el cancelado en el historial.
 
-Para este incremento están verificadas 18 pruebas Node, 144 pruebas Vitest y el
-build frontend de producción. La validación backend final permanece pendiente y
-no se considera aprobada por esta actualización documental.
+Evidencia del 2026-08-04 para este incremento: `go test ./... -count=1`
+aprobado en todos los paquetes, 18 pruebas Node, 144 pruebas Vitest, build
+frontend de producción y `diff-check` aprobados.
 
 ### Alcance aprobado del historial
 

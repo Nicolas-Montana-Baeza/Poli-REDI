@@ -41,11 +41,18 @@ const state = vi.hoisted(() => ({
   },
   workshops: {
     workshops: [],
+    myEnrollments: [],
     loading: false,
     hasLoaded: false,
     initialLoading: false,
+    historyLoading: false,
+    historyHasLoaded: false,
+    historyLoadingError: null,
+    withdrawingId: null,
     loadingError: null,
-    fetchWorkshops: vi.fn()
+    fetchWorkshops: vi.fn(),
+    fetchMyEnrollments: vi.fn(),
+    clearMessages: vi.fn()
   }
 }))
 
@@ -94,6 +101,7 @@ describe('AvailabilitySection readiness', () => {
     state.reservations.fetchAvailabilityReservations.mockResolvedValue([])
     state.activities.fetchActivities.mockResolvedValue([])
     state.workshops.fetchWorkshops.mockResolvedValue([])
+    state.workshops.fetchMyEnrollments.mockResolvedValue([])
     state.resources.error = null
     state.reservations.availabilityLoadingError = null
     state.activities.error = null
@@ -109,6 +117,7 @@ describe('AvailabilitySection readiness', () => {
 
     expect(state.policy).toHaveBeenCalledOnce()
     expect(state.resources.fetchResources).toHaveBeenCalledOnce()
+    expect(state.workshops.fetchMyEnrollments).toHaveBeenCalledOnce()
     expect(wrapper.find('.skeleton-stub').exists()).toBe(true)
 
     policyRequest.resolve({ groupResourceIds: [], minimumParticipants: 10 })
@@ -126,5 +135,23 @@ describe('AvailabilitySection readiness', () => {
     expect(wrapper.find('.skeleton-stub').exists()).toBe(false)
     expect(wrapper.text()).toContain('No se pudo validar la política de reservas')
     expect(state.reservations.setActionError).not.toHaveBeenCalled()
+  })
+
+  it('no bloquea la disponibilidad por una carga tardia del historial de talleres', async () => {
+    const historyRequest = deferred()
+    state.policy.mockResolvedValueOnce({
+      groupResourceIds: [],
+      minimumParticipants: 10
+    })
+    state.workshops.fetchMyEnrollments.mockReturnValueOnce(historyRequest.promise)
+
+    const wrapper = mountAvailability()
+    await flushPromises()
+
+    expect(state.workshops.fetchMyEnrollments).toHaveBeenCalledOnce()
+    expect(wrapper.find('.skeleton-stub').exists()).toBe(false)
+
+    historyRequest.resolve([])
+    await flushPromises()
   })
 })

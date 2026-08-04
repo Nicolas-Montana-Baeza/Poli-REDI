@@ -10,7 +10,7 @@ import {
 } from 'lucide-vue-next'
 
 import SkeletonLoader from '@/components/ui/SkeletonLoader.vue'
-import ConfirmModal from '@/components/ui/ConfirmModal.vue'
+import WorkshopWithdrawalConfirm from '@/components/workshops/WorkshopWithdrawalConfirm.vue'
 import { useWorkshopsStore } from '@/stores/workshops'
 
 const workshopsStore = useWorkshopsStore()
@@ -282,14 +282,8 @@ const enroll = async (workshop) => {
       </article>
     </section>
 
-    <ConfirmModal
-      :show="Boolean(pendingWithdrawal)"
-      :title="pendingWithdrawal ? `¿Desinscribirte de ${pendingWithdrawal.title}?` : 'Desinscribirte del taller'"
-      :message="pendingWithdrawal ? `Tu cupo en ${pendingWithdrawal.title} quedará disponible para otra persona. Podrás volver a inscribirte solo si el taller sigue activo, tiene cupos y no se cruza con otro taller.` : ''"
-      confirm-text="Sí, desinscribirme"
-      cancel-text="Mantener inscripción"
-      variant="danger"
-      destructive
+    <WorkshopWithdrawalConfirm
+      :workshop="pendingWithdrawal"
       :loading="workshopsStore.withdrawingId !== null"
       @confirm="confirmWithdrawal"
       @cancel="pendingWithdrawal = null"

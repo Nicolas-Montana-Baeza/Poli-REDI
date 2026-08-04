@@ -186,13 +186,17 @@ export const useWorkshopsStore =
             await workshopsService.enroll(workshopId)
 
           this.workshops = this.workshops.map((workshop) =>
-            workshop.id === updatedWorkshop.id
-              ? updatedWorkshop
+            Number(workshop.id) === Number(updatedWorkshop.id)
+              ? { ...workshop, ...updatedWorkshop }
               : workshop
           )
 
           this.actionSuccess =
             'Inscripción registrada correctamente.'
+
+          if (this.historyHasLoaded) {
+            await this.fetchMyEnrollments({ force: true })
+          }
 
           return updatedWorkshop
         } catch (error) {
@@ -227,27 +231,44 @@ export const useWorkshopsStore =
         this.actionSuccess = null
 
         try {
-          const updatedWorkshop =
+          const enrollmentChange =
             await workshopsService.withdraw(workshopId)
 
+          const changedWorkshopId = Number(
+            enrollmentChange.workshopId ??
+            enrollmentChange.id ??
+            workshopId
+          )
+          const currentWorkshop = this.workshops.find(
+            (workshop) => Number(workshop.id) === changedWorkshopId
+          )
+
           this.workshops = this.workshops.map((workshop) =>
-            workshop.id === updatedWorkshop.id
-              ? updatedWorkshop
+            Number(workshop.id) === changedWorkshopId
+              ? {
+                  ...workshop,
+                  isEnrolled: enrollmentChange.isEnrolled,
+                  enrolledCount: enrollmentChange.enrolledCount
+                }
               : workshop
           )
 
-          this.myEnrollments = this.myEnrollments.map((enrollment) =>
-            Number(enrollment.workshopId) === Number(workshopId) &&
-            enrollment.status === 'CONFIRMED'
-              ? { ...enrollment, status: 'CANCELLED' }
-              : enrollment
-          )
+          if (enrollmentChange.changed === true) {
+            this.myEnrollments = this.myEnrollments.map((enrollment) =>
+              Number(enrollment.workshopId) === changedWorkshopId &&
+              enrollment.status === 'CONFIRMED'
+                ? { ...enrollment, status: 'CANCELLED' }
+                : enrollment
+            )
+          }
 
-          this.actionSuccess = updatedWorkshop.title
-            ? `Te desinscribiste de ${updatedWorkshop.title}. Tu cupo quedó disponible.`
-            : 'Te desinscribiste del taller. Tu cupo quedó disponible.'
+          this.actionSuccess = enrollmentChange.changed === false
+            ? 'Ya no estás inscrito en este taller.'
+            : currentWorkshop?.title
+              ? `Te desinscribiste de ${currentWorkshop.title}. Tu cupo quedó disponible.`
+              : 'Te desinscribiste del taller. Tu cupo quedó disponible.'
 
-          return updatedWorkshop
+          return enrollmentChange
         } catch (error) {
           const payload = error.response?.data
           const message = payload?.code === 'WORKSHOP_ENROLLMENT_CLOSED'

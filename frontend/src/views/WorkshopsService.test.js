@@ -15,9 +15,10 @@ describe('workshopsService', () => {
 
   it('desinscribe al usuario autenticado mediante el endpoint del taller', async () => {
     const updatedWorkshop = {
-      id: 7,
+      workshopId: 7,
       isEnrolled: false,
-      enrolledCount: 11
+      enrolledCount: 11,
+      changed: true
     }
     api.delete.mockResolvedValueOnce({ data: updatedWorkshop })
 

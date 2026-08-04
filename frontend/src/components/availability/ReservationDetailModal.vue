@@ -37,9 +37,14 @@ const props = defineProps({
   participationBusy: { type: Boolean, default: false },
   participationMessage: { type: String, default: '' },
   readOnly: { type: Boolean, default: false },
-  workshopEnrollmentMode: { type: Boolean, default: false }
+  workshopEnrollmentMode: { type: Boolean, default: false },
+  canEnrollWorkshop: { type: Boolean, default: false },
+  workshopEnrolling: { type: Boolean, default: false },
+  canWithdrawWorkshop: { type: Boolean, default: false },
+  workshopWithdrawing: { type: Boolean, default: false },
+  workshopActionMessage: { type: String, default: '' }
 })
-const emit = defineEmits(['close', 'cancel', 'update-target', 'confirm-participation', 'withdraw-participation'])
+const emit = defineEmits(['close', 'cancel', 'update-target', 'confirm-participation', 'withdraw-participation', 'enroll-workshop', 'withdraw-workshop'])
 const closeDialog = () => emit('close')
 const { dialogRef, onKeydown } = useAccessibleDialog({
   visible: computed(() => props.visible),
@@ -113,6 +118,16 @@ const targetEditingAllowed = computed(() =>
 const canDecrease = computed(() => targetEditingAllowed.value && Number(targetValue.value) > minTarget.value)
 const canIncrease = computed(() => targetEditingAllowed.value && Number(targetValue.value) < capacity.value)
 const showCancelAction = computed(() => !props.readOnly && props.canCancel && !isInstitutional.value && isReservationCancelable(props.reservation))
+const showWorkshopEnrollment = computed(() => (
+  !props.readOnly &&
+  isWorkshop.value &&
+  props.canEnrollWorkshop
+))
+const showWorkshopWithdrawal = computed(() => (
+  !props.readOnly &&
+  isWorkshop.value &&
+  props.canWithdrawWorkshop
+))
 const showPermissionNote = computed(() => !props.readOnly && !props.participationMode && !isInstitutional.value && !showCancelAction.value)
 const enrollmentDate = computed(() => {
   const value = new Date(props.reservation?.enrolledAt)
@@ -286,7 +301,16 @@ const shareJoinCode = async () => {
               <span>{{ institutionalCallout }}</span>
             </div>
 
-            <section v-else-if="target" class="participants-card">
+            <p
+              v-if="isWorkshop && workshopActionMessage"
+              class="workshop-action-feedback"
+              role="status"
+              aria-live="polite"
+            >
+              {{ workshopActionMessage }}
+            </p>
+
+            <section v-if="target && !isInstitutional" class="participants-card">
               <div>
                 <span class="field-label">Participantes</span>
                 <h3>{{ participantCount }} de {{ target }} confirmados</h3>
@@ -385,6 +409,24 @@ const shareJoinCode = async () => {
 
         <footer class="detail-actions">
           <button class="app-button secondary" type="button" @click="closeDialog">{{ isInstitutional ? 'Entendido' : 'Cerrar' }}</button>
+          <button
+            v-if="showWorkshopEnrollment"
+            class="app-button primary"
+            type="button"
+            :disabled="workshopEnrolling"
+            @click="emit('enroll-workshop')"
+          >
+            {{ workshopEnrolling ? 'Inscribiendo…' : 'Inscribirme' }}
+          </button>
+          <button
+            v-if="showWorkshopWithdrawal"
+            class="app-button danger"
+            type="button"
+            :disabled="workshopWithdrawing"
+            @click="emit('withdraw-workshop')"
+          >
+            {{ workshopWithdrawing ? 'Desinscribiendo…' : 'Desinscribirme' }}
+          </button>
           <button v-if="showCancelAction" class="app-button danger" type="button" @click="emit('cancel')">Cancelar reserva</button>
         </footer>
       </article>
@@ -708,6 +750,17 @@ const shareJoinCode = async () => {
 .participation-feedback { margin: 0 !important; font-weight: 700; line-height: 1.5; }
 .participation-closed { color: var(--color-text-muted, #60708a) !important; }
 .participation-feedback { color: var(--color-success, #16803a) !important; }
+.workshop-action-feedback {
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--color-success-border, #bbf7d0);
+  border-radius: var(--radius-md, 10px);
+  background: var(--color-success-soft, #dcfce7);
+  color: var(--color-success, #16803a);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.5;
+}
 .join-code output {
   min-width: 0;
   padding: 11px;

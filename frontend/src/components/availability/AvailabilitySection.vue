@@ -9,6 +9,7 @@ import AvailabilityTypeLegend from './AvailabilityTypeLegend.vue'
 import ReservationDetailModal from './ReservationDetailModal.vue'
 import ReservationForm from '../forms/ReservationForm.vue'
 import SkeletonLoader from '@/components/ui/SkeletonLoader.vue'
+import WorkshopWithdrawalConfirm from '@/components/workshops/WorkshopWithdrawalConfirm.vue'
 
 import { useResourcesStore } from '@/stores/resources'
 import { useReservationsStore } from '@/stores/reservations'
@@ -184,6 +185,76 @@ const selectedSlot = ref(null)
 
 /* SELECTED RESERVATION */
 const selectedReservation = ref(null)
+const pendingWorkshopWithdrawal = ref(null)
+
+const selectedWorkshopId = computed(() => {
+  if (!selectedReservation.value?.isWorkshop) {
+    return null
+  }
+
+  const nestedId = selectedReservation.value?.workshop?.id
+  const directId = selectedReservation.value?.workshopId
+  const availabilityId = String(selectedReservation.value?.id || '')
+    .match(/^workshop-(\d+)-/)?.[1]
+  const workshopId = Number(nestedId ?? directId ?? availabilityId)
+
+  if (!Number.isInteger(workshopId) || workshopId <= 0) {
+    return null
+  }
+
+  return workshopId
+})
+const currentWorkshop = computed(() => {
+  if (!selectedWorkshopId.value) {
+    return null
+  }
+
+  return workshopsStore.workshops.find(
+    (workshop) => Number(workshop.id) === selectedWorkshopId.value
+  ) || selectedReservation.value.workshop
+})
+const hasConfirmedSelectedWorkshopEnrollment = computed(() => {
+  if (currentWorkshop.value?.isEnrolled === true) {
+    return true
+  }
+
+  return workshopsStore.myEnrollments?.some(
+    (enrollment) => (
+      Number(enrollment.workshopId) === selectedWorkshopId.value &&
+      String(enrollment.status || '').toUpperCase() === 'CONFIRMED'
+    )
+  ) === true
+})
+const canWithdrawSelectedWorkshop = computed(() => Boolean(
+  authStore.user &&
+  selectedReservation.value?.isWorkshop &&
+  currentWorkshop.value?.isActive !== false &&
+  hasConfirmedSelectedWorkshopEnrollment.value
+))
+const canEnrollSelectedWorkshop = computed(() => Boolean(
+  authStore.user &&
+  selectedReservation.value?.isWorkshop &&
+  currentWorkshop.value?.isActive !== false &&
+  !hasConfirmedSelectedWorkshopEnrollment.value &&
+  Number(currentWorkshop.value?.capacity || 0) >
+    Number(currentWorkshop.value?.enrolledCount || 0)
+))
+const selectedWorkshopEnrolling = computed(() => (
+  workshopsStore.enrollingId !== null
+))
+const selectedWorkshopWithdrawing = computed(() => (
+  Number(workshopsStore.withdrawingId) === selectedWorkshopId.value
+))
+const selectedDetailError = computed(() => (
+  selectedReservation.value?.isWorkshop
+    ? workshopsStore.actionError?.message || ''
+    : reservationsStore.actionError || ''
+))
+const selectedWorkshopActionMessage = computed(() => (
+  selectedReservation.value?.isWorkshop
+    ? workshopsStore.actionSuccess || ''
+    : ''
+))
 
 const canCancelSelectedReservation = computed(() => {
   if (!authStore.user || !selectedReservation.value) {
@@ -247,6 +318,7 @@ onMounted(async () => {
     reservationsStore.fetchAvailabilityReservations(),
     activitiesStore.fetchActivities(),
     workshopsStore.fetchWorkshops(),
+    workshopsStore.fetchMyEnrollments(),
     loadCurrentPolicy()
   ])
 })
@@ -294,6 +366,7 @@ const handleSlotSelected = (slot) => {
 const handleReservationSelected = (reservation) => {
   reservationsStore.clearActionError?.()
   reservationsStore.clearActionSuccess?.()
+  workshopsStore.clearMessages?.()
 
   selectedSlot.value = null
   showReservationForm.value = false
@@ -310,8 +383,72 @@ const closeReservationForm = () => {
 
 const closeReservationDetail = () => {
   selectedReservation.value = null
+  pendingWorkshopWithdrawal.value = null
 
   reservationsStore.clearActionError?.()
+  workshopsStore.clearMessages?.()
+}
+
+const requestSelectedWorkshopWithdrawal = () => {
+  if (!canWithdrawSelectedWorkshop.value || selectedWorkshopWithdrawing.value) {
+    return
+  }
+
+  pendingWorkshopWithdrawal.value = currentWorkshop.value
+}
+
+const enrollSelectedWorkshop = async () => {
+  const workshop = currentWorkshop.value
+
+  if (
+    !canEnrollSelectedWorkshop.value ||
+    workshopsStore.enrollingId !== null
+  ) {
+    return
+  }
+
+  try {
+    const updatedWorkshop = await workshopsStore.enroll(workshop.id)
+
+    if (selectedReservation.value?.isWorkshop && updatedWorkshop) {
+      selectedReservation.value = {
+        ...selectedReservation.value,
+        workshop: {
+          ...selectedReservation.value.workshop,
+          ...updatedWorkshop
+        }
+      }
+    }
+  } catch {
+    // El store conserva el mensaje específico sin cerrar el detalle.
+  }
+}
+
+const confirmSelectedWorkshopWithdrawal = async () => {
+  const workshop = pendingWorkshopWithdrawal.value
+
+  if (!workshop || workshopsStore.withdrawingId !== null) {
+    return
+  }
+
+  try {
+    const change = await workshopsStore.withdraw(workshop.id)
+
+    if (selectedReservation.value?.isWorkshop && change) {
+      selectedReservation.value = {
+        ...selectedReservation.value,
+        workshop: {
+          ...selectedReservation.value.workshop,
+          isEnrolled: change.isEnrolled,
+          enrolledCount: change.enrolledCount
+        }
+      }
+    }
+  } catch {
+    // El store mantiene un mensaje seguro dentro del detalle.
+  } finally {
+    pendingWorkshopWithdrawal.value = null
+  }
 }
 const updateSelectedTarget = async (targetParticipants) => {
   if (!canEditSelectedTarget.value) {
@@ -720,10 +857,24 @@ const goToday = () => {
       :can-edit-target="canEditSelectedTarget"
       :can-manage-join-code="canManageSelectedJoinCode"
       :can-cancel="canCancelSelectedReservation"
-      :error-message="reservationsStore.actionError"
+      :error-message="selectedDetailError"
+      :can-enroll-workshop="canEnrollSelectedWorkshop"
+      :workshop-enrolling="selectedWorkshopEnrolling"
+      :can-withdraw-workshop="canWithdrawSelectedWorkshop"
+      :workshop-withdrawing="selectedWorkshopWithdrawing"
+      :workshop-action-message="selectedWorkshopActionMessage"
       @close="closeReservationDetail"
       @cancel="cancelSelectedReservation"
       @update-target="updateSelectedTarget"
+      @enroll-workshop="enrollSelectedWorkshop"
+      @withdraw-workshop="requestSelectedWorkshopWithdrawal"
+    />
+
+    <WorkshopWithdrawalConfirm
+      :workshop="pendingWorkshopWithdrawal"
+      :loading="selectedWorkshopWithdrawing"
+      @confirm="confirmSelectedWorkshopWithdrawal"
+      @cancel="pendingWorkshopWithdrawal = null"
     />
 
   </section>

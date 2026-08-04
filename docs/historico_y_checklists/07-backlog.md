@@ -2002,7 +2002,9 @@ El sistema ahora incluye una vista de talleres deportivos, endpoints protegidos 
 
 ### Objetivo
 
-Permitir que usuarios autenticados consulten talleres activos y se inscriban cuando existan cupos disponibles.
+Permitir que usuarios autenticados consulten talleres activos, se inscriban
+cuando existan cupos disponibles y cancelen idempotentemente su propia
+inscripcion activa.
 
 ### Criterios de aceptacion
 
@@ -2014,6 +2016,13 @@ Permitir que usuarios autenticados consulten talleres activos y se inscriban cua
 - [x] Permite inscripcion mediante `POST /api/workshops/:id/enroll`.
 - [x] Rechaza usuarios normales sin RUT.
 - [x] Rechaza cupos completos e inscripcion duplicada.
+- [x] Permite desinscripcion propia mediante `DELETE /api/workshops/:id/enrollment` sin exigir RUT.
+- [x] La cancelacion cambia solo el episodio `CONFIRMED` propio a `CANCELLED`, libera cupo y deja de bloquear solapes.
+- [x] Repetir la cancelacion es idempotente; un taller inactivo responde `409 WORKSHOP_ENROLLMENT_CLOSED`.
+- [x] La cancelacion permanece en Historial como `Inscripcion cancelada`.
+- [x] La reinscripcion crea un episodio nuevo `CONFIRMED` y no reactiva el cancelado.
+- [x] Creacion y cancelacion registran `WORKSHOP_ENROLLMENT_CREATED` y `WORKSHOP_ENROLLMENT_CANCELLED`.
+- [x] No existe retiro de terceros ni corte horario mientras no haya un periodo formal del taller.
 
 ### Resultado de implementacion
 
@@ -2022,6 +2031,10 @@ Permitir que usuarios autenticados consulten talleres activos y se inscriban cua
 - Se agrego store Pinia y servicio frontend para talleres.
 - Se agrego `WorkshopsView.vue` con busqueda, estados de carga/error/exito y accion de inscripcion.
 - La inscripcion usa transaccion serializable para validar cupos antes de insertar.
+- La desinscripcion bloquea la inscripcion activa del usuario autenticado, aplica
+  la transicion y auditoria en la misma transaccion y conserva cada episodio.
+- Evidencia del 2026-08-04: `go test ./... -count=1`, 18 pruebas Node, 144
+  pruebas Vitest, build frontend de produccion y `diff-check` aprobados.
 
 ---
 

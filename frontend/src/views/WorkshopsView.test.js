@@ -72,10 +72,12 @@ describe('WorkshopsView - desinscripcion', () => {
 
   it('desinscribe, actualiza el cupo y permite volver a inscribirse', async () => {
     const wrapper = await mountView()
-    service.withdraw.mockResolvedValueOnce(workshop({
+    service.withdraw.mockResolvedValueOnce({
+      workshopId: 3,
       isEnrolled: false,
-      enrolledCount: 8
-    }))
+      enrolledCount: 8,
+      changed: true
+    })
 
     await wrapper.get('button.withdraw').trigger('click')
     await findBodyButton('Sí, desinscribirme').click()
@@ -87,6 +89,29 @@ describe('WorkshopsView - desinscripcion', () => {
     expect(wrapper.text()).toContain('Inscribirme')
     expect(wrapper.text()).toContain(
       'Te desinscribiste de Esgrima. Tu cupo quedó disponible.'
+    )
+  })
+
+  it('reconcilia una respuesta idempotente y cambia la accion sin recargar', async () => {
+    const wrapper = await mountView()
+    service.withdraw.mockResolvedValueOnce({
+      workshopId: 3,
+      isEnrolled: false,
+      enrolledCount: 8,
+      changed: false
+    })
+
+    await wrapper.get('button.withdraw').trigger('click')
+    await findBodyButton('Sí, desinscribirme').click()
+    await flushPromises()
+
+    expect(service.getAll).toHaveBeenCalledOnce()
+    expect(service.withdraw).toHaveBeenCalledOnce()
+    expect(wrapper.text()).toContain('8 / 20 inscritos')
+    expect(wrapper.text()).toContain('Inscribirme')
+    expect(wrapper.text()).not.toContain('Desinscribirme')
+    expect(wrapper.text()).toContain(
+      'Ya no estás inscrito en este taller.'
     )
   })
 
