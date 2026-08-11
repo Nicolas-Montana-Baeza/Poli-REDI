@@ -1,5 +1,0 @@
-./activities_repository.go
-./notifications_repository.go
-./reservations_repository.go
-./resources_repository.go
-./users_repoository.go
