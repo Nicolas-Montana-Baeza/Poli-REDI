@@ -2,6 +2,8 @@ package models
 
 import "time"
 
+// Workshop represents a recurring sports class or workshop with a defined capacity.
+// Users can enroll in it if there is availability.
 type Workshop struct {
 	ID             int       `json:"id"`
 	ResourceID     int       `json:"resourceId"`

@@ -8,6 +8,8 @@ import (
 	"poli-redi-api/internal/validators"
 )
 
+// GetActiveActivities retrieves all active activities from the database, ordered alphabetically by name.
+// It filters out any activities with invalid names.
 func GetActiveActivities() ([]models.Activity, error) {
 	rows, err := database.DB.QueryContext(
 		context.Background(),

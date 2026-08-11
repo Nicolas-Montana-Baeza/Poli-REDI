@@ -1,6 +1,6 @@
 # Poli-REDI - Requisitos, Historias de Usuario, Casos de Uso y Roadmap MVP
 
-> **Revision UX 2026-07-30:** los criterios comunes de detalle, accesibilidad y
+> **Revisión UX 2026-07-30:** los criterios comunes de detalle, accesibilidad y
 > privacidad se aplican sin ampliar permisos.
 
 > **Fecha de consolidación:** 2026-07-23  
@@ -15,10 +15,10 @@ gantt
     title Roadmap Poli-REDI
     dateFormat  YYYY-MM-DD
     section MVP 1 Base Operativa
-    Consulta Disponibilidad y Reservas Basicas :done, mvp1, 2026-01-01, 2026-03-31
+    Consulta Disponibilidad y Reservas Básicas :done, mvp1, 2026-01-01, 2026-03-31
     section MVP 2 Reglas y Grupal
     Quorum 10 Personas y Frecuencia Semanal   :active, mvp2, 2026-04-01, 2026-06-30
-    section MVP 3 Administracion
+    section MVP 3 Administración
     Bloqueos e Infracciones                   :active, mvp3, 2026-07-01, 2026-08-31
     section MVP 4 Trazabilidad
     Reportes Avanzados                        :mvp4, 2026-09-01, 2026-10-31
@@ -36,20 +36,20 @@ gantt
 ### Criterios UX comunes
 
 1. Consultar una reserva desde Disponibilidad, Mis Reservas, Historial o un
-   codigo utiliza el mismo detalle visual y semantico.
-2. Cada accion se habilita por capacidades explicitas del actor y estado.
+   código utiliza el mismo detalle visual y semántico.
+2. Cada acción se habilita por capacidades explícitas del actor y estado.
 3. En Mis Reservas, toda la tarjeta abre el detalle mediante puntero, Enter o
-   Espacio; no depende de un boton interno.
-4. El dialogo gestiona foco, Escape y devuelve el foco al elemento que lo abrio.
-5. El codigo se obtiene bajo demanda; no se incluye en listados ni se expone a
+   Espacio; no depende de un botón interno.
+4. El diálogo gestiona foco, Escape y devuelve el foco al elemento que lo abrió.
+5. El código se obtiene bajo demanda; no se incluye en listados ni se expone a
    terceros o en estados terminales.
 6. La agenda personal rechaza solapes reales por reservas propias o
    participaciones confirmadas; los extremos contiguos se permiten.
 7. Un skeleton solo sustituye contenido durante la primera carga y cuando no
    existen datos. En un refresh se conservan los datos con un indicador
-   discreto; en una mutacion se usa un spinner local.
-8. Los skeletons conservan la geometria de la superficie, reservan 16:9 para
-   medios, exponen el estado de carga mediante una region accesible y respetan
+   discreto; en una mutación se usa un spinner local.
+8. Los skeletons conservan la geometría de la superficie, reservan 16:9 para
+   medios, exponen el estado de carga mediante una región accesible y respetan
    la preferencia de movimiento reducido.
 9. Si Historial obtiene una de sus fuentes y falla la otra, muestra los datos
    disponibles junto con una advertencia parcial.
@@ -61,19 +61,19 @@ gantt
     Entrenamiento, Campeonato, Evento e Institucional; un chip de tipo no
     sustituye los estados Pendiente, Confirmada, Cancelada o Programada.
 12. La leyenda `Tipos de bloque` y los chips usan el mismo helper de
-    clasificacion en Por recurso y Agenda del dia. `OPEN_USE` mantiene el
+    clasificación en Por recurso y Agenda del día. `OPEN_USE` mantiene el
     heatmap y explica textualmente que la intensidad representa reservas
-    simultaneas.
-13. La informacion de tipo y estado debe entenderse sin depender solo del
+    simultáneas.
+13. La información de tipo y estado debe entenderse sin depender solo del
     color. Los chips no reciben foco y cada bloque interactivo expone un nombre
-    accesible completo con tipo, titulo seguro, estado, horario y accion.
-14. Un usuario normal que consulta una reserva ajena solo ve ocupacion: titulo
+    accesible completo con tipo, título seguro, estado, horario y acción.
+14. Un usuario normal que consulta una reserva ajena solo ve ocupación: título
     `Reserva`, horario, recurso y el tipo grupal seguro si corresponde. No ve
-    PII, actividad, participantes, minimo, objetivo, capacidad ni plazo.
-15. La reserva propia conserva su informacion y acciones autorizadas; el
+    PII, actividad, participantes, mínimo, objetivo, capacidad ni plazo.
+15. La reserva propia conserva su información y acciones autorizadas; el
     administrador recibe detalle operacional conforme a su rol. Una actividad
-    programada conserva su categoria mediante `activityType`, con
-    `Institucional` como alternativa generica.
+    programada conserva su categoría mediante `activityType`, con
+    `Institucional` como alternativa genérica.
 16. Este incremento no agrega bloqueos futuros entre talleres, clases,
     entrenamientos, campeonatos, eventos u otras actividades institucionales.
 

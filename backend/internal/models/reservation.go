@@ -2,6 +2,7 @@ package models
 
 import "time"
 
+// Reservation status constants define the lifecycle of a reservation.
 const (
 	ReservationStatusPending   = "PENDING"
 	ReservationStatusConfirmed = "CONFIRMED"
@@ -10,6 +11,7 @@ const (
 	ReservationStatusExpired   = "EXPIRED"
 )
 
+// Reservation represents a booking made by a user for a specific resource and time.
 type Reservation struct {
 	ID              int       `json:"id"`
 	PolicyID        int       `json:"policyId"`

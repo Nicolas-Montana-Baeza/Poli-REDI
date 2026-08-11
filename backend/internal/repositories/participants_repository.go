@@ -38,6 +38,9 @@ func assembleReservationProgress(reservationID int, status string, count, minimu
 	}
 }
 
+// GetReservationProgress retrieves the current progress and participation metrics of a group reservation using its join code.
+// It verifies the join code and returns the status, target participants, and deadlines.
+// Before querying, it expires any pending group reservations that have passed their deadline.
 func GetReservationProgress(code string, userID int) (models.ReservationProgress, error) {
 	if err := ExpirePendingGroupReservations(businessclock.Now()); err != nil {
 		return models.ReservationProgress{}, err

@@ -1,6 +1,6 @@
 # Poli-REDI - Guías de Instalación, Ejecución y Despliegue en la Nube
 
-> **Revision operativa:** 2026-07-30. La secuencia evolutiva vigente llega hasta
+> **Revisión operativa:** 2026-07-30. La secuencia evolutiva vigente llega hasta
 > `008`.
 
 > **Fecha de consolidación:** 2026-07-23  
@@ -58,9 +58,9 @@
    Para `007` y `008`: crear backup/export recuperable, ejecutar cada archivo
    completo conservando `GO`, verificar todos los prechecks/postchecks y
    reejecutar para demostrar idempotencia. `007` debe detenerse si no reconoce
-   inequivocamente el bootstrap; no editar politicas para forzarla. `008` debe
+   inequívocamente el bootstrap; no editar políticas para forzarla. `008` debe
    probar solape en ambas direcciones y permitir extremos contiguos. Ninguna
-   migra datos historicos.
+   migra datos históricos.
 
    Ejecutar los prechecks y verificar el `POSTCHECK` de cada migración antes de continuar. Los 12 indicadores de `004` deben valer `1`. Antes de 005/006 crear backup: 005 se detiene ante RUT inválidos/duplicados y 006 ante catálogo activo incompleto o estructura divergente. Si una fase falla, abrir una sesión nueva, confirmar `@@TRANCOUNT = 0` y `XACT_STATE() = 0`, y seguir la recuperación de `database/migrations/README.md`; no ejecutar `drop.sql`, `schema.sql` ni `seed.sql` sobre la base única.
 5. Ejecutar servidor API:
@@ -93,39 +93,40 @@ La infraestructura de demostración online utiliza:
 1. Asegurar que `CORS_ALLOWED_ORIGINS` en Azure App Service incluya la URL de Static Web Apps.
 2. Configurar `JOIN_CODE_ENCRYPTION_KEYS` y `JOIN_CODE_KEY_VERSION` en App Service sin exponer sus valores; conservar versiones anteriores mientras existan secretos cifrados con ellas.
 3. Configurar las variables `VITE_API_BASE_URL` y `VITE_ENTRA_*` en el pipeline de **GitHub Actions**.
+4. Asegurar que `DEV_AUTH_ENABLED=false` en App Service y en cualquier ambiente de preproducción o demo pública.
 4. Ejecutar y verificar migraciones `001` a `008`; Azure SQL real para `004` a
    `008`, idempotencia, DDL y carreras/concurrencia siguen pendientes.
 5. Ejecutar push a rama principal para disparar despliegue automático.
 
-### Recuperacion de 007/008
+### Recuperación de 007/008
 
-Ante un fallo, detener el despliegue. Abrir una sesion nueva y confirmar
+Ante un fallo, detener el despliegue. Abrir una sesión nueva y confirmar
 `@@TRANCOUNT = 0` y `XACT_STATE() = 0`; conservar la evidencia e inspeccionar sin
 escribir. No ejecutar `drop.sql`, `schema.sql` ni `seed.sql`. Si no puede
 demostrarse un estado compatible, restaurar el backup y escalar a Arquitectura.
 
-### Verificacion frontend del incremento asincrono
+### Verificación frontend del incremento asíncrono
 
 La evidencia local del 2026-07-30 comprende:
 
 * 18 pruebas Node aprobadas.
 * `go test ./...` aprobado.
 * 119 pruebas Vitest aprobadas.
-* Build frontend de produccion aprobado.
+* Build frontend de producción aprobado.
 * `diff-check` aprobado.
 * Advertencia no bloqueante: bundle frontend de 531.79 kB.
 
 Antes del cierre de despliegue se debe ejecutar QA visual con anchos de 377,
-500, 768 y 1440 px. La revision debe confirmar geometria de skeletons, ausencia
+500, 768 y 1440 px. La revisión debe confirmar geometría de skeletons, ausencia
 de saltos en medios 16:9, indicadores discretos durante refresh, spinners
-locales en mutaciones, advertencia parcial del Historial, navegacion por teclado,
-lectores de pantalla y `prefers-reduced-motion`. La optimizacion o division del
+locales en mutaciones, advertencia parcial del Historial, navegación por teclado,
+lectores de pantalla y `prefers-reduced-motion`. La optimización o división del
 bundle permanece pendiente y no debe confundirse con un fallo del build.
 
-La matriz de QA debe incluir ademas:
+La matriz de QA debe incluir además:
 
 * chips y leyenda `Tipos de bloque` coherentes entre Por recurso y Agenda del
-  dia para Reserva, Reserva grupal, Uso libre, Taller, Clase, Entrenamiento,
+  día para Reserva, Reserva grupal, Uso libre, Taller, Clase, Entrenamiento,
   Campeonato, Evento e Institucional;
 * estado visible por separado del tipo y comprensible sin depender solo del
   color;
@@ -135,29 +136,29 @@ La matriz de QA debe incluir ademas:
   en cada bloque interactivo;
 * consulta como usuario propietario, usuario ajeno y administrador. La reserva
   ajena debe mostrar `Reserva` y, si corresponde, el tipo grupal, sin PII,
-  actividad, metricas ni plazo; la programacion institucional debe conservar
-  su categoria segura mediante `activityType`.
+  actividad, métricas ni plazo; la programación institucional debe conservar
+  su categoría segura mediante `activityType`.
 
-### Verificacion de desinscripcion de talleres
+### Verificación de desinscripción de talleres
 
 Antes de liberar el incremento de MVP 2 se debe comprobar:
 
-* `DELETE /api/workshops/:id/enrollment` solo afecta la inscripcion
+* `DELETE /api/workshops/:id/enrollment` solo afecta la inscripción
   `CONFIRMED` del usuario autenticado y no exige RUT;
-* repetir la cancelacion es idempotente y no crea episodios ni auditorias
+* repetir la cancelación es idempotente y no crea episodios ni auditorías
   duplicadas;
 * un taller inactivo responde `409` con `WORKSHOP_ENROLLMENT_CLOSED`;
-* la cancelacion libera cupo, deja de bloquear solapes y aparece en Historial
-  como `Inscripcion cancelada`;
-* una reinscripcion crea un episodio nuevo `CONFIRMED`, sin reactivar la fila
+* la cancelación libera cupo, deja de bloquear solapes y aparece en Historial
+  como `Inscripción cancelada`;
+* una reinscripción crea un episodio nuevo `CONFIRMED`, sin reactivar la fila
   cancelada;
-* la auditoria registra `WORKSHOP_ENROLLMENT_CANCELLED` y
+* la auditoría registra `WORKSHOP_ENROLLMENT_CANCELLED` y
   `WORKSHOP_ENROLLMENT_CREATED`;
 * no existe retiro de terceros ni corte horario hasta definir formalmente el
-  periodo del taller.
+  período del taller.
 
 Evidencia del 2026-08-04: `go test ./... -count=1` aprobado en todos los
-paquetes, 18 pruebas Node, 144 pruebas Vitest, build frontend de produccion y
+paquetes, 18 pruebas Node, 144 pruebas Vitest, build frontend de producción y
 `diff-check` aprobados.
 
 ---

@@ -8,6 +8,8 @@ import (
 	"poli-redi-api/internal/models"
 )
 
+// GetAllResources retrieves all physical resources configured in the system.
+// It maps the `is_active` database column to a frontend-friendly status.
 func GetAllResources() ([]models.Resource, error) {
 	rows, err := database.DB.QueryContext(
 		context.Background(),

@@ -2,6 +2,8 @@ package models
 
 import "time"
 
+// ReservationPolicy defines the global rules for creating reservations,
+// including time windows, frequencies, and resource constraints.
 type ReservationPolicy struct {
 	ID                          int        `json:"id"`
 	ReservableWindowDays        int        `json:"reservableWindowDays"`

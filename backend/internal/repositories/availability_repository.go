@@ -10,6 +10,9 @@ import (
 	"poli-redi-api/internal/models"
 )
 
+// GetAvailabilityReservationsForRange retrieves reservations within a specific time range.
+// It includes reservations (PENDING or CONFIRMED) and indicates if the current user is part of them.
+// Before querying, it expires any pending group reservations that have passed their deadline.
 func GetAvailabilityReservationsForRange(
 	from time.Time,
 	toExclusive time.Time,

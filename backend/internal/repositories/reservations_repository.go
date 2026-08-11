@@ -18,6 +18,8 @@ var ErrResourceNotAllowedByPolicy = errors.New("el recurso no esta permitido por
 var ErrTargetForNonGroup = errors.New("targetParticipants solo se permite para solicitudes grupales")
 var ErrInvalidTargetParticipants = errors.New("targetParticipants debe estar entre el minimo y la capacidad")
 
+// GetAllReservations retrieves all reservations across the system.
+// Before querying, it expires any pending group reservations that have passed their deadline.
 func GetAllReservations() ([]models.Reservation, error) {
 	if err := ExpirePendingGroupReservations(businessclock.Now()); err != nil {
 		return nil, err

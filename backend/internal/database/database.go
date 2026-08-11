@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	_ "github.com/microsoft/go-mssqldb"
@@ -55,6 +56,14 @@ func buildConnectionString() string {
 		log.Fatal("DB_PORT debe ser numerico")
 	}
 
+	if !strings.EqualFold(encrypt, "true") {
+		log.Fatal("DB_ENCRYPT debe ser true. No use conexiones SQL sin cifrado.")
+	}
+
+	if strings.EqualFold(trustServerCertificate, "true") && !isLocalServer(server) {
+		log.Fatal("DB_TRUST_SERVER_CERTIFICATE=true solo es seguro para conexiones locales (localhost, 127.0.0.1, . o (local)).")
+	}
+
 	return fmt.Sprintf(
 		"server=%s;user id=%s;password=%s;port=%s;database=%s;encrypt=%s;trustservercertificate=%s;",
 		server,
@@ -65,6 +74,24 @@ func buildConnectionString() string {
 		encrypt,
 		trustServerCertificate,
 	)
+}
+
+func isLocalServer(server string) bool {
+	server = strings.TrimSpace(server)
+	if server == "" {
+		return false
+	}
+
+	if strings.Contains(server, "\\") {
+		server = strings.SplitN(server, "\\", 2)[0]
+	}
+
+	if strings.Contains(server, ",") {
+		server = strings.SplitN(server, ",", 2)[0]
+	}
+
+	server = strings.TrimSpace(strings.ToLower(server))
+	return server == "localhost" || server == "127.0.0.1" || server == "." || server == "(local)"
 }
 
 func requiredEnv(name string) string {

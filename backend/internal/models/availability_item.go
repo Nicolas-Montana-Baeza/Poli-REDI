@@ -2,6 +2,7 @@ package models
 
 import "time"
 
+// Availability kinds define the origin or type of a block in the calendar.
 const (
 	AvailabilityKindReservation      = "RESERVATION"
 	AvailabilityKindGroupReservation = "GROUP_RESERVATION"
@@ -10,6 +11,8 @@ const (
 	AvailabilityKindBlock            = "AVAILABILITY_BLOCK"
 )
 
+// AvailabilityItem represents a unified time block in the availability calendar,
+// which can be a personal reservation, a group reservation, a workshop, or an institutional activity.
 type AvailabilityItem struct {
 	ID                    int        `json:"id"`
 	AvailabilityKey       string     `json:"availabilityKey"`

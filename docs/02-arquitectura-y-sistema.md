@@ -1,6 +1,6 @@
 # Poli-REDI - Especificación de Arquitectura, Sistema y Base de Datos
 
-> **Delta 2026-07-30:** detalle de reserva compartido con capacidades explicitas,
+> **Delta 2026-07-30:** detalle de reserva compartido con capacidades explícitas,
 > endurecimiento accesible y migraciones prospectivas `007`/`008`.
 
 > **Fecha de consolidación:** 2026-07-23  
@@ -24,7 +24,7 @@ graph TD
 
 ## 2. Capa de Base de Datos (Azure SQL Database)
 
-La persitencia se realiza en **Azure SQL Database** mediante scripts T-SQL ubicados en `database/`:
+La persistencia se realiza en **Azure SQL Database** mediante scripts T-SQL ubicados en `database/`:
 * `database/schema.sql`: Creación de tablas, llaves primarias/foráneas y restricciones.
 * `database/seed.sql`: Carga de datos iniciales (Recursos, Roles, Actividades y Usuarios de prueba).
 * `database/migrations/`: Scripts evolutivos de esquema para MVP 2 y flujo grupal.
@@ -71,50 +71,50 @@ El backend está construido en **Go** estructurado en paquetes modulares (`backe
 
 ## 4. Capa Frontend (Vue 3 + Vite + Pinia)
 
-El detalle de reserva es un componente comun para Disponibilidad, Mis Reservas,
-Historial y union por codigo. Recibe capacidades explicitas de lectura,
-cancelacion, edicion de objetivo, consulta de codigo y
-confirmacion/retiro; no infiere autorizacion desde la ruta. El secreto no viaja
+El detalle de reserva es un componente común para Disponibilidad, Mis Reservas,
+Historial y unión por código. Recibe capacidades explícitas de lectura,
+cancelación, edición de objetivo, consulta de código y
+confirmación/retiro; no infiere autorización desde la ruta. El secreto no viaja
 en listados: se consulta bajo demanda mediante el endpoint owner-only.
 
-Los dialogos comparten administracion de foco, cierre con Escape, bloqueo de
-fondo y restauracion del foco. Las tarjetas de reservas, la linea temporal y el
-progreso admiten operacion/semantica accesible.
+Los diálogos comparten administración de foco, cierre con Escape, bloqueo de
+fondo y restauración del foco. Las tarjetas de reservas, la línea temporal y el
+progreso admiten operación/semántica accesible.
 
 La SPA desarrollada en **Vue 3** (Composition API) utiliza:
 * **Pinia Stores:** Manejo de estado centralizado (`authStore`, `reservationStore`, `resourceStore`).
 * **Vue Router:** Control de navegación y guardias de seguridad por rol (`AdminGuard`).
 * **Axios:** Cliente HTTP con interceptores automáticos para inyección del Token Bearer.
 
-### Contrato de lectura asincrona
+### Contrato de lectura asíncrona
 
 Los stores de recursos, reservas, actividades y talleres separan el estado de
 la consulta del contenido almacenado. Cada consulta mantiene `status`,
 `hasLoaded`, `refreshing` y un `requestId`; las promesas concurrentes
 equivalentes se deduplican. El identificador de solicitud impide que una
-respuesta obsoleta (`stale`) sobrescriba una respuesta mas reciente.
+respuesta obsoleta (`stale`) sobrescriba una respuesta más reciente.
 
 El contrato visual resultante es:
 
 1. `initialLoading` sin datos: reemplazar temporalmente la superficie por un
-   skeleton con geometria equivalente.
+   skeleton con geometría equivalente.
 2. Refresh con datos: conservar los datos y presentar un indicador discreto de
-   actualizacion.
-3. Mutacion: conservar la superficie y mostrar un spinner local en el control
-   que ejecuta la accion.
+   actualización.
+3. Mutación: conservar la superficie y mostrar un spinner local en el control
+   que ejecuta la acción.
 4. Error parcial con datos: conservarlos y exponer una advertencia. Historial
    aplica esta regla al combinar reservas y talleres.
 5. Error inicial sin datos: presentar el estado de error terminal.
 
-`AsyncRegion` centraliza carga inicial, error, vacio y contenido; expone
+`AsyncRegion` centraliza carga inicial, error, vacío y contenido; expone
 `aria-busy`, estado accesible y anuncio para lectores de pantalla.
 `SkeletonLoader` define `availability-timelines`, `media-grid`, `card-grid`,
 `list`, `detail`, `metrics-table` y `compact-rows`. Los medios reservan 16:9 para
 evitar saltos de layout. Shimmer y transiciones respetan
 `prefers-reduced-motion`.
 
-Disponibilidad incluye politica y actividades en su barrera inicial. La
-regresion corregida se debia a la omision de `policyLoading` y `activities`.
+Disponibilidad incluye política y actividades en su barrera inicial. La
+regresión corregida se debía a la omisión de `policyLoading` y `activities`.
 Join, mutaciones y modales que ya poseen el objeto seleccionado conservan su
 contenido y no montan un skeleton.
 
@@ -125,10 +125,10 @@ backend publica `availabilityKind` como `RESERVATION`, `GROUP_RESERVATION` o
 `SCHEDULED_ACTIVITY`. Las actividades programadas agregan `activityType`;
 `CLASS`, `WORKSHOP`, `TRAINING`, `CHAMPIONSHIP`, `EVENT` y `OTHER` se traducen
 respectivamente a Clase, Taller, Entrenamiento, Campeonato, Evento y Actividad
-institucional. Los valores desconocidos usan la categoria institucional
-generica y nunca se infieren desde el titulo, estado o datos personales.
+institucional. Los valores desconocidos usan la categoría institucional
+genérica y nunca se infieren desde el título, estado o datos personales.
 
-En frontend, `getAvailabilityType` es el helper unico de clasificacion.
+En frontend, `getAvailabilityType` es el helper único de clasificación.
 `AvailabilityTypeChip` representa Reserva individual, Reserva grupal, Uso
 libre, Taller, Clase, Entrenamiento, Campeonato, Evento o Actividad
 institucional. `AvailabilityTypeLegend` deduplica los tipos visibles y los
@@ -136,24 +136,24 @@ presenta en orden estable bajo `Tipos de bloque`. El chip no es interactivo ni
 recibe foco; cuando su texto ya forma parte del nombre accesible del bloque se
 oculta del anuncio duplicado.
 
-La integracion cubre Por recurso y Agenda del dia. En recursos `OPEN_USE` se
-mantiene el heatmap de concurrencia y se muestra un unico chip en la cabecera,
+La integración cubre Por recurso y Agenda del día. En recursos `OPEN_USE` se
+mantiene el heatmap de concurrencia y se muestra un único chip en la cabecera,
 acompañado por la leyenda textual de intensidad. Los bloques y elementos de
-agenda exponen un `aria-label` completo con tipo, titulo seguro, estado, horario
-y accion; la informacion no depende solo del color.
+agenda exponen un `aria-label` completo con tipo, título seguro, estado, horario
+y acción; la información no depende solo del color.
 
-La sanitizacion se aplica por audiencia:
+La sanitización se aplica por audiencia:
 
-* una reserva propia conserva titulo y capacidades de gestion necesarias, pero
+* una reserva propia conserva título y capacidades de gestión necesarias, pero
   omite nombre, correo y RUT del payload de disponibilidad;
 * una reserva ajena se titula `Reserva`, elimina identidad, actividad,
-  participantes, minimo, objetivo, capacidad, plazo y permisos de edicion, y
+  participantes, mínimo, objetivo, capacidad, plazo y permisos de edición, y
   conserva solamente `GROUP_RESERVATION` cuando ese tipo seguro aplica;
-* una actividad programada ajena conserva `activityType`, pero usa el titulo
-  generico `Actividad institucional` y omite la identidad de quien la creo;
+* una actividad programada ajena conserva `activityType`, pero usa el título
+  genérico `Actividad institucional` y omite la identidad de quien la creó;
 * un administrador conserva el payload operacional completo.
 
-Este contrato es de presentacion y privacidad de disponibilidad. No introduce
+Este contrato es de presentación y privacidad de disponibilidad. No introduce
 nuevas reglas de conflicto o bloqueo entre clases, entrenamientos, campeonatos,
 eventos y otras categorias institucionales.
 
@@ -175,8 +175,8 @@ stateDiagram-v2
     [*] --> PENDING : "Crear Reserva Particular (Recurso Grupal)"
     [*] --> CONFIRMED : "Crear Reserva Institucional / Individual"
     PENDING --> CONFIRMED : "Quorum Alcanzado (>= 10 Participantes)"
-    PENDING --> CANCELLED : "Expiracion Deadline / Retiro de Integrantes"
-    CONFIRMED --> CANCELLED : "Cancelacion por Usuario / Administrador"
+    PENDING --> CANCELLED : "Expiración Deadline / Retiro de Integrantes"
+    CONFIRMED --> CANCELLED : "Cancelación por Usuario / Administrador"
     CANCELLED --> [*]
     CONFIRMED --> [*]
 ```
@@ -214,12 +214,12 @@ El repositorio serializa por usuario y luego por taller, verifica cupo y horario
 ### Deltas de base de datos 007/008
 
 `007_repair_bootstrap_group_policy.sql` reconoce por identidad, modo, alcance y
-huella una politica bootstrap concreta. Ante divergencia falla cerrada; no
-repara una politica administrada ni altera reservas historicas.
+huella una política bootstrap concreta. Ante divergencia falla cerrada; no
+repara una política administrada ni altera reservas históricas.
 
 `008_personal_overlap_includes_participations.sql` protege la agenda personal al
 considerar reservas propias y participaciones `CONFIRMED`. Usa intervalos
-semiabiertos, por lo que los extremos contiguos son validos. Sus triggers
+semiabiertos, por lo que los extremos contiguos son válidos. Sus triggers
 complementan, pero no sustituyen, las validaciones de servicio.
 
 El historial conserva la separación entre dominios y no convierte todos los

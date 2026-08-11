@@ -108,6 +108,8 @@ func GetAvailabilityItems() ([]models.AvailabilityItem, error) {
 	return items, nil
 }
 
+// GetAvailabilityItemsForRange aggregates reservations, workshops, scheduled activities,
+// and availability blocks into a single timeline of availability items for the calendar view.
 func GetAvailabilityItemsForRange(
 	from time.Time,
 	toExclusive time.Time,

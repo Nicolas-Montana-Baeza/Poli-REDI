@@ -1,0 +1,97 @@
+{
+  "package": "poliredi_database_improved",
+  "generated_on": "2026-08-05",
+  "target": "Azure SQL Database / SQL Server",
+  "files": [
+    {
+      "path": "README.md",
+      "bytes": 4146,
+      "sha256": "5092453b5d529fc1181ca72742f4d56d97f4efcf7b6afd72c23333aa27cf4b98"
+    },
+    {
+      "path": "docs/CHANGES.md",
+      "bytes": 2469,
+      "sha256": "05ac4bc5d31887e1fc3735fe34a8ae32015fa7d054ed353f3f049f27a9dfcd8b"
+    },
+    {
+      "path": "docs/STATIC_VALIDATION.md",
+      "bytes": 1568,
+      "sha256": "6c0f694fad14c4f34f014c80aeda5121bd1ea6346e292d843542145232ceae47"
+    },
+    {
+      "path": "drop.sql",
+      "bytes": 7200,
+      "sha256": "7ee031f417bd4592e0b5e16b0edc208257396dd600557218709b67d0f3b8bd6c"
+    },
+    {
+      "path": "migrations/001_mvp2_group_participants.sql",
+      "bytes": 22933,
+      "sha256": "01774094abd5e6a54ad587c416cbf345510fc3d129d81250533acbc9e1dc2343"
+    },
+    {
+      "path": "migrations/002_mvp2_target_participants.sql",
+      "bytes": 5462,
+      "sha256": "d597b9afc29139b2675ee4ca430027b421cf96f141cfd430b07a73d71ad1ea3a"
+    },
+    {
+      "path": "migrations/003_open_use_frequency_scope.sql",
+      "bytes": 9427,
+      "sha256": "8571c57ccdf8a30f84b251c986203f5bef39480dadfc59c90e24a9c41f1fc4ce"
+    },
+    {
+      "path": "migrations/004_group_flow_completion.sql",
+      "bytes": 11868,
+      "sha256": "69fe304496370cf9ad56be8294ca454c05b7ba54ea08216074ac2097816503f4"
+    },
+    {
+      "path": "migrations/005_rut_integrity_and_admin_exemption.sql",
+      "bytes": 19285,
+      "sha256": "af8ef60011c7378b9c18169e7f7c8bd55c9cae915a13c8e1ab1e338bb7136741"
+    },
+    {
+      "path": "migrations/006_workshop_occurrences.sql",
+      "bytes": 15653,
+      "sha256": "bf47d3f8b11cbe03b097eb614e00b84d1e65d65aea2cc40e80eef55bfd18f267"
+    },
+    {
+      "path": "migrations/007_repair_bootstrap_group_policy.sql",
+      "bytes": 12400,
+      "sha256": "fb7d2137abdb8050469176f65219aff0b4f1d2f2d392d62aee8682224fc0adc4"
+    },
+    {
+      "path": "migrations/008_personal_overlap_includes_participations.sql",
+      "bytes": 4642,
+      "sha256": "b15106d5721ccf04e9a24264ba37dc26974607e424ee86791600c40adf6b1c40"
+    },
+    {
+      "path": "migrations/009_database_hardening_and_consistency.sql",
+      "bytes": 16893,
+      "sha256": "b687e9c84c5747c3ab1205a2d1bf112e32496de84d50cbcb28fe6d0d9d0efddd"
+    },
+    {
+      "path": "queries.sql",
+      "bytes": 2539,
+      "sha256": "c136810c7d4775ed1571efc0633063533a0a2f536efb6f3fbb97bc79ad1ec667"
+    },
+    {
+      "path": "schema.sql",
+      "bytes": 73001,
+      "sha256": "af05c077a041258541ce0eeca79179dac86043890f8a8343101292ffb241d544"
+    },
+    {
+      "path": "seed.sql",
+      "bytes": 16635,
+      "sha256": "869e1ea9d7d2fc648a7a71cb805ca19547d7a2b0683b6fdd210660ec02be92fc"
+    },
+    {
+      "path": "seed_today_temp.sql",
+      "bytes": 5864,
+      "sha256": "de1f49b64f01afb6c508c58a3bd3b61da3ced88affe6e01d721f98d7c42964df"
+    },
+    {
+      "path": "verify.sql",
+      "bytes": 4910,
+      "sha256": "430f141a46988b4a8155e7747571a9bf2ea22d5887ba112987d72d7efc78e37b"
+    }
+  ]
+}

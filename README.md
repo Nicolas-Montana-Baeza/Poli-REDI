@@ -1,8 +1,8 @@
 # Poli-REDI
 
-Sistema web para gestion de reservas deportivas institucionales.
+Sistema web para gestión de reservas deportivas institucionales.
 
-Poli-REDI permite consultar disponibilidad de recursos deportivos, crear y cancelar reservas, revisar historial, administrar usuarios y recursos, y visualizar indicadores iniciales de uso. El sistema usa autenticacion con Microsoft Entra ID y datos persistidos en Azure SQL Database.
+Poli-REDI permite consultar disponibilidad de recursos deportivos, crear y cancelar reservas, revisar historial, administrar usuarios y recursos, y visualizar indicadores iniciales de uso. El sistema usa autenticación con Microsoft Entra ID y datos persistidos en Azure SQL Database.
 
 ## Alcance MVP 1
 
@@ -12,14 +12,14 @@ El MVP 1 cubre el flujo base de reservas deportivas:
 - Login local de prueba para desarrollo.
 - Registro único de RUT para usuarios normales mediante modal obligatorio; después queda visible en modo solo lectura.
 - Consulta de disponibilidad por recurso y fecha.
-- Creacion de reservas con usuario autenticado.
-- Seleccion de actividades desde catalogo aprobado.
-- Listado de mis reservas, detalle, historial basico de reservas y cancelacion.
+- Creación de reservas con usuario autenticado.
+- Selección de actividades desde catálogo aprobado.
+- Listado de mis reservas, detalle, historial básico de reservas y cancelación.
 - Panel administrador base con usuarios, recursos y reportes iniciales.
-- Notificaciones internas basicas.
+- Notificaciones internas básicas.
 - Demo online inicial en Azure con frontend, backend, base de datos y autenticacion real.
 
-Quedan fuera del MVP 1 la gestion completa de bloqueos, CRUD avanzado de recursos, infracciones, programacion institucional y endurecimiento de despliegue productivo institucional.
+Quedan fuera del MVP 1 la gestión completa de bloqueos, CRUD avanzado de recursos, infracciones, programación institucional y endurecimiento de despliegue productivo institucional.
 
 El historial incluido en MVP 1 corresponde exclusivamente a reservas propias o
 reservas en las que el usuario participa. La consulta de inscripciones a talleres
@@ -61,7 +61,7 @@ reejecucion idempotente y validacion en Azure SQL antes del despliegue.
 - Go
 - Fiber
 - Microsoft SQL Server driver for Go (`github.com/microsoft/go-mssqldb`)
-- Microsoft Entra ID para validacion de tokens JWT
+- Microsoft Entra ID para validación de tokens JWT
 
 ### Base de datos
 
@@ -81,7 +81,7 @@ reejecucion idempotente y validacion en Azure SQL antes del despliegue.
 Poli-REDI/
   backend/      API Go/Fiber
   database/     Scripts T-SQL de esquema, datos iniciales y limpieza
-  docs/         Documentacion tecnica del proyecto
+  docs/         Documentación técnica del proyecto
   frontend/     Aplicacion Vue/Vite
   files/        Archivos de apoyo para datos
 ```
@@ -91,9 +91,9 @@ Poli-REDI/
 - Node.js y npm
 - Go compatible con `backend/go.mod`
 - Acceso a Azure SQL Database o Docker para ejecutar SQL Server localmente
-- Aplicacion registrada en Microsoft Entra ID para el frontend y la API
+- Aplicación registrada en Microsoft Entra ID para el frontend y la API
 
-## Configuracion del backend
+## Configuración del backend
 
 Crear `backend/.env` a partir de `backend/.env.example`.
 
@@ -118,6 +118,9 @@ APP_TIMEZONE=America/Santiago
 
 # Solo desarrollo local
 DEV_AUTH_ENABLED=false
+
+# Nota: DB_TRUST_SERVER_CERTIFICATE=true es aceptable solamente en un entorno local de SQL Server
+# accesible mediante localhost o 127.0.0.1. En Azure o entornos públicos debe ser false.
 ```
 
 `DB_PASSWORD` debe existir solo en `backend/.env` local o en las variables de entorno del despliegue. No debe guardarse en archivos versionados.
@@ -159,11 +162,29 @@ Para pruebas locales sin Microsoft, se puede usar:
 DEV_AUTH_ENABLED=true
 ```
 
-Con esta opcion, el frontend muestra accesos locales de prueba y el backend acepta headers `X-Dev-Auth-*`. No activar esta bandera en produccion.
+Con esta opción, el frontend muestra accesos locales de prueba y el backend acepta headers `X-Dev-Auth-*`.
 
-## Configuracion del frontend
+> Advertencia: `DEV_AUTH_ENABLED=true` debe usarse exclusivamente en entornos de desarrollo local. No activar esta bandera en entornos públicos, de prueba integrados compartidos ni en producción.
 
-Crear un archivo `.env` en `frontend/` con las variables de Vite usadas por la autenticacion y la API.
+### Comprobación antes de desplegar
+Antes de cualquier despliegue a Azure o a un entorno de preproducción, verificar que:
+
+```bash
+# En el backend
+cat backend/.env | grep DEV_AUTH_ENABLED
+```
+
+La salida debe ser:
+
+```txt
+DEV_AUTH_ENABLED=false
+```
+
+Si utiliza App Service o GitHub Actions, confirme también que la variable de entorno está definida como `false` en esos ámbitos.
+
+## Configuración del frontend
+
+Crear un archivo `.env` en `frontend/` con las variables de Vite usadas por la autenticación y la API.
 
 ```env
 VITE_API_BASE_URL=http://localhost:3000/api
@@ -178,7 +199,7 @@ VITE_ENTRA_API_SCOPE=
 ```
 
 `VITE_API_BASE_URL` es opcional; si no se define, el frontend usa `http://localhost:3000/api`.
-`VITE_ENTRA_POST_LOGOUT_REDIRECT_URI` permite usar una URL distinta para local y nube sin cambiar codigo.
+`VITE_ENTRA_POST_LOGOUT_REDIRECT_URI` permite usar una URL distinta para local y nube sin cambiar código.
 
 ## Base de datos
 
@@ -249,7 +270,7 @@ npm install
 npm run dev
 ```
 
-La aplicacion queda disponible normalmente en:
+La aplicación queda disponible normalmente en:
 
 ```txt
 http://localhost:5173
@@ -332,7 +353,7 @@ Un administrador sin RUT puede crear reservas normales o grupales e inscribirse 
 
 El checklist histórico está en [Checklist demo MVP 1](docs/historico_y_checklists/12-checklist-demo-mvp1.md). La cobertura automatizada sigue siendo parcial y no reemplaza la validación integrada, manual ni online.
 
-## Documentacion relacionada
+## Documentación relacionada
 
 - [Índice maestro y trazabilidad](docs/00-indice-maestro-y-trazabilidad.md).
 - [Resumen y estado actual](docs/01-resumen-y-estado-actual.md).

@@ -28,6 +28,8 @@ func (e *WorkshopScheduleConflictError) Error() string {
 	return fmt.Sprintf("el horario se superpone con %s", e.Title)
 }
 
+// GetActiveWorkshopsForUser retrieves all active workshops and includes a flag indicating if the specified user is enrolled.
+// Results are ordered by title and schedule.
 func GetActiveWorkshopsForUser(userID int) ([]models.Workshop, error) {
 	rows, err := database.DB.QueryContext(
 		context.Background(),

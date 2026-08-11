@@ -1,6 +1,6 @@
 # Índice Maestro de Documentación y Trazabilidad Tesis-Código
 
-> **Revision vigente:** 2026-07-30. Ver
+> **Revisión vigente:** 2026-07-30. Ver
 > [acta integral](./historico_y_checklists/15-acta-revision-integral-2026-07-30.md)
 > para alcance, UX, migraciones, validaciones y pendientes reales del MVP 2.
 

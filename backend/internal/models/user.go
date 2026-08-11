@@ -1,5 +1,6 @@
 package models
 
+// LocalAuthUser represents the user session information extracted from the database and token.
 type LocalAuthUser struct {
 	ID        int    `json:"id"`
 	Email     string `json:"email"`

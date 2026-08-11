@@ -1,5 +1,6 @@
 package models
 
+// Resource represents a bookable physical space or asset in the sports center (e.g., Court 1, Multipurpose Room).
 type Resource struct {
 	ID              int    `json:"id"`
 	Name            string `json:"name"`

@@ -30,6 +30,10 @@ func GetReservationPolicyHistory() ([]models.ReservationPolicy, error) {
 	return repositories.GetReservationPolicyHistory()
 }
 
+// PublishReservationPolicy validates and creates a new reservation policy.
+// It ensures that the policy rules are structurally valid, durations are positive,
+// and the requested resources are valid and properly subsetted (group resources inside allowed resources).
+// It accepts an idempotency key to prevent accidental duplicate policies.
 func PublishReservationPolicy(request models.PublishReservationPolicyRequest, createdBy int, key string) (models.ReservationPolicy, bool, error) {
 	key = strings.TrimSpace(key)
 	if key == "" || len(key) > 100 {
