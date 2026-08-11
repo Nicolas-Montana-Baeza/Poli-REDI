@@ -1,89 +1,114 @@
 # Resumen ejecutivo y estado actual de Poli-REDI
 
-**Estado documental:** CANÓNICO  
-**Último incremento documentado:** 2026-08-04
+**Estado documental:** CANÓNICO
+
+**Corte:** 2026-08-11
+**Fecha límite del prototipo:** 2026-12-10 (`America/Santiago`)
 
 ## 1. Problema y objetivo
 
 El proceso levantado depende de gestión manual y Google Calendar, concentra decisiones en el encargado y no ofrece una vista institucional única de disponibilidad, reglas ni trazabilidad.
 
-Poli-REDI busca validar un prototipo web desacoplado que centralice recursos deportivos, disponibilidad, reservas particulares, solicitudes grupales e información administrativa básica, aplicando reglas críticas en servidor y base de datos.
+Poli-REDI busca validar un prototipo web desacoplado que centralice recursos deportivos, disponibilidad, reservas particulares, solicitudes grupales, talleres e información administrativa básica, aplicando reglas críticas en servidor y Azure SQL.
 
 ## 2. Lectura correcta del estado
 
-Poli-REDI es una **demo funcional avanzada**, no una plataforma institucional completamente cerrada. El sistema tiene evidencia local importante, pero siguen pendientes las migraciones reales sobre Azure SQL y la validación integrada online con Microsoft Entra ID, CORS, API y base desplegada.
+Poli-REDI es una **demo funcional avanzada verificada principalmente en local**, no una plataforma institucional cerrada. La documentación no acredita una validación online vigente de frontend, Microsoft Entra ID, CORS, API y Azure SQL trabajando juntos después de los cambios recientes.
+
+Los estados de este documento separan implementación, verificación local y validación online. Ningún resultado local permite declarar por sí solo cerrado un MVP que exige Azure, migraciones o checklist integrado.
 
 ## 3. Estado por área
 
 | Área | Estado vigente | Límite de la evidencia |
 |---|---|---|
-| Autenticación e identidad | IMPLEMENTADO | Entra ID y modo local existen; la integración online del corte sigue pendiente. |
-| Roles y autorización | IMPLEMENTADO Y REVISADO LOCALMENTE | El backend determina identidad, rol y bloqueo; la UI no concede permisos. |
-| Perfil y RUT | IMPLEMENTADO | Usuarios normales requieren RUT para reservar e inscribirse; desinscribirse de un taller no exige RUT. |
-| Recursos | IMPLEMENTADO PARCIAL | Catálogo y actualización de imagen; falta administración completa del inventario. |
-| Disponibilidad | IMPLEMENTADO PARCIAL | Integra reservas, talleres y actividades; falta incorporar bloqueos al contrato completo y filtros backend por rango. |
-| Reserva particular | IMPLEMENTADO LOCALMENTE | Servidor controla usuario, horario, duración, ventana, frecuencia y conflictos. |
-| Flujo grupal | APROBABLE CONDICIONADO | Código, progreso, confirmación, retiro, rotación, deadline y expiración tienen evidencia local; Azure SQL real sigue pendiente. |
-| Talleres | IMPLEMENTADO Y VERIFICADO LOCALMENTE | Alta, desinscripción idempotente, liberación de cupo, historial y reinscripción; integración online pendiente. |
-| Cancelación | IMPLEMENTADO PARCIAL | Propietario o admin pueden cancelar reservas activas permitidas; falta cerrar coherencia operacional completa. |
-| Notificaciones | IMPLEMENTADO PARCIAL | Consulta y contador existen; lectura y cobertura de eventos son incompletas. |
-| Administración | IMPLEMENTADO PARCIAL | Panel y lecturas básicas; faltan usuarios, inventario, bloqueos, programación, conflictos e infracciones completos. |
-| Reportes y auditoría | IMPLEMENTADO PARCIAL | Hay indicadores y registros, pero no una experiencia institucional completa. |
-| Accesibilidad y UX | VERIFICADO LOCALMENTE PARCIAL | Foco, teclado, skeletons, estados asíncronos y privacidad fueron mejorados; falta QA visual manual multiancho. |
-| Despliegue | CONFIGURADO | La disponibilidad actual de la demo no fue verificada al generar este paquete. |
+| Autenticación e identidad | IMPLEMENTADO LOCALMENTE | Entra ID y modo local existen; falta una validación online vigente del corte. |
+| Roles y autorización | IMPLEMENTADO Y REVISADO LOCALMENTE | El backend determina identidad, rol y bloqueo; falta repetir la matriz en el ambiente desplegado. |
+| Perfil y RUT | IMPLEMENTADO LOCALMENTE | Usuario normal requiere RUT para altas que lo exigen; la desinscripción propia de taller no requiere RUT. |
+| Recursos | PARCIAL | Catálogo y actualización de imagen existen; falta administración completa del inventario oficial. |
+| Disponibilidad backend | IMPLEMENTADO LOCALMENTE | Existe consulta por rango de fechas y contrato unificado; falta acreditar Azure. |
+| Disponibilidad frontend | PARCIAL | La integración completa del rango, política, elegibilidad, bloqueos y protección frente a respuestas obsoletas está pendiente de cierre y prueba. |
+| Reserva particular | IMPLEMENTADO LOCALMENTE | Servidor controla usuario, horario, duración, ventana, frecuencia y conflictos; falta E2E online vigente. |
+| Flujo grupal | PARCIAL | Código, progreso, confirmación, retiro, rotación, deadline y expiración tienen evidencia local; `007`/`008`, Azure SQL y flujo integrado siguen pendientes. |
+| Talleres | IMPLEMENTADO Y VERIFICADO LOCALMENTE | Alta y baja mientras el taller está activo, sin cutoff; el solape MVP 2 se evalúa solo taller↔taller, no taller↔reserva personal entre recursos. Historial y reinscripción local; integración online pendiente. |
+| Cancelación | PARCIAL | Propietario o administrador pueden cancelar antes de que la reserva finalice; un cutoff configurable es mejora futura, no criterio de cierre de MVP 2. |
+| Notificaciones | PARCIAL | La notificación específica asociada a prioridad depende de MVP 3; consulta, lectura, destinos y cobertura core corresponden a MVP 4. |
+| Administración | PARCIAL | Panel y lecturas básicas; faltan usuarios, inventario, bloqueos, programación, conflictos e infracciones completos. |
+| Pantalla pública | PENDIENTE MVP 3 | Debe mostrar disponibilidad institucional sanitizada, sin datos personales ni acciones privadas. |
+| Reportes y auditoría | PARCIAL | Existen indicadores y registros, pero no la experiencia básica completa definida para MVP 4. |
+| Accesibilidad y UX | PARCIAL VERIFICADO LOCALMENTE | Existen mejoras de foco, teclado, skeletons y privacidad; falta matriz manual 377/500/768/1440 y lector de pantalla. |
+| Despliegue | CONFIGURADO, NO VALIDADO EN ESTE CORTE | No existe evidencia online vigente posterior a los cambios recientes. |
 
 ## 4. Estado de los MVP
 
-| MVP | Estado recomendado | Condición de cierre |
-|---|---|---|
-| MVP 1 — Base técnica | DEMOSTRABLE | Mantener pruebas y validar ambiente integrado cuando corresponda. |
-| MVP 2 — Flujo de usuario | APROBABLE PARA CIERRE TÉCNICO CONDICIONADO | Ejecutar migraciones pendientes y validar flujo online completo. |
-| MVP 3 — Administración institucional | PARCIAL | Completar inventario, bloqueos, programación, conflictos e historial institucional. |
-| MVP 4 — Calidad y soporte | EN DESARROLLO | Cerrar reportes, notificaciones, pruebas, evidencia y soporte. |
+| MVP | Estado recomendado | Condición de cierre | Fecha objetivo |
+|---|---|---|---:|
+| MVP 1 — Base operativa | DEMOSTRABLE LOCALMENTE; NO CERRADO ONLINE | Validar identidad, permisos, disponibilidad, reserva, cancelación, historial, CORS y recuperación en ambiente integrado. | 2026-08-28 |
+| MVP 2 — Usuario, grupo y talleres | PARCIAL; NO CERRADO | Cerrar integración frontend de disponibilidad, ejecutar `007`/`008` y aprobar E2E local/Azure del flujo grupal y talleres. | 2026-09-25 |
+| MVP 3 — Administración institucional | PARCIAL | Completar inventario, usuarios, bloqueos, programación, prioridad, notificación específica de prioridad, conflictos, pantalla pública sanitizada e historial institucional. | 2026-10-30 |
+| MVP 4 — Calidad y soporte | PENDIENTE Y ACOTADO | Completar sistema core de notificaciones, reportes básicos, auditoría consultable, pruebas, documentación, despliegue y recuperación. | 2026-11-27 |
 
-## 5. Evidencia local más reciente documentada
+La fecha final absoluta de entrega es **2026-12-10**. Los cierres y buffers se detallan en [`11-cronograma-cierre-2026.md`](11-cronograma-cierre-2026.md).
 
-| Verificación | Resultado |
+## 5. Evidencia disponible y límites
+
+La adopción del canon no ejecutó la suite completa. La auditoría 12 revalidó **18 pruebas Node** sobre el commit `939ba51`. No existe nueva evidencia atribuible a este corte para Vitest, pruebas Go, build frontend ni flujo online. La desinscripción de talleres conserva evidencia local histórica del 2026-08-04; no debe extrapolarse a Azure.
+
+| Verificación obligatoria de cierre | Estado al 2026-08-11 |
 |---|---|
-| Backend | `go test ./... -count=1` aprobado en todos los paquetes. |
-| Pruebas Node | 18 aprobadas. |
-| Pruebas Vitest | 144 aprobadas. |
-| Build frontend | Aprobado. |
-| `diff-check` | Aprobado. |
-| Desinscripción de talleres | Implementada y verificada localmente el 2026-08-04. |
+| Node del commit `939ba51` | 18 pruebas revalidadas por auditoría 12. |
+| Vitest, Go y build frontend del último incremento | Sin nueva evidencia en este corte. |
+| Integración frontend del endpoint de disponibilidad por rango | Pendiente. |
 | Azure SQL migraciones `007`/`008` | Pendiente. |
-| Flujo online Entra/CORS/API/DB | Pendiente. |
-
-La advertencia de bundle de 531.79 kB corresponde al último valor explícitamente documentado antes del incremento del 2026-08-04; no se dispone de una medición posterior en los archivos fuente.
+| Flujo online Entra ID/CORS/API/DB | Pendiente. |
+| QA visual, accesibilidad y privacidad por audiencia | Pendiente. |
+| Checklist total de MVP | Pendiente. |
 
 ## 6. Decisiones vigentes
 
 1. El backend determina identidad, rol, bloqueo y capacidades.
 2. La creación falla cerrada si no existe una política publicada válida.
 3. La agenda usa hora institucional de muro `America/Santiago`; los timestamps técnicos usan UTC.
-4. `OPEN_USE` no consume frecuencia grupal ni bloquea a otros usuarios, pero un mismo usuario no puede solapar su agenda personal.
-5. Las tres canchas grupales exigen mínimo de 10 participantes; el propietario cuenta y no puede retirar su propia participación.
+4. `OPEN_USE` permite concurrencia del recurso, pero no solape de agenda personal.
+5. Las tres canchas grupales exigen mínimo de 10 participantes; el propietario cuenta y no retira su propia participación.
 6. La solicitud grupal bloquea el horario desde `PENDING` y confirma al alcanzar el mínimo.
 7. El código se obtiene bajo demanda, solo por el propietario y en estados permitidos.
-8. Talleres e inscripciones propias forman parte de la ampliación controlada de MVP 2.
-9. Clases, campeonatos y otros eventos institucionales pertenecen a MVP 3 y no demuestran asistencia personal sin una relación explícita.
-10. Las migraciones `007` y `008` son prospectivas y no reescriben reservas históricas.
+8. Talleres e inscripciones propias pertenecen a MVP 2. El solape se evalúa solo taller↔taller; no taller↔reserva personal entre recursos. Alta y baja se permiten mientras el taller esté activo, sin cutoff.
+9. La cancelación actual se permite antes de finalizar la reserva; un cutoff configurable queda como mejora futura.
+10. Administración, inventario, bloqueos, programación, prioridad, notificación específica de prioridad, pantalla pública sanitizada e historial institucional pertenecen a MVP 3.
+11. Calidad, soporte, sistema core de notificaciones, reportes básicos, auditoría y despliegue pertenecen a MVP 4.
+12. `007` y `008` son prospectivas y no reescriben reservas históricas.
+13. La migración `009` es una propuesta no aprobada: no forma parte de la secuencia productiva vigente ni puede declararse desplegada.
 
-## 7. Pendientes que impiden declarar cierre total
+## 7. Fuera del alcance del prototipo
 
-### P2
+- Business Intelligence y reportes avanzados;
+- analítica predictiva o inteligencia artificial;
+- gestión avanzada de campeonatos;
+- detección automatizada de abuso;
+- integración productiva con sistemas académicos;
+- operación multisede;
+- sincronización bidireccional con Google Calendar;
+- control físico de acceso, pagos o aplicación móvil nativa.
 
-- Ejecutar `007` y `008` en copia controlada y Azure SQL con backup, precheck, postcheck, segunda ejecución idempotente y prueba de recuperación.
-- Ejecutar validación online de Microsoft Entra ID, CORS, API y base desplegada.
-- Completar notificaciones y administración institucional fuera del flujo base de usuario.
-- Ejecutar QA visual y de privacidad por audiencia en 377, 500, 768 y 1440 px.
+## 8. Pendientes que impiden el cierre
 
-### P3
+### Cierre MVP 1–2
 
-- Dividir u optimizar el bundle frontend.
-- Ampliar matriz manual de navegadores, teclado, lector de pantalla y movimiento reducido.
-- Incorporar historial institucional de clases, campeonatos y eventos en MVP 3.
+- completar la integración frontend del contrato de disponibilidad por rango;
+- ejecutar `007` y `008` con backup, precheck, postcheck, idempotencia, recuperación y concurrencia;
+- validar online Microsoft Entra ID, CORS, API y Azure SQL;
+- aprobar los checklists MVP 1 y MVP 2;
+- ejecutar QA visual, accesibilidad y privacidad por audiencia;
+- registrar una nueva evidencia con fecha, versión y ambiente.
 
-## 8. Mensaje recomendado para una presentación
+### Cierre MVP 3–4
 
-> Poli-REDI cuenta con una base técnica funcional y un flujo de usuario avanzado verificado localmente. MVP 2 es aprobable para cierre técnico condicionado, porque aún deben ejecutarse las migraciones reales sobre Azure SQL y validarse de punta a punta la integración online.
+- completar operación administrativa sin escritura directa en base de datos;
+- resolver prioridad y conflictos institucionales con auditoría y su notificación específica;
+- completar pantalla pública sanitizada e historial institucional sin inferir asistencia personal;
+- cerrar sistema core de notificaciones, reportes básicos, infracciones y consulta de auditoría;
+- consolidar seguridad, E2E, despliegue, recuperación, documentación y defensa.
+
+## 9. Dictamen recomendado
+
+> MVP 1 es demostrable localmente, pero no está cerrado online. MVP 2 permanece parcial y no cerrado por la integración frontend de disponibilidad, las migraciones `007`/`008` y la validación Azure. MVP 3 es parcial. MVP 4 está pendiente y acotado al soporte necesario del prototipo. El cierre total debe ocurrir antes del 2026-12-10 y demostrarse mediante el checklist canónico.

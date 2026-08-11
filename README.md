@@ -1,8 +1,10 @@
 # Poli-REDI
 
+> **Canon documental vigente desde 2026-08-11:** consultar [`docs/Propuesta nueva/README.md`](docs/Propuesta%20nueva/README.md) y el [`índice de gobierno documental`](docs/Propuesta%20nueva/00-indice-y-gobierno-documental.md). La serie anterior `docs/00` a `docs/04` está supersedida como fuente operativa. El estado vigente reconoce MVP 1 demostrable local —no online—, MVP 2 parcial, MVP 3 parcial y MVP 4 pendiente/acotado. La fecha límite absoluta del prototipo y su documentación es el **2026-12-10**.
+
 Sistema web para gestión de reservas deportivas institucionales.
 
-Poli-REDI permite consultar disponibilidad de recursos deportivos, crear y cancelar reservas, revisar historial, administrar usuarios y recursos, y visualizar indicadores iniciales de uso. El sistema usa autenticación con Microsoft Entra ID y datos persistidos en Azure SQL Database.
+Poli-REDI permite consultar disponibilidad de recursos deportivos, crear y cancelar reservas, revisar historial, consultar información administrativa básica y visualizar indicadores iniciales de uso. El sistema usa autenticación con Microsoft Entra ID y datos persistidos en Azure SQL Database.
 
 ## Alcance MVP 1
 
@@ -15,9 +17,7 @@ El MVP 1 cubre el flujo base de reservas deportivas:
 - Creación de reservas con usuario autenticado.
 - Selección de actividades desde catálogo aprobado.
 - Listado de mis reservas, detalle, historial básico de reservas y cancelación.
-- Panel administrador base con usuarios, recursos y reportes iniciales.
-- Notificaciones internas básicas.
-- Demo online inicial en Azure con frontend, backend, base de datos y autenticacion real.
+- Consulta administrativa básica de usuarios, recursos e indicadores, sin gestión avanzada.
 
 Quedan fuera del MVP 1 la gestión completa de bloqueos, CRUD avanzado de recursos, infracciones, programación institucional y endurecimiento de despliegue productivo institucional.
 
@@ -28,22 +28,26 @@ actividades institucionales y otros eventos se reserva para MVP 3; estos element
 solo podran formar parte del historial personal cuando exista una relacion
 explicita entre el usuario y la actividad.
 
-Estado de cierre: el MVP 1 esta funcional como demo. Zona horaria, estado controlado por servidor, limites de horario/duracion y el endurecimiento responsive/accesible de los flujos criticos estan implementados y tienen pruebas locales. Falta verificarlos en el ambiente integrado/online. El estado vigente está en [Resumen y estado actual](docs/01-resumen-y-estado-actual.md).
+Estado de cierre: el MVP 1 está funcional como demo local. Zona horaria, estado controlado por servidor, límites de horario/duración y mejoras responsive/accesibles de los flujos críticos cuentan con evidencia local; falta revalidarlos en el ambiente integrado/online. El estado vigente está en el [resumen ejecutivo canónico](docs/Propuesta%20nueva/01-resumen-ejecutivo-y-estado.md).
 
-Para MVP 2 y MVP 3 se aprobaron reglas de ventana, frecuencia, participantes y prioridad institucional. El cierre del flujo grupal esta ACCEPTED LOCALLY: objetivo, progreso, codigo/enlace, confirmar, retirar, reconfirmar, deadline inclusivo y expiracion `CANCELLED`. El codigo es recuperable solo por el propietario, se almacena cifrado y puede rotarse. La expiracion genera una notificacion unica localmente; siguen pendientes el sistema completo de notificaciones, lectura, destinos y otros eventos, ademas de administracion.
+Para MVP 2 y MVP 3 se aprobaron reglas de ventana, frecuencia, participantes y prioridad institucional. El flujo grupal tiene evidencia local de objetivo, progreso, código/enlace, confirmación, retiro, reconfirmación, deadline inclusivo y expiración `CANCELLED`, pero no está cerrado online. La expiración genera una notificación específica localmente. La notificación específica asociada a prioridad depende de MVP 3; el sistema core de notificaciones, lectura, destinos y demás eventos corresponde a MVP 4.
 
-Revision tecnica del 2026-07-30: el detalle de reserva se reutiliza en
+Registro histórico de revisión técnica del 2026-07-30 —no corresponde al estado vigente—: el detalle de reserva se reutiliza en
 Disponibilidad, Mis Reservas, Historial y confirmacion mediante codigo; las
 tarjetas personales son seleccionables completas y los dialogos restauran foco,
 admiten Escape y operacion por teclado. El dashboard evita duplicar la proxima
-reserva. Los talleres y sus inscripciones propias son alcance de MVP 2; clases,
-campeonatos y otros eventos institucionales permanecen en MVP 3.
+reserva. Los talleres y sus inscripciones propias son alcance de MVP 2; clases y
+otros eventos institucionales permanecen en MVP 3. La gestión avanzada de
+campeonatos y la detección automatizada de abuso quedan fuera del prototipo.
 
-Las migraciones evolutivas vigentes llegan hasta `008`. `007` repara solamente
-la politica bootstrap inequivocamente reconocible, sin alterar reservas
-historicas; `008` impide solapes de agenda personal considerando reservas propias
-y participaciones confirmadas. Ambas requieren backup, precheck, postcheck,
-reejecucion idempotente y validacion en Azure SQL antes del despliegue.
+La secuencia de migraciones aprobada comprende `001` a `008`, en ese orden. Cada
+script debe ejecutarse completo, incluidos sus prechecks cuando los incorpora.
+`007` repara solamente la política bootstrap inequívocamente reconocible, sin
+alterar reservas históricas; `008` incorpora la defensa de solapes personales
+definida por su contrato. `007` y `008` requieren backup, precheck, postcheck,
+reejecución idempotente y validación en Azure SQL antes del despliegue. `009` está
+explícitamente excluida: es una propuesta no aprobada y no forma parte de la
+secuencia ejecutable.
 
 ## Stack
 
@@ -219,11 +223,21 @@ Para preparar una base limpia:
 
 Para actualizar una base MVP 1 existente sin reconstruirla, seguir
 [`database/migrations/README.md`](database/migrations/README.md) y ejecutar,
-en orden, `001_mvp2_group_participants.sql`, `002_mvp2_target_participants.sql`,
-`003_open_use_frequency_scope.sql`, `004_group_flow_completion.sql`,
-`005_rut_integrity_and_admin_exemption.sql` y `006_workshop_occurrences.sql` con una
-herramienta compatible con `GO`. Ante un intento fallido sobre la unica base,
-no ejecutar `drop.sql`, `schema.sql` ni `seed.sql`.
+en orden y con una herramienta compatible con `GO`:
+
+1. `001_mvp2_group_participants.sql`;
+2. `002_mvp2_target_participants.sql`;
+3. `003_open_use_frequency_scope.sql`;
+4. `004_group_flow_completion.sql`;
+5. `005_rut_integrity_and_admin_exemption.sql`;
+6. `006_workshop_occurrences.sql`;
+7. `007_repair_bootstrap_group_policy.sql`;
+8. `008_personal_overlap_includes_participations.sql`.
+
+Ejecutar los prechecks incluidos y detenerse ante cualquier resultado inesperado.
+Ante un intento fallido sobre la única base, no ejecutar `drop.sql`, `schema.sql`
+ni `seed.sql`. No ejecutar una migración `009`: no pertenece a la secuencia
+aprobada.
 4. Configurar `backend/.env`.
 5. Levantar el backend y validar `/api/health`.
 
@@ -301,7 +315,7 @@ Ruta publica:
 GET /api/health
 ```
 
-Rutas protegidas por token Bearer:
+Rutas protegidas por token Bearer —listado orientativo—:
 
 ```txt
 GET /api/me
@@ -316,11 +330,16 @@ GET /api/users
 GET /api/notifications
 ```
 
-En modo `DEV_AUTH_ENABLED=true`, las rutas protegidas tambien pueden probarse con los headers locales enviados por el frontend de desarrollo.
+El contrato vigente de rutas, permisos y respuestas se mantiene en
+[`docs/Propuesta nueva/02-arquitectura-y-contratos.md`](docs/Propuesta%20nueva/02-arquitectura-y-contratos.md)
+y sus reglas de negocio en
+[`docs/Propuesta nueva/06-flujos-y-reglas-de-negocio.md`](docs/Propuesta%20nueva/06-flujos-y-reglas-de-negocio.md).
+En modo `DEV_AUTH_ENABLED=true`, las rutas protegidas también pueden probarse con los headers locales enviados por el frontend de desarrollo.
 
-## Demo online
+## Referencia histórica de demo online
 
-La demo online inicial usa:
+Las siguientes direcciones correspondieron a la demo online inicial. No existe
+revalidación online vigente posterior a los cambios recientes:
 
 ```txt
 Frontend: https://purple-ground-0205c9f10.7.azurestaticapps.net/
@@ -348,19 +367,22 @@ Antes de una demo local:
 
 El modal de RUT aparece solamente cuando `/api/me` terminó de cargar, el usuario no es administrador y no posee un RUT válido. El login local no borra el RUT existente. Reenviar el mismo RUT es idempotente; intentar cambiarlo o reutilizar uno de otra cuenta responde `409`.
 
-Un administrador sin RUT puede crear reservas normales o grupales e inscribirse en talleres, pero no puede confirmar como participante de una reserva ajena. Las inscripciones a talleres comparan únicamente talleres activos con inscripciones `CONFIRMED`; ignoran inscripciones `CANCELLED` y talleres inactivos.
-12. Confirmar que la hora de una reserva coincide entre local y demo online para `America/Santiago`; la regla ya esta implementada y verificada localmente, pero falta evidencia online.
+Un administrador sin RUT puede crear reservas normales o grupales e inscribirse en talleres, pero no puede confirmar como participante de una reserva ajena. En MVP 2, las inscripciones comparan solapes únicamente entre talleres activos con inscripciones `CONFIRMED`; no comparan un taller con una reserva personal ubicada en otro recurso. El alta y la baja se permiten mientras el taller esté activo, sin cutoff adicional; las inscripciones `CANCELLED` y los talleres inactivos no bloquean una nueva inscripción.
+
+La cancelación de una reserva está permitida mientras la reserva no haya finalizado y el actor tenga permiso. Un cutoff configurable es una mejora futura, no un criterio de cierre de MVP 2.
+
+La comparación horaria con la referencia online para `America/Santiago` permanece pendiente de nueva evidencia integrada.
 
 El checklist histórico está en [Checklist demo MVP 1](docs/historico_y_checklists/12-checklist-demo-mvp1.md). La cobertura automatizada sigue siendo parcial y no reemplaza la validación integrada, manual ni online.
 
 ## Documentación relacionada
 
-- [Índice maestro y trazabilidad](docs/00-indice-maestro-y-trazabilidad.md).
-- [Resumen y estado actual](docs/01-resumen-y-estado-actual.md).
-- [Arquitectura y sistema](docs/02-arquitectura-y-sistema.md).
-- [Requisitos y casos de uso](docs/03-requisitos-casos-uso.md).
-- [Guías y despliegue](docs/04-guias-y-despliegue.md).
-- [Histórico y checklists](docs/historico_y_checklists/12-guia-documentacion-legibilidad.md).
+- [Entrada al canon documental](docs/Propuesta%20nueva/README.md).
+- [Índice y gobierno documental](docs/Propuesta%20nueva/00-indice-y-gobierno-documental.md).
+- [Resumen ejecutivo y estado](docs/Propuesta%20nueva/01-resumen-ejecutivo-y-estado.md).
+- [Arquitectura y contratos](docs/Propuesta%20nueva/02-arquitectura-y-contratos.md).
+- [Requisitos y trazabilidad](docs/Propuesta%20nueva/03-requisitos-casos-uso-y-trazabilidad.md).
+- [Instalación, despliegue y recuperación](docs/Propuesta%20nueva/05-instalacion-despliegue-y-recuperacion.md).
 
 ## Seguridad
 

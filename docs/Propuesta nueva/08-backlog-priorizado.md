@@ -1,70 +1,99 @@
 # Backlog priorizado de Poli-REDI
 
-**Estado:** RESUMEN CANÓNICO  
-**Fuente detallada:** [`referencia/07-backlog-completo.md`](referencia/07-backlog-completo.md)
+**Estado:** CANÓNICO ADOPTADO
+
+**Corte de revisión:** 2026-08-11
+
+**Fecha límite absoluta:** 2026-12-10
+**Fuente detallada preservada:** [`referencia/07-backlog-completo.md`](referencia/07-backlog-completo.md)
 
 ## 1. Regla de lectura
 
-El backlog representa trabajo, no evidencia. Un ítem marcado como terminado debe respaldarse con código, prueba o acta fechada.
+El backlog representa trabajo pendiente o evidencia por completar. Un ítem solo se cierra cuando alcance, implementación, pruebas, documentación y ambiente objetivo quedan registrados. “Funciona en local” no equivale a “cerrado online”.
 
-## 2. Prioridad inmediata — P2 de cierre
+## 2. Bloque de cierre MVP 1 — objetivo 2026-08-28
 
-| ID sugerido | Trabajo | Criterio de cierre |
-|---|---|---|
-| DB-007 | Ejecutar migración `007` en copia y Azure SQL | Backup, pre/postcheck, idempotencia, no retroactividad y recuperación. |
-| DB-008 | Ejecutar migración `008` en copia y Azure SQL | Casos bidireccionales de solape, contigüidad e idempotencia. |
-| QA-ONLINE | Validar Entra ID, CORS, API y DB desplegada | Flujo de usuario y admin completo con evidencia. |
-| QA-VISUAL | Validar responsive, teclado, lector y privacidad | Matriz 377/500/768/1440 px aprobada. |
-| NOTIF-CORE | Completar lectura y eventos de notificación | Estados, destinos y acciones observables. |
-| ADMIN-CORE | Completar operación institucional priorizada | Alcance explícito, permisos y auditoría. |
+| ID | Trabajo | Responsable principal | Criterio de salida |
+|---|---|---|---|
+| M1-BASE | Congelar baseline funcional y de contratos | Arquitecto | Contratos, dependencias y riesgos registrados. |
+| M1-DISP-FE | Integrar en frontend la disponibilidad por rango ya existente en backend | Frontend | Carga, filtros, selección, errores y estados vacíos verificados. |
+| M1-REG | Ejecutar regresión de reserva básica e identidad | QA | Casos críticos locales reproducibles sin regresiones abiertas. |
+| M1-ONLINE | Preparar integración Entra ID, API, CORS y Azure SQL | DevOps | Configuración y plan de despliegue/reversión listos para validación. |
+| M1-EVID | Consolidar evidencia y dictamen | Documentador | Checklist con ambiente, fecha y resultado; sin afirmar online si no se ejecutó. |
 
-## 3. Prioridad posterior — P3
+## 3. Bloque de cierre MVP 2 — objetivo 2026-09-25
 
-| Trabajo | Resultado esperado |
-|---|---|
-| Optimización del bundle | División o reducción sin regresiones. |
-| Matriz de navegadores | Evidencia manual reproducible. |
-| Historial institucional MVP 3 | Relación explícita usuario-actividad; no inferir asistencia. |
-| Reportes institucionales | Backend y vistas SQL como fuente, no cálculos aislados de UI. |
-| Consulta administrativa de auditoría | Acceso protegido, filtros y minimización. |
+| ID | Trabajo | Responsable principal | Criterio de salida |
+|---|---|---|---|
+| DB-007 | Ensayar y ejecutar migración `007` | Backend / DevOps | Backup, pre/postcheck, idempotencia, no retroactividad y reversión. |
+| DB-008 | Ensayar y ejecutar migración `008` | Backend / DevOps | Solape bidireccional, contigüidad e idempotencia verificados. |
+| M2-GRUPO | Cerrar flujo grupal y privacidad del código | Backend / Frontend | Crear, consultar, confirmar, retirar, editar objetivo, cancelar antes de finalizar y expirar con mensajes consistentes. El cutoff de cancelación configurable queda como mejora futura. |
+| M2-TALLER | Cerrar talleres y conflictos entre talleres | Backend / Frontend | Alta, baja y reinscripción mientras el taller esté activo, sin cutoff; cupo, solape taller↔taller e historial propio E2E. No imponer taller↔reserva personal entre recursos. |
+| M2-AZURE | Validar MVP 1–2 en ambiente Azure | QA / DevOps | Entra ID, CORS, API, DB y frontend integrados con evidencia. |
+| M2-BUFFER | Resolver defectos de cierre | QA | Sin defectos críticos o altos abiertos; riesgos residuales aceptados. |
 
-## 4. Administración pendiente
+## 4. Bloque de cierre MVP 3 — objetivo 2026-10-30
 
-- inventario oficial completo;
-- activación, modos y datos de recursos;
-- usuarios y bloqueos;
-- disponibilidad y actividades institucionales;
-- resolución de conflictos;
-- infracciones;
-- políticas de reserva y corrección excepcional auditada.
+| ID | Trabajo | Responsable principal | Criterio de salida |
+|---|---|---|---|
+| M3-CONTR | Congelar contratos administrativos | Analista / Arquitecto | Permisos, estados, prioridad, filtros y auditoría definidos. |
+| M3-INV | Completar inventario y modos de recursos | Backend / Frontend | Alta/edición/estado con validación y trazabilidad. |
+| M3-USR | Completar usuarios y bloqueos | Backend / Frontend | Operaciones autorizadas, minimizadas y auditadas. |
+| M3-PROG | Completar bloqueos, programación y prioridad institucional | Backend / Frontend | Conflictos deterministas, aplicación prospectiva y notificación específica de prioridad verificables. |
+| M3-PUBLIC | Completar pantalla pública de disponibilidad | Frontend / Backend | Información institucional sanitizada, sin datos personales ni acciones privadas. |
+| M3-HIST | Completar historial institucional | Backend / Frontend | Reservas, talleres, clases y otros eventos distinguibles sin inferir asistencia. |
+| M3-E2E | Ejecutar E2E administrativo | QA | Matriz rol/acción, concurrencia y auditoría aprobadas. |
 
-## 5. Deuda técnica y documental
+## 5. Bloque de cierre MVP 4 — objetivo 2026-11-27
 
-- eliminar referencias vigentes a PostgreSQL fuera del histórico;
-- mantener sincronizados endpoints, requisitos y casos de uso;
-- registrar el ambiente de cada prueba;
-- revisar rutas y links Markdown;
+| ID | Trabajo | Responsable principal | Criterio de salida |
+|---|---|---|---|
+| M4-NOTIF | Completar sistema core de notificaciones | Backend / Frontend | Eventos generales, destinatarios, lectura y acciones observables; la notificación específica de prioridad se cierra en MVP 3. |
+| M4-REPORT | Completar reportes básicos | Backend / Frontend | Indicadores definidos y derivados desde fuentes controladas. |
+| M4-AUDIT | Habilitar consulta protegida de auditoría | Backend / Frontend | Permisos, filtros, minimización y paginación verificados. |
+| M4-SEC | Revisar seguridad y privacidad | Arquitecto / QA | Autorización, secretos, exposición de datos y dependencias revisados. |
+| M4-UX | Ejecutar QA visual y accesibilidad | Diseñador UX / QA | Responsive, teclado, foco, contraste, lector y estados de carga aprobados. |
+| M4-DEPLOY | Preparar candidato y despliegue final | DevOps | Despliegue reproducible, monitoreo básico, rollback y smoke test. |
+
+## 6. Entrega y defensa — fecha absoluta 2026-12-10
+
+| ID | Trabajo | Responsable principal | Criterio de salida |
+|---|---|---|---|
+| DOC-INTEG | Integrar memoria, diagramas, anexos y evidencia | Documentador | Trazabilidad completa y referencias vigentes. |
+| QA-FINAL | Ejecutar smoke y regresión final | QA | Resultado fechado del candidato de entrega. |
+| DEFENSA | Preparar demostración y defensa | Analista / Documentador | Guion, evidencia, contingencia y ensayo completados. |
+| ENTREGA | Entregar prototipo y documentación | Documentador | Paquete recibido antes o durante el 2026-12-10. |
+
+## 7. Deuda y decisiones controladas
+
+- eliminar referencias vigentes a motores o contratos obsoletos fuera del histórico;
+- mantener sincronizados endpoints, requisitos, casos de uso, diagramas y pruebas;
+- registrar ambiente, fecha y resultado de cada verificación;
 - evitar estados absolutos como “cerrado” sin evidencia integrada;
-- aprobar o descartar formalmente la migración propuesta `009` antes de incluirla en producción.
+- revisar enlaces Markdown y codificación UTF-8;
+- mantener `009` como **propuesta no aprobada** hasta una decisión formal; no ejecutarla por inferencia;
+- conservar los documentos históricos sin reescribir su contexto original.
 
-## 6. Orden recomendado
+## 8. Fuera de alcance del prototipo
 
-1. Congelar alcance de cierre de MVP 2.
-2. Validar migraciones en copia recuperable.
-3. Validar integración online.
-4. Ejecutar QA visual, accesibilidad y privacidad.
-5. Resolver defectos de cierre.
-6. Registrar acta final.
-7. Solo después iniciar ampliaciones de MVP 3.
+- BI avanzado;
+- inteligencia artificial;
+- gestión avanzada de campeonatos;
+- detección automatizada de abuso;
+- integración académica;
+- multisede;
+- sincronización bidireccional con Google.
 
-## 7. Definición de terminado
+## 9. Definición de terminado
 
 Una tarea se considera terminada cuando:
 
-- el alcance está explícito;
-- la implementación existe;
-- las pruebas aplicables pasan;
-- la documentación se actualiza;
-- no expone secretos ni datos indebidos;
-- existe evidencia del ambiente objetivo cuando corresponde;
-- los riesgos residuales están registrados.
+- el alcance y responsable por rol están explícitos;
+- la implementación existe en la rama o versión evaluada;
+- las pruebas aplicables pasan y conservan evidencia;
+- la documentación y diagramas relacionados están actualizados;
+- no se exponen secretos ni datos indebidos;
+- el ambiente objetivo fue verificado cuando corresponde;
+- los riesgos residuales y la decisión de aceptación están registrados.
+
+El orden semanal, buffers y ruta crítica se detallan en [`11-cronograma-cierre-2026.md`](11-cronograma-cierre-2026.md). El cierre se controla con [`14-checklist-cierre-total-2026-12-10.md`](14-checklist-cierre-total-2026-12-10.md).
