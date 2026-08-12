@@ -21,7 +21,7 @@ export const msalConfig = {
 }
 
 export const loginRequest = {
-  scopes: ['openid', 'profile', 'email']
+  scopes: ['openid', 'profile', 'email', apiScope]
 }
 
 export const apiTokenRequest = {
