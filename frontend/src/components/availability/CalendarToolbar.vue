@@ -3,7 +3,7 @@ import {
   ChevronLeft,
   ChevronRight,
   CalendarDays
-} from 'lucide-vue-next'
+} from '@lucide/vue'
 
 const props = defineProps({
   currentDate: {

@@ -5,7 +5,7 @@ import {
   Clock,
   Timer,
   XCircle
-} from 'lucide-vue-next'
+} from '@lucide/vue'
 
 import {
   formatReservationDate,

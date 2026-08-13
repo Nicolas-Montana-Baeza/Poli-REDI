@@ -18,7 +18,7 @@ import {
   ShieldCheck,
   X,
   KeyRound
-} from 'lucide-vue-next'
+} from '@lucide/vue'
 
 /* STATE */
 const isOpen = ref(false)

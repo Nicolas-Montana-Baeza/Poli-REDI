@@ -7,7 +7,7 @@ import {
   Search,
   UserMinus,
   Users
-} from 'lucide-vue-next'
+} from '@lucide/vue'
 
 import SkeletonLoader from '@/components/ui/SkeletonLoader.vue'
 import WorkshopWithdrawalConfirm from '@/components/workshops/WorkshopWithdrawalConfirm.vue'

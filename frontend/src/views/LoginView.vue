@@ -6,7 +6,7 @@ import {
   LogIn,
   ShieldCheck,
   UserPlus
-} from 'lucide-vue-next'
+} from '@lucide/vue'
 
 import {
   isDevAuthEnabled,

@@ -7,7 +7,7 @@ import {
   CalendarDays,
   LayoutGrid,
   Users
-} from 'lucide-vue-next'
+} from '@lucide/vue'
 
 import SkeletonLoader from '@/components/ui/SkeletonLoader.vue'
 import MetricCard from '@/components/admin/MetricCard.vue'

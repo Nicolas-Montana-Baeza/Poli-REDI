@@ -6,7 +6,7 @@ import {
   Calendar,
   AlertTriangle,
   CheckCircle2
-} from 'lucide-vue-next'
+} from '@lucide/vue'
 
 import SkeletonLoader from '@/components/ui/SkeletonLoader.vue'
 import { useAuthStore } from '@/stores/auth'

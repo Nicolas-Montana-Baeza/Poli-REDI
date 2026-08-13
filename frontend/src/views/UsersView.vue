@@ -5,7 +5,7 @@ import {
   ShieldCheck,
   UserRound,
   Users
-} from 'lucide-vue-next'
+} from '@lucide/vue'
 
 import SkeletonLoader from '@/components/ui/SkeletonLoader.vue'
 import { useUsersStore } from '@/stores/userStore'

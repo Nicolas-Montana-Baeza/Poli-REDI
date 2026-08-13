@@ -15,7 +15,7 @@ import {
   Timer,
   UserRound,
   XCircle
-} from 'lucide-vue-next'
+} from '@lucide/vue'
 
 import SkeletonLoader from '@/components/ui/SkeletonLoader.vue'
 import ParticipantsProgress from '@/components/ui/ParticipantsProgress.vue'
