@@ -14,7 +14,7 @@ Se adopta el árbol compacto iniciado en `docs/00-gobierno-documental.md` como c
 
 ## Contexto
 
-El repositorio acumuló documentos raíz, `docs/Propuesta nueva/`, referencias y actas históricas con contenido solapado. La repetición dificultaba identificar propietario, estado y evidencia real.
+El repositorio acumuló varios árboles documentales, referencias y actas históricas con contenido solapado. La repetición dificultaba identificar propietario, estado y evidencia real.
 
 ## Decisión
 

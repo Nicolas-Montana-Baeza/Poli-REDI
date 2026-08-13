@@ -175,7 +175,7 @@ func TestMigrationDoesNotPublishBeforeCanonicalTriggers(t *testing.T) {
 
 func TestMigrationRecoveryGuidesAvoidOptionalColumnCompileErrors(t *testing.T) {
 	guide := strings.ToUpper(readRepositoryFile(t, "database", "migrations", "README.md"))
-	installation := strings.ToUpper(readRepositoryFile(t, "docs", "04-guias-y-despliegue.md"))
+	installation := strings.ToUpper(readRepositoryFile(t, "docs", "05-instalacion-despliegue-recuperacion.md"))
 	for _, unsafe := range []string{
 		"SELECT ID,EFFECTIVE_FROM,EFFECTIVE_TO,IS_PUBLISHED",
 		"SELECT ID,EFFECTIVE_FROM,EFFECTIVE_TO,IDEMPOTENCY_KEY",

@@ -1,9 +1,16 @@
 # Base de datos y migraciones de Poli-REDI
 
-> **Estado:** CANDIDATO CANÓNICO DEL NUEVO ÁRBOL — contrastado con `database/schema.sql`<br>
-> **Corte:** 2026-08-11<br>
-> **Alcance:** modelo vigente, integridad y evolución acumulativa de la única base<br>
-> **No demuestra:** que las migraciones pendientes hayan sido ejecutadas o validadas en Azure SQL
+**Audiencia:** Arquitecto, Backend, QA y DevOps
+
+**Propósito:** definir el modelo vigente, la integridad y la evolución acumulativa de la base única
+
+**Estado:** CANÓNICO; contrastado con `database/schema.sql`
+
+**Corte:** 2026-08-11
+
+**Fuente:** `database/schema.sql`, `database/migrations/` y repositorios del backend
+
+**No demuestra:** que las migraciones pendientes hayan sido ejecutadas o validadas en Azure SQL
 
 ## Resumen
 

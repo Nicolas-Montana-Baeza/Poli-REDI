@@ -10,7 +10,7 @@
 
 ## Resumen
 
-La documentación vigente reside en la raíz de `docs/`, con decisiones inmutables y anexos separados. Los árboles `docs/Propuesta nueva/` y `docs/historico_y_checklists/` se conservan temporalmente como fuentes de migración, pero dejan de ser autoridad para contenido nuevo.
+La documentación vigente reside en la raíz de `docs/`, con decisiones inmutables y anexos separados. Las fuentes previas ya fueron consolidadas y retiradas del árbol activo; su recuperación queda respaldada por el historial de Git y el bundle verificado.
 
 ## Propietario por tema
 
@@ -30,6 +30,8 @@ La documentación vigente reside en la raíz de `docs/`, con decisiones inmutabl
 | Evidencia fechada | `docs/anexos/evidencia/` |
 | Diagramas | `docs/anexos/diagramas/` |
 | Operaciones excepcionales | `docs/anexos/operacion/` |
+
+La operación self-hosted de MVP 2 está documentada en [`anexos/operacion/despliegue-self-hosted-mvp2.md`](anexos/operacion/despliegue-self-hosted-mvp2.md). Es una bitácora parcial y no sustituye los gates de calidad ni el estado vigente.
 
 ## Precedencia
 

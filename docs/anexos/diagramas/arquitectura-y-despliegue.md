@@ -1,9 +1,16 @@
 # Anexo — Arquitectura interna y despliegue
 
-> **Estado:** CONTRASTADO CON EL CÓDIGO LOCAL<br>
-> **Corte:** 2026-08-11<br>
-> **Alcance:** componentes internos y topología prevista/observable de despliegue<br>
-> **No demuestra:** disponibilidad online actual ni despliegue integrado de frontend, API, identidad y base
+**Audiencia:** Arquitecto, desarrollo, QA y DevOps
+
+**Propósito:** representar componentes internos y la topología prevista u observable de despliegue
+
+**Estado:** ANEXO TÉCNICO CONTRASTADO CON EL CÓDIGO LOCAL
+
+**Corte:** 2026-08-11
+
+**Fuente:** código local, configuración de despliegue y arquitectura canónica
+
+**No demuestra:** disponibilidad online actual ni despliegue integrado de frontend, API, identidad y base
 
 ## Resumen
 

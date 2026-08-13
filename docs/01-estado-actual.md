@@ -54,6 +54,8 @@ No obtuvo nueva evidencia concluyente de:
 
 Los resultados del 2026-08-04 se conservan como evidencia histórica y no se presentan como nueva ejecución.
 
+Una bitácora posterior, fechada el 2026-08-13, confirma arranques aislados de las imágenes API MVP 1 y MVP 2 contra Azure SQL y Entra, y refiere merge, build y pruebas. Aún no confirma API/web estables bajo Quadlet ni E2E público, por lo que no cambia el dictamen de cierre. Véase [despliegue self-hosted de MVP 2](anexos/operacion/despliegue-self-hosted-mvp2.md).
+
 ## Decisiones aplicables
 
 - [`ADR-001`](decisiones/ADR-001-gobierno-documental.md): gobierno documental.

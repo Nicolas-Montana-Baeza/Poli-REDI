@@ -1,9 +1,16 @@
 # Anexo — Secuencias MVP 2
 
-> **Estado:** IMPLEMENTADO LOCALMENTE; CIERRE INTEGRADO PENDIENTE<br>
-> **Corte:** 2026-08-11<br>
-> **Alcance:** solicitud grupal y talleres con frontend, API, repositorios y SQL<br>
-> **No demuestra:** migraciones, concurrencia y experiencia online validadas en Azure
+**Audiencia:** Analista, Arquitecto, desarrollo y QA
+
+**Propósito:** representar solicitud grupal y talleres a través de frontend, API, repositorios y SQL
+
+**Estado:** IMPLEMENTACIÓN LOCAL PARCIAL; CIERRE INTEGRADO PENDIENTE
+
+**Corte:** 2026-08-11
+
+**Fuente:** código local y arquitectura y reglas canónicas
+
+**No demuestra:** migraciones, concurrencia ni experiencia online validadas en Azure
 
 ## Resumen
 

@@ -4,9 +4,11 @@
 
 **Propósito:** reproducir el entorno, evolucionar la base única y recuperar una publicación
 
-**Estado:** guía operativa canónica, corte 2026-08-11
+**Estado:** guía operativa canónica
 
-**Fuente:** configuración del repositorio y `Propuesta nueva/05`
+**Corte:** 2026-08-11
+
+**Fuente:** configuración, scripts operativos y procedimientos consolidados del repositorio
 
 ## Resumen
 
@@ -20,7 +22,7 @@ Ningún despliegue se considera recuperable sin versión identificable, respaldo
 - Go compatible con `backend/go.mod`.
 - Docker para la ejecución local opcional.
 - Acceso autorizado a Azure SQL y Microsoft Entra ID para el ambiente online.
-- Cliente T-SQL que interprete separadores `GO`.
+- Cliente T-SQL compatible con `GO`.
 
 ## Configuración segura
 
@@ -75,18 +77,20 @@ Si se usa Docker, validar puertos, variables y persistencia antes de atribuir un
 
 Para una base nueva se usa el paquete de instalación vigente. Para una base existente se ejecutan únicamente migraciones incrementales, nunca un script destructivo.
 
+El inventario técnico y las comprobaciones seguras se mantienen en [`database/migrations/README.md`](../database/migrations/README.md).
+
 | Orden | Migración | Propósito resumido |
 |---:|---|---|
-| 001 | `001_mvp2_group_reservations.sql` | Estructura inicial de reserva grupal. |
-| 002 | `002_mvp2_group_reservations_followup.sql` | Ajustes de seguimiento. |
-| 003 | `003_mvp2_admin_resources.sql` | Base para recursos administrativos. |
-| 004 | `004_mvp2_group_join_code_crypto.sql` | Código de unión protegido. |
-| 005 | `005_mvp2_group_join_code_crypto_hotfix.sql` | Corrección compatible del cifrado. |
-| 006 | `006_mvp2_group_reservation_policy.sql` | Política y snapshots grupales. |
-| 007 | `007_user_schedule_overlap_integrity.sql` | Integridad de agenda personal. |
-| 008 | `008_workshop_enrollment_history.sql` | Episodios e historial de talleres. |
+| 001 | `001_mvp2_group_participants.sql` | Participantes y base de solicitud grupal. |
+| 002 | `002_mvp2_target_participants.sql` | Objetivo, capacidad y política asociada. |
+| 003 | `003_open_use_frequency_scope.sql` | Modos y alcance de frecuencia `OPEN_USE`. |
+| 004 | `004_group_flow_completion.sql` | Código protegido, expiración, auditoría y cierre grupal. |
+| 005 | `005_rut_integrity_and_admin_exemption.sql` | Integridad de RUT y excepción administrativa. |
+| 006 | `006_workshop_occurrences.sql` | Ocurrencias normalizadas de talleres. |
+| 007 | `007_repair_bootstrap_group_policy.sql` | Reparación acotada del bootstrap reconocido. |
+| 008 | `008_personal_overlap_includes_participations.sql` | Solape personal incluye participaciones confirmadas. |
 
-`009_user_schedule_overlap_integrity_v2.sql` es una propuesta no aprobada. No se ejecuta, no se incluye en una instalación y no se usa para declarar cerrado MVP 2.
+`009_database_hardening_and_consistency.sql` es una propuesta no aprobada. No se ejecuta, no se incluye en una instalación y no se usa para declarar cerrado MVP 2.
 
 ### Procedimiento de migración
 
@@ -169,3 +173,5 @@ No reutilizar una evidencia histórica de despliegue como prueba de la versión 
 8. Navegación SPA, CORS y ausencia de errores internos visibles.
 
 Registrar el resultado en [07-calidad-y-evidencia.md](07-calidad-y-evidencia.md) y [09-checklist-cierre.md](09-checklist-cierre.md). El corte operativo de Google Calendar está en [anexos/operacion/corte-google-calendar.md](anexos/operacion/corte-google-calendar.md).
+
+La variante de laboratorio con WSL2, Podman rootless, Quadlet, Caddy y Tailscale Funnel se detalla en [despliegue self-hosted de MVP 2](anexos/operacion/despliegue-self-hosted-mvp2.md). Esa bitácora no acredita cierre hasta confirmar estabilidad de API/web y E2E público.

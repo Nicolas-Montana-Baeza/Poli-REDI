@@ -1,9 +1,16 @@
 # Arquitectura y contratos de Poli-REDI
 
-> **Estado:** CANDIDATO CANÓNICO DEL NUEVO ÁRBOL — contrastado con el código local<br>
-> **Corte:** 2026-08-11<br>
-> **Alcance:** arquitectura, límites, rutas y contratos transversales de MVP 1 y MVP 2<br>
-> **No demuestra:** despliegue actual, integración online ni ejecución real sobre Azure SQL
+**Audiencia:** Arquitecto, Backend, Frontend, QA y DevOps
+
+**Propósito:** definir arquitectura, límites, rutas y contratos transversales de MVP 1 y MVP 2
+
+**Estado:** CANÓNICO; contrastado con el código local
+
+**Corte:** 2026-08-11
+
+**Fuente:** código local y auditoría técnica del 2026-08-11
+
+**No demuestra:** despliegue actual, integración online ni ejecución real sobre Azure SQL
 
 ## Resumen
 

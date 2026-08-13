@@ -1,9 +1,16 @@
 # Anexo — Modelo entidad-relación
 
-> **Estado:** CONTRASTADO CON `database/schema.sql`<br>
-> **Corte:** 2026-08-11<br>
-> **Alcance:** relaciones principales, cardinalidad y nulabilidad del esquema vigente<br>
-> **No demuestra:** migraciones aplicadas en Azure ni integridad de los datos de un ambiente real
+**Audiencia:** Arquitecto, Backend, QA y evaluación académica
+
+**Propósito:** representar relaciones principales, cardinalidad y nulabilidad del esquema vigente
+
+**Estado:** ANEXO TÉCNICO CONTRASTADO CON `database/schema.sql`
+
+**Corte:** 2026-08-11
+
+**Fuente:** `database/schema.sql`, migraciones oficiales y modelos del backend
+
+**No demuestra:** migraciones aplicadas en Azure ni integridad de los datos de un ambiente real
 
 ## Resumen
 

@@ -27,6 +27,8 @@ La auditoría revalidó 18 pruebas Node sobre el commit `939ba51`. No produjo ev
 
 El detalle inmutable de la revisión está en [anexos/evidencia/auditoria-2026-08-11.md](anexos/evidencia/auditoria-2026-08-11.md).
 
+La [bitácora self-hosted del 2026-08-13](anexos/operacion/despliegue-self-hosted-mvp2.md) añade evidencia de imágenes API MVP 1/MVP 2 aisladas con Azure SQL y Entra, y refiere merge/build/tests. No eleva el ambiente a “validado online” hasta demostrar Quadlet API+web estable y E2E funcional público.
+
 ## Niveles de evidencia
 
 | Nivel | Requisito mínimo | Uso permitido |

@@ -6,7 +6,7 @@
 
 **Estado:** canónico, corte 2026-08-11
 
-**Fuente:** síntesis de `Propuesta nueva/03`, sus referencias y la matriz académica
+**Fuente:** requisitos consolidados, código local, decisiones vigentes y matriz académica
 
 ## Resumen
 

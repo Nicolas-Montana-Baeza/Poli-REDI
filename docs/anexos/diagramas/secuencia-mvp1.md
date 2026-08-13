@@ -1,9 +1,16 @@
 # Anexo — Secuencia completa MVP 1
 
-> **Estado:** IMPLEMENTADO LOCALMENTE, CON INTEGRACIÓN PENDIENTE<br>
-> **Corte:** 2026-08-11<br>
-> **Alcance:** contexto, disponibilidad, reserva individual, consulta y cancelación<br>
-> **No demuestra:** login Entra, CORS, API y Azure SQL funcionando juntos online
+**Audiencia:** Analista, Arquitecto, desarrollo y QA
+
+**Propósito:** representar contexto, disponibilidad, reserva individual, consulta y cancelación de MVP 1
+
+**Estado:** IMPLEMENTADO LOCALMENTE, CON INTEGRACIÓN PENDIENTE
+
+**Corte:** 2026-08-11
+
+**Fuente:** código local y arquitectura y reglas canónicas
+
+**No demuestra:** login Entra, CORS, API y Azure SQL funcionando juntos online
 
 ## Resumen
 

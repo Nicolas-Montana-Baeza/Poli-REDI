@@ -1,9 +1,16 @@
 # Reglas y flujos de Poli-REDI
 
-> **Estado:** CANDIDATO CANÓNICO DEL NUEVO ÁRBOL — contrastado con el código local<br>
-> **Corte:** 2026-08-11<br>
-> **Alcance:** reservas individuales, `OPEN_USE`, solicitudes grupales y talleres<br>
-> **No demuestra:** validación integrada online, concurrencia real en Azure SQL ni migraciones aplicadas
+**Audiencia:** Analista, Arquitecto, Backend, Frontend y QA
+
+**Propósito:** definir reglas y flujos de reservas individuales, `OPEN_USE`, solicitudes grupales y talleres
+
+**Estado:** CANÓNICO; contrastado con el código local
+
+**Corte:** 2026-08-11
+
+**Fuente:** código local, requisitos vigentes y ADR-004
+
+**No demuestra:** validación integrada online, concurrencia real en Azure SQL ni migraciones aplicadas
 
 ## Resumen
 

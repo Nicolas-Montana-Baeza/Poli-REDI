@@ -30,7 +30,7 @@ MVP 2 requiere columnas, índices, triggers e historial adicionales. Errores de 
 
 `001` → `002` → `003` → `004` → `005` → `006` → `007` → `008`.
 
-`009_user_schedule_overlap_integrity_v2.sql` es una propuesta no aprobada. Requeriría un ADR posterior, comparación con `007`, análisis de datos, preflight, reversión y criterio explícito de adopción.
+`009_database_hardening_and_consistency.sql` es una propuesta no aprobada. Requeriría un ADR posterior, comparación con `007` y `008`, análisis de datos, preflight, reversión y criterio explícito de adopción.
 
 ## Recuperación
 
