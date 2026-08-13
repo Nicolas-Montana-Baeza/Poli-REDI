@@ -1,6 +1,6 @@
 <script setup>
 import { useRouter } from 'vue-router'
-import { ShieldX } from 'lucide-vue-next'
+import { ShieldX } from '@lucide/vue'
 
 import { useAuthStore } from '@/stores/auth'
 

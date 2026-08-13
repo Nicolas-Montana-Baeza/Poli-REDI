@@ -1,0 +1,19 @@
+{
+    default_sni 10.38.87.75
+}
+
+https://localhost:8443,
+https://10.38.87.75:8443,
+https://desktop-epot7cf.tail16d8fb.ts.net:8443 {
+
+    tls internal
+
+    root * /srv
+
+    route {
+        reverse_proxy /api/* poliredi-api:3000
+
+        try_files {path} /index.html
+        file_server
+    }
+}

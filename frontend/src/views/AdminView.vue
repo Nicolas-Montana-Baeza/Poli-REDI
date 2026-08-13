@@ -7,7 +7,7 @@ import {
   CalendarDays,
   LayoutGrid,
   Users
-} from 'lucide-vue-next'
+} from '@lucide/vue'
 
 import SkeletonLoader from '@/components/ui/SkeletonLoader.vue'
 import { useResourcesStore } from '@/stores/resources'

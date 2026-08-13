@@ -17,7 +17,7 @@ import {
   Menu,
   ShieldCheck,
   X
-} from 'lucide-vue-next'
+} from '@lucide/vue'
 
 /* STATE */
 const isOpen = ref(false)

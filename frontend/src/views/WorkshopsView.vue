@@ -6,7 +6,7 @@ import {
   MapPin,
   Search,
   Users
-} from 'lucide-vue-next'
+} from '@lucide/vue'
 
 import SkeletonLoader from '@/components/ui/SkeletonLoader.vue'
 import { useWorkshopsStore } from '@/stores/workshops'

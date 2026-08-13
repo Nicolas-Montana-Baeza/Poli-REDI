@@ -11,7 +11,7 @@ import {
   ChevronDown,
   LogOut,
   Settings
-} from 'lucide-vue-next'
+} from '@lucide/vue'
 
 import { useAuthStore } from '@/stores/auth'
 import { useNotificationsStore } from '@/stores/notifications'

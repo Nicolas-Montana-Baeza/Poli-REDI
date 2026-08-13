@@ -2,26 +2,34 @@ import { PublicClientApplication } from '@azure/msal-browser'
 
 const tenantId = import.meta.env.VITE_ENTRA_TENANT_ID
 const clientId = import.meta.env.VITE_ENTRA_CLIENT_ID
-const redirectUri = import.meta.env.VITE_ENTRA_REDIRECT_URI
 const apiScope = import.meta.env.VITE_ENTRA_API_SCOPE
-export const postLogoutRedirectUri = import.meta.env.VITE_ENTRA_POST_LOGOUT_REDIRECT_URI || '/login'
+
+const appOrigin = window.location.origin
+
+export const postLogoutRedirectUri = `${appOrigin}/login`
 
 export const msalConfig = {
   auth: {
     clientId,
     authority: `https://login.microsoftonline.com/${tenantId}`,
-    redirectUri,
+    redirectUri: `${appOrigin}/auth/callback`,
     postLogoutRedirectUri,
     navigateToLoginRequestUrl: false
   },
+
   cache: {
-    cacheLocation: 'localStorage',
+    cacheLocation: 'sessionStorage',
     storeAuthStateInCookie: false
   }
 }
 
 export const loginRequest = {
-  scopes: ['openid', 'profile', 'email']
+  scopes: [
+    'openid',
+    'profile',
+    'email',
+    apiScope
+  ]
 }
 
 export const apiTokenRequest = {
