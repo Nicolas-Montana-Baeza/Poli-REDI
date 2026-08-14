@@ -23,7 +23,9 @@ func main() {
 		log.Fatal(err)
 	}
 
-	database.Connect()
+	if err := database.Connect(); err != nil {
+		log.Fatal(err)
+	}
 
 	defer database.Close()
 

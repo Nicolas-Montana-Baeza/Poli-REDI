@@ -20,7 +20,7 @@ func GetAllResources() ([]models.Resource, error) {
 			COALESCE(image_url, '') AS image_url,
 			capacity,
 			is_active
-		FROM dbo.resources
+		FROM resources
 		ORDER BY id;
 		`,
 	)
@@ -84,8 +84,8 @@ func GetResourceByID(id int) (models.Resource, error) {
 			COALESCE(image_url, '') AS image_url,
 			capacity,
 			is_active
-		FROM dbo.resources
-		WHERE id = @p1;
+		FROM resources
+		WHERE id = $1;
 		`,
 		id,
 	)
@@ -125,11 +125,11 @@ func UpdateResourceImageURL(id int, imageURL string) (models.Resource, error) {
 	_, err := database.DB.ExecContext(
 		context.Background(),
 		`
-		UPDATE dbo.resources
+		UPDATE resources
 		SET
-			image_url = NULLIF(@p2, ''),
-			updated_at = SYSUTCDATETIME()
-		WHERE id = @p1;
+			image_url = NULLIF($2, ''),
+			updated_at = CURRENT_TIMESTAMP
+		WHERE id = $1;
 		`,
 		id,
 		imageURL,

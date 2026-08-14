@@ -3,19 +3,24 @@ package services
 import (
 	"database/sql"
 	"errors"
-	"fmt"
 	"regexp"
 	"sort"
 	"strconv"
 	"strings"
 	"time"
 
+	"poli-redi-api/internal/appscope"
 	"poli-redi-api/internal/businessclock"
 	"poli-redi-api/internal/models"
 	"poli-redi-api/internal/repositories"
 	"poli-redi-api/internal/reservationrules"
 
-	mssql "github.com/microsoft/go-mssqldb"
+	"github.com/jackc/pgx/v5/pgconn"
+)
+
+var (
+	ErrReservationNotFound  = errors.New("reserva no encontrada")
+	ErrReservationForbidden = errors.New("no tienes permisos para consultar esta reserva")
 )
 
 var workshopTimePattern = regexp.MustCompile(`(?:(lunes|martes|miercoles|jueves|viernes|sabado|domingo)\s+)?(\d{1,2}:\d{2})\s*a\s*(\d{1,2}:\d{2})`)
@@ -34,14 +39,14 @@ func GetReservations() ([]models.Reservation, error) {
 	return repositories.GetAllReservations()
 }
 
-func GetAvailabilityItems() ([]models.AvailabilityItem, error) {
-	reservations, err := repositories.GetAllReservations()
+func GetAvailabilityItems(from, to time.Time, userID int, isAdmin bool) ([]models.AvailabilityItem, error) {
+	reservations, err := repositories.GetActiveReservationsForAvailability(from, to, userID, isAdmin)
 
 	if err != nil {
 		return nil, err
 	}
 
-	scheduledActivities, err := repositories.GetActiveScheduledActivities()
+	blocks, err := repositories.GetAvailabilityBlocks(from, to)
 
 	if err != nil {
 		return nil, err
@@ -50,7 +55,7 @@ func GetAvailabilityItems() ([]models.AvailabilityItem, error) {
 	items := make(
 		[]models.AvailabilityItem,
 		0,
-		len(reservations)+len(scheduledActivities),
+		len(reservations)+len(blocks),
 	)
 
 	for _, reservation := range reservations {
@@ -72,23 +77,21 @@ func GetAvailabilityItems() ([]models.AvailabilityItem, error) {
 		})
 	}
 
-	for _, activity := range scheduledActivities {
-		duration := int(activity.EndTime.Sub(activity.StartTime).Minutes())
-
+	for _, block := range blocks {
+		duration := int(block.EndTime.Sub(block.StartTime).Minutes())
 		items = append(items, models.AvailabilityItem{
-			ID:                  activity.ID,
-			AvailabilityKey:     "scheduled-" + strconv.Itoa(activity.ID),
-			UserID:              activity.CreatedByUserID,
-			ResourceID:          activity.ResourceID,
-			StartTime:           activity.StartTime,
+			ID:                  block.ID,
+			AvailabilityKey:     "block-" + strconv.Itoa(block.ID),
+			ResourceID:          block.ResourceID,
+			StartTime:           block.StartTime,
 			DurationMinutes:     duration,
 			Status:              "CONFIRMED",
-			Hour:                activity.StartTime.Format("15:04"),
-			Title:               activity.Title,
-			Type:                "scheduled",
-			ResourceName:        activity.ResourceName,
-			IsScheduledActivity: true,
-			ActivityType:        activity.ActivityType,
+			Hour:                block.StartTime.Format("15:04"),
+			Title:               "No disponible",
+			Type:                "blocked",
+			ResourceName:        block.ResourceName,
+			IsAvailabilityBlock: true,
+			ActivityType:        block.BlockType,
 		})
 	}
 
@@ -105,6 +108,20 @@ func GetMyReservations(userID int) ([]models.Reservation, error) {
 	}
 
 	return repositories.GetReservationsByUserID(userID)
+}
+
+func GetReservationDetail(id int, requestedBy models.LocalAuthUser) (models.Reservation, error) {
+	reservation, err := repositories.GetReservationByID(id)
+	if errors.Is(err, sql.ErrNoRows) {
+		return models.Reservation{}, ErrReservationNotFound
+	}
+	if err != nil {
+		return models.Reservation{}, err
+	}
+	if !requestedBy.IsAdmin && reservation.UserID != requestedBy.ID {
+		return models.Reservation{}, ErrReservationForbidden
+	}
+	return reservation, nil
 }
 
 func CreateReservation(reservation models.Reservation) (models.Reservation, error) {
@@ -133,25 +150,6 @@ func createReservationAt(
 		return models.Reservation{}, errors.New("no puedes crear reservas en el pasado")
 	}
 
-	previousCreatedAt, frequencyDays, err := repositories.GetLatestConsumingReservation(reservation.UserID)
-	if err != nil && !errors.Is(err, sql.ErrNoRows) {
-		return models.Reservation{}, err
-	}
-	if err == nil {
-		nextDate := reservationrules.NextRequestDate(
-			previousCreatedAt,
-			frequencyDays,
-			businessclock.Location(),
-		)
-		today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
-		if today.Before(nextDate) {
-			return models.Reservation{}, fmt.Errorf(
-				"ya tienes una solicitud vigente; pr\u00f3xima fecha permitida: %s",
-				nextDate.Format("2006-01-02"),
-			)
-		}
-	}
-
 	resource, err := repositories.GetResourceByID(reservation.ResourceID)
 
 	if err != nil {
@@ -162,8 +160,10 @@ func createReservationAt(
 		reservation.ActivityID = nil
 	}
 
-	if err := validateWorkshopAvailability(reservation); err != nil {
-		return models.Reservation{}, err
+	if !appscope.IsMVP1() {
+		if err := validateWorkshopAvailability(reservation); err != nil {
+			return models.Reservation{}, err
+		}
 	}
 
 	createdReservation, err := repositories.AddReservationWithPolicy(reservation, func(policy models.ReservationPolicy) error {
@@ -403,40 +403,34 @@ func mapDatabaseReservationError(err error) error {
 	if errors.Is(err, repositories.ErrResourceNotAllowedByPolicy) {
 		return err
 	}
-	var sqlErr mssql.Error
-
+	var sqlErr *pgconn.PgError
 	if errors.As(err, &sqlErr) {
-		switch sqlErr.Number {
-		// 51000-51007 son reglas de negocio emitidas por
-		// trg_reservations_validate_conflicts en database/schema.sql.
-		case 51000:
-			return errors.New("el usuario se encuentra bloqueado y no puede crear reservas")
-		case 51001:
-			return errors.New("el recurso no est\u00e1 activo")
-		case 51002:
-			return errors.New("el recurso es solo informativo y no permite reservas")
-		case 51003:
-			return errors.New("el recurso solo puede ser reservado por administradores")
-		case 51004:
-			return errors.New("el recurso ya est\u00e1 reservado en ese horario")
-		case 51005:
-			return errors.New("el usuario ya tiene una reserva en ese horario")
-		case 51006:
-			return errors.New("el recurso est\u00e1 bloqueado en ese horario")
-		case 51007:
-			return errors.New("el recurso tiene una actividad programada en ese horario")
-		case 51008:
-			return errors.New("no existe una pol\u00edtica de reservas vigente")
-		case 51009, 51010:
-			return errors.New(sqlErr.Message)
-		case 51015:
+		switch sqlErr.Code {
+		case "P1001":
+			return errors.New("el usuario se encuentra bloqueado o no tiene RUT habilitante")
+		case "P1002":
+			return errors.New("el recurso no esta disponible para reservas")
+		case "P1003":
+			return repositories.ErrResourceNotAllowedByPolicy
+		case "P1004", "P1005":
 			return errors.New("el horario o la duracion no estan permitidos por la politica vigente")
-		case 51016:
-			return errors.New("el recurso no esta permitido por la politica vigente")
-		case 547:
+		case "P1006":
+			return errors.New("la fecha esta fuera de la ventana reservable")
+		case "P1007":
+			return errors.New("el recurso esta bloqueado en ese horario")
+		case "P1008":
+			return errors.New("no existe una politica de reservas vigente")
+		case "23P01":
+			if sqlErr.ConstraintName == "ex_reservations_user_overlap" {
+				return errors.New("el usuario ya tiene una reserva en ese horario")
+			}
+			return errors.New("el recurso ya esta reservado en ese horario")
+		case "P1009", "23503", "23514", "23502":
 			return errors.New("usuario, recurso o actividad no existe, o los datos no cumplen restricciones")
-		case 2601, 2627:
+		case "23505":
 			return errors.New("ya existe un registro con esos datos")
+		case "40001", "40P01":
+			return errors.New("la reserva compitio con otra operacion; intenta nuevamente")
 		default:
 			return errors.New(sqlErr.Message)
 		}
@@ -469,37 +463,18 @@ func cancelReservationAt(
 		return models.Reservation{}, errors.New("usuario autenticado es obligatorio")
 	}
 
-	ownerID, status, startTime, durationMinutes, err :=
-		repositories.GetReservationCancellationSnapshot(reservationID)
-
+	cancelledReservation, err := repositories.CancelReservationAuthorized(reservationID, requestedByUser, now)
 	if errors.Is(err, sql.ErrNoRows) {
-		return models.Reservation{}, errors.New("reserva no encontrada")
+		return models.Reservation{}, ErrReservationNotFound
 	}
-
-	if err != nil {
-		return models.Reservation{}, err
-	}
-
-	if !requestedByUser.IsAdmin && ownerID != requestedByUser.ID {
+	if errors.Is(err, repositories.ErrReservationForbidden) {
 		return models.Reservation{}, errors.New("no tienes permisos para cancelar esta reserva")
 	}
-
-	if err := validateCancellationStatus(status); err != nil {
-		return models.Reservation{}, err
+	if errors.Is(err, repositories.ErrReservationFinalized) {
+		return models.Reservation{}, repositories.ErrReservationFinalized
 	}
-
-	reservationEnd := startTime.Add(
-		time.Duration(durationMinutes) * time.Minute,
-	)
-
-	if !reservationEnd.After(now) {
-		return models.Reservation{}, errors.New("no puedes cancelar una reserva finalizada")
-	}
-
-	cancelledReservation, err := repositories.CancelReservation(reservationID)
-
-	if errors.Is(err, sql.ErrNoRows) {
-		return models.Reservation{}, errors.New("la reserva ya no se puede cancelar")
+	if errors.Is(err, repositories.ErrReservationNotCancellable) {
+		return models.Reservation{}, repositories.ErrReservationNotCancellable
 	}
 
 	if err != nil {

@@ -72,6 +72,13 @@ const isCompact = computed(() => {
 })
 
 const statusClass = computed(() => {
+  if (
+    props.reservation.type === 'blocked' ||
+    props.reservation.isAvailabilityBlock
+  ) {
+    return 'blocked'
+  }
+
   if (props.reservation.isWorkshop) {
     return 'workshop'
   }
@@ -105,7 +112,7 @@ const statusClass = computed(() => {
       { compact: isCompact }
     ]"
     :style="blockStyle"
-    :aria-label="`Ver reserva ${reservationTitle}`"
+    :aria-label="`${statusClass === 'blocked' ? 'Ver bloqueo' : 'Ver reserva'} ${reservationTitle}`"
     @click.stop="emit('select', reservation)"
   >
     <strong>
@@ -225,6 +232,12 @@ const statusClass = computed(() => {
   color: #c2410c;
 
   border-color: #fb923c;
+}
+
+.blocked {
+  background: #ffedd5;
+  color: #9a3412;
+  border-color: #fdba74;
 }
 
 .cancelled {

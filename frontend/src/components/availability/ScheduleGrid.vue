@@ -35,6 +35,16 @@ const props = defineProps({
   pixelsPerMinute: {
     type: Number,
     default: 1
+  },
+
+  currentUserId: {
+    type: Number,
+    default: 0
+  },
+
+  slotIntervalMinutes: {
+    type: Number,
+    default: 15
   }
 })
 
@@ -117,6 +127,12 @@ const handleReservationSelected = (reservation) => {
         :reservations="
           filteredReservations(resource.id)
         "
+
+        :all-reservations="reservations"
+
+        :current-user-id="currentUserId"
+
+        :slot-interval-minutes="slotIntervalMinutes"
 
         :start-hour="startHour"
 

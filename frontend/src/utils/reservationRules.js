@@ -3,6 +3,15 @@ export const RESERVATION_CLOSING_HOUR = 22
 export const RESERVATION_SLOT_MINUTES = 15
 export const RESERVATION_ALLOWED_DURATIONS = [30, 60, 90, 120, 150, 180]
 
+export const DEFAULT_RESERVATION_POLICY = Object.freeze({
+  reservableWindowDays: 14,
+  openingMinute: RESERVATION_OPENING_HOUR * 60,
+  closingMinute: RESERVATION_CLOSING_HOUR * 60,
+  slotIntervalMinutes: RESERVATION_SLOT_MINUTES,
+  allowedDurations: RESERVATION_ALLOWED_DURATIONS,
+  resourceIds: []
+})
+
 export const RESERVATION_DURATION_OPTIONS = [
   { label: '30 minutos', value: 30 },
   { label: '1 hora', value: 60 },
@@ -17,29 +26,74 @@ const hourPattern = /^(\d{2}):(\d{2})$/
 export const formatScheduleMinute = (minuteOfDay) => {
   const hour = Math.floor(minuteOfDay / 60)
   const minute = minuteOfDay % 60
-
   return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`
 }
 
-export const snapToReservationSlot = (minuteOfDay) => {
-  return Math.round(minuteOfDay / RESERVATION_SLOT_MINUTES) *
-    RESERVATION_SLOT_MINUTES
+export const normalizeReservationPolicy = (policy) => {
+  const normalized = {
+    reservableWindowDays: Number(policy?.reservableWindowDays),
+    openingMinute: Number(policy?.openingMinute),
+    closingMinute: Number(policy?.closingMinute),
+    slotIntervalMinutes: Number(policy?.slotIntervalMinutes),
+    allowedDurations: (policy?.allowedDurations || []).map(Number),
+    resourceIds: (policy?.resourceIds || []).map(Number)
+  }
+
+  const valid =
+    Number.isInteger(normalized.reservableWindowDays) &&
+    normalized.reservableWindowDays > 0 &&
+    Number.isInteger(normalized.openingMinute) &&
+    normalized.openingMinute >= 0 &&
+    Number.isInteger(normalized.closingMinute) &&
+    normalized.closingMinute <= 1440 &&
+    normalized.openingMinute < normalized.closingMinute &&
+    Number.isInteger(normalized.slotIntervalMinutes) &&
+    normalized.slotIntervalMinutes > 0 &&
+    normalized.allowedDurations.length > 0 &&
+    normalized.allowedDurations.every(duration => Number.isInteger(duration) && duration > 0) &&
+    normalized.resourceIds.length > 0 &&
+    normalized.resourceIds.every(id => Number.isInteger(id) && id > 0)
+
+  return valid ? normalized : null
 }
 
-export const getLatestReservationStart = (durationMinutes) => {
-  const duration = Number(durationMinutes)
-  const closingMinute = RESERVATION_CLOSING_HOUR * 60
-
-  return formatScheduleMinute(closingMinute - duration)
+export const getDurationOptions = (policy = DEFAULT_RESERVATION_POLICY) => {
+  return policy.allowedDurations.map((duration) => ({
+    value: duration,
+    label: duration % 60 === 0
+      ? `${duration / 60} ${duration === 60 ? 'hora' : 'horas'}`
+      : `${duration} minutos`
+  }))
 }
 
-export const getReservationScheduleError = ({ hour, durationMinutes }) => {
+export const snapToReservationSlot = (
+  minuteOfDay,
+  intervalMinutes = RESERVATION_SLOT_MINUTES
+) => {
+  const interval = Number(intervalMinutes) || RESERVATION_SLOT_MINUTES
+  return Math.round(minuteOfDay / interval) * interval
+}
+
+export const getLatestReservationStart = (
+  durationMinutes,
+  policy = DEFAULT_RESERVATION_POLICY
+) => {
+  return formatScheduleMinute(
+    Number(policy.closingMinute) - Number(durationMinutes)
+  )
+}
+
+export const getReservationScheduleError = ({
+  hour,
+  durationMinutes,
+  policy = DEFAULT_RESERVATION_POLICY
+}) => {
   const duration = Number(durationMinutes)
 
-  if (!RESERVATION_ALLOWED_DURATIONS.includes(duration)) {
+  if (!policy?.allowedDurations?.includes(duration)) {
     return {
       field: 'durationMinutes',
-      message: 'Selecciona una duración de 30 a 180 minutos en intervalos de 30.'
+      message: 'Selecciona una duración permitida por la política vigente.'
     }
   }
 
@@ -52,34 +106,35 @@ export const getReservationScheduleError = ({ hour, durationMinutes }) => {
   }
 
   const startMinute = Number(match[1]) * 60 + Number(match[2])
-  const openingMinute = RESERVATION_OPENING_HOUR * 60
-  const closingMinute = RESERVATION_CLOSING_HOUR * 60
+  const openingMinute = Number(policy.openingMinute)
+  const closingMinute = Number(policy.closingMinute)
+  const intervalMinutes = Number(policy.slotIntervalMinutes)
 
-  if (startMinute % RESERVATION_SLOT_MINUTES !== 0) {
+  if ((startMinute - openingMinute) % intervalMinutes !== 0) {
     return {
       field: 'hour',
-      message: 'La hora de inicio debe usar intervalos de 15 minutos.'
+      message: `La hora de inicio debe usar intervalos de ${intervalMinutes} minutos.`
     }
   }
 
   if (startMinute < openingMinute) {
     return {
       field: 'hour',
-      message: 'La jornada de reservas comienza a las 08:00.'
+      message: `La jornada de reservas comienza a las ${formatScheduleMinute(openingMinute)}.`
     }
   }
 
   if (startMinute >= closingMinute) {
     return {
       field: 'hour',
-      message: 'La hora de inicio debe ser anterior a las 22:00.'
+      message: `La hora de inicio debe ser anterior a las ${formatScheduleMinute(closingMinute)}.`
     }
   }
 
   if (startMinute + duration > closingMinute) {
     return {
       field: 'durationMinutes',
-      message: 'La reserva debe finalizar a más tardar a las 22:00.'
+      message: `La reserva debe finalizar a más tardar a las ${formatScheduleMinute(closingMinute)}.`
     }
   }
 

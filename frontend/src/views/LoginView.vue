@@ -16,13 +16,14 @@ import {
   loginLocal
 } from '@/auth/authService'
 import { useAuthStore } from '@/stores/auth'
+import { mvpFeatures } from '@/config/appScope'
 
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
 
 const fullName = ref('Usuario Prueba')
-const email = ref('nicolas@universidad.cl')
+const email = ref('usuario@poliredi.local')
 const error = ref('')
 const loading = ref(false)
 
@@ -82,17 +83,12 @@ const presets = [
   {
     label: 'Estudiante',
     fullName: 'Usuario Prueba',
-    email: 'nicolas@universidad.cl'
+    email: 'usuario@poliredi.local'
   },
   {
     label: 'Admin',
     fullName: 'Administrador General',
-    email: 'admin@universidad.cl'
-  },
-  {
-    label: 'Nuevo local',
-    fullName: 'Usuario Local',
-    email: 'local@universidad.cl'
+    email: 'admin@poliredi.local'
   }
 ]
 </script>
@@ -123,6 +119,7 @@ const presets = [
       </div>
 
       <button
+        v-if="mvpFeatures.onlineAuth"
         class="microsoft-button app-button primary"
         type="button"
         @click="handleMicrosoftLogin"
@@ -147,7 +144,7 @@ const presets = [
             </h2>
 
             <p>
-              Bypass temporal de Entra para probar flujos.
+              Identidad local para probar los flujos del MVP1.
             </p>
 
           </div>
@@ -203,7 +200,7 @@ const presets = [
         </button>
 
         <p class="hint">
-          Requiere `DEV_AUTH_ENABLED=true` en el backend.
+          Requiere DEV_AUTH_ENABLED=true en el backend local.
         </p>
 
       </div>

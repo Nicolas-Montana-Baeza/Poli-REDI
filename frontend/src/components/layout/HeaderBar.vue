@@ -6,6 +6,7 @@ import NotificationBell from './NotificationBell.vue'
 import UserMenu from './UserMenu.vue'
 
 import { useAuthStore } from '@/stores/auth'
+import { mvpFeatures } from '@/config/appScope'
 
 const authStore = useAuthStore()
 
@@ -57,7 +58,7 @@ onMounted(() => {
     <div class="right">
 
       <!-- Notifications -->
-      <NotificationBell />
+      <NotificationBell v-if="mvpFeatures.notifications" />
 
       <!-- User -->
       <UserMenu />

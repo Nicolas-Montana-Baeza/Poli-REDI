@@ -4,7 +4,7 @@ import {
   getBusinessDateKey,
   getBusinessMinutes,
   parseBusinessDateTime
-} from './businessTime'
+} from './businessTime.js'
 
 export { getBusinessDateKey }
 

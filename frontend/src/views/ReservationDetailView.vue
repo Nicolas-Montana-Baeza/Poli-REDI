@@ -32,36 +32,20 @@ const reservationId = computed(() => {
 })
 
 onMounted(async () => {
-  const user = await authStore.loadAuthUser()
-
-  if (user?.isAdmin) {
-    await reservationsStore.fetchReservations()
-    return
-  }
-
-  await reservationsStore.fetchMyReservations()
+  await authStore.loadAuthUser()
+  await reservationsStore.fetchReservationDetail(reservationId.value)
 })
 
 const reservation = computed(() => {
-  const source = authStore.user?.isAdmin
-    ? reservationsStore.reservations
-    : reservationsStore.myReservations
-
-  return source.find(
-    (item) => item.id === reservationId.value
-  )
+  return reservationsStore.reservationDetail
 })
 
 const isLoading = computed(() => {
-  return authStore.user?.isAdmin
-    ? reservationsStore.loading
-    : reservationsStore.myLoading
+  return authStore.loading || reservationsStore.detailLoading
 })
 
 const loadingError = computed(() => {
-  return authStore.user?.isAdmin
-    ? reservationsStore.loadingError
-    : reservationsStore.myLoadingError
+  return authStore.error || reservationsStore.detailLoadingError
 })
 
 const canCancel = computed(() => {

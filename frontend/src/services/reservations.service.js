@@ -13,9 +13,17 @@ export const reservationsService = {
     return response.data
   },
 
-  async getAvailability() {
-    const response = await api.get('/availability/reservations')
+  async getAvailability({ from, to, signal } = {}) {
+    const response = await api.get('/availability/reservations', {
+      params: { from, to },
+      signal
+    })
 
+    return response.data
+  },
+
+  async getById(id) {
+    const response = await api.get(`/reservations/${id}`)
     return response.data
   },
 

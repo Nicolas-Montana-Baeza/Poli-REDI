@@ -41,3 +41,17 @@ test('ajusta los clics de la linea de tiempo a intervalos de 15 minutos', () => 
   assert.equal(snapToReservationSlot(8 * 60 + 16), 8 * 60 + 15)
   assert.equal(snapToReservationSlot(21 * 60 + 29), 21 * 60 + 30)
 })
+
+test('aplica duraciones y jornada de la politica vigente', () => {
+  const policy = {
+    openingMinute: 9 * 60,
+    closingMinute: 20 * 60,
+    slotIntervalMinutes: 15,
+    allowedDurations: [30, 45, 60]
+  }
+
+  assert.equal(getReservationScheduleError({ hour: '09:00', durationMinutes: 45, policy }), null)
+  assert.equal(getReservationScheduleError({ hour: '10:00', durationMinutes: 180, policy })?.field, 'durationMinutes')
+  assert.equal(getReservationScheduleError({ hour: '08:45', durationMinutes: 30, policy })?.field, 'hour')
+  assert.equal(getLatestReservationStart(45, policy), '19:15')
+})

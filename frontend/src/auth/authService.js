@@ -1,9 +1,4 @@
-import {
-  msalInstance,
-  loginRequest,
-  apiTokenRequest,
-  postLogoutRedirectUri
-} from './msalConfig'
+import { isMvp1Scope } from '@/config/appScope'
 
 const DEV_ACCOUNT_KEY = 'poli_redi_dev_account'
 const AUTH_PUBLIC_PATHS = [
@@ -12,6 +7,19 @@ const AUTH_PUBLIC_PATHS = [
   '/blocked'
 ]
 let initPromise = null
+let msalModulePromise = null
+
+const getMsalModule = () => {
+  if (isMvp1Scope()) {
+    return Promise.resolve(null)
+  }
+
+  if (!msalModulePromise) {
+    msalModulePromise = import('./msalConfig')
+  }
+
+  return msalModulePromise
+}
 
 export function getSafeRedirectPath(value) {
   const candidate = String(value || '').trim()
@@ -42,7 +50,9 @@ export function getSafeRedirectPath(value) {
 }
 
 export function isDevAuthEnabled() {
-  return import.meta.env.DEV || import.meta.env.VITE_DEV_AUTH_ENABLED === 'true'
+  return isMvp1Scope() ||
+    import.meta.env.DEV ||
+    import.meta.env.VITE_DEV_AUTH_ENABLED === 'true'
 }
 
 export function getDevAccount() {
@@ -84,12 +94,14 @@ export function getDevAuthHeaders() {
 }
 
 export async function initializeAuth() {
-  if (getDevAccount()) {
-    return getDevAccount()
+  const devAccount = getDevAccount()
+
+  if (devAccount || isMvp1Scope()) {
+    return devAccount
   }
 
   if (!initPromise) {
-    initPromise = msalInstance.initialize()
+    initPromise = getMsalModule().then(({ msalInstance }) => msalInstance.initialize()
       .then(async () => {
         try {
           const response = await msalInstance.handleRedirectPromise()
@@ -115,7 +127,7 @@ export async function initializeAuth() {
         }
 
         return null
-      })
+      }))
       .catch(() => {
         return null
       })
@@ -125,7 +137,16 @@ export async function initializeAuth() {
 }
 
 export async function login(redirectPath = '/') {
+  if (isMvp1Scope()) {
+    throw new Error('El MVP1 local utiliza acceso de prueba, no Microsoft Entra.')
+  }
+
   await initializeAuth()
+
+  const {
+    msalInstance,
+    loginRequest
+  } = await getMsalModule()
 
   const account = msalInstance.getActiveAccount()
 
@@ -141,7 +162,7 @@ export async function login(redirectPath = '/') {
   return msalInstance.loginRedirect(loginRequest)
 }
 
-export function loginLocal({ email, fullName }) {
+export function loginLocal({ email, fullName, resetRut = false }) {
   const normalizedEmail = String(email || '').trim().toLowerCase()
   const name = String(fullName || normalizedEmail).trim()
 
@@ -153,7 +174,7 @@ export function loginLocal({ email, fullName }) {
     local: true,
     username: normalizedEmail,
     name,
-    resetRutOnNextLoad: normalizedEmail !== 'admin@universidad.cl'
+    resetRutOnNextLoad: Boolean(resetRut)
   }
 
   localStorage.setItem(DEV_ACCOUNT_KEY, JSON.stringify(account))
@@ -180,8 +201,17 @@ export async function logout() {
     return null
   }
 
+  if (isMvp1Scope()) {
+    return null
+  }
+
   await initializeAuth()
   clearMsalCache()
+
+  const {
+    msalInstance,
+    postLogoutRedirectUri
+  } = await getMsalModule()
 
   return msalInstance.logoutRedirect({
     postLogoutRedirectUri
@@ -195,7 +225,12 @@ export async function getCurrentAccount() {
     return devAccount
   }
 
+  if (isMvp1Scope()) {
+    return null
+  }
+
   await initializeAuth()
+  const { msalInstance } = await getMsalModule()
   return msalInstance.getActiveAccount()
 }
 
@@ -205,11 +240,16 @@ export async function isAuthenticated() {
 }
 
 export async function getAccessToken() {
-  if (getDevAccount()) {
+  if (getDevAccount() || isMvp1Scope()) {
     return ''
   }
 
   await initializeAuth()
+
+  const {
+    msalInstance,
+    apiTokenRequest
+  } = await getMsalModule()
 
   const account = msalInstance.getActiveAccount()
 

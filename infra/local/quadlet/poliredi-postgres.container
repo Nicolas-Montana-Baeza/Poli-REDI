@@ -1,0 +1,25 @@
+[Unit]
+Description=Poli-REDI MVP1 - PostgreSQL 16 local
+Wants=network-online.target
+After=network-online.target
+
+[Container]
+Image=docker.io/library/postgres:16-alpine
+ContainerName=poliredi-postgres-mvp1
+EnvironmentFile=./poliredi-postgres.env
+PublishPort=127.0.0.1:5432:5432
+Volume=poliredi-postgres-data.volume:/var/lib/postgresql/data
+Volume=./poliredi-postgres-init:/docker-entrypoint-initdb.d:ro,Z
+HealthCmd=pg_isready --username=poliredi_owner --dbname=poliredi
+HealthInterval=5s
+HealthTimeout=5s
+HealthRetries=12
+HealthStartPeriod=10s
+Notify=healthy
+
+[Service]
+Restart=on-failure
+TimeoutStartSec=300
+
+[Install]
+WantedBy=default.target

@@ -23,13 +23,14 @@ func GetOrCreateUserByEmail(email string, fullName string) (*models.LocalAuthUse
 	_, err = database.DB.ExecContext(
 		ctx,
 		`
-		INSERT INTO dbo.users (
+		INSERT INTO users (
 			email,
 			full_name,
 			is_admin,
 			is_blocked
 		)
-		VALUES (@p1, @p2, 0, 0);
+		VALUES ($1, $2, false, false)
+		ON CONFLICT (lower(email)) DO NOTHING;
 		`,
 		email,
 		fullName,
@@ -61,8 +62,8 @@ func getUserByEmail(ctx context.Context, email string) (*models.LocalAuthUser, e
 			is_blocked,
 			COALESCE(entra_oid, '') AS entra_oid,
 			COALESCE(tenant_id, '') AS tenant_id
-		FROM dbo.users
-		WHERE email = @p1;
+		FROM users
+		WHERE lower(email) = lower($1);
 		`,
 		email,
 	).Scan(
@@ -89,12 +90,12 @@ func UpdateUserEntraIdentity(userID int, oid string, tenantID string) (*models.L
 	_, err := database.DB.ExecContext(
 		ctx,
 		`
-		UPDATE dbo.users
+		UPDATE users
 		SET
-			entra_oid = NULLIF(@p1, ''),
-			tenant_id = NULLIF(@p2, ''),
-			updated_at = SYSUTCDATETIME()
-		WHERE id = @p3;
+			entra_oid = NULLIF($1, ''),
+			tenant_id = NULLIF($2, ''),
+			updated_at = CURRENT_TIMESTAMP
+		WHERE id = $3;
 		`,
 		oid,
 		tenantID,
@@ -121,7 +122,7 @@ func GetAllUsers() ([]models.LocalAuthUser, error) {
 			is_blocked,
 			COALESCE(entra_oid, '') AS entra_oid,
 			COALESCE(tenant_id, '') AS tenant_id
-		FROM dbo.users
+		FROM users
 		ORDER BY full_name ASC, email ASC;
 		`,
 	)
@@ -173,11 +174,11 @@ func UpdateUserRUT(userID int, rut string) (*models.LocalAuthUser, error) {
 	_, err := database.DB.ExecContext(
 		ctx,
 		`
-		UPDATE dbo.users
+		UPDATE users
 		SET
-			rut = @p1,
-			updated_at = SYSUTCDATETIME()
-		WHERE id = @p2;
+			rut = $1,
+			updated_at = CURRENT_TIMESTAMP
+		WHERE id = $2;
 		`,
 		rutValue,
 		userID,
@@ -205,8 +206,8 @@ func getUserByID(ctx context.Context, userID int) (*models.LocalAuthUser, error)
 			is_blocked,
 			COALESCE(entra_oid, '') AS entra_oid,
 			COALESCE(tenant_id, '') AS tenant_id
-		FROM dbo.users
-		WHERE id = @p1;
+		FROM users
+		WHERE id = $1;
 		`,
 		userID,
 	).Scan(

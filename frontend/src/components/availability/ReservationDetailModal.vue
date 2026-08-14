@@ -34,6 +34,11 @@ const emit = defineEmits([
   'cancel'
 ])
 
+const isAvailabilityBlock = computed(() => {
+  return props.reservation?.type === 'blocked' ||
+    props.reservation?.isAvailabilityBlock === true
+})
+
 const reservationDate = computed(() => {
   return formatReservationDate(
     props.reservation?.startTime
@@ -51,6 +56,13 @@ const reservationTime = computed(() => {
 })
 
 const displayStatus = computed(() => {
+  if (isAvailabilityBlock.value) {
+    return {
+      label: 'Bloqueo',
+      className: 'scheduled'
+    }
+  }
+
   if (props.reservation?.isScheduledActivity) {
     return {
       label: 'Programación institucional',
@@ -69,6 +81,10 @@ const displayStatus = computed(() => {
 })
 
 const modalTitle = computed(() => {
+  if (isAvailabilityBlock.value) {
+    return 'Bloqueo de disponibilidad'
+  }
+
   if (props.reservation?.isScheduledActivity) {
     return 'Detalle de programación'
   }
@@ -82,6 +98,7 @@ const modalTitle = computed(() => {
 
 const modalDescription = computed(() => {
   if (
+    isAvailabilityBlock.value ||
     props.reservation?.isScheduledActivity ||
     props.reservation?.isWorkshop
   ) {
@@ -94,6 +111,7 @@ const modalDescription = computed(() => {
 const showCancelAction = computed(() => {
   return (
     props.canCancel &&
+    !isAvailabilityBlock.value &&
     !props.reservation?.isWorkshop &&
     !props.reservation?.isScheduledActivity &&
     isReservationCancelable(props.reservation)
@@ -101,6 +119,10 @@ const showCancelAction = computed(() => {
 })
 
 const warningMessage = computed(() => {
+  if (isAvailabilityBlock.value) {
+    return 'Este horario no está disponible para reservas.'
+  }
+
   if (props.reservation?.isScheduledActivity) {
     return 'Este bloque corresponde a programación institucional y ocupa la instalación durante ese horario.'
   }
@@ -124,7 +146,9 @@ const details = computed(() => {
   return [
     {
       label:
-        props.reservation.isScheduledActivity
+        isAvailabilityBlock.value
+          ? 'Bloqueo'
+          : props.reservation.isScheduledActivity
           ? 'Programación'
           : props.reservation.isWorkshop
             ? 'Taller'

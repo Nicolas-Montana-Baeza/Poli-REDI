@@ -1,0 +1,7 @@
+[Unit]
+Description=Poli-REDI MVP1 - datos PostgreSQL locales
+
+[Volume]
+VolumeName=poliredi-postgres-mvp1-data
+Label=io.poliredi.environment=local
+Label=io.poliredi.scope=mvp1

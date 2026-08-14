@@ -4,14 +4,15 @@ import { computed } from 'vue'
 import ReservationBlock from './ReservationBlock.vue'
 import {
   getBusinessDateKey,
-  getReservationStartMinutes as getReservationStartMinutesFromTime
+  getReservationStartMinutes as getReservationStartMinutesFromTime,
+  parseReservationDateTime
 } from '@/utils/reservationTime'
 import {
   RESERVATION_CLOSING_HOUR,
   RESERVATION_OPENING_HOUR,
-  RESERVATION_SLOT_MINUTES,
   snapToReservationSlot
 } from '@/utils/reservationRules'
+import { hasReservationConflict } from '@/utils/availabilityRules'
 
 const props = defineProps({
   resource: {
@@ -22,6 +23,21 @@ const props = defineProps({
   reservations: {
     type: Array,
     default: () => []
+  },
+
+  allReservations: {
+    type: Array,
+    default: () => []
+  },
+
+  currentUserId: {
+    type: Number,
+    default: 0
+  },
+
+  slotIntervalMinutes: {
+    type: Number,
+    default: 15
   },
 
   startHour: {
@@ -169,31 +185,21 @@ const getReservationStartMinutes = (reservation) => {
 }
 
 const isMinuteReserved = (minuteOfDay) => {
-  if (isOpenUse.value) {
-    return false
-  }
-
-  return resourceReservations.value.some(
-    (reservation) => {
-      const start =
-        getReservationStartMinutes(reservation)
-
-      if (start === null) {
-        return false
-      }
-
-      const duration =
-        reservation.durationMinutes || 60
-
-      const end =
-        start + duration
-
-      return (
-        minuteOfDay >= start &&
-        minuteOfDay < end
-      )
-    }
+  const hour = formatMinuteToHour(minuteOfDay)
+  const start = parseReservationDateTime(
+    `${props.selectedDate}T${hour}:00`
   )
+  const end = new Date(
+    start.getTime() + props.slotIntervalMinutes * 60000
+  )
+
+  return hasReservationConflict({
+    items: props.allReservations,
+    resource: props.resource,
+    userId: props.currentUserId,
+    start,
+    end
+  })
 }
 
 const formatMinuteToHour = (minuteOfDay) => {
@@ -211,7 +217,7 @@ const heatmapSegments = computed(() => {
     return []
   }
 
-  const segmentMinutes = RESERVATION_SLOT_MINUTES
+  const segmentMinutes = props.slotIntervalMinutes
   const segments = []
   const startMinute = props.startHour * 60
   const endMinute = props.endHour * 60
@@ -285,7 +291,8 @@ const handleTimelineClick = (event) => {
     event.clientY - rect.top - timelineTopPadding
 
   const minutesFromStart = snapToReservationSlot(
-    y / props.pixelsPerMinute
+    y / props.pixelsPerMinute,
+    props.slotIntervalMinutes
   )
 
   const minuteOfDay =
@@ -420,29 +427,8 @@ const modeLabel = (mode) => {
         </span>
       </div>
 
-      <!-- OPEN USE HEATMAP -->
-      <div
-        v-if="isOpenUse"
-        class="heatmap-layer"
-      >
-        <div
-          v-for="segment in heatmapSegments"
-          :key="segment.minute"
-          class="heatmap-segment"
-          :class="heatmapClass(segment.count)"
-          :style="{
-            top: `${segment.top}px`,
-            height: `${segment.height}px`
-          }"
-        >
-          <span v-if="segment.count > 0">
-            {{ segment.count }}
-          </span>
-        </div>
-      </div>
-
       <!-- RESERVATIONS -->
-      <template v-if="!isOpenUse">
+      <template>
         <ReservationBlock
           v-for="reservation in resourceReservations"
           :key="reservation.availabilityKey || reservation.id"

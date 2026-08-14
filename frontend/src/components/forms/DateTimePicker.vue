@@ -2,12 +2,12 @@
 import { computed, ref, watch } from 'vue'
 import { getBusinessDateKey } from '@/utils/reservationTime'
 import {
-  RESERVATION_ALLOWED_DURATIONS,
-  RESERVATION_DURATION_OPTIONS,
-  RESERVATION_OPENING_HOUR,
-  RESERVATION_SLOT_MINUTES,
+  DEFAULT_RESERVATION_POLICY,
+  formatScheduleMinute,
+  getDurationOptions,
   getLatestReservationStart
 } from '@/utils/reservationRules'
+import { addCalendarDays } from '@/utils/availabilityRules'
 
 const props = defineProps({
   initialDate: {
@@ -23,6 +23,16 @@ const props = defineProps({
   initialDuration: {
     type: Number,
     default: 60
+  },
+
+  policy: {
+    type: Object,
+    default: () => DEFAULT_RESERVATION_POLICY
+  },
+
+  fixedDate: {
+    type: Boolean,
+    default: false
   }
 })
 
@@ -38,11 +48,14 @@ const todayDate = () => {
   return getBusinessDateKey()
 }
 
-const durationOptions = RESERVATION_DURATION_OPTIONS
-const minimumHour = `${String(RESERVATION_OPENING_HOUR).padStart(2, '0')}:00`
+const durationOptions = computed(() => getDurationOptions(props.policy))
+const minimumHour = computed(() => formatScheduleMinute(props.policy.openingMinute))
 const maximumHour = computed(() =>
-  getLatestReservationStart(durationMinutes.value)
+  getLatestReservationStart(durationMinutes.value, props.policy)
 )
+const maximumDate = computed(() => {
+  return addCalendarDays(todayDate(), Number(props.policy.reservableWindowDays) - 1)
+})
 
 watch(
   () => [
@@ -58,9 +71,9 @@ watch(
       props.initialHour || ''
 
     const initialDuration = Number(props.initialDuration)
-    durationMinutes.value = RESERVATION_ALLOWED_DURATIONS.includes(initialDuration)
+    durationMinutes.value = props.policy.allowedDurations.includes(initialDuration)
       ? initialDuration
-      : 60
+      : props.policy.allowedDurations[0]
   },
   {
     immediate: true
@@ -103,6 +116,8 @@ const updateValues = () => {
         v-model="selectedDate"
         type="date"
         :min="todayDate()"
+        :max="maximumDate"
+        :disabled="fixedDate"
         @change="updateValues"
       />
 
@@ -120,7 +135,7 @@ const updateValues = () => {
         type="time"
         :min="minimumHour"
         :max="maximumHour"
-        :step="RESERVATION_SLOT_MINUTES * 60"
+        :step="policy.slotIntervalMinutes * 60"
         @change="updateValues"
       />
 

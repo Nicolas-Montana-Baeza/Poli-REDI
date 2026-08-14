@@ -8,42 +8,40 @@ import (
 	"testing"
 )
 
-func TestSeedBootstrapsInitialPolicyOnceWithoutDisablingTriggers(t *testing.T) {
-	seed := readRepositoryFile(t, "database", "seed.sql")
-	upper := strings.ToUpper(seed)
-	for _, forbidden := range []string{"DISABLE TRIGGER", "ENABLE TRIGGER"} {
-		if strings.Contains(upper, forbidden) {
-			t.Fatalf("seed.sql changes trigger state: %s", forbidden)
+func TestPostgresSeedIsRepeatableAndMatchesMVP1Durations(t *testing.T) {
+	seed := strings.ToUpper(readRepositoryFile(t, "database", "postgres", "seed", "PG16_seed_mvp1.sql"))
+	for _, required := range []string{
+		"ON CONFLICT", "NOT EXISTS", "MVP1-LOCAL-BASELINE-20260813",
+		"(150)", "(180)",
+	} {
+		if !strings.Contains(seed, required) {
+			t.Fatalf("PostgreSQL seed lacks %s", required)
 		}
 	}
-	if strings.Count(upper, "INSERT INTO DBO.RESERVATION_POLICY_RESOURCES") != 1 {
-		t.Fatal("seed must contain exactly one guarded bootstrap association")
-	}
-	resourceSeed := strings.Index(upper, "INSERT INTO DBO.RESOURCES")
-	bootstrap := strings.Index(upper, "INSERT INTO DBO.RESERVATION_POLICY_RESOURCES")
-	marker := strings.Index(upper, "INSERT INTO DBO.RESERVATION_POLICY_SCOPE_MIGRATIONS")
-	if resourceSeed < 0 || bootstrap <= resourceSeed || marker <= bootstrap {
-		t.Fatal("bootstrap must run after resources and mark the policy after association")
-	}
-	for _, required := range []string{"BEGIN TRANSACTION", "COMMIT TRANSACTION", "ROLLBACK TRANSACTION", "LEGACY_POLICY_SCOPE_BOOTSTRAP", "IDEMPOTENCY_KEY IS NULL", "NOT EXISTS"} {
-		if !strings.Contains(upper, required) {
-			t.Fatalf("seed bootstrap lacks guard: %s", required)
-		}
+	if strings.Contains(seed, "DBO.") || strings.Contains(seed, "DISABLE TRIGGER") {
+		t.Fatal("PostgreSQL seed contains legacy or unsafe SQL")
 	}
 }
 
-func TestSchemaKeepsBootstrapExceptionNarrow(t *testing.T) {
-	schema := strings.ToUpper(readRepositoryFile(t, "database", "schema.sql"))
-	for _, required := range []string{
-		"RESERVATION_POLICY_SCOPE_MIGRATIONS", "LEGACY_POLICY_SCOPE_BOOTSTRAP",
-		"IDEMPOTENCY_KEY IS NULL", "ORDER BY EFFECTIVE_FROM, ID", "NOT EXISTS",
-	} {
-		if !strings.Contains(schema, required) {
-			t.Fatalf("schema.sql lacks guarded migration element: %s", required)
+func TestPostgresSchemaEnforcesMVP1ReservationInvariants(t *testing.T) {
+	baseline := strings.ToUpper(readRepositoryFile(t, "database", "postgres", "migrations", "PG16_0001_mvp1_baseline.sql"))
+	indexes := strings.ToUpper(readRepositoryFile(t, "database", "postgres", "migrations", "PG16_0002_mvp1_indexes.sql"))
+	invariants := strings.ToUpper(readRepositoryFile(t, "database", "postgres", "migrations", "PG16_0003_mvp1_invariants.sql"))
+
+	for _, required := range []string{"END_TIME TIMESTAMPTZ NOT NULL", "RESERVATION_MODE_SNAPSHOT", "AVAILABILITY_BLOCKS"} {
+		if !strings.Contains(baseline, required) {
+			t.Fatalf("baseline lacks %s", required)
 		}
 	}
-	if strings.Contains(schema, "DISABLE TRIGGER") {
-		t.Fatal("schema.sql disables an immutability trigger")
+	for _, required := range []string{"EX_RESERVATIONS_RESOURCE_OVERLAP", "EX_RESERVATIONS_USER_OVERLAP", "RESERVATION_MODE_SNAPSHOT = 'RESERVABLE'"} {
+		if !strings.Contains(indexes, required) {
+			t.Fatalf("indexes lack %s", required)
+		}
+	}
+	for _, required := range []string{"PG_ADVISORY_XACT_LOCK", "P1001", "P1007", "P1009", "AMERICA/SANTIAGO"} {
+		if !strings.Contains(invariants, required) {
+			t.Fatalf("invariants lack %s", required)
+		}
 	}
 }
 

@@ -4,26 +4,29 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"log"
+	"net"
+	"net/url"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
-	_ "github.com/microsoft/go-mssqldb"
+	_ "github.com/jackc/pgx/v5/stdlib"
 )
+
+const driverName = "pgx"
 
 var DB *sql.DB
 
-func Connect() {
-	connString := os.Getenv("AZURE_SQL_CONNECTION_STRING")
-
-	if connString == "" {
-		connString = buildConnectionString()
+func Connect() error {
+	connectionString, err := connectionStringFromEnv()
+	if err != nil {
+		return err
 	}
 
-	db, err := sql.Open("sqlserver", connString)
+	db, err := sql.Open(driverName, connectionString)
 	if err != nil {
-		log.Fatal("Error creando pool de conexion a Azure SQL:", err)
+		return fmt.Errorf("crear pool PostgreSQL: %w", err)
 	}
 
 	db.SetMaxOpenConns(10)
@@ -34,61 +37,84 @@ func Connect() {
 	defer cancel()
 
 	if err := db.PingContext(ctx); err != nil {
-		log.Fatal("No se pudo conectar a Azure SQL Database:", err)
+		db.Close()
+		return fmt.Errorf("conectar a PostgreSQL: %w", err)
 	}
 
 	DB = db
-
-	log.Println("Conectado a Azure SQL Database correctamente")
+	return nil
 }
 
-func buildConnectionString() string {
-	server := requiredEnv("DB_SERVER")
-	user := requiredEnv("DB_USER")
-	password := requiredEnv("DB_PASSWORD")
-	databaseName := requiredEnv("DB_NAME")
-	port := envOrDefault("DB_PORT", "1433")
-	encrypt := envOrDefault("DB_ENCRYPT", "true")
-	trustServerCertificate := envOrDefault("DB_TRUST_SERVER_CERTIFICATE", "false")
-
-	if _, err := strconv.Atoi(port); err != nil {
-		log.Fatal("DB_PORT debe ser numerico")
+func connectionStringFromEnv() (string, error) {
+	if rawURL := strings.TrimSpace(os.Getenv("DATABASE_URL")); rawURL != "" {
+		parsed, err := url.Parse(rawURL)
+		if err != nil {
+			return "", fmt.Errorf("DATABASE_URL invalida: %w", err)
+		}
+		if parsed.Scheme != "postgres" && parsed.Scheme != "postgresql" {
+			return "", fmt.Errorf("DATABASE_URL debe usar el esquema postgres o postgresql")
+		}
+		if parsed.Hostname() == "" || strings.Trim(parsed.Path, "/") == "" {
+			return "", fmt.Errorf("DATABASE_URL debe incluir host y base de datos")
+		}
+		if parsed.User == nil {
+			return "", fmt.Errorf("DATABASE_URL debe incluir usuario")
+		}
+		if _, present := parsed.User.Password(); !present {
+			return "", fmt.Errorf("DATABASE_URL debe incluir contrasena")
+		}
+		return rawURL, nil
 	}
 
-	return fmt.Sprintf(
-		"server=%s;user id=%s;password=%s;port=%s;database=%s;encrypt=%s;trustservercertificate=%s;",
-		server,
-		user,
-		password,
-		port,
-		databaseName,
-		encrypt,
-		trustServerCertificate,
-	)
+	host := envOrDefault("PGHOST", "127.0.0.1")
+	port := envOrDefault("PGPORT", "5432")
+	databaseName := envOrDefault("PGDATABASE", "poliredi")
+	user := envOrDefault("PGUSER", "poliredi_app")
+	password := strings.TrimSpace(os.Getenv("PGPASSWORD"))
+	sslMode := envOrDefault("PGSSLMODE", "disable")
+
+	parsedPort, err := strconv.Atoi(port)
+	if err != nil || parsedPort < 1 || parsedPort > 65535 {
+		return "", fmt.Errorf("PGPORT debe ser numerico y estar entre 1 y 65535")
+	}
+	if password == "" {
+		return "", fmt.Errorf("PGPASSWORD no esta definido")
+	}
+	if !validSSLMode(sslMode) {
+		return "", fmt.Errorf("PGSSLMODE no es valido")
+	}
+
+	connectionURL := &url.URL{
+		Scheme:   "postgres",
+		User:     url.UserPassword(user, password),
+		Host:     net.JoinHostPort(host, port),
+		Path:     databaseName,
+		RawQuery: url.Values{"sslmode": []string{sslMode}}.Encode(),
+	}
+
+	return connectionURL.String(), nil
 }
 
-func requiredEnv(name string) string {
-	value := os.Getenv(name)
-
-	if value == "" {
-		log.Fatalf("%s no esta definido en .env", name)
+func validSSLMode(value string) bool {
+	switch value {
+	case "disable", "allow", "prefer", "require", "verify-ca", "verify-full":
+		return true
+	default:
+		return false
 	}
-
-	return value
 }
 
 func envOrDefault(name string, fallback string) string {
-	value := os.Getenv(name)
-
+	value := strings.TrimSpace(os.Getenv(name))
 	if value == "" {
 		return fallback
 	}
-
 	return value
 }
 
 func Close() {
 	if DB != nil {
-		DB.Close()
+		_ = DB.Close()
+		DB = nil
 	}
 }

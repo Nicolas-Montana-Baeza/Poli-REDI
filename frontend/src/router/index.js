@@ -10,16 +10,12 @@ import AvailabilityView from '../views/AvailabilityView.vue'
 import ReservationsView from '../views/ReservationsView.vue'
 import ReservationDetailView from '../views/ReservationDetailView.vue'
 import HistoryView from '../views/HistoryView.vue'
-import WorkshopsView from '../views/WorkshopsView.vue'
-import ResourcesView from '../views/ResourcesView.vue'
-import AdminView from '../views/AdminView.vue'
 import UsersView from '../views/UsersView.vue'
 import SettingsView from '../views/SettingsView.vue'
-import ReportsView from '../views/ReportsView.vue'
-import AuthCallbackView from '../views/AuthCallbackView.vue'
 import LoginView from '../views/LoginView.vue'
 import BlockedView from '../views/BlockedView.vue'
 import { useAuthStore } from '../stores/auth'
+import { mvpFeatures } from '../config/appScope'
 
 const routes = [
   {
@@ -48,21 +44,6 @@ const routes = [
     meta: { requiresAuth: true }
   },
   {
-    path: '/workshops',
-    component: WorkshopsView,
-    meta: { requiresAuth: true }
-  },
-  {
-    path: '/resources',
-    component: ResourcesView,
-    meta: { requiresAuth: true }
-  },
-  {
-    path: '/admin',
-    component: AdminView,
-    meta: { requiresAuth: true, requiresAdmin: true }
-  },
-  {
     path: '/users',
     component: UsersView,
     meta: { requiresAuth: true, requiresAdmin: true }
@@ -73,16 +54,6 @@ const routes = [
     meta: { requiresAuth: true }
   },
   {
-    path: '/reports',
-    component: ReportsView,
-    meta: { requiresAuth: true, requiresAdmin: true }
-  },
-  {
-    path: '/auth/callback',
-    component: AuthCallbackView,
-    meta: { public: true }
-  },
-  {
     path: '/login',
     component: LoginView,
     meta: { public: true }
@@ -91,8 +62,53 @@ const routes = [
     path: '/blocked',
     component: BlockedView,
     meta: { public: true }
+  },
+  {
+    path: '/:pathMatch(.*)*',
+    redirect: '/availability'
   }
 ]
+
+const fallbackIndex = routes.length - 1
+
+if (mvpFeatures.workshops) {
+  routes.splice(fallbackIndex, 0, {
+    path: '/workshops',
+    component: () => import('../views/WorkshopsView.vue'),
+    meta: { requiresAuth: true }
+  })
+}
+
+if (mvpFeatures.resourceAdministration) {
+  routes.splice(routes.length - 1, 0,
+    {
+      path: '/resources',
+      component: () => import('../views/ResourcesView.vue'),
+      meta: { requiresAuth: true, requiresAdmin: true }
+    },
+    {
+      path: '/admin',
+      component: () => import('../views/AdminView.vue'),
+      meta: { requiresAuth: true, requiresAdmin: true }
+    }
+  )
+}
+
+if (mvpFeatures.reports) {
+  routes.splice(routes.length - 1, 0, {
+    path: '/reports',
+    component: () => import('../views/ReportsView.vue'),
+    meta: { requiresAuth: true, requiresAdmin: true }
+  })
+}
+
+if (mvpFeatures.onlineAuth) {
+  routes.splice(routes.length - 1, 0, {
+    path: '/auth/callback',
+    component: () => import('../views/AuthCallbackView.vue'),
+    meta: { public: true }
+  })
+}
 
 const router = createRouter({
   history: createWebHistory(),

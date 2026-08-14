@@ -1,5 +1,5 @@
 ﻿<script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 
 import CalendarToolbar from './CalendarToolbar.vue'
 import CalendarMini from './CalendarMini.vue'
@@ -13,22 +13,23 @@ import { useResourcesStore } from '@/stores/resources'
 import { useReservationsStore } from '@/stores/reservations'
 import { useAuthStore } from '@/stores/auth'
 import { useActivitiesStore } from '@/stores/activities'
-import { useWorkshopsStore } from '@/stores/workshops'
-import { buildWorkshopAvailabilityItems } from '@/utils/workshopSchedule'
+import { useReservationPolicyStore } from '@/stores/reservationPolicy'
 import {
   getBusinessDateKey,
   parseReservationDateTime
 } from '@/utils/reservationTime'
 import {
-  RESERVATION_CLOSING_HOUR,
-  RESERVATION_OPENING_HOUR
-} from '@/utils/reservationRules'
+  availabilityRangeForDate,
+  getEligibleResources,
+  hasReservationConflict,
+  isDateWithinPolicyWindow
+} from '@/utils/availabilityRules'
 
 const resourcesStore = useResourcesStore()
 const reservationsStore = useReservationsStore()
 const authStore = useAuthStore()
 const activitiesStore = useActivitiesStore()
-const workshopsStore = useWorkshopsStore()
+const policyStore = useReservationPolicyStore()
 
 const formatDateKey = (date) => {
   return [
@@ -52,51 +53,24 @@ const isPastStart = (date, hour) => {
   return start.getTime() <= Date.now()
 }
 
-const getEndDateTime = (date, hour, durationMinutes) => {
-  const start = buildLocalDateTime(date, hour)
-
-  return new Date(
-    start.getTime() + Number(durationMinutes || 0) * 60000
-  )
-}
-
 const hasAvailabilityConflict = ({
   resourceId,
   date,
   hour,
   durationMinutes
 }) => {
-  const resource = resourcesStore.resources.find(
+  const resource = eligibleResources.value.find(
     item => item.id === resourceId
   )
+  const start = buildLocalDateTime(date, hour)
+  const end = new Date(start.getTime() + Number(durationMinutes) * 60000)
 
-  if (resource?.reservationMode === 'OPEN_USE') {
-    return false
-  }
-
-  const nextStart = buildLocalDateTime(date, hour)
-  const nextEnd = getEndDateTime(date, hour, durationMinutes)
-
-  return availabilityItems.value.some((item) => {
-    if (
-      item.resourceId !== resourceId ||
-      item.status === 'CANCELLED'
-    ) {
-      return false
-    }
-
-    const itemStart = parseReservationDateTime(item.startTime)
-
-    if (!itemStart) {
-      return false
-    }
-
-    const itemEnd = new Date(
-      itemStart.getTime() +
-      Number(item.durationMinutes || 0) * 60000
-    )
-
-    return nextStart < itemEnd && nextEnd > itemStart
+  return hasReservationConflict({
+    items: availabilityItems.value,
+    resource,
+    userId: authStore.user?.id,
+    start,
+    end
   })
 }
 
@@ -122,7 +96,7 @@ const isLoadingAvailability = computed(() => {
     authStore.loading ||
     resourcesStore.loading ||
     reservationsStore.availabilityLoading ||
-    workshopsStore.loading
+    policyStore.loading
   )
 })
 
@@ -131,23 +105,36 @@ const loadWarning = computed(() => {
     resourcesStore.error ||
     reservationsStore.availabilityLoadingError ||
     activitiesStore.error ||
-    workshopsStore.loadingError ||
+    policyStore.error ||
     ''
   )
 })
 
 const availabilityItems = computed(() => {
-  return [
-    ...reservationsStore.availabilityReservations,
-    ...buildWorkshopAvailabilityItems({
-      workshops: workshopsStore.workshops,
-      resources: resourcesStore.resources,
-      selectedDate: selectedDate.value
-    })
-  ]
+  return reservationsStore.availabilityReservations
+})
+
+const policy = computed(() => policyStore.policy)
+
+const eligibleResources = computed(() => {
+  return getEligibleResources(
+    resourcesStore.resources,
+    policy.value,
+    authStore.user?.isAdmin === true
+  )
+})
+
+const availabilityIsCurrent = computed(() => {
+  return reservationsStore.availabilityRangeKey === selectedDate.value
 })
 
 const reservationBlockingError = computed(() => {
+  if (
+    !authStore.user
+  ) {
+    return 'No se pudo validar la identidad local.'
+  }
+
   if (
     authStore.user &&
     authStore.user.isAdmin !== true &&
@@ -160,8 +147,20 @@ const reservationBlockingError = computed(() => {
     return 'No se puede crear la reserva porque no se pudieron cargar los recursos.'
   }
 
-  if (reservationsStore.availabilityLoadingError) {
+  if (!policy.value || policyStore.error) {
+    return 'No se puede crear la reserva porque no se pudo cargar la política vigente.'
+  }
+
+  if (
+    reservationsStore.availabilityLoading ||
+    reservationsStore.availabilityLoadingError ||
+    !availabilityIsCurrent.value
+  ) {
     return 'No se puede crear la reserva porque no se pudo validar la disponibilidad actual.'
+  }
+
+  if (eligibleResources.value.length === 0) {
+    return 'No hay recursos habilitados por la política vigente.'
   }
 
   return ''
@@ -200,10 +199,26 @@ onMounted(async () => {
   await Promise.all([
     authStore.loadAuthUser(),
     resourcesStore.fetchResources(),
-    reservationsStore.fetchAvailabilityReservations(),
     activitiesStore.fetchActivities(),
-    workshopsStore.fetchWorkshops()
+    policyStore.fetchCurrentPolicy()
   ])
+
+  await loadAvailabilityForDate(selectedDate.value)
+})
+
+const loadAvailabilityForDate = async (dateKey) => {
+  const range = availabilityRangeForDate(dateKey)
+  return reservationsStore.fetchAvailabilityReservations(range)
+}
+
+watch(selectedDate, async (dateKey, previousDate) => {
+  if (!previousDate || dateKey === previousDate) {
+    return
+  }
+
+  selectedSlot.value = null
+  showReservationForm.value = false
+  await loadAvailabilityForDate(dateKey)
 })
 
 /* SLOT SELECT */
@@ -318,7 +333,7 @@ const submitReservation = async (reservation) => {
       })
     ) {
       reservationsStore.setActionError(
-        'Ese horario se cruza con una reserva o taller existente.'
+        'Ese horario se cruza con una ocupación existente.'
       )
 
       return
@@ -352,7 +367,7 @@ const submitReservation = async (reservation) => {
 
     reservationsStore.clearActionError?.()
 
-    await reservationsStore.fetchAvailabilityReservations()
+    await loadAvailabilityForDate(selectedDate.value)
 
     reservationsStore.setActionSuccess(
       'Reserva creada correctamente'
@@ -390,7 +405,7 @@ const cancelSelectedReservation = async () => {
 
     selectedReservation.value = null
 
-    await reservationsStore.fetchAvailabilityReservations()
+    await loadAvailabilityForDate(selectedDate.value)
 
     reservationsStore.setActionSuccess(
       'Reserva cancelada correctamente'
@@ -421,6 +436,20 @@ const handleDateSelect = (date) => {
       'No puedes seleccionar una fecha pasada.'
     )
 
+    return
+  }
+
+  if (
+    policy.value &&
+    !isDateWithinPolicyWindow(
+      nextDate,
+      todayKey(),
+      policy.value.reservableWindowDays
+    )
+  ) {
+    reservationsStore.setActionError(
+      'La fecha seleccionada está fuera de la ventana de reservas vigente.'
+    )
     return
   }
 
@@ -456,7 +485,23 @@ const nextDay = () => {
 
   date.setDate(date.getDate() + 1)
 
-  selectedDate.value = formatDateKey(date)
+  const nextDate = formatDateKey(date)
+
+  if (
+    policy.value &&
+    !isDateWithinPolicyWindow(
+      nextDate,
+      todayKey(),
+      policy.value.reservableWindowDays
+    )
+  ) {
+    reservationsStore.setActionError(
+      'Llegaste al último día disponible para reservar.'
+    )
+    return
+  }
+
+  selectedDate.value = nextDate
 
   reservationsStore.clearActionError?.()
   reservationsStore.clearActionSuccess?.()
@@ -597,20 +642,22 @@ const goToday = () => {
           </div>
 
           <ScheduleGrid
-            v-if="viewMode === 'resources'"
-            :resources="resourcesStore.resources"
+            v-if="policy && viewMode === 'resources'"
+            :resources="eligibleResources"
             :reservations="availabilityItems"
             :selected-date="selectedDate"
-            :start-hour="RESERVATION_OPENING_HOUR"
-            :end-hour="RESERVATION_CLOSING_HOUR"
+            :start-hour="Math.floor(policy.openingMinute / 60)"
+            :end-hour="Math.ceil(policy.closingMinute / 60)"
             :pixels-per-minute="1"
+            :current-user-id="authStore.user?.id"
+            :slot-interval-minutes="policy.slotIntervalMinutes"
             @slot-selected="handleSlotSelected"
             @reservation-selected="handleReservationSelected"
           />
 
           <GeneralCalendarView
-            v-else
-            :resources="resourcesStore.resources"
+            v-else-if="policy"
+            :resources="eligibleResources"
             :reservations="availabilityItems"
             :selected-date="selectedDate"
             @reservation-selected="handleReservationSelected"
@@ -624,10 +671,12 @@ const goToday = () => {
 
     <!-- FORM -->
     <ReservationForm
+      v-if="policy"
       :visible="showReservationForm"
       :slot="selectedSlot"
-      :resources="resourcesStore.resources"
+      :resources="eligibleResources"
       :activities="activitiesStore.activities"
+      :policy="policy"
       :error-message="reservationsStore.actionError"
       :submitting="isCreatingReservation"
       @close="closeReservationForm"

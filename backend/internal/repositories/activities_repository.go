@@ -17,8 +17,8 @@ func GetActiveActivities() ([]models.Activity, error) {
 			name,
 			COALESCE(description, '') AS description,
 			is_active
-		FROM dbo.activities
-		WHERE is_active = 1
+		FROM activities
+		WHERE is_active = true
 		ORDER BY name ASC;
 		`,
 	)

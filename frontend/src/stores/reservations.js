@@ -2,6 +2,9 @@ import { defineStore } from 'pinia'
 
 import { reservationsService } from '@/services/reservations.service'
 
+let availabilityRequestId = 0
+let availabilityController = null
+
 const getFriendlyReservationError = (error, fallback) => {
   if (!error.response) {
     return 'No se pudo conectar con el backend. Verifica que el servidor esté encendido.'
@@ -17,6 +20,10 @@ export const useReservationsStore =
 
       availabilityReservations: [],
 
+      availabilityRangeKey: null,
+
+      reservationDetail: null,
+
       myReservations: [],
 
       loading: false,
@@ -26,6 +33,10 @@ export const useReservationsStore =
       availabilityLoading: false,
 
       availabilityLoadingError: null,
+
+      detailLoading: false,
+
+      detailLoadingError: null,
 
       myLoading: false,
 
@@ -55,21 +66,63 @@ export const useReservationsStore =
         }
       },
 
-      async fetchAvailabilityReservations() {
+      async fetchAvailabilityReservations({ from, to } = {}) {
+        const requestId = ++availabilityRequestId
+        availabilityController?.abort()
+        availabilityController = new AbortController()
         this.availabilityLoading = true
         this.availabilityLoadingError = null
+        this.availabilityRangeKey = null
 
         try {
-          this.availabilityReservations =
-            await reservationsService.getAvailability()
+          const reservations = await reservationsService.getAvailability({
+            from,
+            to,
+            signal: availabilityController.signal
+          })
+
+          if (requestId !== availabilityRequestId) {
+            return false
+          }
+
+          this.availabilityReservations = reservations
+          this.availabilityRangeKey = from || null
+          return true
         } catch (error) {
+          if (requestId !== availabilityRequestId || error.code === 'ERR_CANCELED') {
+            return false
+          }
+
           this.availabilityReservations = []
+          this.availabilityRangeKey = null
           this.availabilityLoadingError = getFriendlyReservationError(
             error,
             'No se pudo validar la disponibilidad actual.'
           )
+          return false
         } finally {
-          this.availabilityLoading = false
+          if (requestId === availabilityRequestId) {
+            this.availabilityLoading = false
+          }
+        }
+      },
+
+      async fetchReservationDetail(id) {
+        this.detailLoading = true
+        this.detailLoadingError = null
+        this.reservationDetail = null
+
+        try {
+          this.reservationDetail = await reservationsService.getById(id)
+          return this.reservationDetail
+        } catch (error) {
+          this.detailLoadingError = getFriendlyReservationError(
+            error,
+            'No se pudo cargar el detalle de la reserva.'
+          )
+          return null
+        } finally {
+          this.detailLoading = false
         }
       },
 
@@ -181,6 +234,10 @@ export const useReservationsStore =
                 ? cancelledReservation
                 : reservation
             )
+
+          if (this.reservationDetail?.id === id) {
+            this.reservationDetail = cancelledReservation
+          }
 
           return cancelledReservation
         } catch (error) {

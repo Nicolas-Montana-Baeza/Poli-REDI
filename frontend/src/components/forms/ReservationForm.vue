@@ -30,6 +30,11 @@ const props = defineProps({
     default: () => []
   },
 
+  policy: {
+    type: Object,
+    required: true
+  },
+
   errorMessage: {
     type: String,
     default: ''
@@ -194,7 +199,8 @@ const validateForm = () => {
   if (form.value.hour) {
     const scheduleError = getReservationScheduleError({
       hour: form.value.hour,
-      durationMinutes: form.value.durationMinutes
+      durationMinutes: form.value.durationMinutes,
+      policy: props.policy
     })
 
     if (scheduleError) {
@@ -327,7 +333,9 @@ const handleClose = () => {
         <DateTimePicker
           :initial-date="form.date"
           :initial-hour="form.hour"
-          :initial-duration="form.durationMinutes"
+        :initial-duration="form.durationMinutes"
+          :policy="policy"
+          fixed-date
           @update="handleDateTimeUpdate"
         />
 

@@ -6,18 +6,15 @@ import { useAuthStore } from '@/stores/auth'
 import {
   Home,
   Calendar,
-  Dumbbell,
   ClipboardList,
   History,
-  LayoutGrid,
-  Shield,
   Users,
   Settings,
-  BarChart3,
   Menu,
   ShieldCheck,
   X
 } from 'lucide-vue-next'
+import { mvpFeatures } from '@/config/appScope'
 
 /* STATE */
 const isOpen = ref(false)
@@ -75,12 +72,6 @@ const menu = computed(() => {
         },
 
         {
-          label: 'Talleres',
-          icon: Dumbbell,
-          to: '/workshops'
-        },
-
-        {
           label: 'Configuración',
           icon: Settings,
           to: '/settings'
@@ -89,36 +80,47 @@ const menu = computed(() => {
     }
   ]
 
+  if (mvpFeatures.workshops) {
+    sections[0].items.splice(-1, 0, {
+      label: 'Talleres',
+      icon: Calendar,
+      to: '/workshops'
+    })
+  }
+
   if (authStore.user?.isAdmin === true) {
     sections.push({
       section: 'ADMINISTRACIÓN',
 
       items: [
         {
-          label: 'Panel Administrativo',
-          icon: Shield,
-          to: '/admin'
-        },
-
-        {
           label: 'Usuarios',
           icon: Users,
           to: '/users'
-        },
-
-        {
-          label: 'Mis Recursos',
-          icon: LayoutGrid,
-          to: '/resources'
-        },
-
-        {
-          label: 'Reportes',
-          icon: BarChart3,
-          to: '/reports'
         }
       ]
     })
+
+    if (mvpFeatures.resourceAdministration) {
+      sections.at(-1).items.unshift({
+        label: 'Panel Administrativo',
+        icon: ShieldCheck,
+        to: '/admin'
+      })
+      sections.at(-1).items.push({
+        label: 'Recursos',
+        icon: Calendar,
+        to: '/resources'
+      })
+    }
+
+    if (mvpFeatures.reports) {
+      sections.at(-1).items.push({
+        label: 'Reportes',
+        icon: ClipboardList,
+        to: '/reports'
+      })
+    }
   }
 
   return sections

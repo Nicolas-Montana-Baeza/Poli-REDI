@@ -41,7 +41,7 @@ func scanPolicy(row policyScanner) (models.ReservationPolicy, error) {
 func loadPolicyCollections(ctx context.Context, q interface {
 	QueryContext(context.Context, string, ...any) (*sql.Rows, error)
 }, p *models.ReservationPolicy) error {
-	rows, err := q.QueryContext(ctx, `SELECT duration_minutes FROM dbo.reservation_policy_durations WHERE policy_id = @p1 ORDER BY duration_minutes`, p.ID)
+	rows, err := q.QueryContext(ctx, `SELECT duration_minutes FROM reservation_policy_durations WHERE policy_id = $1 ORDER BY duration_minutes`, p.ID)
 	if err != nil {
 		return err
 	}
@@ -56,7 +56,7 @@ func loadPolicyCollections(ctx context.Context, q interface {
 		return err
 	}
 	rows.Close()
-	rows, err = q.QueryContext(ctx, `SELECT resource_id FROM dbo.reservation_policy_resources WHERE policy_id = @p1 ORDER BY resource_id`, p.ID)
+	rows, err = q.QueryContext(ctx, `SELECT resource_id FROM reservation_policy_resources WHERE policy_id = $1 ORDER BY resource_id`, p.ID)
 	if err != nil {
 		return err
 	}
@@ -73,7 +73,7 @@ func loadPolicyCollections(ctx context.Context, q interface {
 
 func GetCurrentReservationPolicyComplete() (models.ReservationPolicy, error) {
 	ctx := context.Background()
-	p, err := scanPolicy(database.DB.QueryRowContext(ctx, `SELECT TOP (1) `+policyColumns+` FROM dbo.reservation_policies WHERE effective_from <= SYSUTCDATETIME() AND (effective_to IS NULL OR effective_to > SYSUTCDATETIME()) ORDER BY effective_from DESC, id DESC`))
+	p, err := scanPolicy(database.DB.QueryRowContext(ctx, `SELECT `+policyColumns+` FROM reservation_policies WHERE is_published = true AND effective_from <= CURRENT_TIMESTAMP AND (effective_to IS NULL OR effective_to > CURRENT_TIMESTAMP) ORDER BY effective_from DESC, id DESC LIMIT 1`))
 	if err != nil {
 		return p, err
 	}
@@ -83,7 +83,7 @@ func GetCurrentReservationPolicyComplete() (models.ReservationPolicy, error) {
 
 func GetReservationPolicyHistory() ([]models.ReservationPolicy, error) {
 	ctx := context.Background()
-	rows, err := database.DB.QueryContext(ctx, `SELECT `+policyColumns+` FROM dbo.reservation_policies ORDER BY effective_from DESC, id DESC`)
+	rows, err := database.DB.QueryContext(ctx, `SELECT `+policyColumns+` FROM reservation_policies ORDER BY effective_from DESC, id DESC`)
 	if err != nil {
 		return nil, err
 	}

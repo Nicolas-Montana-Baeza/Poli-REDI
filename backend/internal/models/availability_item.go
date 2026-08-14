@@ -18,6 +18,7 @@ type AvailabilityItem struct {
 	UserEmail           string    `json:"userEmail"`
 	UserRUT             string    `json:"userRut"`
 	IsScheduledActivity bool      `json:"isScheduledActivity"`
+	IsAvailabilityBlock bool      `json:"isAvailabilityBlock,omitempty"`
 	ActivityType        string    `json:"activityType,omitempty"`
 }
 
