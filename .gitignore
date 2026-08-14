@@ -1,36 +1,95 @@
-# Node
-node_modules
-dist
+# Dependencies
+node_modules/
 
-# Env
+# Frontend build and test output
+dist/
+dist-ssr/
+build/
+coverage/
+.nyc_output/
+test-results/
+playwright-report/
+junit*.xml
+
+# Node, Vite and Vitest caches
+.npm/
+.cache/
+.vite/
+.vitest/
+*.tsbuildinfo
+
+# Environment files and local backups
 .env
-.env.local
-.env.*.local
-backend/.env
-backend/.env.local
-backend/.env.*.local
-frontend/.env
-frontend/.env.local
-frontend/.env.*.local
+.env.*
+**/.env
+**/.env.*
+**/.env.backup*
+**/*.env.backup*
 !.env.example
-!backend/.env.example
-!frontend/.env.example
+!**/.env.example
 
-# Logs
+# Private keys and certificate bundles
+*.pem
+*.key
+*.pfx
+*.p12
+!*.example.pem
+!*.example.key
+!*.example.pfx
+!*.example.p12
+!**/*.example.pem
+!**/*.example.key
+!**/*.example.pfx
+!**/*.example.p12
+
+# Logs and process files
+logs/
 *.log
+*.log.*
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+*.pid
+*.pid.lock
 
-# OS
+# Go caches, binaries and test output
+.gocache/
+.tmp-gocache/
+.qa-go-cache/
+backend/bin/
+backend/tmp/
+*.exe
+*.test
+*.out
+coverage.out
+coverage.html
+*.prof
+
+# Temporary and backup files
+.tmp/
+tmp/
+temp/
+*.tmp
+*.temp
+*.bak
+*.backup
+*.orig
+*~
+*.swp
+*.swo
+
+# Operating system files
 .DS_Store
 Thumbs.db
+Desktop.ini
 
-# IDE
-.vscode
-
-# Go
-backend/bin
-backend/tmp
-.gocache/
-.qa-go-cache/
-# Build
-*.exe
-*.out
+# Editors and IDEs
+.vscode/*
+!**/.vscode/extensions.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
