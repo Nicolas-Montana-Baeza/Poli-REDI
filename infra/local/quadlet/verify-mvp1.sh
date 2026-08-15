@@ -10,7 +10,14 @@ if ! command -v podman >/dev/null 2>&1; then
     exit 1
 fi
 
-if [[ "$(podman inspect --format '{{.State.Health.Status}}' "${container_name}")" != "healthy" ]]; then
+if ! podman container exists "${container_name}"; then
+    printf 'PostgreSQL no esta iniciado: el contenedor %s no existe. Ejecuta install.sh install y revisa los logs.\n' "${container_name}" >&2
+    exit 1
+fi
+
+health_status="$(podman inspect --format '{{.State.Health.Status}}' "${container_name}" 2>/dev/null || true)"
+
+if [[ "${health_status}" != "healthy" ]]; then
     printf 'PostgreSQL no esta saludable. Ejecuta install.sh install y revisa los logs.\n' >&2
     exit 1
 fi

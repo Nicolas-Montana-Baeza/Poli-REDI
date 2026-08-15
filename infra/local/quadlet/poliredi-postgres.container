@@ -7,7 +7,7 @@ After=network-online.target
 Image=docker.io/library/postgres:16-alpine
 ContainerName=poliredi-postgres-mvp1
 EnvironmentFile=./poliredi-postgres.env
-PublishPort=127.0.0.1:5432:5432
+PublishPort=127.0.0.1:55432:5432
 Volume=poliredi-postgres-data.volume:/var/lib/postgresql/data
 Volume=./poliredi-postgres-init:/docker-entrypoint-initdb.d:ro,Z
 HealthCmd=pg_isready --username=poliredi_owner --dbname=poliredi

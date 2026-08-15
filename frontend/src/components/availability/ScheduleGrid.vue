@@ -45,12 +45,18 @@ const props = defineProps({
   slotIntervalMinutes: {
     type: Number,
     default: 15
+  },
+
+  focusReservationId: {
+    type: [Number, String],
+    default: null
   }
 })
 
 const emit = defineEmits([
   'slot-selected',
-  'reservation-selected'
+  'reservation-selected',
+  'reservation-focused'
 ])
 
 /* DATE FILTER */
@@ -81,6 +87,10 @@ const handleSlotSelected = (slot) => {
 
 const handleReservationSelected = (reservation) => {
   emit('reservation-selected', reservation)
+}
+
+const handleReservationFocused = (reservationId) => {
+  emit('reservation-focused', reservationId)
 }
 </script>
 
@@ -142,12 +152,18 @@ const handleReservationSelected = (reservation) => {
 
         :pixels-per-minute="pixelsPerMinute"
 
+        :focus-reservation-id="focusReservationId"
+
         @slot-selected="
           handleSlotSelected
         "
 
         @reservation-selected="
           handleReservationSelected
+        "
+
+        @reservation-focused="
+          handleReservationFocused
         "
       />
 

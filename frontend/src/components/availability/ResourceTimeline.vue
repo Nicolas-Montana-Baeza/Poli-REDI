@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, nextTick, watch } from 'vue'
 
 import ReservationBlock from './ReservationBlock.vue'
 import {
@@ -58,13 +58,32 @@ const props = defineProps({
   pixelsPerMinute: {
     type: Number,
     default: 1
+  },
+
+  focusReservationId: {
+    type: [Number, String],
+    default: null
   }
 })
 
 const emit = defineEmits([
   'slot-selected',
-  'reservation-selected'
+  'reservation-selected',
+  'reservation-focused'
 ])
+
+const reservationBlockRefs = new Map()
+
+const setReservationBlockRef = (reservationId, component) => {
+  const key = String(reservationId)
+
+  if (component) {
+    reservationBlockRefs.set(key, component)
+    return
+  }
+
+  reservationBlockRefs.delete(key)
+}
 
 const timelineTopPadding = 18
 const timelineBottomPadding = 24
@@ -176,6 +195,32 @@ const resourceReservations = computed(() => {
       reservation.status !== 'CANCELLED'
   )
 })
+
+watch(
+  () => props.focusReservationId,
+  async (reservationId) => {
+    if (reservationId === null || reservationId === undefined) {
+      return
+    }
+
+    const reservation = resourceReservations.value.find(
+      item => String(item.id) === String(reservationId)
+    )
+
+    if (!reservation) {
+      return
+    }
+
+    await nextTick()
+
+    const block = reservationBlockRefs.get(String(reservation.id))
+
+    if (block?.focusAndScroll?.()) {
+      emit('reservation-focused', reservationId)
+    }
+  },
+  { flush: 'post' }
+)
 
 /* HELPERS */
 const getReservationStartMinutes = (reservation) => {
@@ -436,6 +481,7 @@ const modeLabel = (mode) => {
           :start-hour="startHour"
           :pixels-per-minute="pixelsPerMinute"
           :top-offset="timelineTopPadding"
+          :ref="component => setReservationBlockRef(reservation.id, component)"
           @select="handleReservationSelected"
         />
       </template>

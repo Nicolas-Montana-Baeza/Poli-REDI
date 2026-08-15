@@ -30,6 +30,10 @@ El instalador:
 4. crea el volumen `poliredi-postgres-mvp1-data`;
 5. inicia PostgreSQL y espera su healthcheck.
 
+PostgreSQL se publica solo en `127.0.0.1:55432`, para evitar colisiones con
+instancias locales de MVP2 que puedan usar `5432`. El instalador deja ese mismo
+puerto en el `DATABASE_URL` del backend.
+
 Los archivos secretos quedan en:
 
 - `~/.config/containers/systemd/poliredi-postgres.env`;

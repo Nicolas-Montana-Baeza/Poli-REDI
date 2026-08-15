@@ -1,9 +1,10 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import {
   formatReservationTimeRange,
   getReservationStartMinutes
 } from '@/utils/reservationTime'
+import { focusReservationBlock } from '@/utils/reservationFocus'
 
 const props = defineProps({
   reservation: {
@@ -30,6 +31,14 @@ const props = defineProps({
 const emit = defineEmits([
   'select'
 ])
+
+const blockElement = ref(null)
+
+const focusAndScroll = () => {
+  return focusReservationBlock(blockElement.value)
+}
+
+defineExpose({ focusAndScroll })
 
 const startMinutes = computed(() => {
   const minutesFromMidnight =
@@ -105,6 +114,7 @@ const statusClass = computed(() => {
 
 <template>
   <button
+    ref="blockElement"
     class="reservation-block"
     type="button"
     :class="[

@@ -1,5 +1,5 @@
 ﻿<script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, nextTick, onMounted, watch } from 'vue'
 
 import CalendarToolbar from './CalendarToolbar.vue'
 import CalendarMini from './CalendarMini.vue'
@@ -193,6 +193,7 @@ const canCancelSelectedReservation = computed(() => {
 /* MODAL */
 const showReservationForm = ref(false)
 const isCreatingReservation = ref(false)
+const focusReservationId = ref(null)
 
 /* LOAD DATA */
 onMounted(async () => {
@@ -275,6 +276,12 @@ const closeReservationDetail = () => {
   selectedReservation.value = null
 
   reservationsStore.clearActionError?.()
+}
+
+const clearReservationFocus = (reservationId) => {
+  if (String(focusReservationId.value) === String(reservationId)) {
+    focusReservationId.value = null
+  }
 }
 
 /* SUBMIT */
@@ -360,17 +367,21 @@ const submitReservation = async (reservation) => {
       payload.activityId = activityId
     }
 
-    await reservationsStore.createReservation(payload)
+    const createdReservation = await reservationsStore.createReservation(payload)
 
     showReservationForm.value = false
     selectedSlot.value = null
+    viewMode.value = 'resources'
 
     reservationsStore.clearActionError?.()
 
     await loadAvailabilityForDate(selectedDate.value)
+    await nextTick()
+
+    focusReservationId.value = createdReservation?.id || null
 
     reservationsStore.setActionSuccess(
-      'Reserva creada correctamente'
+      'Reserva creada correctamente. Mostrando el horario reservado.'
     )
   } catch {
     // El store mantiene el error visible dentro del formulario.
@@ -651,8 +662,10 @@ const goToday = () => {
             :pixels-per-minute="1"
             :current-user-id="authStore.user?.id"
             :slot-interval-minutes="policy.slotIntervalMinutes"
+            :focus-reservation-id="focusReservationId"
             @slot-selected="handleSlotSelected"
             @reservation-selected="handleReservationSelected"
+            @reservation-focused="clearReservationFocus"
           />
 
           <GeneralCalendarView
