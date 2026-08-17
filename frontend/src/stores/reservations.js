@@ -95,6 +95,9 @@ export const useReservationsStore =
 
           this.availabilityReservations = []
           this.availabilityRangeKey = null
+          this.availabilityRangeKey = from 
+	    ? String(from).slice(0, 10) 
+	    : null
           this.availabilityLoadingError = getFriendlyReservationError(
             error,
             'No se pudo validar la disponibilidad actual.'

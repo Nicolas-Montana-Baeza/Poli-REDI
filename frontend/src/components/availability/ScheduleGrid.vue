@@ -67,7 +67,7 @@ const getDateFromReservation = (reservation) => {
 const filteredReservations = (resourceId) => {
   return props.reservations.filter((reservation) => {
     const sameResource =
-      reservation.resourceId === resourceId
+      Number(reservation.resourceId) === Number(resourceId)
 
     const notCancelled =
       reservation.status !== 'CANCELLED'
