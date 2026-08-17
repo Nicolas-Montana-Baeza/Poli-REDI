@@ -191,7 +191,7 @@ const hourLines = computed(() => {
 const resourceReservations = computed(() => {
   return props.reservations.filter(
     reservation =>
-      reservation.resourceId === props.resource.id &&
+      Number(reservation.resourceId) === Number(props.resource.id) &&
       reservation.status !== 'CANCELLED'
   )
 })
@@ -473,19 +473,17 @@ const modeLabel = (mode) => {
       </div>
 
       <!-- RESERVATIONS -->
-      <template>
-        <ReservationBlock
-          v-for="reservation in resourceReservations"
-          :key="reservation.availabilityKey || reservation.id"
-          :reservation="reservation"
-          :start-hour="startHour"
-          :pixels-per-minute="pixelsPerMinute"
-          :top-offset="timelineTopPadding"
-          :ref="component => setReservationBlockRef(reservation.id, component)"
-          @select="handleReservationSelected"
-        />
-      </template>
-
+      <ReservationBlock
+        v-for="reservation in resourceReservations"
+        :key="reservation.availabilityKey || reservation.id"
+        :reservation="reservation"
+        :start-hour="startHour"
+        :pixels-per-minute="pixelsPerMinute"
+        :top-offset="timelineTopPadding"
+        :ref="component => setReservationBlockRef(reservation.id, component)"
+        @select="handleReservationSelected"
+      />
+     
     </div>
 
   </div>
