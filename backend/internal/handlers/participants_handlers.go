@@ -186,6 +186,60 @@ func GetGroupReservationParticipants(c *fiber.Ctx) error {
 	return c.JSON(participants)
 }
 
+// RotateGroupReservationJoinCode genera un nuevo código de invitación para
+// una reserva grupal existente.
+//
+// Seguridad:
+//   - requiere usuario autenticado;
+//   - el servicio autoriza únicamente al owner o administrador;
+//   - el código anterior queda invalidado al reemplazar su hash;
+//   - el nuevo código en texto plano se devuelve una sola vez al cliente.
+//
+// El reservationID proviene de la URL, pero nunca se utiliza como criterio
+// suficiente de autorización.
+func RotateGroupReservationJoinCode(c *fiber.Ctx) error {
+	user, ok := middleware.GetLocalUser(c)
+
+	if !ok {
+		return c.Status(fiber.StatusUnauthorized).JSON(
+			fiber.Map{
+				"error": "usuario no autenticado",
+			},
+		)
+	}
+
+	reservationID, err :=
+		strconv.Atoi(
+			c.Params("id"),
+		)
+
+	if err != nil || reservationID <= 0 {
+		return c.Status(fiber.StatusBadRequest).JSON(
+			fiber.Map{
+				"error": "reserva inválida",
+			},
+		)
+	}
+
+	joinCode, err :=
+		services.RotateReservationJoinCodeForUser(
+			reservationID,
+			user,
+		)
+
+	if err != nil {
+		return participantErrorResponse(c, err)
+	}
+
+	// El código en texto plano solamente aparece en esta respuesta.
+	// Una lectura posterior de la reserva no permite recuperarlo.
+	return c.JSON(
+		fiber.Map{
+			"joinCode": joinCode,
+		},
+	)
+}
+
 // participantErrorResponse centraliza la traducción de errores de dominio
 // a códigos HTTP.
 //

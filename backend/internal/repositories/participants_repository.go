@@ -81,6 +81,108 @@ func generateJoinCode() (string, error) {
 	return string(code[:5]) + "-" + string(code[5:]), nil
 }
 
+// RotateReservationJoinCode genera un nuevo código de invitación para una
+// reserva grupal existente.
+//
+// Seguridad:
+//   - el código en texto plano nunca se persiste;
+//   - PostgreSQL almacena únicamente SHA-256(joinCode);
+//   - al reemplazar join_code_hash, el código anterior queda invalidado;
+//   - únicamente reservas grupales activas pueden rotar su código.
+//
+// La autorización owner/admin se valida en la capa de servicio.
+// El repository se limita a garantizar la consistencia de persistencia.
+func RotateReservationJoinCode(
+	reservationID int,
+) (string, error) {
+
+	if reservationID <= 0 {
+		return "", ErrReservationNotJoinable
+	}
+
+	ctx := context.Background()
+
+	tx, err := database.DB.BeginTx(
+		ctx,
+		&sql.TxOptions{
+			Isolation: sql.LevelSerializable,
+		},
+	)
+
+	if err != nil {
+		return "", err
+	}
+
+	defer tx.Rollback()
+
+	// ---------------------------------------------------------------------
+	// Bloqueamos la reserva antes de rotar el código.
+	// ---------------------------------------------------------------------
+	//
+	// Así evitamos modificar simultáneamente el join code mientras otro
+	// flujo cambia el estado relevante de la reserva.
+	var lockedReservationID int
+
+	err = tx.QueryRowContext(
+		ctx,
+		`
+		SELECT id
+		FROM reservations
+		WHERE id = $1
+		  AND group_capacity_snapshot IS NOT NULL
+		  AND status IN ('PENDING', 'CONFIRMED')
+		FOR UPDATE
+		`,
+		reservationID,
+	).Scan(
+		&lockedReservationID,
+	)
+
+	if errors.Is(err, sql.ErrNoRows) {
+		return "", ErrReservationNotJoinable
+	}
+
+	if err != nil {
+		return "", err
+	}
+
+	// ---------------------------------------------------------------------
+	// Generamos el nuevo secreto.
+	// ---------------------------------------------------------------------
+
+	joinCode, err := generateJoinCode()
+
+	if err != nil {
+		return "", err
+	}
+
+	// PostgreSQL recibe solamente el hash.
+	//
+	// La restricción UNIQUE sobre join_code_hash también actúa como última
+	// defensa ante una colisión extremadamente improbable entre códigos.
+	_, err = tx.ExecContext(
+		ctx,
+		`
+		UPDATE reservations
+		SET join_code_hash = $2
+		WHERE id = $1
+		`,
+		lockedReservationID,
+		codeHash(joinCode),
+	)
+
+	if err != nil {
+		return "", err
+	}
+
+	if err := tx.Commit(); err != nil {
+		return "", err
+	}
+
+	// El texto plano se entrega únicamente al caller de esta operación.
+	return joinCode, nil
+}
+
 // GetReservationProgress devuelve el estado actual de una reserva grupal.
 //
 // No modifica información.

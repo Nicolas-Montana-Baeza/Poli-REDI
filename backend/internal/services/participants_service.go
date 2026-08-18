@@ -164,3 +164,57 @@ func GetReservationParticipantsForUser(
 		reservationID,
 	)
 }
+
+// RotateReservationJoinCodeForUser rota el código de invitación de una
+// reserva grupal aplicando control de acceso.
+//
+// Solo pueden realizar esta operación:
+//
+//   - el owner de la reserva;
+//   - un administrador.
+//
+// El servicio autoriza primero por reservation.user_id y recién después
+// delega la rotación al repository. De esta forma, conocer el ID de una
+// reserva no permite invalidar su código de invitación.
+//
+// El código en texto plano se devuelve únicamente como resultado de esta
+// operación. PostgreSQL conserva solamente su hash.
+func RotateReservationJoinCodeForUser(
+	reservationID int,
+	requestedBy models.LocalAuthUser,
+) (string, error) {
+
+	if reservationID <= 0 {
+		return "", ErrReservationNotFound
+	}
+
+	reservation, err :=
+		repositories.GetReservationByID(
+			reservationID,
+		)
+
+	if errors.Is(err, sql.ErrNoRows) {
+		return "", ErrReservationNotFound
+	}
+
+	if err != nil {
+		return "", err
+	}
+
+	// ---------------------------------------------------------------------
+	// Autorización.
+	// ---------------------------------------------------------------------
+	//
+	// Un usuario normal solo puede rotar el código de una reserva que él
+	// mismo creó. Los administradores pueden hacerlo como operación de
+	// soporte institucional.
+	if !requestedBy.IsAdmin &&
+		reservation.UserID != requestedBy.ID {
+
+		return "", ErrReservationForbidden
+	}
+
+	return repositories.RotateReservationJoinCode(
+		reservationID,
+	)
+}

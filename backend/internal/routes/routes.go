@@ -103,7 +103,14 @@ func RegisterRoutes(app *fiber.App) {
 			"/reservations/join/:code",
 			handlers.GetGroupReservationProgress,
 		)
-
+		// Permite al owner o administrador reemplazar el código de invitación.
+		//
+		// La autorización fina se realiza en la capa de servicio; conocer el ID
+		// de una reserva no basta para rotar su código.
+		protected.Post(
+			"/reservations/:id/join-code",
+			handlers.RotateGroupReservationJoinCode,
+		)
 		// Incorpora al usuario autenticado al grupo identificado por el
 		// join code. El userID nunca proviene del cliente.
 		protected.Post(
