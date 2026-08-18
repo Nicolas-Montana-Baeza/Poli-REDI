@@ -12,6 +12,7 @@ import {
   Settings,
   Menu,
   ShieldCheck,
+  KeyRound,
   X
 } from 'lucide-vue-next'
 import { mvpFeatures } from '@/config/appScope'
@@ -79,7 +80,19 @@ const menu = computed(() => {
       ]
     }
   ]
-
+  // ------------------------------------------------------------
+// Reservas grupales MVP2.
+// ------------------------------------------------------------
+//
+// El acceso para unirse mediante código solo se muestra cuando el scope
+// habilita reservas grupales. MVP1 permanece sin esta funcionalidad.
+if (mvpFeatures.groupReservations) {
+  sections[0].items.splice(3, 0, {
+    label: 'Unirse con código',
+    icon: KeyRound,
+    to: '/reservations/join'
+  })
+}
   if (mvpFeatures.workshops) {
     sections[0].items.splice(-1, 0, {
       label: 'Talleres',
