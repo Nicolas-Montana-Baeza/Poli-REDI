@@ -160,7 +160,12 @@ func createReservationAt(
 		reservation.ActivityID = nil
 	}
 
-	if !appscope.IsMVP1() {
+	// Los talleres todavía pertenecen a la superficie legacy FULL.
+	//
+	// MVP2 habilita el nuevo flujo de reservas grupales sobre PostgreSQL,
+	// pero no debe activar módulos antiguos que todavía dependen del
+	// esquema SQL Server.
+	if appscope.IsFull() {
 		if err := validateWorkshopAvailability(reservation); err != nil {
 			return models.Reservation{}, err
 		}

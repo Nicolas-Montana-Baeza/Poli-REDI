@@ -185,76 +185,524 @@ func GetLatestConsumingReservation(userID int) (time.Time, int, error) {
 	return createdAt.In(businessclock.Location()), frequencyDays, err
 }
 
-func AddReservationWithPolicy(reservation models.Reservation, validate func(models.ReservationPolicy) error) (models.Reservation, error) {
+// AddReservationWithPolicy crea una reserva utilizando una fotografía
+// de la política de reservas vigente al momento de la solicitud.
+//
+// La operación completa se ejecuta dentro de una transacción SERIALIZABLE
+// para mantener consistencia frente a solicitudes concurrentes.
+//
+// El flujo realiza las siguientes responsabilidades:
+//
+//   - obtiene y bloquea de forma compartida la política vigente;
+//   - valida que el recurso esté permitido por esa política;
+//   - aplica las reglas dinámicas de horario, duración y ventana reservable;
+//   - obtiene el modo y capacidad actual del recurso;
+//   - aplica la restricción de frecuencia únicamente a recursos RESERVABLE;
+//   - determina si el recurso utiliza el flujo de reserva grupal;
+//   - crea una reserva normal o grupal según corresponda;
+//   - en reservas grupales genera un join code seguro;
+//   - almacena únicamente el hash SHA-256 del join code;
+//   - guarda un snapshot de la capacidad del recurso;
+//   - registra al solicitante como participante y owner del grupo.
+//
+// Para evitar condiciones de carrera entre solicitudes simultáneas del mismo
+// usuario se utiliza pg_advisory_xact_lock() dentro de la transacción.
+//
+// Las reservas grupales comienzan en PENDING mientras no alcancen
+// minimum_participants. El solicitante cuenta como el primer participante.
+//
+// El join code original se devuelve únicamente como parte de la respuesta
+// de creación y nunca se almacena directamente en PostgreSQL.
+func AddReservationWithPolicy(
+	reservation models.Reservation,
+	validate func(models.ReservationPolicy) error,
+) (models.Reservation, error) {
+
 	ctx := context.Background()
-	tx, err := database.DB.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelSerializable})
+
+	// La creación de una reserva involucra múltiples lecturas y escrituras
+	// relacionadas. SERIALIZABLE evita que operaciones concurrentes puedan
+	// observar estados incompatibles durante la evaluación de las reglas.
+	tx, err := database.DB.BeginTx(
+		ctx,
+		&sql.TxOptions{
+			Isolation: sql.LevelSerializable,
+		},
+	)
 	if err != nil {
 		return models.Reservation{}, err
 	}
+
+	// Si ocurre cualquier error antes del Commit, la transacción completa
+	// se revierte automáticamente.
 	defer tx.Rollback()
 
-	if _, err := tx.ExecContext(ctx, `SELECT pg_advisory_xact_lock(73002, $1)`, reservation.UserID); err != nil {
+	// Serializa las solicitudes de reserva del mismo usuario.
+	//
+	// Esto es especialmente importante para la regla de frecuencia:
+	// dos solicitudes concurrentes del mismo usuario no deben poder pasar
+	// simultáneamente la validación antes de que una de ellas sea persistida.
+	if _, err := tx.ExecContext(
+		ctx,
+		`SELECT pg_advisory_xact_lock(73002, $1)`,
+		reservation.UserID,
+	); err != nil {
 		return models.Reservation{}, err
 	}
 
-	policy, err := scanPolicy(tx.QueryRowContext(ctx, `SELECT `+policyColumns+` FROM reservation_policies WHERE is_published = true AND effective_from <= CURRENT_TIMESTAMP AND (effective_to IS NULL OR effective_to > CURRENT_TIMESTAMP) ORDER BY effective_from DESC, id DESC LIMIT 1 FOR SHARE`))
+	// ------------------------------------------------------------
+	// Política vigente.
+	// ------------------------------------------------------------
+	//
+	// La reserva siempre queda asociada a la versión exacta de la política
+	// utilizada al momento de su creación. Las modificaciones posteriores
+	// de las reglas no alteran retroactivamente esta reserva.
+
+	policy, err := scanPolicy(
+		tx.QueryRowContext(
+			ctx,
+			`
+			SELECT `+policyColumns+`
+			FROM reservation_policies
+			WHERE is_published = true
+			  AND effective_from <= CURRENT_TIMESTAMP
+			  AND (
+			      effective_to IS NULL
+			      OR effective_to > CURRENT_TIMESTAMP
+			  )
+			ORDER BY effective_from DESC, id DESC
+			LIMIT 1
+			FOR SHARE
+			`,
+		),
+	)
+
 	if err != nil {
 		return models.Reservation{}, err
 	}
-	if err := loadPolicyCollections(ctx, tx, &policy); err != nil {
+
+	// Las duraciones permitidas y recursos asociados forman parte de la
+	// misma política versionada y deben cargarse dentro de la transacción.
+	if err := loadPolicyCollections(
+		ctx,
+		tx,
+		&policy,
+	); err != nil {
 		return models.Reservation{}, err
 	}
-	if !policyAllowsResource(policy, reservation.ResourceID) {
-		return models.Reservation{}, ErrResourceNotAllowedByPolicy
+
+	// Un recurso puede existir y estar activo, pero aun así no estar
+	// habilitado por la política vigente.
+	if !policyAllowsResource(
+		policy,
+		reservation.ResourceID,
+	) {
+		return models.Reservation{},
+			ErrResourceNotAllowedByPolicy
 	}
+
+	// Ejecuta las validaciones de negocio que dependen de la política,
+	// como horario, duración y ventana reservable.
 	if err := validate(policy); err != nil {
 		return models.Reservation{}, err
 	}
 
-	var mode string
-	if err := tx.QueryRowContext(ctx, `SELECT reservation_mode FROM resources WHERE id = $1 AND is_active = true`, reservation.ResourceID).Scan(&mode); err != nil {
+	// ------------------------------------------------------------
+	// Recurso.
+	// ------------------------------------------------------------
+	//
+	// reservation_mode determina el comportamiento de la reserva.
+	// capacity se utiliza como límite y snapshot para reservas grupales.
+
+	var (
+		mode     string
+		capacity sql.NullInt64
+	)
+
+	err = tx.QueryRowContext(
+		ctx,
+		`
+		SELECT
+			reservation_mode,
+			capacity
+		FROM resources
+		WHERE id = $1
+		  AND is_active = true
+		`,
+		reservation.ResourceID,
+	).Scan(
+		&mode,
+		&capacity,
+	)
+
+	if err != nil {
 		return models.Reservation{}, err
 	}
+
+	// ------------------------------------------------------------
+	// Restricción de frecuencia.
+	// ------------------------------------------------------------
+	//
+	// Solo las reservas de recursos RESERVABLE consumen la frecuencia
+	// configurada por la política.
+	//
+	// Los recursos OPEN_USE pueden utilizarse sin bloquear al usuario
+	// para futuras solicitudes de cancha.
+
 	if mode == "RESERVABLE" {
-		var previousCreatedAt time.Time
-		var frequencyDays int
-		err := tx.QueryRowContext(ctx, `
-			SELECT r.created_at, p.request_frequency_days
+
+		var (
+			previousCreatedAt time.Time
+			frequencyDays     int
+		)
+
+		err := tx.QueryRowContext(
+			ctx,
+			`
+			SELECT
+				r.created_at,
+				p.request_frequency_days
 			FROM reservations r
-			INNER JOIN reservation_policies p ON p.id = r.policy_id
-			WHERE r.user_id = $1 AND r.status IN ('PENDING', 'CONFIRMED')
+			INNER JOIN reservation_policies p
+				ON p.id = r.policy_id
+			WHERE r.user_id = $1
+			  AND r.status IN ('PENDING', 'CONFIRMED')
 			  AND r.reservation_mode_snapshot = 'RESERVABLE'
-			ORDER BY ((r.created_at AT TIME ZONE 'America/Santiago')::date + p.request_frequency_days) DESC, r.id DESC
-			LIMIT 1`, reservation.UserID).Scan(&previousCreatedAt, &frequencyDays)
-		if err != nil && !errors.Is(err, sql.ErrNoRows) {
+			ORDER BY
+				(
+					(r.created_at AT TIME ZONE 'America/Santiago')::date
+					+ p.request_frequency_days
+				) DESC,
+				r.id DESC
+			LIMIT 1
+			`,
+			reservation.UserID,
+		).Scan(
+			&previousCreatedAt,
+			&frequencyDays,
+		)
+
+		if err != nil &&
+			!errors.Is(err, sql.ErrNoRows) {
 			return models.Reservation{}, err
 		}
+
 		if err == nil {
-			nextDate := time.Date(previousCreatedAt.In(businessclock.Location()).Year(), previousCreatedAt.In(businessclock.Location()).Month(), previousCreatedAt.In(businessclock.Location()).Day(), 0, 0, 0, 0, businessclock.Location()).AddDate(0, 0, frequencyDays)
+
+			localCreated :=
+				previousCreatedAt.In(
+					businessclock.Location(),
+				)
+
+			// La frecuencia se calcula por fecha calendario local y no
+			// mediante una simple diferencia de horas.
+			nextDate := time.Date(
+				localCreated.Year(),
+				localCreated.Month(),
+				localCreated.Day(),
+				0,
+				0,
+				0,
+				0,
+				businessclock.Location(),
+			).AddDate(
+				0,
+				0,
+				frequencyDays,
+			)
+
 			now := businessclock.Now()
-			today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, businessclock.Location())
+
+			today := time.Date(
+				now.Year(),
+				now.Month(),
+				now.Day(),
+				0,
+				0,
+				0,
+				0,
+				businessclock.Location(),
+			)
+
 			if today.Before(nextDate) {
-				return models.Reservation{}, RequestFrequencyError{NextDate: nextDate}
+				return models.Reservation{},
+					RequestFrequencyError{
+						NextDate: nextDate,
+					}
 			}
 		}
 	}
 
-	var id int
-	err = tx.QueryRowContext(ctx, `
-		INSERT INTO reservations (policy_id, user_id, resource_id, activity_id, start_time, duration_minutes, status)
-		VALUES ($1, $2, $3, $4, $5, $6, $7)
-		RETURNING id`, policy.ID, reservation.UserID, reservation.ResourceID,
-		reservation.ActivityID, reservation.StartTime, reservation.DurationMinutes, reservation.Status).Scan(&id)
+	// ------------------------------------------------------------
+	// Determinación del flujo grupal.
+	// ------------------------------------------------------------
+	//
+	// No se utilizan IDs de recursos hardcodeados.
+	//
+	// Qué recursos requieren participantes pertenece a la política
+	// versionada mediante reservation_policy_group_resources. De esta
+	// forma la configuración puede cambiar sin modificar código Go.
+
+	var isGroupReservation bool
+
+	err = tx.QueryRowContext(
+		ctx,
+		`
+		SELECT EXISTS (
+			SELECT 1
+			FROM reservation_policy_group_resources
+			WHERE policy_id = $1
+			  AND resource_id = $2
+		)
+		`,
+		policy.ID,
+		reservation.ResourceID,
+	).Scan(&isGroupReservation)
+
 	if err != nil {
 		return models.Reservation{}, err
 	}
-	created, err := getReservationByID(ctx, tx, id)
+
+	// ------------------------------------------------------------
+	// Reserva no grupal.
+	// ------------------------------------------------------------
+	//
+	// Mantiene el comportamiento tradicional del MVP1 para recursos
+	// que no requieren conformar un grupo de participantes.
+
+	if !isGroupReservation {
+
+		var id int
+
+		err = tx.QueryRowContext(
+			ctx,
+			`
+			INSERT INTO reservations (
+				policy_id,
+				user_id,
+				resource_id,
+				activity_id,
+				start_time,
+				duration_minutes,
+				status
+			)
+			VALUES (
+				$1,
+				$2,
+				$3,
+				$4,
+				$5,
+				$6,
+				$7
+			)
+			RETURNING id
+			`,
+			policy.ID,
+			reservation.UserID,
+			reservation.ResourceID,
+			reservation.ActivityID,
+			reservation.StartTime,
+			reservation.DurationMinutes,
+			reservation.Status,
+		).Scan(&id)
+
+		if err != nil {
+			return models.Reservation{}, err
+		}
+
+		created, err :=
+			getReservationByID(
+				ctx,
+				tx,
+				id,
+			)
+
+		if err != nil {
+			return models.Reservation{}, err
+		}
+
+		if err := tx.Commit(); err != nil {
+			return models.Reservation{}, err
+		}
+
+		return created, nil
+	}
+
+	// ------------------------------------------------------------
+	// Reserva grupal.
+	// ------------------------------------------------------------
+	//
+	// Una reserva grupal necesita una capacidad válida porque esta
+	// determina tanto el máximo de participantes como el snapshot que
+	// conservará la reserva aunque la capacidad del recurso cambie después.
+
+	if !capacity.Valid ||
+		capacity.Int64 <= 0 {
+
+		return models.Reservation{},
+			ErrInvalidGroupConfig
+	}
+
+	// El mínimo nunca puede ser cero, negativo ni superar la capacidad
+	// disponible del recurso.
+	if policy.MinimumParticipants <= 0 ||
+		policy.MinimumParticipants >
+			int(capacity.Int64) {
+
+		return models.Reservation{},
+			ErrInvalidGroupConfig
+	}
+
+	// Se genera un código aleatorio que podrán utilizar otros usuarios
+	// para incorporarse al grupo.
+	//
+	// El código original no se almacena; solo su hash SHA-256.
+	joinCode, err := generateJoinCode()
 	if err != nil {
 		return models.Reservation{}, err
 	}
+
+	// Una reserva grupal comienza pendiente mientras debe reunir
+	// participantes suficientes para alcanzar minimum_participants.
+	initialStatus :=
+		models.ReservationStatusPending
+
+	// Se mantiene la lógica genérica por si una futura política define
+	// un grupo cuyo mínimo sea un único participante.
+	if policy.MinimumParticipants <= 1 {
+		initialStatus =
+			models.ReservationStatusConfirmed
+	}
+
+	var reservationID int
+
+	// group_capacity_snapshot conserva la capacidad existente al momento
+	// de crear la reserva. Cambios futuros en resources.capacity no alteran
+	// el límite histórico de esta reserva.
+	err = tx.QueryRowContext(
+		ctx,
+		`
+		INSERT INTO reservations (
+			policy_id,
+			user_id,
+			resource_id,
+			activity_id,
+			start_time,
+			duration_minutes,
+			status,
+			join_code_hash,
+			group_capacity_snapshot
+		)
+		VALUES (
+			$1,
+			$2,
+			$3,
+			$4,
+			$5,
+			$6,
+			$7,
+			$8,
+			$9
+		)
+		RETURNING id
+		`,
+		policy.ID,
+		reservation.UserID,
+		reservation.ResourceID,
+		reservation.ActivityID,
+		reservation.StartTime,
+		reservation.DurationMinutes,
+		initialStatus,
+		codeHash(joinCode),
+		int(capacity.Int64),
+	).Scan(&reservationID)
+
+	if err != nil {
+		return models.Reservation{}, err
+	}
+
+	// ------------------------------------------------------------
+	// Owner del grupo.
+	// ------------------------------------------------------------
+	//
+	// El usuario que crea la reserva se incorpora automáticamente como
+	// primer participante confirmado y se identifica como owner.
+	//
+	// El owner no podrá retirarse mediante el flujo normal de participantes;
+	// deberá cancelar la reserva completa si desea abandonarla.
+	_, err = tx.ExecContext(
+		ctx,
+		`
+		INSERT INTO participants (
+			reservation_id,
+			user_id,
+			status,
+			is_owner,
+			confirmed_at
+		)
+		VALUES (
+			$1,
+			$2,
+			'CONFIRMED',
+			true,
+			CURRENT_TIMESTAMP
+		)
+		`,
+		reservationID,
+		reservation.UserID,
+	)
+
+	if err != nil {
+		return models.Reservation{}, err
+	}
+
+	// ------------------------------------------------------------
+	// Respuesta de creación.
+	// ------------------------------------------------------------
+
+	created, err :=
+		getReservationByID(
+			ctx,
+			tx,
+			reservationID,
+		)
+
+	if err != nil {
+		return models.Reservation{}, err
+	}
+
+	capacityValue := int(capacity.Int64)
+
+	// El join code solo se adjunta a esta respuesta.
+	// Consultas posteriores no pueden reconstruirlo desde su hash.
+	created.JoinCode = joinCode
+
+	created.IsGroupReservation = true
+	created.ParticipantCount = 1
+	created.MinimumParticipants =
+		policy.MinimumParticipants
+	created.Capacity = &capacityValue
+
+	// La condición grupal es independiente de reservation.status.
+	//
+	// Ejemplo inicial con mínimo 10:
+	//
+	//     reservation.status = PENDING
+	//     participantes      = 1
+	//     groupCondition     = PENDING_MINIMUM
+	created.GroupCondition =
+		participantGroupCondition(
+			initialStatus,
+			1,
+			policy.MinimumParticipants,
+		)
+
+	// Ninguna parte de la reserva queda persistida hasta que todas
+	// las operaciones anteriores han finalizado correctamente.
 	if err := tx.Commit(); err != nil {
 		return models.Reservation{}, err
 	}
+
 	return created, nil
 }
 

@@ -2,10 +2,12 @@ package repositories
 
 import (
 	"context"
+	"crypto/rand"
 	"crypto/sha256"
 	"database/sql"
 	"encoding/hex"
 	"errors"
+	"math/big"
 	"strings"
 	"time"
 
@@ -45,6 +47,38 @@ func codeHash(code string) string {
 	)
 
 	return hex.EncodeToString(sum[:])
+}
+
+// generateJoinCode crea un código de unión aleatorio y legible para reservas grupales.
+//
+// Se excluyen caracteres visualmente ambiguos como I, O, 0 y 1 para reducir
+// errores al copiar o ingresar el código manualmente.
+//
+// El código se genera usando crypto/rand y se entrega con el formato:
+//
+//	ABCDE-FGHIJ
+//
+// El código original solo se devuelve al usuario al crear la reserva.
+// PostgreSQL almacena únicamente su hash SHA-256 mediante codeHash().
+func generateJoinCode() (string, error) {
+	const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+	const length = 10
+
+	code := make([]byte, length)
+	max := big.NewInt(int64(len(alphabet)))
+
+	for i := range code {
+		value, err := rand.Int(rand.Reader, max)
+		if err != nil {
+			return "", err
+		}
+
+		code[i] = alphabet[value.Int64()]
+	}
+
+	// Más fácil de leer/copiar:
+	// ABCDE-FGHIJ
+	return string(code[:5]) + "-" + string(code[5:]), nil
 }
 
 // GetReservationProgress devuelve el estado actual de una reserva grupal.
