@@ -11,6 +11,7 @@ import {
   RotateCw,
   Timer,
   UserRound,
+  UsersRound,
   XCircle
 } from 'lucide-vue-next'
 import ParticipantsProgress from '@/components/ui/ParticipantsProgress.vue'
@@ -24,7 +25,9 @@ import {
   getReservationDisplayStatus,
   isReservationCancelable
 } from '@/utils/reservationTime'
-
+const participants = ref([])
+const participantsLoading = ref(false)
+const participantsError = ref('')
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
@@ -40,9 +43,13 @@ const reservationId = computed(() => {
 
 onMounted(async () => {
   await authStore.loadAuthUser()
-  await reservationsStore.fetchReservationDetail(reservationId.value)
-})
 
+  await reservationsStore.fetchReservationDetail(
+    reservationId.value
+  )
+
+  await loadParticipants()
+})
 const reservation = computed(() => {
   return reservationsStore.reservationDetail
 })
@@ -70,7 +77,11 @@ const statusClass = computed(() => {
 const isGroupReservation = computed(() => {
   return reservation.value?.isGroupReservation === true
 })
-
+const activeParticipants = computed(() => {
+  return participants.value.filter(
+    participant => participant.status === 'CONFIRMED'
+  )
+})
 const canManageGroup = computed(() => {
   if (!reservation.value || !authStore.user) {
     return false
@@ -81,7 +92,38 @@ const canManageGroup = computed(() => {
     reservation.value.userId === authStore.user.id
   )
 })
+// ------------------------------------------------------------
+// Participantes de la reserva grupal.
+// ------------------------------------------------------------
+//
+// La lista completa solo se solicita cuando el usuario tiene permisos
+// de gestión sobre la reserva. El backend vuelve a validar owner/admin,
+// por lo que esta condición frontend es únicamente una mejora de UX.
+const loadParticipants = async () => {
+  if (
+    !reservation.value ||
+    !isGroupReservation.value ||
+    !canManageGroup.value
+  ) {
+    return
+  }
 
+  participantsLoading.value = true
+  participantsError.value = ''
+
+  try {
+    participants.value =
+      await reservationsService.getParticipants(
+        reservation.value.id
+      )
+  } catch (error) {
+    participantsError.value =
+      error?.response?.data?.error ||
+      'No fue posible cargar los participantes'
+  } finally {
+    participantsLoading.value = false
+  }
+}
 const reservationUserName = computed(() => {
   if (authStore.user?.isAdmin) {
     return (
@@ -368,7 +410,76 @@ const goBack = () => {
     :status="reservation.status"
     :group-condition="reservation.groupCondition"
   />
+<section
+  v-if="canManageGroup"
+  class="participants-panel"
+>
+  <div class="participants-header">
+    <div>
+      <h3>Participantes</h3>
 
+      <p>
+        {{ activeParticipants.length }}
+        participantes confirmados
+      </p>
+    </div>
+
+    <UsersRound :size="22" />
+  </div>
+
+  <div
+    v-if="participantsLoading"
+    class="participants-state"
+  >
+    Cargando participantes...
+  </div>
+
+  <div
+    v-else-if="participantsError"
+    class="state-card error"
+  >
+    {{ participantsError }}
+  </div>
+
+  <div
+    v-else-if="activeParticipants.length === 0"
+    class="participants-state"
+  >
+    No hay participantes confirmados.
+  </div>
+
+  <div
+    v-else
+    class="participants-list"
+  >
+    <article
+      v-for="participant in activeParticipants"
+      :key="participant.userId"
+      class="participant-item"
+    >
+      <div>
+        <strong>
+          {{ participant.fullName || participant.email }}
+        </strong>
+
+        <span>
+          {{ participant.email }}
+        </span>
+
+        <small v-if="participant.rut">
+          {{ participant.rut }}
+        </small>
+      </div>
+
+      <span
+        v-if="participant.isOwner"
+        class="owner-badge"
+      >
+        Responsable
+      </span>
+    </article>
+  </div>
+</section>
   <div
     v-if="groupActionError"
     class="state-card error"
@@ -451,7 +562,100 @@ const goBack = () => {
 
   gap: 18px;
 }
+.participants-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
 
+  padding-top: 16px;
+
+  border-top: 1px solid var(--color-border);
+}
+
+.participants-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+
+  gap: 16px;
+}
+
+.participants-header h3 {
+  margin: 0;
+
+  color: var(--color-text);
+
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.participants-header p {
+  margin: 5px 0 0;
+
+  color: var(--color-text-muted);
+
+  font-size: 13px;
+}
+
+.participants-header svg {
+  color: var(--color-primary);
+}
+
+.participants-list {
+  display: flex;
+  flex-direction: column;
+
+  gap: 10px;
+}
+
+.participant-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 14px;
+
+  padding: 12px 14px;
+
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+
+  background: #f8fafc;
+}
+
+.participant-item div {
+  display: flex;
+  flex-direction: column;
+
+  gap: 3px;
+}
+
+.participant-item strong {
+  color: var(--color-text);
+}
+
+.participant-item span,
+.participant-item small,
+.participants-state {
+  color: var(--color-text-muted);
+
+  font-size: 13px;
+}
+
+.owner-badge {
+  flex-shrink: 0;
+
+  padding: 5px 9px;
+
+  border-radius: var(--radius-pill);
+
+  background: #dbeafe;
+
+  color: #1d4ed8 !important;
+
+  font-size: 12px !important;
+  font-weight: 750;
+}
 .back-button,
 .cancel-button {
   border: none;
@@ -796,7 +1000,10 @@ const goBack = () => {
     align-items: stretch;
     flex-direction: column;
   }
-
+  .participant-item {
+    align-items: flex-start;
+    flex-direction: column;
+  }
   .rotate-code-button,
   .copy-code-button {
     width: 100%;
