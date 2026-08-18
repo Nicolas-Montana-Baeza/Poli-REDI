@@ -11,19 +11,48 @@ test('usa MVP1 como alcance seguro por defecto', () => {
   assert.equal(resolveMvpScope('unexpected'), 'mvp1')
 })
 
-test('solo habilita el alcance completo de forma explicita', () => {
+test('reconoce MVP2 de forma explicita', () => {
+  assert.equal(resolveMvpScope('mvp2'), 'mvp2')
+  assert.equal(resolveMvpScope(' MVP2 '), 'mvp2')
+})
+
+test('reconoce FULL de forma explicita', () => {
   assert.equal(resolveMvpScope('full'), 'full')
   assert.equal(resolveMvpScope(' FULL '), 'full')
 })
 
-test('MVP1 no habilita autenticacion online ni llamadas posteriores', () => {
+test('MVP1 mantiene deshabilitadas las funciones posteriores', () => {
   assert.deepEqual(getFeaturesForScope('mvp1'), {
+    groupReservations: false,
     onlineAuth: false,
     notifications: false,
     workshops: false,
-    groupReservations: false,
     resourceAdministration: false,
     policyAdministration: false,
     reports: false
+  })
+})
+
+test('MVP2 habilita solo las reservas grupales', () => {
+  assert.deepEqual(getFeaturesForScope('mvp2'), {
+    groupReservations: true,
+    onlineAuth: false,
+    notifications: false,
+    workshops: false,
+    resourceAdministration: false,
+    policyAdministration: false,
+    reports: false
+  })
+})
+
+test('FULL habilita todas las funcionalidades', () => {
+  assert.deepEqual(getFeaturesForScope('full'), {
+    groupReservations: true,
+    onlineAuth: true,
+    notifications: true,
+    workshops: true,
+    resourceAdministration: true,
+    policyAdministration: true,
+    reports: true
   })
 })

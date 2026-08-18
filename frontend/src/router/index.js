@@ -71,6 +71,18 @@ const routes = [
 
 const fallbackIndex = routes.length - 1
 
+// Las reservas grupales pertenecen al alcance incremental de MVP2.
+//
+// La ruta se registra únicamente cuando el frontend está ejecutándose
+// con MVP2 o FULL, manteniendo MVP1 sin superficies todavía no habilitadas.
+if (mvpFeatures.groupReservations) {
+  routes.splice(routes.length - 1, 0, {
+    path: '/reservations/join',
+    component: () => import('../views/JoinReservationView.vue'),
+    meta: { requiresAuth: true }
+  })
+}
+
 if (mvpFeatures.workshops) {
   routes.splice(fallbackIndex, 0, {
     path: '/workshops',

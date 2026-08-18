@@ -1,4 +1,11 @@
-import { isMvp1Scope } from '@/config/appScope'
+import { mvpFeatures } from '@/config/appScope'
+
+// La estrategia de autenticación debe depender de la funcionalidad
+// onlineAuth y no del número de MVP.
+//
+// MVP1 y MVP2 continúan utilizando autenticación local durante el
+// desarrollo. Microsoft Entra se habilitará únicamente en FULL.
+const usesOnlineAuth = () => mvpFeatures.onlineAuth === true
 
 const DEV_ACCOUNT_KEY = 'poli_redi_dev_account'
 const AUTH_PUBLIC_PATHS = [
@@ -10,7 +17,7 @@ let initPromise = null
 let msalModulePromise = null
 
 const getMsalModule = () => {
-  if (isMvp1Scope()) {
+  if (!usesOnlineAuth()) {
     return Promise.resolve(null)
   }
 
@@ -50,7 +57,7 @@ export function getSafeRedirectPath(value) {
 }
 
 export function isDevAuthEnabled() {
-  return isMvp1Scope() ||
+  return !usesOnlineAuth() ||
     import.meta.env.DEV ||
     import.meta.env.VITE_DEV_AUTH_ENABLED === 'true'
 }
@@ -96,7 +103,7 @@ export function getDevAuthHeaders() {
 export async function initializeAuth() {
   const devAccount = getDevAccount()
 
-  if (devAccount || isMvp1Scope()) {
+  if (devAccount || !usesOnlineAuth()) {
     return devAccount
   }
 
@@ -137,7 +144,7 @@ export async function initializeAuth() {
 }
 
 export async function login(redirectPath = '/') {
-  if (isMvp1Scope()) {
+  if (!usesOnlineAuth()) {
     throw new Error('El MVP1 local utiliza acceso de prueba, no Microsoft Entra.')
   }
 
@@ -201,7 +208,7 @@ export async function logout() {
     return null
   }
 
-  if (isMvp1Scope()) {
+  if (!usesOnlineAuth()) {
     return null
   }
 
@@ -225,7 +232,7 @@ export async function getCurrentAccount() {
     return devAccount
   }
 
-  if (isMvp1Scope()) {
+  if (!usesOnlineAuth()) {
     return null
   }
 
@@ -240,7 +247,7 @@ export async function isAuthenticated() {
 }
 
 export async function getAccessToken() {
-  if (getDevAccount() || isMvp1Scope()) {
+  if (getDevAccount() || !usesOnlineAuth()) {
     return ''
   }
 

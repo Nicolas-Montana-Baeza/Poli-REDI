@@ -1,7 +1,20 @@
 export const resolveMvpScope = (value) => {
-  return String(value || '').trim().toLowerCase() === 'full'
-    ? 'full'
-    : 'mvp1'
+  const scope = String(value || '').trim().toLowerCase()
+
+  switch (scope) {
+    case 'mvp2':
+      return 'mvp2'
+
+    case 'full':
+      return 'full'
+
+    default:
+      // El alcance por defecto se mantiene deliberadamente en MVP1.
+      //
+      // Esto evita habilitar funcionalidades nuevas por un error de
+      // configuración o por una variable de entorno desconocida.
+      return 'mvp1'
+  }
 }
 
 export const MVP_SCOPE = resolveMvpScope(
@@ -9,14 +22,38 @@ export const MVP_SCOPE = resolveMvpScope(
 )
 
 export const isMvp1Scope = () => MVP_SCOPE === 'mvp1'
+export const isMvp2Scope = () => MVP_SCOPE === 'mvp2'
+export const isFullScope = () => MVP_SCOPE === 'full'
 
 export const getFeaturesForScope = (scope) => {
-  const full = resolveMvpScope(scope) === 'full'
+  const resolvedScope = resolveMvpScope(scope)
+
+  const hasMvp2 = (
+    resolvedScope === 'mvp2' ||
+    resolvedScope === 'full'
+  )
+
+  const full = resolvedScope === 'full'
+
   return {
+    // ----------------------------------------------------------
+    // MVP2
+    // ----------------------------------------------------------
+    //
+    // Las reservas grupales ya fueron migradas y validadas sobre
+    // PostgreSQL, por lo que pueden habilitarse tanto en MVP2 como
+    // en FULL.
+    groupReservations: hasMvp2,
+
+    // ----------------------------------------------------------
+    // FULL / legacy
+    // ----------------------------------------------------------
+    //
+    // Estas funcionalidades todavía no forman parte del alcance
+    // incremental de MVP2.
     onlineAuth: full,
     notifications: full,
     workshops: full,
-    groupReservations: full,
     resourceAdministration: full,
     policyAdministration: full,
     reports: full
