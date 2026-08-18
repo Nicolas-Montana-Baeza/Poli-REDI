@@ -94,5 +94,18 @@ export const reservationsService = {
     )
 
     return response.data
+  },
+
+// Rota el código de invitación de una reserva grupal.
+//
+// El backend autoriza únicamente al owner o administrador.
+// El código anterior queda invalidado y el nuevo código solo se
+// entrega en esta respuesta.
+  async rotateJoinCode(reservationId) {
+    const response = await api.post(
+      `/reservations/${reservationId}/join-code`
+    )
+
+    return response.data
   }
 }

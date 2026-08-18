@@ -6,11 +6,15 @@ import {
   ArrowLeft,
   CalendarDays,
   Clock,
+  Copy,
+  KeyRound,
+  RotateCw,
   Timer,
   UserRound,
   XCircle
 } from 'lucide-vue-next'
-
+import ParticipantsProgress from '@/components/ui/ParticipantsProgress.vue'
+import {reservationsService} from '@/services/reservations.service'
 import SkeletonLoader from '@/components/ui/SkeletonLoader.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useReservationsStore } from '@/stores/reservations'
@@ -26,7 +30,10 @@ const router = useRouter()
 const authStore = useAuthStore()
 const reservationsStore = useReservationsStore()
 const cancelling = ref(false)
-
+const rotatingJoinCode = ref(false)
+const joinCode = ref('')
+const joinCodeCopied = ref(false)
+const groupActionError = ref('')
 const reservationId = computed(() => {
   return Number(route.params.id)
 })
@@ -58,6 +65,21 @@ const statusLabel = computed(() => {
 
 const statusClass = computed(() => {
   return getReservationDisplayStatus(reservation.value).className
+})
+
+const isGroupReservation = computed(() => {
+  return reservation.value?.isGroupReservation === true
+})
+
+const canManageGroup = computed(() => {
+  if (!reservation.value || !authStore.user) {
+    return false
+  }
+
+  return (
+    authStore.user.isAdmin ||
+    reservation.value.userId === authStore.user.id
+  )
 })
 
 const reservationUserName = computed(() => {
@@ -111,6 +133,51 @@ const cancelReservation = async () => {
     // El store conserva el mensaje de error para la vista.
   } finally {
     cancelling.value = false
+  }
+}
+
+// ------------------------------------------------------------
+// Gestión del código de invitación grupal.
+// ------------------------------------------------------------
+//
+// El código solo vive temporalmente en memoria después de rotarlo.
+// No se recupera desde backend ni se persiste en localStorage.
+const rotateJoinCode = async () => {
+  if (!reservation.value || rotatingJoinCode.value) {
+    return
+  }
+
+  rotatingJoinCode.value = true
+  groupActionError.value = ''
+  joinCode.value = ''
+  joinCodeCopied.value = false
+
+  try {
+    const result = await reservationsService.rotateJoinCode(
+      reservation.value.id
+    )
+
+    joinCode.value = result.joinCode || ''
+  } catch (error) {
+    groupActionError.value =
+      error?.response?.data?.error ||
+      'No fue posible generar un nuevo código'
+  } finally {
+    rotatingJoinCode.value = false
+  }
+}
+
+const copyJoinCode = async () => {
+  if (!joinCode.value) {
+    return
+  }
+
+  try {
+    await navigator.clipboard.writeText(joinCode.value)
+    joinCodeCopied.value = true
+  } catch {
+    groupActionError.value =
+      'No fue posible copiar el código al portapapeles'
   }
 }
 
@@ -279,7 +346,97 @@ const goBack = () => {
         </article>
 
       </section>
+     <section
+  v-if="isGroupReservation"
+  class="group-panel"
+>
+  <div class="group-header">
+    <div>
+      <h2>Reserva grupal</h2>
+      <p>
+        Seguimiento del mínimo requerido y gestión del código de invitación.
+      </p>
+    </div>
 
+    <KeyRound :size="22" />
+  </div>
+
+  <ParticipantsProgress
+    :participant-count="reservation.participantCount"
+    :minimum-participants="reservation.minimumParticipants"
+    :capacity="reservation.capacity"
+    :status="reservation.status"
+    :group-condition="reservation.groupCondition"
+  />
+
+  <div
+    v-if="groupActionError"
+    class="state-card error"
+  >
+    {{ groupActionError }}
+  </div>
+
+  <div
+    v-if="canManageGroup"
+    class="group-actions"
+  >
+    <div>
+      <strong>Código de invitación</strong>
+
+      <p>
+        Por seguridad, el código actual no puede recuperarse.
+        Puedes generar uno nuevo cuando lo necesites.
+      </p>
+    </div>
+
+    <button
+      class="rotate-code-button"
+      type="button"
+      :disabled="rotatingJoinCode"
+      @click="rotateJoinCode"
+    >
+      <RotateCw
+        :size="18"
+        :class="{ spinning: rotatingJoinCode }"
+      />
+
+      {{ rotatingJoinCode
+        ? 'Generando...'
+        : 'Generar nuevo código'
+      }}
+    </button>
+  </div>
+
+  <div
+    v-if="joinCode"
+    class="join-code-result"
+  >
+    <div>
+      <span>Nuevo código</span>
+
+      <strong>
+        {{ joinCode }}
+      </strong>
+
+      <small>
+        Este código reemplaza al anterior.
+      </small>
+    </div>
+
+    <button
+      class="copy-code-button"
+      type="button"
+      @click="copyJoinCode"
+    >
+      <Copy :size="18" />
+
+      {{ joinCodeCopied
+        ? 'Copiado'
+        : 'Copiar'
+      }}
+    </button>
+  </div>
+</section>
     </section>
 
   </main>
@@ -493,8 +650,157 @@ const goBack = () => {
 
   overflow-wrap: anywhere;
 }
+.group-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
 
+  padding: var(--space-4);
+
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+
+  background: var(--color-surface);
+}
+
+.group-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+
+  gap: 16px;
+}
+
+.group-header h2 {
+  margin: 0;
+
+  color: var(--color-text);
+
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.group-header p,
+.group-actions p {
+  margin: 6px 0 0;
+
+  color: var(--color-text-muted);
+
+  font-size: 14px;
+}
+
+.group-header svg {
+  color: var(--color-primary);
+}
+
+.group-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 16px;
+
+  padding-top: 16px;
+
+  border-top: 1px solid var(--color-border);
+}
+
+.group-actions strong {
+  color: var(--color-text);
+}
+
+.rotate-code-button,
+.copy-code-button {
+  border: none;
+  border-radius: var(--radius-md);
+
+  cursor: pointer;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+
+  padding: 10px 14px;
+
+  font-weight: 750;
+}
+
+.rotate-code-button {
+  background: var(--color-primary);
+
+  color: white;
+}
+
+.rotate-code-button:disabled {
+  cursor: not-allowed;
+
+  opacity: 0.65;
+}
+
+.copy-code-button {
+  background: #e2e8f0;
+
+  color: #334155;
+}
+
+.join-code-result {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 16px;
+
+  padding: var(--space-4);
+
+  border: 1px solid #bfdbfe;
+  border-radius: var(--radius-md);
+
+  background: #eff6ff;
+}
+
+.join-code-result div {
+  display: flex;
+  flex-direction: column;
+
+  gap: 5px;
+}
+
+.join-code-result span,
+.join-code-result small {
+  color: #475569;
+
+  font-size: 13px;
+}
+
+.join-code-result strong {
+  color: #1d4ed8;
+
+  font-family: monospace;
+  font-size: 20px;
+  letter-spacing: 1px;
+}
+
+.spinning {
+  animation: group-code-spin 0.8s linear infinite;
+}
+
+@keyframes group-code-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
 @media (max-width: 768px) {
+  .group-actions,
+  .join-code-result {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .rotate-code-button,
+  .copy-code-button {
+    width: 100%;
+  }
   .detail-header {
     flex-direction: column;
   }

@@ -34,12 +34,34 @@ const reservationColumns = `
 	res.name AS resource_name,
 	COALESCE(u.full_name, '') AS user_full_name,
 	COALESCE(u.email, '') AS user_email,
-	COALESCE(u.rut, '') AS user_rut`
+	COALESCE(u.rut, '') AS user_rut,
+
+	-- ------------------------------------------------------------
+	-- Estado grupal MVP2.
+	-- ------------------------------------------------------------
+	--
+	-- group_capacity_snapshot identifica una reserva grupal y conserva
+	-- la capacidad vigente al momento de su creación.
+	r.group_capacity_snapshot,
+
+	-- El mínimo se obtiene desde la versión exacta de política asociada
+	-- a la reserva, no desde la política publicada actualmente.
+	COALESCE(p.minimum_participants, 0),
+
+	-- Solo las participaciones CONFIRMED forman parte del grupo activo.
+	COALESCE((
+		SELECT COUNT(*)
+		FROM participants rp
+		WHERE rp.reservation_id = r.id
+		  AND rp.status = 'CONFIRMED'
+	), 0)
+`
 
 const reservationJoins = `
 	FROM reservations r
 	INNER JOIN resources res ON res.id = r.resource_id
 	INNER JOIN users u ON u.id = r.user_id
+	INNER JOIN reservation_policies p ON p.id = r.policy_id
 	LEFT JOIN activities a ON a.id = r.activity_id`
 
 type reservationScanner interface {
@@ -54,6 +76,9 @@ type reservationQueryer interface {
 func scanReservation(scanner reservationScanner) (models.Reservation, error) {
 	var reservation models.Reservation
 	var activityName, resourceName, userFullName, userEmail, userRUT string
+	var groupCapacity sql.NullInt64
+	var minimumParticipants int
+	var participantCount int
 	err := scanner.Scan(
 		&reservation.ID,
 		&reservation.PolicyID,
@@ -70,6 +95,9 @@ func scanReservation(scanner reservationScanner) (models.Reservation, error) {
 		&userFullName,
 		&userEmail,
 		&userRUT,
+		&groupCapacity,
+		&minimumParticipants,
+		&participantCount,
 	)
 	if err != nil {
 		return models.Reservation{}, err
@@ -85,6 +113,25 @@ func scanReservation(scanner reservationScanner) (models.Reservation, error) {
 	reservation.UserFullName = userFullName
 	reservation.UserEmail = userEmail
 	reservation.UserRUT = userRUT
+	// ------------------------------------------------------------
+	// Metadatos de reserva grupal MVP2.
+	// ------------------------------------------------------------
+	//
+	// Las reservas normales mantienen estos campos en sus valores cero,
+	// preservando el contrato de MVP1.
+	if groupCapacity.Valid {
+		capacity := int(groupCapacity.Int64)
+
+		reservation.IsGroupReservation = true
+		reservation.Capacity = &capacity
+		reservation.MinimumParticipants = minimumParticipants
+		reservation.ParticipantCount = participantCount
+		reservation.GroupCondition = participantGroupCondition(
+			reservation.Status,
+			participantCount,
+			minimumParticipants,
+		)
+	}
 	return reservation, nil
 }
 
