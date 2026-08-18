@@ -194,6 +194,8 @@ const canCancelSelectedReservation = computed(() => {
 const showReservationForm = ref(false)
 const isCreatingReservation = ref(false)
 const focusReservationId = ref(null)
+const createdJoinCode = ref('')
+const joinCodeCopied = ref(false)
 
 /* LOAD DATA */
 onMounted(async () => {
@@ -368,7 +370,19 @@ const submitReservation = async (reservation) => {
     }
 
     const createdReservation = await reservationsStore.createReservation(payload)
+// ------------------------------------------------------------
+// Código de invitación generado al crear una reserva grupal.
+// ------------------------------------------------------------
+//
+// El backend entrega el código en texto plano una sola vez.
+// Lo conservamos únicamente en memoria para permitir copiarlo
+// inmediatamente después de crear la reserva.
+createdJoinCode.value =
+  createdReservation?.isGroupReservation === true
+    ? createdReservation.joinCode || ''
+    : ''
 
+joinCodeCopied.value = false
     showReservationForm.value = false
     selectedSlot.value = null
     viewMode.value = 'resources'
@@ -575,6 +589,38 @@ const goToday = () => {
       >
         {{ reservationsStore.actionSuccess }}
       </div>
+      <div
+  v-if="createdJoinCode"
+  class="created-group-code"
+  role="status"
+  aria-live="polite"
+>
+  <div>
+    <strong>
+      Código de invitación
+    </strong>
+
+    <span>
+      {{ createdJoinCode }}
+    </span>
+
+    <small>
+      Compártelo con los participantes de tu reserva.
+      Por seguridad, este código no puede recuperarse después.
+    </small>
+  </div>
+
+  <button
+    type="button"
+    class="copy-created-code-button"
+    @click="copyCreatedJoinCode"
+  >
+    {{ joinCodeCopied
+      ? 'Copiado'
+      : 'Copiar código'
+    }}
+  </button>
+</div>
 
       <!-- ACTION ERROR -->
       <div
@@ -716,7 +762,63 @@ const goToday = () => {
 
   gap: 24px;
 }
+.created-group-code {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 
+  gap: 16px;
+
+  padding: var(--space-4);
+
+  border: 1px solid #bfdbfe;
+  border-radius: var(--radius-lg);
+
+  background: #eff6ff;
+}
+
+.created-group-code div {
+  display: flex;
+  flex-direction: column;
+
+  gap: 5px;
+}
+
+.created-group-code strong {
+  color: var(--color-text);
+}
+
+.created-group-code span {
+  color: #1d4ed8;
+
+  font-family: monospace;
+  font-size: 21px;
+  font-weight: 800;
+  letter-spacing: 1px;
+}
+
+.created-group-code small {
+  color: var(--color-text-muted);
+
+  font-size: 13px;
+}
+
+.copy-created-code-button {
+  flex-shrink: 0;
+
+  border: none;
+  border-radius: var(--radius-md);
+
+  cursor: pointer;
+
+  padding: 10px 14px;
+
+  background: var(--color-primary);
+
+  color: white;
+
+  font-weight: 750;
+}
 /* HEADER */
 .section-header h2 {
   margin: 0;
@@ -875,7 +977,14 @@ const goToday = () => {
   .availability-section {
     gap: 20px;
   }
+  .created-group-code {
+    align-items: stretch;
+    flex-direction: column;
+  }
 
+  .copy-created-code-button {
+    width: 100%;
+  }
   .section-header h2 {
     font-size: 24px;
   }
