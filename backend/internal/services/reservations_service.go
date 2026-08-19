@@ -52,10 +52,20 @@ func GetAvailabilityItems(from, to time.Time, userID int, isAdmin bool) ([]model
 		return nil, err
 	}
 
+	scheduledActivities, err :=
+		repositories.GetScheduledInstitutionalActivitiesForAvailability(
+			from,
+			to,
+		)
+
+	if err != nil {
+		return nil, err
+	}
+
 	items := make(
 		[]models.AvailabilityItem,
 		0,
-		len(reservations)+len(blocks),
+		len(reservations)+len(blocks)+len(scheduledActivities),
 	)
 
 	for _, reservation := range reservations {
@@ -94,7 +104,62 @@ func GetAvailabilityItems(from, to time.Time, userID int, isAdmin bool) ([]model
 			ActivityType:        block.BlockType,
 		})
 	}
+	// ========================================================================
+	// PROGRAMACIÓN INSTITUCIONAL
+	// ========================================================================
+	//
+	// Una actividad institucional aparece como ocupación del recurso, pero no
+	// como reserva perteneciente al usuario que la creó.
+	//
+	// Por eso UserID queda en cero: created_by representa trazabilidad
+	// administrativa, no propiedad personal de la ocupación.
 
+	for _, activity := range scheduledActivities {
+		duration := int(
+			activity.EndTime.
+				Sub(activity.StartTime).
+				Minutes(),
+		)
+
+		items = append(
+			items,
+			models.AvailabilityItem{
+				ID: activity.ID,
+
+				// Una actividad WEEKLY puede generar múltiples ocurrencias.
+				// El ID de actividad por sí solo no sería una clave única para
+				// el calendario.
+				AvailabilityKey: "scheduled-" +
+					strconv.Itoa(activity.ID) +
+					"-" +
+					strconv.FormatInt(
+						activity.StartTime.Unix(),
+						10,
+					),
+
+				ResourceID: activity.ResourceID,
+
+				StartTime: activity.StartTime,
+
+				DurationMinutes: duration,
+
+				Status: "CONFIRMED",
+
+				Hour: activity.StartTime.
+					Format("15:04"),
+
+				Title: activity.Title,
+
+				Type: "scheduled",
+
+				ResourceName: activity.ResourceName,
+
+				IsScheduledActivity: true,
+
+				ActivityType: activity.ActivityType,
+			},
+		)
+	}
 	sort.Slice(items, func(i, j int) bool {
 		return items[i].StartTime.Before(items[j].StartTime)
 	})
@@ -423,6 +488,8 @@ func mapDatabaseReservationError(err error) error {
 			return errors.New("la fecha esta fuera de la ventana reservable")
 		case "P1007":
 			return errors.New("el recurso esta bloqueado en ese horario")
+		case "P1011":
+			return errors.New("el recurso tiene programación institucional en ese horario")
 		case "P1008":
 			return errors.New("no existe una politica de reservas vigente")
 		case "23P01":
