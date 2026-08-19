@@ -1,4 +1,4 @@
-﻿<script setup>
+<script setup>
 import { computed, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import SidebarItem from './SidebarItem.vue'
@@ -12,6 +12,7 @@ import {
   Settings,
   Menu,
   ShieldCheck,
+  AlertTriangle,
   KeyRound,
   X
 } from 'lucide-vue-next'
@@ -113,6 +114,15 @@ if (mvpFeatures.groupReservations) {
         }
       ]
     })
+
+    if (mvpFeatures.schedulingConflictAdministration) {
+      sections.at(-1).items.push({
+        label: 'Conflictos de programación',
+        icon: AlertTriangle,
+        to: '/admin/scheduling-conflicts'
+      })
+    }
+
 
     if (mvpFeatures.resourceAdministration) {
       sections.at(-1).items.unshift({

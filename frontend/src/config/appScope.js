@@ -45,6 +45,10 @@ export const getFeaturesForScope = (scope) => {
     // en FULL.
     groupReservations: hasMvp2,
 
+    // La resolución administrativa de conflictos utiliza exclusivamente
+    // el backend institucional PostgreSQL y pertenece al alcance MVP2.
+    schedulingConflictAdministration: hasMvp2,
+
     // Los talleres institucionales ya fueron migrados al modelo
     // PostgreSQL de programación institucional y forman parte de MVP2.
     workshops: hasMvp2,

@@ -24,6 +24,7 @@ test('reconoce FULL de forma explicita', () => {
 test('MVP1 mantiene deshabilitadas las funciones posteriores', () => {
   assert.deepEqual(getFeaturesForScope('mvp1'), {
     groupReservations: false,
+    schedulingConflictAdministration: false,
     onlineAuth: false,
     notifications: false,
     workshops: false,
@@ -36,6 +37,7 @@ test('MVP1 mantiene deshabilitadas las funciones posteriores', () => {
 test('MVP2 habilita reservas grupales y workshops institucionales', () => {
   assert.deepEqual(getFeaturesForScope('mvp2'), {
     groupReservations: true,
+    schedulingConflictAdministration: true,
     onlineAuth: false,
     notifications: false,
     workshops: true,
@@ -48,6 +50,7 @@ test('MVP2 habilita reservas grupales y workshops institucionales', () => {
 test('FULL habilita todas las funcionalidades', () => {
   assert.deepEqual(getFeaturesForScope('full'), {
     groupReservations: true,
+    schedulingConflictAdministration: true,
     onlineAuth: true,
     notifications: true,
     workshops: true,

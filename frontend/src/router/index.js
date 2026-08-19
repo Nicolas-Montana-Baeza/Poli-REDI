@@ -91,6 +91,20 @@ if (mvpFeatures.workshops) {
   })
 }
 
+// La resolución de conflictos es una superficie administrativa MVP2.
+// El backend sigue siendo la autoridad sobre la validez del plan final.
+if (mvpFeatures.schedulingConflictAdministration) {
+  routes.splice(routes.length - 1, 0, {
+    path: '/admin/scheduling-conflicts',
+    component: () => import('../views/SchedulingConflictsView.vue'),
+    meta: {
+      requiresAuth: true,
+      requiresAdmin: true
+    }
+  })
+}
+
+
 if (mvpFeatures.resourceAdministration) {
   routes.splice(routes.length - 1, 0,
     {
