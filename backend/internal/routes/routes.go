@@ -135,6 +135,33 @@ func RegisterRoutes(app *fiber.App) {
 		)
 
 		// ------------------------------------------------------------
+		// Workshops institucionales
+		// ------------------------------------------------------------
+		//
+		// Los talleres utilizan institutional_activities y comparten la
+		// infraestructura de programación, disponibilidad y conflictos.
+
+		protected.Get(
+			"/workshops",
+			handlers.GetInstitutionalWorkshops,
+		)
+
+		protected.Get(
+			"/workshops/:id",
+			handlers.GetInstitutionalWorkshop,
+		)
+
+		protected.Post(
+			"/workshops/:id/enroll",
+			handlers.EnrollInInstitutionalWorkshop,
+		)
+
+		protected.Delete(
+			"/workshops/:id/enroll",
+			handlers.LeaveInstitutionalWorkshop,
+		)
+
+		// ------------------------------------------------------------
 		// Programación Institucional - Resolución Administrativa
 		// ------------------------------------------------------------
 		//
@@ -185,16 +212,6 @@ func RegisterRoutes(app *fiber.App) {
 	protected.Get(
 		"/notifications",
 		handlers.GetNotifications,
-	)
-
-	protected.Get(
-		"/workshops",
-		handlers.GetWorkshops,
-	)
-
-	protected.Post(
-		"/workshops/:id/enroll",
-		handlers.EnrollInWorkshop,
 	)
 
 	protected.Get(
