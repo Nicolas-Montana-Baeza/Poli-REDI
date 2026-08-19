@@ -96,6 +96,20 @@ if (mvpFeatures.workshops) {
 // Esta superficie requiere administrador en frontend y backend.
 // La autorización del navegador mejora UX, pero el backend continúa siendo
 // la autoridad definitiva.
+// Programación institucional accesible a administradores y MANAGER.
+//
+// No utilizamos requiresAdmin: la autorización real depende de la unidad
+// concreta y es validada nuevamente por el backend.
+if (mvpFeatures.institutionalActivityProgramming) {
+  routes.splice(routes.length - 1, 0, {
+    path: '/institutional-activities',
+    component: () => import('../views/InstitutionalActivitiesView.vue'),
+    meta: {
+      requiresAuth: true
+    }
+  })
+}
+
 if (mvpFeatures.institutionalUnitAdministration) {
   routes.splice(routes.length - 1, 0, {
     path: '/admin/institutional-units',

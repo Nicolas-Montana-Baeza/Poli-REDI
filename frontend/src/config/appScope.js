@@ -53,6 +53,10 @@ export const getFeaturesForScope = (scope) => {
     // flujo de programación institucional incorporado en MVP2.
     institutionalUnitAdministration: hasMvp2,
 
+    // La programación institucional puede ser utilizada tanto por
+    // administradores como por MANAGER de una unidad en MVP2.
+    institutionalActivityProgramming: hasMvp2,
+
     // Los talleres institucionales ya fueron migrados al modelo
     // PostgreSQL de programación institucional y forman parte de MVP2.
     workshops: hasMvp2,

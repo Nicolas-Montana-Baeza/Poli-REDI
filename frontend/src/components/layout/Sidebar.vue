@@ -103,6 +103,16 @@ if (mvpFeatures.groupReservations) {
     })
   }
 
+  // La programación institucional no es exclusiva del administrador:
+  // los MANAGER reciben sus unidades autorizadas desde el backend.
+  if (mvpFeatures.institutionalActivityProgramming) {
+    sections[0].items.splice(-1, 0, {
+      label: 'Programación institucional',
+      icon: Building2,
+      to: '/institutional-activities'
+    })
+  }
+
   if (authStore.user?.isAdmin === true) {
     sections.push({
       section: 'ADMINISTRACIÓN',
