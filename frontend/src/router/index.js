@@ -189,7 +189,13 @@ router.beforeEach(async (to) => {
     }
 
     const authStore = useAuthStore()
-    const user = await authStore.loadAuthUser()
+
+    // El callback de Entra precarga el usuario local antes de abandonar la
+    // pantalla de transición. En navegaciones posteriores reutilizamos ese
+    // estado y evitamos una segunda petición innecesaria a /api/me.
+    const user =
+      authStore.user ||
+      await authStore.loadAuthUser()
 
     if (!user && authStore.errorStatus === 403) {
       return { path: '/blocked' }
