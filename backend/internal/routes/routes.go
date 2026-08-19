@@ -162,6 +162,39 @@ func RegisterRoutes(app *fiber.App) {
 		)
 
 		// ------------------------------------------------------------
+		// Programación Institucional - Unidades y gestores
+		// ------------------------------------------------------------
+		//
+		// La autorización fina permanece en la capa de servicio:
+		//
+		//   - administradores globales pueden crear unidades y membresías;
+		//   - managers pueden consultar únicamente las unidades que gestionan
+		//     y sus membresías;
+		//   - MEMBER por sí solo no entrega permisos administrativos.
+
+		protected.Get(
+			"/institutional-units",
+			handlers.GetInstitutionalUnits,
+		)
+
+		protected.Post(
+			"/admin/institutional-units",
+			middleware.RequireAdmin(),
+			handlers.CreateInstitutionalUnit,
+		)
+
+		protected.Get(
+			"/institutional-units/:id/memberships",
+			handlers.GetInstitutionalUnitMemberships,
+		)
+
+		protected.Post(
+			"/admin/institutional-units/:id/memberships",
+			middleware.RequireAdmin(),
+			handlers.AddInstitutionalUnitMembership,
+		)
+
+		// ------------------------------------------------------------
 		// Programación Institucional - Resolución Administrativa
 		// ------------------------------------------------------------
 		//
