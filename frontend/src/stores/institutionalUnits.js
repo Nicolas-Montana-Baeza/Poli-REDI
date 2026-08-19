@@ -36,8 +36,15 @@ export const useInstitutionalUnitsStore = defineStore(
   {
     state: () => ({
       units: [],
+
+      // Las membresías se mantienen separadas por unidad para no mezclar
+      // relaciones institucionales al navegar entre distintas estructuras.
+      membershipsByUnit: {},
+
       loading: false,
       creating: false,
+      loadingMemberships: false,
+      assigningMembership: false,
       error: null
     }),
 
@@ -76,6 +83,98 @@ export const useInstitutionalUnitsStore = defineStore(
           throw new Error(this.error)
         } finally {
           this.loading = false
+        }
+      },
+
+      async loadMemberships(unitId) {
+        this.loadingMemberships = true
+        this.error = null
+
+        try {
+          const memberships =
+            await institutionalUnitsService.getMemberships(
+              unitId
+            )
+
+          this.membershipsByUnit[unitId] =
+            Array.isArray(memberships)
+              ? memberships
+              : []
+
+          return this.membershipsByUnit[unitId]
+        } catch (error) {
+          this.error = getFriendlyError(
+            error,
+            'No se pudieron cargar los miembros de la unidad.'
+          )
+
+          throw new Error(this.error)
+        } finally {
+          this.loadingMemberships = false
+        }
+      },
+
+      async addMembership(
+        unitId,
+        payload
+      ) {
+        this.assigningMembership = true
+        this.error = null
+
+        try {
+          const membership =
+            await institutionalUnitsService.addMembership(
+              unitId,
+              payload
+            )
+
+          const current = [
+            ...(this.membershipsByUnit[unitId] || [])
+          ]
+
+          // El backend puede crear o reactivar una relación existente.
+          // Por eso reemplazamos por ID/userId en vez de agregar duplicados
+          // visuales a la lista.
+          const index = current.findIndex(
+            (item) => (
+              item.id === membership.id ||
+              item.userId === membership.userId
+            )
+          )
+
+          if (index >= 0) {
+            current.splice(
+              index,
+              1,
+              membership
+            )
+          } else {
+            current.push(membership)
+          }
+
+          current.sort(
+            (a, b) => (
+              String(a.userFullName || a.userEmail)
+                .localeCompare(
+                  String(b.userFullName || b.userEmail),
+                  'es'
+                )
+            )
+          )
+
+          this.membershipsByUnit[unitId] =
+            current
+
+          return membership
+        } catch (error) {
+          this.error = getFriendlyError(
+            error,
+            'No se pudo asignar el usuario a la unidad.'
+          )
+
+          throw new Error(this.error)
+        } finally {
+          this.assigningMembership = false
         }
       },
 

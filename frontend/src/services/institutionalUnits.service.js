@@ -25,5 +25,31 @@ export const institutionalUnitsService = {
     )
 
     return response.data
+  },
+
+  // Consulta las relaciones institucionales de una unidad concreta.
+  //
+  // El backend valida que el actor pueda gestionar esa unidad; conocer su ID
+  // no entrega acceso por sí solo.
+  async getMemberships(unitId) {
+    const response = await api.get(
+      `/institutional-units/${unitId}/memberships`
+    )
+
+    return response.data
+  },
+
+  // La asignación MEMBER/MANAGER es una operación administrativa en MVP2.
+  // userId proviene de la lista institucional de usuarios del backend.
+  async addMembership(
+    unitId,
+    payload
+  ) {
+    const response = await api.post(
+      `/admin/institutional-units/${unitId}/memberships`,
+      payload
+    )
+
+    return response.data
   }
 }

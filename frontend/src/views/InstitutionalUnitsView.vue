@@ -7,6 +7,7 @@ import {
 } from 'vue'
 
 import { useInstitutionalUnitsStore } from '../stores/institutionalUnits'
+import { usersService } from '../services/userService'
 
 const unitsStore =
   useInstitutionalUnitsStore()
@@ -14,6 +15,20 @@ const unitsStore =
 const search = ref('')
 const showCreateForm = ref(false)
 const successMessage = ref('')
+
+// ============================================================================
+// ADMINISTRACIÓN DE MIEMBROS
+// ============================================================================
+
+const showMembershipsModal = ref(false)
+const selectedUnit = ref(null)
+const users = ref([])
+const loadingUsers = ref(false)
+
+const membershipForm = reactive({
+  userId: '',
+  role: 'MEMBER'
+})
 
 const form = reactive({
   name: '',
@@ -60,6 +75,47 @@ const unitTypeLabels = Object.fromEntries(
     ]
   )
 )
+
+const selectedMemberships = computed(() => {
+  if (!selectedUnit.value) {
+    return []
+  }
+
+  return (
+    unitsStore.membershipsByUnit[
+      selectedUnit.value.id
+    ] || []
+  )
+})
+
+const availableUsers = computed(() => {
+  const currentUserIds = new Set(
+    selectedMemberships.value
+      .filter(
+        (membership) => membership.isActive === true
+      )
+      .map(
+        (membership) => membership.userId
+      )
+  )
+
+  return users.value
+    .filter(
+      (user) => (
+        user.isBlocked !== true &&
+        !currentUserIds.has(user.id)
+      )
+    )
+    .sort(
+      (a, b) => (
+        String(a.fullName || a.email)
+          .localeCompare(
+            String(b.fullName || b.email),
+            'es'
+          )
+      )
+    )
+})
 
 const filteredUnits = computed(() => {
   const query = search.value
@@ -143,6 +199,92 @@ const submitUnit = async () => {
     resetForm()
   } catch {
     // El store ya mantiene un mensaje de error apto para la interfaz.
+  }
+}
+
+const loadUsers = async () => {
+  loadingUsers.value = true
+
+  try {
+    const response =
+      await usersService.getAll()
+
+    users.value =
+      Array.isArray(response)
+        ? response
+        : []
+  } catch {
+    unitsStore.error =
+      'No se pudo cargar la lista de usuarios.'
+  } finally {
+    loadingUsers.value = false
+  }
+}
+
+const openMemberships = async (unit) => {
+  selectedUnit.value = unit
+
+  membershipForm.userId = ''
+  membershipForm.role = 'MEMBER'
+
+  unitsStore.clearError()
+  successMessage.value = ''
+
+  showMembershipsModal.value = true
+
+  try {
+    await Promise.all([
+      unitsStore.loadMemberships(unit.id),
+      users.value.length === 0
+        ? loadUsers()
+        : Promise.resolve()
+    ])
+  } catch {
+    // Los mensajes de error ya se mantienen en store.
+  }
+}
+
+const closeMemberships = () => {
+  showMembershipsModal.value = false
+  selectedUnit.value = null
+
+  membershipForm.userId = ''
+  membershipForm.role = 'MEMBER'
+
+  unitsStore.clearError()
+}
+
+const submitMembership = async () => {
+  if (
+    !selectedUnit.value ||
+    !membershipForm.userId
+  ) {
+    unitsStore.error =
+      'Debes seleccionar un usuario.'
+
+    return
+  }
+
+  try {
+    const membership =
+      await unitsStore.addMembership(
+        selectedUnit.value.id,
+        {
+          userId: Number(
+            membershipForm.userId
+          ),
+          role: membershipForm.role
+        }
+      )
+
+    successMessage.value =
+      `${membership.userFullName || membership.userEmail} ` +
+      `fue asignado como ${membership.role}.`
+
+    membershipForm.userId = ''
+    membershipForm.role = 'MEMBER'
+  } catch {
+    // El store mantiene el error apto para la interfaz.
   }
 }
 
@@ -315,12 +457,223 @@ onMounted(reload)
           </div>
         </dl>
 
-        <p class="next-step-note">
-          La administración de miembros y gestores se habilitará
-          en el siguiente bloque de programación institucional.
-        </p>
+        <div class="unit-actions">
+          <button
+            class="secondary-button"
+            type="button"
+            @click="openMemberships(unit)"
+          >
+            Miembros y gestores
+          </button>
+        </div>
       </article>
     </section>
+
+    <Teleport to="body">
+      <div
+        v-if="showMembershipsModal"
+        class="modal-backdrop"
+        @click.self="closeMemberships"
+      >
+        <section
+          class="modal-card memberships-modal"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="memberships-title"
+        >
+          <header class="modal-header">
+            <div>
+              <p class="eyebrow">
+                Administración institucional
+              </p>
+
+              <h2 id="memberships-title">
+                Miembros y gestores
+              </h2>
+
+              <p
+                v-if="selectedUnit"
+                class="modal-description"
+              >
+                {{ selectedUnit.name }}
+                ·
+                {{ selectedUnit.code }}
+              </p>
+            </div>
+
+            <button
+              class="close-button"
+              type="button"
+              aria-label="Cerrar"
+              @click="closeMemberships"
+            >
+              ×
+            </button>
+          </header>
+
+          <section class="memberships-section">
+            <h3>
+              Personas asignadas
+            </h3>
+
+            <p
+              v-if="unitsStore.loadingMemberships"
+              class="state-card"
+            >
+              Cargando miembros...
+            </p>
+
+            <p
+              v-else-if="selectedMemberships.length === 0"
+              class="state-card"
+            >
+              Esta unidad todavía no tiene miembros asignados.
+            </p>
+
+            <div
+              v-else
+              class="membership-list"
+            >
+              <article
+                v-for="membership in selectedMemberships"
+                :key="membership.id"
+                class="membership-item"
+              >
+                <div>
+                  <strong>
+                    {{
+                      membership.userFullName ||
+                      membership.userEmail ||
+                      `Usuario #${membership.userId}`
+                    }}
+                  </strong>
+
+                  <small>
+                    {{ membership.userEmail }}
+                  </small>
+                </div>
+
+                <span
+                  class="role-badge"
+                  :class="{
+                    manager:
+                      membership.role === 'MANAGER'
+                  }"
+                >
+                  {{
+                    membership.role === 'MANAGER'
+                      ? 'Gestor'
+                      : 'Miembro'
+                  }}
+                </span>
+              </article>
+            </div>
+          </section>
+
+          <section class="memberships-section">
+            <h3>
+              Asignar persona
+            </h3>
+
+            <form
+              class="unit-form"
+              @submit.prevent="submitMembership"
+            >
+              <label>
+                <span>
+                  Usuario
+                </span>
+
+                <select
+                  v-model="membershipForm.userId"
+                  required
+                  :disabled="
+                    loadingUsers ||
+                    unitsStore.assigningMembership
+                  "
+                >
+                  <option
+                    value=""
+                    disabled
+                  >
+                    {{
+                      loadingUsers
+                        ? 'Cargando usuarios...'
+                        : 'Selecciona un usuario'
+                    }}
+                  </option>
+
+                  <option
+                    v-for="user in availableUsers"
+                    :key="user.id"
+                    :value="user.id"
+                  >
+                    {{
+                      user.fullName ||
+                      user.email
+                    }}
+                    ·
+                    {{ user.email }}
+                  </option>
+                </select>
+              </label>
+
+              <label>
+                <span>
+                  Rol institucional
+                </span>
+
+                <select
+                  v-model="membershipForm.role"
+                  required
+                >
+                  <option value="MEMBER">
+                    Miembro
+                  </option>
+
+                  <option value="MANAGER">
+                    Gestor
+                  </option>
+                </select>
+              </label>
+
+              <div
+                v-if="unitsStore.error"
+                class="form-error"
+                role="alert"
+              >
+                {{ unitsStore.error }}
+              </div>
+
+              <footer class="modal-actions">
+                <button
+                  class="secondary-button"
+                  type="button"
+                  @click="closeMemberships"
+                >
+                  Cerrar
+                </button>
+
+                <button
+                  class="primary-button"
+                  type="submit"
+                  :disabled="
+                    unitsStore.assigningMembership ||
+                    !membershipForm.userId
+                  "
+                >
+                  {{
+                    unitsStore.assigningMembership
+                      ? 'Asignando...'
+                      : 'Asignar'
+                  }}
+                </button>
+              </footer>
+            </form>
+          </section>
+        </section>
+      </div>
+    </Teleport>
 
     <Teleport to="body">
       <div
@@ -714,6 +1067,72 @@ onMounted(reload)
   justify-content: flex-end;
   gap: 0.7rem;
   margin-top: 0.5rem;
+}
+
+.unit-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 1rem;
+}
+
+.modal-description {
+  margin: 0.35rem 0 0;
+  opacity: 0.65;
+}
+
+.memberships-modal {
+  max-height: calc(100vh - 2rem);
+  overflow-y: auto;
+}
+
+.memberships-section {
+  margin-top: 1.4rem;
+}
+
+.memberships-section h3 {
+  margin: 0 0 0.8rem;
+}
+
+.membership-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.membership-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border: 1px solid rgba(127, 127, 127, 0.2);
+  border-radius: 0.75rem;
+  padding: 0.8rem;
+}
+
+.membership-item > div {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.membership-item small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  opacity: 0.6;
+}
+
+.role-badge {
+  flex-shrink: 0;
+  border-radius: 999px;
+  padding: 0.3rem 0.55rem;
+  background: rgba(127, 127, 127, 0.15);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.role-badge.manager {
+  background: rgba(37, 99, 235, 0.15);
 }
 
 @media (max-width: 700px) {
