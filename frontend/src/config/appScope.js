@@ -45,6 +45,10 @@ export const getFeaturesForScope = (scope) => {
     // en FULL.
     groupReservations: hasMvp2,
 
+    // Los talleres institucionales ya fueron migrados al modelo
+    // PostgreSQL de programación institucional y forman parte de MVP2.
+    workshops: hasMvp2,
+
     // ----------------------------------------------------------
     // FULL / legacy
     // ----------------------------------------------------------
@@ -53,7 +57,6 @@ export const getFeaturesForScope = (scope) => {
     // incremental de MVP2.
     onlineAuth: full,
     notifications: full,
-    workshops: full,
     resourceAdministration: full,
     policyAdministration: full,
     reports: full

@@ -33,12 +33,12 @@ test('MVP1 mantiene deshabilitadas las funciones posteriores', () => {
   })
 })
 
-test('MVP2 habilita solo las reservas grupales', () => {
+test('MVP2 habilita reservas grupales y workshops institucionales', () => {
   assert.deepEqual(getFeaturesForScope('mvp2'), {
     groupReservations: true,
     onlineAuth: false,
     notifications: false,
-    workshops: false,
+    workshops: true,
     resourceAdministration: false,
     policyAdministration: false,
     reports: false
