@@ -322,9 +322,9 @@ func TestDetectConnectedComponentsMultipleGroups(
 		t.Fatalf("detect components: %v", err)
 	}
 
-	if len(components) != 3 {
+	if len(components) != 2 {
 		t.Fatalf(
-			"expected 3 conflict groups, got %d",
+			"expected 2 conflict groups, got %d",
 			len(components),
 		)
 	}
@@ -339,9 +339,107 @@ func TestDetectConnectedComponentsMultipleGroups(
 		t.Fatalf("unexpected second component")
 	}
 
-	if components[2].ResourceID != 2 ||
-		len(components[2].Items) != 2 {
-		t.Fatalf("unexpected third component")
+}
+
+// TestReservationOverlapDoesNotPropagateConflict protege una regla importante:
+//
+//	Actividad A  10:00-10:30
+//	Reserva R1   10:15-11:00
+//	Reserva R2   10:45-12:00
+//
+// A ↔ R1 es una incompatibilidad administrativa.
+//
+// R1 y R2 pueden representar usos OPEN_USE compatibles, por lo que su mero
+// solapamiento no debe permitir que R2 se propague dentro del componente.
+func TestReservationOverlapDoesNotPropagateConflict(
+	t *testing.T,
+) {
+	resourceID := 1
+
+	activityID := 10
+	scheduleID := 101
+
+	reservation1 := 500
+	reservation2 := 501
+
+	occupancies := []Occupancy{
+		newActivityOccupancy(
+			"A",
+			resourceID,
+			activityID,
+			scheduleID,
+			testTime(
+				t,
+				"2026-09-01 10:00",
+			),
+			testTime(
+				t,
+				"2026-09-01 10:30",
+			),
+		),
+
+		newReservationOccupancy(
+			"R1",
+			resourceID,
+			reservation1,
+			testTime(
+				t,
+				"2026-09-01 10:15",
+			),
+			testTime(
+				t,
+				"2026-09-01 11:00",
+			),
+		),
+
+		newReservationOccupancy(
+			"R2",
+			resourceID,
+			reservation2,
+			testTime(
+				t,
+				"2026-09-01 10:45",
+			),
+			testTime(
+				t,
+				"2026-09-01 12:00",
+			),
+		),
+	}
+
+	components, err :=
+		DetectConnectedComponents(
+			occupancies,
+		)
+
+	if err != nil {
+		t.Fatalf(
+			"detect components: %v",
+			err,
+		)
+	}
+
+	if len(components) != 1 {
+		t.Fatalf(
+			"expected 1 conflict component, got %d",
+			len(components),
+		)
+	}
+
+	if len(components[0].Items) != 2 {
+		t.Fatalf(
+			"expected A + R1 only, got %d items",
+			len(components[0].Items),
+		)
+	}
+
+	for _, item := range components[0].Items {
+
+		if item.Key == "R2" {
+			t.Fatal(
+				"compatible reservation R2 propagated into scheduling conflict",
+			)
+		}
 	}
 }
 

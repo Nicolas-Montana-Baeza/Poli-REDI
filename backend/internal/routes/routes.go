@@ -133,6 +133,35 @@ func RegisterRoutes(app *fiber.App) {
 			"/reservations/:id/participants",
 			handlers.GetGroupReservationParticipants,
 		)
+
+		// ------------------------------------------------------------
+		// Programación Institucional - Resolución Administrativa
+		// ------------------------------------------------------------
+		//
+		// Los conflictos pueden contener 2..N ocupaciones.
+		//
+		// Toda esta superficie queda limitada a administradores porque las
+		// decisiones pueden cancelar reservas, reprogramar actividades o
+		// autorizar coexistencias institucionales.
+
+		protected.Get(
+			"/admin/scheduling-conflicts",
+			middleware.RequireAdmin(),
+			handlers.GetSchedulingConflicts,
+		)
+
+		protected.Get(
+			"/admin/scheduling-conflicts/:id",
+			middleware.RequireAdmin(),
+			handlers.GetSchedulingConflict,
+		)
+
+		protected.Patch(
+			"/admin/scheduling-conflicts/:id/items/:itemId",
+			middleware.RequireAdmin(),
+			handlers.PatchSchedulingConflictItem,
+		)
+
 	}
 
 	// MVP1 y MVP2 terminan aquí.

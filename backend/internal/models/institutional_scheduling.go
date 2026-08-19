@@ -281,4 +281,10 @@ type ResolveSchedulingConflictItemRequest struct {
 
 	// Obligatoria a nivel de servicio para decisiones administrativas.
 	ResolutionNote string `json:"resolutionNote"`
+
+	// RESCHEDULE actúa únicamente sobre la ocurrencia concreta involucrada
+	// en el conflicto. No modifica toda una regla WEEKLY.
+	NewDate      *string `json:"newDate,omitempty"`
+	NewStartTime *string `json:"newStartTime,omitempty"`
+	NewEndTime   *string `json:"newEndTime,omitempty"`
 }

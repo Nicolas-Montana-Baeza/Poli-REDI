@@ -66,9 +66,7 @@ func DetectAndPersistSchedulingConflictsForActivityTx(
 		}
 
 		components, err :=
-			schedulingconflicts.DetectConnectedComponents(
-				occupancies,
-			)
+			detectSchedulingConflictComponentsTx(ctx, tx, occupancies)
 
 		if err != nil {
 			return err
@@ -127,9 +125,10 @@ func getInstitutionalActivityOccurrenceDatesTx(
 			to_char(occurrence_date, 'YYYY-MM-DD')
 
 		FROM (
-			-- --------------------------------------------------------
-			-- SINGLE
-			-- --------------------------------------------------------
+
+			-- ================================================================
+			-- SINGLE ORIGINALES
+			-- ================================================================
 
 			SELECT
 				schedule.specific_date AS occurrence_date
@@ -140,11 +139,18 @@ func getInstitutionalActivityOccurrenceDatesTx(
 			  AND schedule.is_active = true
 			  AND schedule.schedule_type = 'SINGLE'
 
+
 			UNION ALL
 
-			-- --------------------------------------------------------
-			-- WEEKLY
-			-- --------------------------------------------------------
+
+			-- ================================================================
+			-- WEEKLY ORIGINALES
+			-- ================================================================
+			--
+			-- Aunque una fecha concreta tenga CANCEL/RESCHEDULE, podemos
+			-- incluirla en el conjunto a revisar. La función que materializa
+			-- ocupaciones decidirá posteriormente si la ocurrencia original
+			-- sigue existiendo.
 
 			SELECT
 				generated_date::date AS occurrence_date
@@ -160,10 +166,41 @@ func getInstitutionalActivityOccurrenceDatesTx(
 			WHERE schedule.activity_id = $1
 			  AND schedule.is_active = true
 			  AND schedule.schedule_type = 'WEEKLY'
+
 			  AND extract(
 					isodow
 					FROM generated_date
 			  )::integer = schedule.day_of_week
+
+
+			UNION ALL
+
+
+			-- ================================================================
+			-- DESTINOS RESCHEDULE
+			-- ================================================================
+			--
+			-- Esta parte es esencial:
+			--
+			-- una ocurrencia WEEKLY puede trasladarse a una fecha que no
+			-- pertenece a la regla original.
+			--
+			-- Ejemplo:
+			--
+			--   regla: martes
+			--   RESCHEDULE: miércoles
+			--
+			-- El miércoles debe incorporarse explícitamente al conjunto de
+			-- fechas sobre las que volveremos a ejecutar el detector.
+
+			SELECT
+				exception.new_date AS occurrence_date
+
+			FROM institutional_activity_schedule_exceptions exception
+
+			WHERE exception.activity_id = $1
+			  AND exception.exception_type = 'RESCHEDULE'
+			  AND exception.new_date IS NOT NULL
 
 		) occurrences
 
@@ -189,7 +226,10 @@ func getInstitutionalActivityOccurrenceDatesTx(
 			return nil, err
 		}
 
-		dates = append(dates, value)
+		dates = append(
+			dates,
+			value,
+		)
 	}
 
 	if err := rows.Err(); err != nil {
@@ -225,59 +265,172 @@ func getSchedulingOccupanciesForDateTx(
 	// ========================================================================
 	// ACTIVIDADES INSTITUCIONALES
 	// ========================================================================
+	//
+	// La consulta materializa dos clases de ocurrencia:
+	//
+	//   1. ocurrencias originales sin excepción;
+	//   2. ocurrencias creadas por una excepción RESCHEDULE.
+	//
+	// CANCEL y RESCHEDULE eliminan siempre la ocurrencia original.
+	//
+	// Esto es fundamental para que una decisión administrativa sobre una
+	// ocurrencia WEEKLY no modifique toda la recurrencia.
 
 	rows, err := tx.QueryContext(
 		ctx,
 		`
+		WITH original_occurrences AS (
+
+			-- ================================================================
+			-- SINGLE / WEEKLY ORIGINALES
+			-- ================================================================
+
+			SELECT
+				activity.id AS activity_id,
+				schedule.id AS schedule_id,
+
+				(
+					($2::date + schedule.start_time)
+					AT TIME ZONE 'America/Santiago'
+				) AS occurrence_start,
+
+				(
+					($2::date + schedule.end_time)
+					AT TIME ZONE 'America/Santiago'
+				) AS occurrence_end
+
+			FROM institutional_activities activity
+
+			INNER JOIN institutional_activity_schedules schedule
+				ON schedule.activity_id = activity.id
+
+			WHERE activity.resource_id = $1
+			  AND activity.status = 'SCHEDULED'
+			  AND schedule.is_active = true
+
+			  AND (
+
+					-- --------------------------------------------------------
+					-- SINGLE
+					-- --------------------------------------------------------
+
+					(
+						schedule.schedule_type = 'SINGLE'
+						AND schedule.specific_date = $2::date
+					)
+
+					OR
+
+					-- --------------------------------------------------------
+					-- WEEKLY
+					-- --------------------------------------------------------
+
+					(
+						schedule.schedule_type = 'WEEKLY'
+
+						AND $2::date BETWEEN
+							schedule.valid_from
+							AND schedule.valid_to
+
+						AND extract(
+							isodow
+							FROM $2::date
+						)::integer = schedule.day_of_week
+					)
+			  )
+
+			  -- CANCEL y RESCHEDULE reemplazan la ocurrencia original.
+			  AND NOT EXISTS (
+
+					SELECT 1
+
+					FROM institutional_activity_schedule_exceptions exception
+
+					WHERE exception.schedule_id = schedule.id
+					  AND exception.original_date = $2::date
+			  )
+		),
+
+		rescheduled_occurrences AS (
+
+			-- ================================================================
+			-- RESCHEDULE
+			-- ================================================================
+			--
+			-- Una excepción RESCHEDULE mantiene activity_id y schedule_id
+			-- como identidad histórica de la regla original, pero utiliza
+			-- new_date/new_start_time/new_end_time como nueva ocupación.
+			SELECT
+				activity.id AS activity_id,
+				schedule.id AS schedule_id,
+
+				(
+					(
+						exception.new_date
+						+ exception.new_start_time
+					)
+					AT TIME ZONE 'America/Santiago'
+				) AS occurrence_start,
+
+				(
+					(
+						exception.new_date
+						+ exception.new_end_time
+					)
+					AT TIME ZONE 'America/Santiago'
+				) AS occurrence_end
+
+			FROM institutional_activity_schedule_exceptions exception
+
+			INNER JOIN institutional_activities activity
+				ON activity.id = exception.activity_id
+
+			INNER JOIN institutional_activity_schedules schedule
+				ON schedule.id = exception.schedule_id
+			   AND schedule.activity_id = exception.activity_id
+
+			WHERE activity.resource_id = $1
+			  AND activity.status = 'SCHEDULED'
+			  AND schedule.is_active = true
+
+			  AND exception.exception_type = 'RESCHEDULE'
+			  AND exception.new_date = $2::date
+		),
+
+		all_occurrences AS (
+
+			SELECT
+				activity_id,
+				schedule_id,
+				occurrence_start,
+				occurrence_end
+
+			FROM original_occurrences
+
+			UNION ALL
+
+			SELECT
+				activity_id,
+				schedule_id,
+				occurrence_start,
+				occurrence_end
+
+			FROM rescheduled_occurrences
+		)
+
 		SELECT
-			activity.id,
-			schedule.id,
+			activity_id,
+			schedule_id,
+			occurrence_start,
+			occurrence_end
 
-			(
-				($2::date + schedule.start_time)
-				AT TIME ZONE 'America/Santiago'
-			) AS occurrence_start,
-
-			(
-				($2::date + schedule.end_time)
-				AT TIME ZONE 'America/Santiago'
-			) AS occurrence_end
-
-		FROM institutional_activities activity
-
-		INNER JOIN institutional_activity_schedules schedule
-			ON schedule.activity_id = activity.id
-
-		WHERE activity.resource_id = $1
-		  AND activity.status = 'SCHEDULED'
-		  AND schedule.is_active = true
-
-		  AND (
-				(
-					schedule.schedule_type = 'SINGLE'
-					AND schedule.specific_date = $2::date
-				)
-
-				OR
-
-				(
-					schedule.schedule_type = 'WEEKLY'
-					AND $2::date BETWEEN
-						schedule.valid_from
-						AND schedule.valid_to
-
-					AND extract(
-						isodow
-						FROM $2::date
-					)::integer = schedule.day_of_week
-				)
-		  )
+		FROM all_occurrences
 
 		ORDER BY
 			occurrence_start,
 			occurrence_end,
-			activity.id,
-			schedule.id;
+			activity_id,
+			schedule_id;
 		`,
 		resourceID,
 		occurrenceDate,
@@ -306,8 +459,15 @@ func getSchedulingOccupanciesForDateTx(
 			return nil, err
 		}
 
-		start = start.In(businessclock.Location())
-		end = end.In(businessclock.Location())
+		start =
+			start.In(
+				businessclock.Location(),
+			)
+
+		end =
+			end.In(
+				businessclock.Location(),
+			)
 
 		activityIDValue := activityID
 		scheduleIDValue := scheduleID
@@ -315,11 +475,16 @@ func getSchedulingOccupanciesForDateTx(
 		occupancies = append(
 			occupancies,
 			schedulingconflicts.Occupancy{
+				// Start forma parte de la key porque una misma regla WEEKLY
+				// produce múltiples ocurrencias y RESCHEDULE puede trasladar
+				// una de ellas a una fecha/hora diferente.
 				Key: fmt.Sprintf(
 					"activity:%d:schedule:%d:%s",
 					activityID,
 					scheduleID,
-					start.Format(time.RFC3339Nano),
+					start.Format(
+						time.RFC3339Nano,
+					),
 				),
 
 				ResourceID: resourceID,
@@ -328,10 +493,12 @@ func getSchedulingOccupanciesForDateTx(
 					OccupancyKindInstitutionalActivity,
 
 				InstitutionalActivityID: &activityIDValue,
-				ScheduleID:              &scheduleIDValue,
+
+				ScheduleID: &scheduleIDValue,
 
 				Start: start,
-				End:   end,
+
+				End: end,
 			},
 		)
 	}
@@ -347,12 +514,13 @@ func getSchedulingOccupanciesForDateTx(
 	// RESERVAS
 	// ========================================================================
 	//
-	// Las reservas activas se consideran ocupaciones concretas.
+	// Las reservas activas continúan representándose como ocupaciones
+	// concretas.
 	//
-	// OPEN_USE también puede aparecer aquí. Una actividad institucional puede
-	// requerir posteriormente resolución administrativa frente a usos ya
-	// existentes, aunque nuevas reservas deberán ser bloqueadas por la
-	// programación institucional una vez integremos disponibilidad.
+	// Reserva ↔ reserva NO genera una arista administrativa en el detector.
+	// Esa compatibilidad pertenece al subsistema de reservas.
+	//
+	// Actividad ↔ reserva sí puede formar un scheduling_conflict.
 
 	dayStartExpression := `
 		($2::date::timestamp AT TIME ZONE 'America/Santiago')
@@ -373,6 +541,7 @@ func getSchedulingOccupanciesForDateTx(
 		FROM reservations reservation
 
 		WHERE reservation.resource_id = $1
+
 		  AND reservation.status IN (
 				'PENDING',
 				'CONFIRMED'
@@ -412,10 +581,18 @@ func getSchedulingOccupanciesForDateTx(
 			return nil, err
 		}
 
-		start = start.In(businessclock.Location())
-		end = end.In(businessclock.Location())
+		start =
+			start.In(
+				businessclock.Location(),
+			)
 
-		reservationIDValue := reservationID
+		end =
+			end.In(
+				businessclock.Location(),
+			)
+
+		reservationIDValue :=
+			reservationID
 
 		occupancies = append(
 			occupancies,
@@ -433,7 +610,8 @@ func getSchedulingOccupanciesForDateTx(
 				ReservationID: &reservationIDValue,
 
 				Start: start,
-				End:   end,
+
+				End: end,
 			},
 		)
 	}

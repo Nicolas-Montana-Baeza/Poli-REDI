@@ -731,11 +731,15 @@ func GetScheduledInstitutionalActivitiesForAvailability(
 	rows, err := database.DB.QueryContext(
 		context.Background(),
 		`
-		WITH occurrences AS (
+		WITH original_occurrences AS (
 
 			-- ================================================================
-			-- SINGLE
+			-- SINGLE ORIGINALES
 			-- ================================================================
+			--
+			-- CANCEL y RESCHEDULE eliminan la ocurrencia original.
+			-- RESCHEDULE será materializada posteriormente como una nueva
+			-- ocurrencia concreta.
 
 			SELECT
 				activity.id,
@@ -773,12 +777,22 @@ func GetScheduledInstitutionalActivitiesForAvailability(
 			  AND schedule.is_active = true
 			  AND schedule.schedule_type = 'SINGLE'
 
+			  AND NOT EXISTS (
+					SELECT 1
+
+					FROM institutional_activity_schedule_exceptions exception
+
+					WHERE exception.schedule_id = schedule.id
+					  AND exception.original_date =
+							schedule.specific_date
+			  )
+
 
 			UNION ALL
 
 
 			-- ================================================================
-			-- WEEKLY
+			-- WEEKLY ORIGINALES
 			-- ================================================================
 
 			SELECT
@@ -846,6 +860,77 @@ func GetScheduledInstitutionalActivitiesForAvailability(
 					isodow
 					FROM occurrence_date
 			  )::integer = schedule.day_of_week
+
+			  AND NOT EXISTS (
+					SELECT 1
+
+					FROM institutional_activity_schedule_exceptions exception
+
+					WHERE exception.schedule_id = schedule.id
+					  AND exception.original_date =
+							occurrence_date::date
+			  )
+		),
+
+		rescheduled_occurrences AS (
+
+			-- ================================================================
+			-- EXCEPCIONES RESCHEDULE
+			-- ================================================================
+			--
+			-- La ocurrencia original ya fue excluida.
+			-- Aquí materializamos únicamente su reemplazo.
+
+			SELECT
+				activity.id,
+				activity.resource_id,
+				activity.title,
+				activity.activity_type,
+				activity.created_by_user_id,
+				resource.name AS resource_name,
+
+				(
+					(
+						exception.new_date
+						+ exception.new_start_time
+					)
+					AT TIME ZONE 'America/Santiago'
+				) AS occurrence_start,
+
+				(
+					(
+						exception.new_date
+						+ exception.new_end_time
+					)
+					AT TIME ZONE 'America/Santiago'
+				) AS occurrence_end
+
+			FROM institutional_activity_schedule_exceptions exception
+
+			INNER JOIN institutional_activities activity
+				ON activity.id = exception.activity_id
+
+			INNER JOIN institutional_activity_schedules schedule
+				ON schedule.id = exception.schedule_id
+			   AND schedule.activity_id = exception.activity_id
+
+			INNER JOIN resources resource
+				ON resource.id = activity.resource_id
+
+			WHERE exception.exception_type = 'RESCHEDULE'
+			  AND activity.status = 'SCHEDULED'
+			  AND schedule.is_active = true
+		),
+
+		all_occurrences AS (
+
+			SELECT *
+			FROM original_occurrences
+
+			UNION ALL
+
+			SELECT *
+			FROM rescheduled_occurrences
 		)
 
 		SELECT
@@ -858,7 +943,7 @@ func GetScheduledInstitutionalActivitiesForAvailability(
 			resource_name,
 			created_by_user_id
 
-		FROM occurrences
+		FROM all_occurrences
 
 		WHERE occurrence_start < $2
 		  AND occurrence_end > $1

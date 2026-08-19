@@ -138,7 +138,7 @@ var (
 //
 // Como los conflictos temporales forman un grafo de intervalos, podemos
 // obtener sus componentes eficientemente ordenando por hora de inicio y
-// manteniendo el extremo máximo alcanzado por el componente actual.
+// manteniendo el extremo máximo alcanzado por el componente actual
 func DetectConnectedComponents(
 	occupancies []Occupancy,
 ) ([]Component, error) {
@@ -153,7 +153,10 @@ func DetectConnectedComponents(
 
 	copy(normalized, occupancies)
 
-	seenKeys := make(map[string]struct{}, len(normalized))
+	seenKeys := make(
+		map[string]struct{},
+		len(normalized),
+	)
 
 	for _, occupancy := range normalized {
 		if err := validateOccupancy(occupancy); err != nil {
@@ -171,7 +174,7 @@ func DetectConnectedComponents(
 		seenKeys[occupancy.Key] = struct{}{}
 	}
 
-	// El orden estable hace determinista tanto el resultado como los tests.
+	// El orden estable mantiene resultados y tests deterministas.
 	sort.SliceStable(
 		normalized,
 		func(i, j int) bool {
@@ -194,92 +197,246 @@ func DetectConnectedComponents(
 		},
 	)
 
-	components := []Component{}
+	// ========================================================================
+	// GRAFO DE INCOMPATIBILIDADES
+	// ========================================================================
+	//
+	// No basta con preguntar si dos intervalos se solapan.
+	//
+	// Una arista significa:
+	//
+	//     las dos ocupaciones son incompatibles
+	//
+	// En particular, reserva ↔ reserva no pertenece a este módulo.
+	// La compatibilidad entre reservas RESERVABLE / OPEN_USE ya es protegida
+	// por el subsistema de reservas.
+	//
+	// Para MVP2 scheduling_conflicts administra:
+	//
+	//     actividad ↔ actividad
+	//     actividad ↔ reserva
+	//
+	// El volumen diario de ocupaciones es pequeño, por lo que O(n²) ofrece una
+	// implementación mucho más explícita y segura que asumir que todo
+	// solapamiento temporal constituye una arista.
 
-	currentResourceID := normalized[0].ResourceID
+	adjacency := make(
+		[][]int,
+		len(normalized),
+	)
 
-	currentItems := []Occupancy{
-		normalized[0],
+	for i := 0; i < len(normalized); i++ {
+		left := normalized[i]
+
+		for j := i + 1; j < len(normalized); j++ {
+			right := normalized[j]
+
+			// Como normalized está ordenado por recurso, no puede volver a
+			// aparecer el recurso de left después de este punto.
+			if right.ResourceID != left.ResourceID {
+				break
+			}
+
+			// Como también está ordenado por inicio, una vez que el siguiente
+			// intervalo comienza después del fin de left ya no puede existir
+			// una arista directa con left.
+			if !right.Start.Before(left.End) {
+				break
+			}
+
+			if !schedulingOccupanciesConflict(
+				left,
+				right,
+			) {
+				continue
+			}
+
+			adjacency[i] = append(
+				adjacency[i],
+				j,
+			)
+
+			adjacency[j] = append(
+				adjacency[j],
+				i,
+			)
+		}
 	}
 
-	// componentEnd representa el extremo máximo alcanzado por cualquier
-	// ocupación del componente actual.
-	//
-	// Esto es lo que permite detectar cadenas A-B-C aunque A y C no se
-	// intersecten directamente.
-	componentEnd := normalized[0].End
+	// ========================================================================
+	// COMPONENTES CONECTADOS
+	// ========================================================================
 
-	flushCurrent := func() {
-		// Una sola ocupación no constituye conflicto.
-		if len(currentItems) < 2 {
-			return
+	visited := make(
+		[]bool,
+		len(normalized),
+	)
+
+	components := []Component{}
+
+	for startIndex := range normalized {
+		if visited[startIndex] {
+			continue
+		}
+
+		visited[startIndex] = true
+
+		stack := []int{
+			startIndex,
+		}
+
+		componentIndexes := []int{}
+
+		for len(stack) > 0 {
+			lastIndex := len(stack) - 1
+
+			current := stack[lastIndex]
+
+			stack =
+				stack[:lastIndex]
+
+			componentIndexes = append(
+				componentIndexes,
+				current,
+			)
+
+			for _, neighbour := range adjacency[current] {
+
+				if visited[neighbour] {
+					continue
+				}
+
+				visited[neighbour] = true
+
+				stack = append(
+					stack,
+					neighbour,
+				)
+			}
+		}
+
+		// Una ocupación aislada no constituye conflicto.
+		if len(componentIndexes) < 2 {
+			continue
 		}
 
 		items := make(
 			[]Occupancy,
-			len(currentItems),
+			0,
+			len(componentIndexes),
 		)
 
-		copy(items, currentItems)
+		for _, index := range componentIndexes {
+
+			items = append(
+				items,
+				normalized[index],
+			)
+		}
+
+		sort.SliceStable(
+			items,
+			func(i, j int) bool {
+				if !items[i].Start.Equal(
+					items[j].Start,
+				) {
+					return items[i].
+						Start.
+						Before(
+							items[j].Start,
+						)
+				}
+
+				if !items[i].End.Equal(
+					items[j].End,
+				) {
+					return items[i].
+						End.
+						Before(
+							items[j].End,
+						)
+				}
+
+				return items[i].Key <
+					items[j].Key
+			},
+		)
 
 		components = append(
 			components,
 			Component{
-				ResourceID: currentResourceID,
-				Items:      items,
+				ResourceID: items[0].ResourceID,
+
+				Items: items,
 			},
 		)
 	}
 
-	for _, occupancy := range normalized[1:] {
+	// Orden determinista entre distintos componentes.
+	sort.SliceStable(
+		components,
+		func(i, j int) bool {
+			if components[i].ResourceID !=
+				components[j].ResourceID {
 
-		// Cambiar de recurso siempre inicia otro componente.
-		if occupancy.ResourceID != currentResourceID {
-			flushCurrent()
-
-			currentResourceID = occupancy.ResourceID
-			currentItems = []Occupancy{
-				occupancy,
-			}
-			componentEnd = occupancy.End
-
-			continue
-		}
-
-		// Intervalos half-open:
-		//
-		//   [10:00,11:00)
-		//   [11:00,12:00)
-		//
-		// NO se solapan.
-		//
-		// Por eso usamos Start.Before(componentEnd) y no <=.
-		if occupancy.Start.Before(componentEnd) {
-			currentItems = append(
-				currentItems,
-				occupancy,
-			)
-
-			if occupancy.End.After(componentEnd) {
-				componentEnd = occupancy.End
+				return components[i].ResourceID <
+					components[j].ResourceID
 			}
 
-			continue
-		}
+			left :=
+				components[i].Items[0]
 
-		// No existe conexión temporal con el componente actual.
-		flushCurrent()
+			right :=
+				components[j].Items[0]
 
-		currentItems = []Occupancy{
-			occupancy,
-		}
+			if !left.Start.Equal(right.Start) {
+				return left.Start.Before(
+					right.Start,
+				)
+			}
 
-		componentEnd = occupancy.End
-	}
-
-	flushCurrent()
+			return left.Key < right.Key
+		},
+	)
 
 	return components, nil
+}
+
+// schedulingOccupanciesConflict define cuándo dos ocupaciones generan una
+// arista dentro del grafo administrativo.
+//
+// Un simple solapamiento temporal no es suficiente.
+//
+// Las reservas entre sí son gestionadas por el subsistema de reservas.
+// Esto es especialmente importante para OPEN_USE, donde distintos usuarios
+// pueden utilizar simultáneamente el mismo recurso.
+//
+// Una actividad institucional sí es incompatible con otra actividad o con una
+// reserva existente sobre el mismo recurso.
+func schedulingOccupanciesConflict(
+	left Occupancy,
+	right Occupancy,
+) bool {
+	if left.ResourceID != right.ResourceID {
+		return false
+	}
+
+	// Intervalos half-open [start,end).
+	if !left.Start.Before(right.End) ||
+		!right.Start.Before(left.End) {
+
+		return false
+	}
+
+	if left.Kind ==
+		OccupancyKindReservation &&
+		right.Kind ==
+			OccupancyKindReservation {
+
+		return false
+	}
+
+	return true
 }
 
 // ============================================================================
