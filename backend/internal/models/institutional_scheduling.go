@@ -90,6 +90,14 @@ type InstitutionalActivity struct {
 
 	EnrollmentCount int `json:"enrollmentCount"`
 
+	// Estos campos se hidratan únicamente en consultas orientadas al usuario
+	// para actividades que utilizan inscripción, principalmente WORKSHOP.
+	//
+	// Los punteros permiten omitirlos en actividades institucionales que no
+	// tienen semántica de cupos.
+	IsEnrolled     *bool `json:"isEnrolled,omitempty"`
+	AvailableSpots *int  `json:"availableSpots,omitempty"`
+
 	Schedules []InstitutionalActivitySchedule `json:"schedules,omitempty"`
 }
 
