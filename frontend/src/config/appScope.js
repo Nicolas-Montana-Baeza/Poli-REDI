@@ -49,6 +49,10 @@ export const getFeaturesForScope = (scope) => {
     // el backend institucional PostgreSQL y pertenece al alcance MVP2.
     schedulingConflictAdministration: hasMvp2,
 
+    // La administración de unidades institucionales es parte del
+    // flujo de programación institucional incorporado en MVP2.
+    institutionalUnitAdministration: hasMvp2,
+
     // Los talleres institucionales ya fueron migrados al modelo
     // PostgreSQL de programación institucional y forman parte de MVP2.
     workshops: hasMvp2,

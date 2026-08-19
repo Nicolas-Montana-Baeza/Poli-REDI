@@ -91,6 +91,22 @@ if (mvpFeatures.workshops) {
   })
 }
 
+// La administración de unidades institucionales forma parte de MVP2.
+//
+// Esta superficie requiere administrador en frontend y backend.
+// La autorización del navegador mejora UX, pero el backend continúa siendo
+// la autoridad definitiva.
+if (mvpFeatures.institutionalUnitAdministration) {
+  routes.splice(routes.length - 1, 0, {
+    path: '/admin/institutional-units',
+    component: () => import('../views/InstitutionalUnitsView.vue'),
+    meta: {
+      requiresAuth: true,
+      requiresAdmin: true
+    }
+  })
+}
+
 // La resolución de conflictos es una superficie administrativa MVP2.
 // El backend sigue siendo la autoridad sobre la validez del plan final.
 if (mvpFeatures.schedulingConflictAdministration) {

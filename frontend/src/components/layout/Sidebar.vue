@@ -13,6 +13,7 @@ import {
   Menu,
   ShieldCheck,
   AlertTriangle,
+  Building2,
   KeyRound,
   X
 } from 'lucide-vue-next'
@@ -114,6 +115,14 @@ if (mvpFeatures.groupReservations) {
         }
       ]
     })
+
+    if (mvpFeatures.institutionalUnitAdministration) {
+      sections.at(-1).items.push({
+        label: 'Unidades institucionales',
+        icon: Building2,
+        to: '/admin/institutional-units'
+      })
+    }
 
     if (mvpFeatures.schedulingConflictAdministration) {
       sections.at(-1).items.push({
