@@ -195,6 +195,27 @@ func RegisterRoutes(app *fiber.App) {
 		)
 
 		// ------------------------------------------------------------
+		// Programación Institucional - Actividades
+		// ------------------------------------------------------------
+		//
+		// Estas rutas permiten al administrador global o MANAGER de una
+		// unidad consultar y crear programación institucional.
+		//
+		// No se usa RequireAdmin porque un MANAGER legítimo también puede
+		// programar su propia unidad. La autorización fina se resuelve en
+		// services.EnsureInstitutionalUnitManager.
+
+		protected.Get(
+			"/institutional-units/:id/activities",
+			handlers.GetInstitutionalActivitiesForUnit,
+		)
+
+		protected.Post(
+			"/institutional-activities",
+			handlers.CreateInstitutionalActivity,
+		)
+
+		// ------------------------------------------------------------
 		// Programación Institucional - Resolución Administrativa
 		// ------------------------------------------------------------
 		//
