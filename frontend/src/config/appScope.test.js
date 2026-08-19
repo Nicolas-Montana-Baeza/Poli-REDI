@@ -42,7 +42,7 @@ test('MVP2 habilita reservas grupales y workshops institucionales', () => {
     schedulingConflictAdministration: true,
     institutionalUnitAdministration: true,
     institutionalActivityProgramming: true,
-    onlineAuth: false,
+    onlineAuth: true,
     notifications: false,
     workshops: true,
     resourceAdministration: false,

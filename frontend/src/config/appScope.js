@@ -67,7 +67,7 @@ export const getFeaturesForScope = (scope) => {
     //
     // Estas funcionalidades todavía no forman parte del alcance
     // incremental de MVP2.
-    onlineAuth: full,
+    onlineAuth: hasMvp2,
     notifications: full,
     resourceAdministration: full,
     policyAdministration: full,
