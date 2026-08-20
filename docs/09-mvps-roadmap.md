@@ -6,6 +6,46 @@ Este documento define los MVPs incrementales de Poli-REDI, que implementa cada u
 
 Los MVPs organizan el proyecto desde una base tecnica funcional hasta una version institucional lista para entrega, validacion y despliegue.
 
+## Principio de evolucion de requisitos
+
+En Poli-REDI los MVPs no congelan permanentemente los requisitos de incrementos anteriores. Cada MVP funciona tambien como una instancia de validacion del dominio.
+
+Un requisito aprobado puede refinarse cuando la implementacion, las pruebas o la observacion del caso de uso muestran una representacion mas adecuada, siempre que el cambio quede trazable.
+
+El ciclo utilizado es:
+
+`requisito -> implementacion -> validacion -> aprendizaje -> requisito refinado`
+
+Una mutacion de requisito debe registrar:
+
+- comportamiento anterior;
+- motivo del refinamiento;
+- comportamiento vigente;
+- requisitos, casos de uso y backlog afectados;
+- impacto sobre datos, API, frontend y pruebas;
+- compatibilidad con incrementos posteriores.
+
+Esto permite evolucionar el prototipo sin presentar una decision anterior como error cuando en realidad fue una hipotesis valida para un incremento previo.
+
+### Decision de dominio 2026-08-20: reservas grupales
+
+Durante MVP 2 se refino la regla que indicaba que una reserva confirmada debia regresar a `PENDING` si posteriormente bajaba del minimo de participantes.
+
+La decision vigente separa dos dimensiones:
+
+- `reservation.status`: ciclo de vida de la reserva;
+- `groupCondition`: condicion operacional del grupo.
+
+Por lo tanto:
+
+- una reserva grupal nueva comienza `PENDING + PENDING_MINIMUM`;
+- al alcanzar por primera vez el minimo cambia a `CONFIRMED + HEALTHY`;
+- si posteriormente baja del minimo conserva `CONFIRMED` y cambia a `AT_RISK`;
+- si recupera el minimo vuelve a `HEALTHY`;
+- si alcanza el plazo limite bajo el minimo, el flujo puede cancelar la reserva conforme a la politica vigente.
+
+La condicion `AT_RISK` permite que futuros incrementos de notificaciones reaccionen a riesgo, recuperacion y vencimiento sin degradar artificialmente el ciclo de vida persistido de la reserva.
+
 ## Resumen ejecutivo
 
 | MVP | Nombre | Proposito | Estado |

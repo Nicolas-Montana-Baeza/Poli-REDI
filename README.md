@@ -36,6 +36,7 @@ Actualizacion 2026-08-20:
 - `ReservationForm.vue` se reutiliza para creacion y detalle en los principales flujos.
 - La cancelacion muestra confirmacion destructiva inline y no usa `window.confirm`.
 - El detalle soporta informacion grupal cuando la API la entrega.
+- Las reservas grupales separan ciclo de vida (`status`) y condicion del grupo (`groupCondition`): una reserva ya confirmada que cae bajo el minimo permanece `CONFIRMED` y pasa a `AT_RISK`.
 - La autenticacion utiliza una pantalla intermedia global para resolver la sesion y comunicar el cierre de sesion, evitando flashes prematuros del login.
 - Los mensajes globales de exito se retiraron temporalmente hasta definir un patron transversal de notificaciones.
 - La suite frontend registra 25 pruebas correctas en la verificacion local del 2026-08-20.

@@ -33,7 +33,7 @@ Este flujo se ha extendido durante MVP 2. La interfaz ya representa correctament
 
 La ventana y la frecuencia versionadas permanecen sujetas a la validacion de infraestructura indicada en sus requisitos correspondientes. El ciclo completo de confirmacion grupal debe considerarse cerrado solo cuando backend, persistencia y pruebas de integracion validen conjuntamente todas las transiciones definidas en `RES-008`, `RES-010` y `RES-012`.
 
-## Flujo objetivo aprobado de solicitud y confirmacion
+## Flujo vigente de solicitud y confirmacion grupal
 
 1. El usuario autenticado y con RUT selecciona recurso, fecha, hora y duracion.
 2. El servidor valida que la fecha elegida este dentro de la ventana configurable; con el valor vigente de siete dias, un martes se puede elegir desde ese martes hasta el lunes siguiente.
@@ -42,12 +42,43 @@ La ventana y la frecuencia versionadas permanecen sujetas a la validacion de inf
 5. Si el recurso es `OPEN_USE`, no exige confirmacion grupal.
 6. Para multicancha 1, 2 y 3, identificadas en el inventario como Cancha 1, 2 y 3, registra la solicitud como `PENDING` y bloquea el horario.
 7. El solicitante cuenta entre los 10. Los participantes, todos con cuenta, confirman hasta el limite configurable, inicialmente una hora antes del inicio e inclusivo en el instante exacto.
-8. Con menos de 10 confirmaciones vigentes, la solicitud permanece pendiente.
-9. Al alcanzar 10 confirmaciones, el sistema vuelve a validar las demas reglas y cambia automaticamente la solicitud a `CONFIRMED`.
-10. Si una persona retira su confirmacion dentro del plazo y el conteo baja de 10, la reserva vuelve a `PENDING`.
-11. Si al alcanzar el limite la solicitud tiene menos de 10 confirmaciones, cambia automaticamente a `CANCELLED`, libera el horario y deja de consumir la oportunidad semanal.
+8. Mientras nunca haya alcanzado el minimo, con menos de 10 confirmaciones vigentes la solicitud permanece `PENDING` con condicion `PENDING_MINIMUM`.
+9. Al alcanzar 10 confirmaciones, el sistema vuelve a validar las demas reglas y cambia la reserva a `CONFIRMED` con condicion `HEALTHY`.
+10. Una vez confirmada, una retirada que reduzca el grupo bajo el minimo no revierte el ciclo de vida: la reserva conserva `CONFIRMED` y su condicion grupal cambia a `AT_RISK`.
+11. Si el grupo recupera el minimo antes del plazo, conserva `CONFIRMED` y vuelve a condicion `HEALTHY`.
+12. Si al alcanzar el limite aplicable el grupo permanece bajo el minimo, el flujo de vencimiento debe cancelar la reserva, liberar el horario y dejar de consumir la oportunidad semanal conforme a la politica vigente.
 
 Solo un usuario con rol administrador puede modificar los recursos sujetos a confirmacion, el periodo semanal o el plazo previo. Como propuesta no bloqueante, los cambios se aplican a solicitudes creadas despues de la modificacion.
+
+### Estado y condicion grupal
+
+`status` y `groupCondition` no representan lo mismo.
+
+`status` expresa el ciclo de vida persistido:
+
+- `PENDING`
+- `CONFIRMED`
+- `CANCELLED`
+- `REJECTED`
+- `EXPIRED`
+
+`groupCondition` expresa la condicion operacional del grupo:
+
+- `PENDING_MINIMUM`: todavia no alcanza el minimo inicial;
+- `HEALTHY`: minimo alcanzado;
+- `AT_RISK`: una reserva ya confirmada quedo posteriormente bajo el minimo;
+- `INACTIVE`: la condicion grupal ya no participa del flujo activo.
+
+Esta separacion evita hacer oscilar una reserva entre `PENDING` y `CONFIRMED` y prepara eventos de dominio utiles para el sistema de notificaciones.
+
+Transiciones especialmente relevantes para futuros MVP:
+
+- `PENDING_MINIMUM -> HEALTHY`: minimo alcanzado;
+- `HEALTHY -> AT_RISK`: grupo bajo el minimo;
+- `AT_RISK -> HEALTHY`: grupo recuperado;
+- `AT_RISK -> CANCELLED`: vencimiento bajo el minimo.
+
+Estas transiciones pueden originar notificaciones sin convertir `groupCondition` en un nuevo estado de reserva.
 
 ## Flujo objetivo aprobado de prioridad institucional
 

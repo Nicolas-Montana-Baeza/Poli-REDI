@@ -1,6 +1,6 @@
 # Poli-REDI - Estado actual de producto
 
-Fecha de corte: 2026-07-21
+Fecha de corte: 2026-08-20
 
 ### 1. Resumen
 
@@ -8,7 +8,7 @@ Fecha de corte: 2026-07-21
 - **Objetivo — APROBADO:** validar un prototipo que centralice recursos, disponibilidad, reservas y reglas institucionales basicas sin presentarlo como plataforma productiva completa.
 - **Usuarios afectados — HECHO:** usuarios normales, administradores y personal institucional encargado de la operacion deportiva.
 - **Resultado esperado — PROPUESTA:** disponer de una demo verificable cuyo alcance implementado, faltante y futuro pueda comunicarse sin confundir codigo, aprobacion y validacion.
-- **Estado actual — HECHO:** existe una demo funcional con identidad, reservas y consulta operacional; la ventana, frecuencia y administracion backend de politicas prospectivas estan implementadas y verificadas localmente, pero no en SQL Server/Azure SQL real. Participantes, bloqueo `PENDING`, vencimiento, interfaz administrativa y correccion excepcional aun no estan implementados, por lo que el MVP 2 no puede declararse cerrado.
+- **Estado actual — HECHO:** existe una demo funcional con identidad, reservas y consulta operacional. El flujo grupal ya crea solicitudes `PENDING`, persiste participantes autenticados, confirma al alcanzar el minimo y representa riesgo posterior mediante `AT_RISK`. Permanecen pendientes el cierre del vencimiento automatico, algunas integraciones administrativas, notificaciones y evidencia integral antes de declarar cerrado MVP 2.
 
 ### 2. Evidencia revisada
 
@@ -19,7 +19,7 @@ Fecha de corte: 2026-07-21
 | `docs/08-requisitos-historias-casos-uso.md` | Consolida 25 requisitos funcionales, incluidos los acuerdos del 2026-07-20 y el estado parcial verificado localmente de las politicas prospectivas. | ACTUALIZADO |
 | `backend/internal/routes/routes.go` | Existen rutas de identidad, RUT, lectura de recursos/actividades/notificaciones/talleres, inscripcion, disponibilidad, reservas y lectura administrativa. No existen rutas de gestion completa de usuarios, bloqueos, programacion, infracciones o reportes. | IMPLEMENTADO |
 | `backend/internal/middleware/auth_middleware.go` | La identidad se valida en servidor; rol, bloqueo y RUT provienen del usuario local; `DEV_AUTH_ENABLED` selecciona el modo local. | IMPLEMENTADO |
-| `backend/internal/services/reservations_service.go` | La reserva usa el usuario autenticado, fuerza estado `CONFIRMED` y valida pasado, jornada, duracion, ventana, frecuencia, talleres y cancelacion. | IMPLEMENTADO y VERIFICADO LOCAL para ventana/frecuencia |
+| `backend/internal/services/reservations_service.go` y flujo de participantes | La reserva usa el usuario autenticado y aplica estado inicial segun politica. Los recursos grupales pueden comenzar `PENDING`, registrar participantes y alcanzar `CONFIRMED`; la condicion grupal se mantiene separada del ciclo de vida. | IMPLEMENTADO PARCIAL y con pruebas locales/integracion disponibles |
 | `database/schema.sql` | El esquema versiona politicas por solicitud y protege ventana, frecuencia y conflictos de recurso, usuario, bloqueos y actividades programadas; contiene auditoria de reservas. | IMPLEMENTADO en script; ventana/frecuencia no verificadas contra Azure SQL en este corte |
 | `frontend/src/components/availability/AvailabilitySection.vue` | La interfaz combina reservas, actividades programadas y talleres; no incorpora bloqueos visibles y permite abrir seleccion sobre recursos que despues puede rechazar el servidor. | IMPLEMENTADO PARCIAL |
 | `database/seed.sql` | Contiene los ocho recursos confirmados como inventario oficial inicial. | APROBADO como linea base; gestion completa PENDIENTE |
@@ -317,11 +317,11 @@ Fecha de corte: 2026-07-21
 **Estado:** APROBADO para todos los recursos, IMPLEMENTADO y VERIFICADO local; verificacion integrada/online PENDIENTE.<br>
 **Excepciones:** Ninguna definida.
 
-**RN-006 — Estado y confirmacion condicionados**  
-**Regla:** El cliente no decide el estado. `OPEN_USE` no requiere confirmacion de participantes; Cancha 1, 2 y 3 quedan `PENDING` hasta alcanzar el minimo, pasan automaticamente a `CONFIRMED` al cumplirlo y vuelven a `PENDING` si una retirada valida deja menos de 10 confirmaciones vigentes.<br>
-**Justificacion:** Ajusta la confirmacion al modo de uso del recurso.  
-**Fuente:** Decision explicita del usuario del 2026-07-20.  
-**Estado:** APROBADO e IMPLEMENTADO PARCIAL. La creacion de recursos grupales ya genera `PENDING`, registra al solicitante, mantiene participantes persistidos y cambia a `CONFIRMED` al alcanzar el minimo. La implementacion actual diverge de la regla aprobada al retirar participantes despues de confirmar: conserva `CONFIRMED` con condicion derivada `AT_RISK` en vez de regresar a `PENDING`. El vencimiento bajo el minimo y su liberacion asociada requieren cierre y evidencia adicional.
+**RN-006 — Ciclo de vida y condicion de reservas grupales**  
+**Regla:** El cliente no decide el estado. `reservation.status` representa el ciclo de vida y `groupCondition` representa la condicion operacional del grupo. `OPEN_USE` no requiere confirmacion de participantes. Las Canchas 1, 2 y 3 comienzan `PENDING + PENDING_MINIMUM`; al alcanzar el minimo cambian a `CONFIRMED + HEALTHY`. Si posteriormente bajan del minimo conservan `CONFIRMED` y cambian a `AT_RISK`; si recuperan el minimo vuelven a `HEALTHY`. El vencimiento bajo el minimo puede llevar a `CANCELLED` conforme a la politica.<br>
+**Justificacion:** Evita hacer oscilar el estado persistido de una reserva ya confirmada, conserva el hecho de que el minimo fue alcanzado y permite que riesgo, recuperacion y vencimiento funcionen como eventos diferenciados para notificaciones y automatizaciones posteriores.  
+**Fuente:** Decision inicial del 2026-07-20, refinada durante MVP 2 el 2026-08-20 y respaldada por la implementacion/pruebas del flujo grupal.  
+**Estado:** APROBADO e IMPLEMENTADO PARCIAL. `PENDING`, participantes persistidos, transicion a `CONFIRMED` y `AT_RISK` estan implementados; vencimiento automatico e integraciones posteriores permanecen incrementales.  
 **Excepciones:** Recursos cuya politica oficial no exija participantes.
 
 **RN-007 — Conflictos y modos de recurso**  

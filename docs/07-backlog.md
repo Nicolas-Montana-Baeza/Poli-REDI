@@ -1652,7 +1652,9 @@ El usuario confirmo el 2026-07-20 que Cancha 1, 2 y 3 corresponden formalmente a
 
 El flujo grupal ya registra participantes persistidos y no confirma todas las reservas inmediatamente. Una reserva de recurso grupal nace en `PENDING`, registra al solicitante como primer participante y pasa a `CONFIRMED` cuando alcanza el minimo.
 
-La implementacion sigue siendo parcial porque existe una divergencia respecto de la regla aprobada: una retirada que baja el conteo bajo el minimo despues de confirmar conserva actualmente `reservation.status = CONFIRMED` y expone `groupCondition = AT_RISK`, en vez de volver el estado persistido a `PENDING`. El vencimiento automatico bajo el minimo y la liberacion de la oportunidad semanal tambien requieren evidencia de cierre.
+Durante MVP 2 la regla fue refinada deliberadamente: una reserva que ya alcanzo el minimo conserva `reservation.status = CONFIRMED` si posteriormente pierde participantes y pasa a `groupCondition = AT_RISK`. Esta separacion entre ciclo de vida y condicion grupal reemplaza la regla anterior que hacia regresar a `PENDING`.
+
+La tarea permanece parcial por vencimiento automatico, liberacion asociada de la oportunidad semanal, integracion completa de recuperacion y notificaciones.
 
 ### Objetivo
 
@@ -1668,7 +1670,7 @@ Registrar confirmaciones de participantes unicos, mantener la solicitud grupal e
 6. Mantener el servidor como autoridad del estado y del conteo.
 7. No exigir este flujo a `OPEN_USE`.
 8. Respetar la capacidad maxima cuando el recurso la defina.
-9. Permitir retirar una confirmacion hasta el limite configurable y devolver la reserva a `PENDING` si el conteo vigente baja de 10.
+9. Permitir retirar una confirmacion hasta el limite configurable. Si una reserva nunca alcanzo el minimo permanece `PENDING_MINIMUM`; si ya estaba confirmada y baja del minimo conserva `CONFIRMED` con condicion `AT_RISK`.
 10. Con la configuracion inicial, aceptar cambios hasta exactamente una hora antes inclusive y rechazarlos despues.
 11. Mientras este `PENDING`, bloquear el horario para solicitudes incompatibles.
 12. Al llegar al limite bajo el minimo, cambiar a `CANCELLED`, liberar el horario y liberar la oportunidad semanal.
@@ -1684,7 +1686,7 @@ Registrar confirmaciones de participantes unicos, mantener la solicitud grupal e
 - [ ] El cliente no puede forzar `CONFIRMED` ni declarar un conteo arbitrario.
 - [ ] Se rechaza una confirmacion que supere la capacidad del recurso cuando corresponda.
 - [ ] El solicitante puede ver el avance y los errores recuperables.
-- [ ] Si una retirada valida reduce el conteo de 10 a 9 antes del limite, la reserva vuelve a `PENDING`.
+- [x] Si una retirada valida reduce el conteo de 10 a 9 despues de haber confirmado, la reserva conserva `CONFIRMED` y cambia a `AT_RISK`.
 - [ ] Confirmar o retirar despues del limite configurado se rechaza sin cambiar el conteo.
 - [ ] El valor inicial del limite es una hora antes del inicio y un cambio autorizado se refleja en las solicitudes posteriores aplicables.
 - [x] El solicitante cuenta una vez entre los 10 y las operaciones de participacion utilizan al usuario autenticado.
@@ -1696,9 +1698,25 @@ Registrar confirmaciones de participantes unicos, mantener la solicitud grupal e
 - [ ] `npm test` pasa.
 - [ ] `npm run build` pasa.
 
-### Decision de producto cerrada
+### Decision de producto refinada 2026-08-20
 
-Las reglas necesarias para arquitectura estan aprobadas. Como propuesta no bloqueante, los cambios administrativos posteriores se aplican solo a solicitudes nuevas.
+Los MVP se utilizan tambien para refinar requisitos a medida que el dominio se valida.
+
+Para reservas grupales queda vigente la separacion:
+
+- `status`: ciclo de vida de la reserva;
+- `groupCondition`: salud operacional del grupo.
+
+Una reserva confirmada que cae bajo el minimo no vuelve a `PENDING`; pasa a `CONFIRMED + AT_RISK`.
+
+Esto permite que MVP posteriores implementen notificaciones por:
+
+- ingreso a riesgo;
+- recuperacion del minimo;
+- proximidad del vencimiento;
+- cancelacion final bajo el minimo.
+
+Las reglas administrativas de politica siguen aplicandose prospectivamente a solicitudes nuevas salvo mecanismos excepcionales explicitamente definidos.
 
 ## RES-009 - Definir zona horaria de negocio para reservas
 

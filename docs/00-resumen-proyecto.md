@@ -34,8 +34,8 @@ Un elemento puede estar implementado sin estar aprobado y puede estar implementa
 | Perfil y RUT | IMPLEMENTADO | Usuario normal debe registrar RUT para reservar o inscribirse en talleres. |
 | Recursos | IMPLEMENTADO PARCIAL | Catalogo y cambio administrativo de imagen; no existe gestion completa de altas, datos, modos y activacion. |
 | Disponibilidad | IMPLEMENTADO PARCIAL | Integra reservas, actividades programadas y talleres; el frontend permite filtrar por recurso y por existencia de bloques disponibles. El recurso puede precargarse desde Inicio mediante query string. Permanecen pendientes las brechas de backend/rango que correspondan. |
-| Creacion de reservas | IMPLEMENTADO PARCIAL | Propietario, zona horaria, jornada y duraciones son controlados por servidor; falta aplicar la confirmacion condicional aprobada segun tipo de recurso. |
-| Reglas institucionales | APROBADO / IMPLEMENTACION PARCIAL | Ventana, frecuencia y versionado prospectivo estan implementados y verificados localmente, junto con API administrativa, snapshot completo e idempotencia. Participantes, vencimiento, interfaz administrativa y correccion excepcional siguen pendientes; no se verifico el incremento en SQL Server/Azure SQL real. |
+| Creacion de reservas | IMPLEMENTADO PARCIAL | Propietario, zona horaria, jornada y duraciones son controlados por servidor. Los recursos grupales pueden comenzar `PENDING`, registran al solicitante y alcanzan `CONFIRMED` segun participantes; quedan integraciones de cierre por completar. |
+| Reglas institucionales | APROBADO / IMPLEMENTACION PARCIAL | Ventana, frecuencia, versionado y flujo grupal tienen implementacion incremental. Participantes, `PENDING -> CONFIRMED` y `AT_RISK` existen; vencimiento, notificaciones, interfaz administrativa y correcciones excepcionales requieren cierre adicional. |
 | Cancelacion | IMPLEMENTADO | Propietario o administrador pueden cancelar estados activos no finalizados. El frontend utiliza confirmacion destructiva inline y evita `window.confirm`; el cambio de estado visible actua como confirmacion de la operacion. |
 | Talleres | IMPLEMENTADO | Consulta e inscripcion con RUT, cupo y duplicado controlados; no existe desinscripcion. |
 | Notificaciones | IMPLEMENTADO PARCIAL | Consulta y contador existen; no se marcan como leidas y la generacion cubre solo eventos limitados. |
@@ -44,6 +44,19 @@ Un elemento puede estar implementado sin estar aprobado y puede estar implementa
 | Auditoria | IMPLEMENTADO PARCIAL | El esquema registra cambios de reservas, pero no existe consulta administrativa. |
 | Calidad local | VERIFICADO PARCIAL | `npm run build`, `npm test` y `git diff --check` aprobaron el 2026-08-20; la suite frontend ejecuto 25 pruebas correctamente. La validacion integrada con infraestructura, navegador y ambiente online sigue siendo una evidencia separada. |
 | Despliegue | IMPLEMENTADO SEGUN REPOSITORIO | Existen configuracion y documentacion de demo Azure; su disponibilidad actual no fue verificada en este corte. |
+
+## Criterio de evolucion del producto
+
+Los requisitos de Poli-REDI son versionables entre MVPs. Una regla puede refinarse cuando el incremento implementado entrega evidencia de que otro modelo representa mejor el caso de uso.
+
+El requisito anterior permanece como trazabilidad historica; la decision refinada pasa a ser la regla vigente y debe propagarse a requisitos, backlog, flujos, pruebas y siguientes MVP.
+
+Este criterio permite distinguir entre:
+
+- defecto: la implementacion incumple una regla vigente;
+- refinamiento: la regla vigente cambia deliberadamente por aprendizaje del MVP.
+
+La adopcion de `CONFIRMED + AT_RISK` para reservas que ya alcanzaron el minimo es un refinamiento del segundo tipo.
 
 ## Evaluacion por incremento
 
@@ -58,7 +71,7 @@ Un elemento puede estar implementado sin estar aprobado y puede estar implementa
 
 1. El alcance academico definitivo excluye autenticacion institucional real y despliegue productivo, pero el repositorio documenta Entra ID y una demo Azure ya implementados.
 2. La ventana y frecuencia versionadas requieren conservar evidencia de integracion y verificacion en la infraestructura objetivo.
-3. El frontend ya soporta representar reservas `PENDING`, cantidad/minimo de participantes, condicion grupal y codigo de invitacion cuando la API entrega esos datos. El ciclo grupal completo —confirmacion, retirada, regreso a `PENDING`, vencimiento y liberacion de la oportunidad— solo debe declararse cerrado cuando backend, persistencia y pruebas de integracion demuestren todas las transiciones aprobadas.
+3. El flujo grupal ya soporta `PENDING`, participantes, codigo de invitacion, confirmacion por minimo y condicion `AT_RISK`. La regla fue refinada durante MVP 2: una reserva ya confirmada no regresa a `PENDING` al caer bajo el minimo; conserva `CONFIRMED` y cambia su condicion grupal. El cierre pendiente se concentra en vencimiento, liberacion asociada e integracion con notificaciones.
 4. Ante actividad institucional versus reserva particular, la reserva debe cancelarse automaticamente y notificarse al usuario; ante dos actividades, el administrador debe poder cancelar una o mantener ambas. El esquema actual rechaza esos conflictos.
 5. Los ocho recursos del seed representan el inventario oficial, pero el administrador aun no puede mantenerlo de forma completa.
 

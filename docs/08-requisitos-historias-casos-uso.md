@@ -219,22 +219,32 @@ Implementado actualmente:
 Pendiente de cierre:
 
 - completar y verificar todas las reglas temporales;
-- resolver la divergencia de retirada bajo el minimo;
+- completar la integracion de `AT_RISK` con los flujos posteriores de recuperacion, vencimiento y notificaciones;
 - verificar vencimiento automatico y liberacion de la oportunidad semanal de punta a punta.
 
 Pendiente relacionado: `RES-008`.
 
-### RF-022 - Estado condicionado por politica del recurso
+### RF-022 - Estado y condicion grupal segun politica del recurso
 
-El sistema debe mantener `PENDING` y bloquear el horario hasta alcanzar el minimo, cambiar automaticamente a `CONFIRMED` al cumplirlo y devolverla a `PENDING` si una retirada valida reduce el conteo. Si llega al limite con menos de 10, debe cambiar a `CANCELLED`, liberar el horario y dejar de consumir la oportunidad semanal. Los recursos `OPEN_USE` no requieren confirmacion grupal.
+El sistema debe separar el ciclo de vida de la reserva de la condicion operacional del grupo.
+
+Para recursos sujetos a confirmacion grupal:
+
+- la solicitud comienza `PENDING` con `groupCondition = PENDING_MINIMUM`;
+- al alcanzar el minimo por primera vez cambia a `CONFIRMED` con `groupCondition = HEALTHY`;
+- una reserva que ya fue confirmada no regresa a `PENDING` por una retirada posterior;
+- si el conteo baja del minimo despues de confirmar, conserva `CONFIRMED` con `groupCondition = AT_RISK`;
+- si recupera el minimo, vuelve a `HEALTHY`;
+- si alcanza el plazo limite bajo el minimo, debe cancelarse conforme a la politica, liberar el horario y dejar de consumir la oportunidad semanal;
+- los recursos `OPEN_USE` no requieren confirmacion grupal.
 
 Estado actual: APROBADO e IMPLEMENTADO PARCIAL.
 
-La creacion grupal ya utiliza `PENDING` y el paso al minimo produce `CONFIRMED`. Sin embargo, existe una divergencia entre el comportamiento aprobado y el codigo actual: si una reserva ya confirmada baja nuevamente del minimo, la implementacion conserva `CONFIRMED` y expone `groupCondition = AT_RISK`, en lugar de regresar el estado persistido a `PENDING`.
+La creacion `PENDING`, persistencia de participantes, transicion al minimo y condicion `AT_RISK` estan implementadas. El vencimiento automatico, la liberacion completa asociada y la integracion con notificaciones permanecen como trabajo incremental.
 
-El vencimiento automatico bajo el minimo y la liberacion asociada deben mantenerse como pendientes hasta contar con evidencia integrada.
+Decision refinada el 2026-08-20: reemplaza la regla anterior que hacia regresar una reserva ya confirmada a `PENDING`.
 
-Pendiente relacionado: `RES-008`, `RES-010`.
+Pendiente relacionado: `RES-008`, `RES-010`, `NOTIF-001`.
 
 ### RF-023 - Resolucion de conflictos institucionales
 
