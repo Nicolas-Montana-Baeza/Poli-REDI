@@ -161,5 +161,8 @@ npm run build
 | `go test ./...` | 2026-07-20 | Aprobado local | Pruebas en reloj, JSON, reglas de horario y servicio de reservas; no incluye Azure SQL integrada |
 | `npm test` | 2026-07-20 | Aprobado local | 9 pruebas aprobadas de zona horaria y reglas de agenda |
 | `npm run build` | 2026-07-20 | Aprobado | Vite 8 completa build de produccion |
+| `npm test` | 2026-08-20 | Aprobado local | 25 pruebas frontend aprobadas |
+| `npm run build` | 2026-08-20 | Aprobado | Build de produccion completado |
+| `git diff --check` | 2026-08-20 | Aprobado | Sin errores de whitespace en el bloque validado |
 
-La evidencia del 2026-07-20 no verifica navegacion en navegador, responsive, accesibilidad, Microsoft Entra ID, Azure SQL en ejecucion ni el despliegue online.
+La evidencia automatizada acumulada no sustituye la validacion de navegacion real, responsive, accesibilidad, Microsoft Entra ID, base de datos integrada ni despliegue online.

@@ -20,6 +20,25 @@ La aplicacion ya cuenta con una estructura clara:
 - `src/services/`: comunicacion con la API.
 - `src/router/`: proteccion de rutas y redireccion segun rol.
 
+### Estado sincronizado 2026-08-20
+
+La interfaz fue revisada nuevamente durante el cierre de UX de MVP 2.
+
+Cambios ya implementados:
+
+- `ReservationsView.vue` concentra reservas activas e historial; el historial se selecciona mediante `?tab=history`.
+- La antigua `HistoryView.vue` fue retirada.
+- `ReservationForm.vue` funciona tanto en modo `create` como `detail` y actua como modal compartido para los principales flujos de reserva.
+- Inicio, Disponibilidad y Reservas reutilizan el mismo patron de detalle.
+- La cancelacion usa confirmacion destructiva inline dentro del propio modal; no se utiliza `window.confirm`.
+- La disponibilidad incorpora filtros por recurso, opcion `Todos` y filtro para mostrar recursos con bloques disponibles.
+- El carrusel de recursos del inicio es manual y horizontal; no tiene autoplay.
+- Seleccionar un recurso en el carrusel dirige a Disponibilidad con el recurso precargado mediante query string.
+- La autenticacion dispone de una pantalla intermedia compartida para resolver el estado inicial de sesion y para comunicar el cierre de sesion.
+- El login no debe mostrarse mientras el estado de autenticacion aun es desconocido.
+- Se retiro por ahora el toast global de exito para evitar mensajes inconsistentes entre acciones.
+- Existe una suite automatizada frontend ejecutada mediante `npm test`; la verificacion local del 2026-08-20 completo 25 pruebas correctamente.
+
 ## Sistema visual actual
 
 Actualmente existe una base global de estilos importada desde `src/style.css`.
@@ -50,27 +69,38 @@ Backlog relacionado:
 
 ## Coherencia visual entre reservas e historial
 
-Mis Reservas e Historial deben sentirse como vistas hermanas del mismo modulo. La diferencia principal es conceptual:
+Reservas activas e Historial forman actualmente un unico modulo.
 
-- Mis Reservas muestra reservas accionables o vigentes.
-- Historial muestra reservas pasadas o canceladas.
+`ReservationsView.vue` utiliza la URL como fuente de estado:
 
-La tarjeta, los badges, los estados de carga/error/vacio y el acceso al detalle deben compartir el mismo patron visual. Las acciones cambian por contexto: Mis Reservas puede mostrar `Cancelar`, mientras Historial prioriza `Ver detalle`.
+- `/reservations`: reservas activas o accionables.
+- `/reservations?tab=history`: historial.
+- `/history`: redirige al tab de historial por compatibilidad.
 
-Estado verificado 2026-07-14:
+La misma vista comparte:
 
-- `ReservationsView.vue` y `HistoryView.vue` usan el patron compartido de tarjeta.
-- Los filtros permanecen solo en Historial y usan la base global de formularios.
-- Lista, detalle y modal usan la misma clasificacion temporal.
-- El acceso `Historial -> Detalle` funciona y conserva el regreso a Historial.
-- Mis Reservas debe ordenar primero la proxima reserva; esta correccion queda incluida en la regresion frontend de `QA-002`.
+- tarjeta de reserva;
+- clasificacion temporal;
+- estados de carga/error/vacio;
+- filtros de historial;
+- apertura del detalle;
+- modal `ReservationForm.vue` en modo `detail`.
+
+Las reservas activas se ordenan cronologicamente de forma ascendente. El historial se ordena de forma descendente.
+
+La vista historica ya no mantiene una implementacion separada mediante `HistoryView.vue`, reduciendo duplicacion de comportamiento y estilos.
 
 ## Fortalezas UX actuales
 
 - La navegacion separa rutas publicas, autenticadas y administrativas.
 - La vista de disponibilidad permite elegir fecha, recurso y horario desde una grilla visual.
-- El formulario de reserva muestra validaciones por campo.
-- La UI mantiene estados de carga, error y exito en flujos principales.
+- Disponibilidad incorpora filtro por recurso con `Todos` como valor por defecto.
+- Puede filtrarse la vista para mostrar recursos con bloques disponibles.
+- Los enlaces desde el carrusel del inicio pueden precargar el recurso mediante `?resource=<id>`.
+- El carrusel de instalaciones es de desplazamiento horizontal manual y no utiliza autoplay.
+- El formulario de reserva muestra validaciones por campo y conserva errores recuperables dentro del modal.
+- `ReservationForm.vue` concentra creacion y detalle, evitando modales divergentes para la misma entidad.
+- La cancelacion exige una confirmacion inline antes de emitir la accion destructiva.
 - Los usuarios normales sin RUT son bloqueados antes de crear reservas.
 - La vista de talleres permite buscar oferta disponible e inscribirse con control de cupos.
 - Los talleres activos se proyectan como bloques de ocupacion en la disponibilidad del recurso.
@@ -79,19 +109,31 @@ Estado verificado 2026-07-14:
 - El catalogo y dashboard muestran imagenes de recursos cuando existen, con fallback visual cuando faltan.
 - Los administradores pueden cambiar la imagen de un recurso desde la vista de recursos.
 - Las reservas existentes aparecen como bloques visuales sobre la linea de tiempo.
+- El detalle de reservas grupales puede mostrar participantes, condicion del grupo y gestion del codigo de invitacion cuando dichos datos son entregados por la API.
 - La cancelacion queda limitada visualmente al propietario de la reserva o a administradores.
+- El bootstrap de autenticacion diferencia entre sesion aun no resuelta, sesion autenticada y sesion anonima.
+- La entrada y salida de sesion reutilizan una pantalla de transicion para evitar flashes del login.
 
 ## Hallazgos UX de segunda pasada
 
 ### Confirmacion de acciones criticas
 
-La cancelacion muestra una advertencia, pero no existe una confirmacion fuerte adicional antes de cambiar el estado de la reserva.
+Estado implementado 2026-08-20.
 
-Mejora recomendada:
+La cancelacion ya no utiliza la confirmacion nativa del navegador.
 
-- Agregar dialogo de confirmacion antes de cancelar.
-- Mostrar resumen completo: recurso, fecha, horario, actividad y estado.
-- Usar texto directo: `Cancelar esta reserva` y `Mantener reserva`.
+`ReservationForm.vue` muestra dentro del mismo modal una confirmacion destructiva con acciones equivalentes a:
+
+- volver sin cancelar;
+- confirmar explicitamente la cancelacion.
+
+El componente de presentacion controla la confirmacion visual y la vista padre conserva la responsabilidad de ejecutar la mutacion en el store.
+
+Este patron evita:
+
+- `window.confirm`;
+- modal sobre modal;
+- confirmaciones duplicadas entre componente y vista padre.
 
 ### Seleccion de horario
 
@@ -163,11 +205,38 @@ Los modales de reserva y detalle no mueven ni contienen el foco. Inputs y botone
 
 ### Navegacion y sesion
 
-Existe `NotFoundView.vue`, pero no hay ruta catch-all. La carga de `/api/me` puede repetirse entre guard, header y vistas. `BACK-023` agrega 404 y coordinacion de la carga autenticada.
+Estado actualizado 2026-08-20.
+
+La autenticacion incorpora un bootstrap global basado en un estado `initialized` para diferenciar una sesion aun no resuelta de una sesion realmente anonima.
+
+`AuthLoadingScreen.vue` se reutiliza para:
+
+- verificar la sesion al iniciar la aplicacion;
+- procesar el callback institucional;
+- comunicar el cierre de sesion.
+
+El router evita renderizar `/login` hasta resolver el estado de autenticacion y mantiene una transicion especifica durante logout.
+
+La coordinacion global redujo los flashes visuales entre login y aplicacion.
+
+Todavia puede revisarse en una iteracion posterior la eliminacion de llamadas redundantes a `loadAuthUser()` desde vistas individuales y la estrategia definitiva para rutas 404 dentro de `BACK-023`.
 
 ### Dashboard
 
-El carrusel actual todavia puede cortar la primera tarjeta, duplicar enlaces por el loop y mantener movimiento continuo sin respetar `prefers-reduced-motion`. `BACK-018` permanece abierto con validacion requerida en 360, 611 y 1440 px.
+Estado actualizado 2026-08-20.
+
+El carrusel principal dejo de utilizar desplazamiento automatico.
+
+Comportamiento vigente:
+
+- scroll horizontal manual;
+- soporte para mouse, touch y trackpad;
+- controles laterales cuando corresponde;
+- la tarjeta completa funciona como acceso al recurso;
+- al seleccionar una instalacion se navega a `/availability?resource=<id>`;
+- Disponibilidad interpreta ese parametro y deja seleccionado el recurso correspondiente.
+
+Con esto se evita movimiento forzado y se conecta directamente el descubrimiento del recurso con la consulta de disponibilidad.
 
 ### Instalacion reproducible
 
@@ -175,7 +244,17 @@ Una dependencia visual esta declarada en la raiz y no en `frontend/package.json`
 
 ## Pruebas frontend recomendadas
 
-La configuracion actual de `frontend/package.json` no incluye suite de pruebas automatizadas. Para el MVP se recomienda agregar una capa gradual.
+`frontend/package.json` incluye actualmente una suite automatizada ejecutada con `node --test`.
+
+La suite cubre utilidades de tiempo de negocio, reglas de reserva, reglas de disponibilidad, foco/clasificacion de reservas y configuracion de alcance MVP.
+
+Verificacion local registrada el 2026-08-20:
+
+- `npm run build`: correcto.
+- `npm test`: 25 pruebas correctas.
+- `git diff --check`: sin errores.
+
+La cobertura aun debe crecer hacia componentes Vue, router y pruebas end-to-end.
 
 ### Pruebas unitarias o de componentes
 
@@ -206,11 +285,11 @@ La configuracion actual de `frontend/package.json` no incluye suite de pruebas a
 
 ## Prioridades sugeridas
 
-1. `BACK-020`: bloquear recursos no reservables antes del submit.
-2. `BACK-021`: corregir shell responsive compartido.
-3. `BACK-022`: accesibilidad de modales, labels y timeline.
-4. `BACK-023`: 404 y carga de sesion sin duplicados.
-5. `BACK-018`: terminar carrusel y reduccion de movimiento.
-6. `BACK-024`: instalacion frontend reproducible.
-7. `QA-002`: suite minima de regresion frontend.
-8. Para MVP 2: confirmacion fuerte, conflicto preventivo, filtros y participantes solo si se persisten.
+1. `BACK-020`: mantener validacion preventiva para recursos no reservables antes del submit.
+2. `BACK-021`: completar revision responsive del shell compartido.
+3. `BACK-022`: cerrar accesibilidad de foco, Escape, labels y operacion por teclado.
+4. `BACK-023`: revisar 404 y eliminar recargas de sesion redundantes que aun puedan existir en vistas individuales.
+5. `BACK-024`: validar instalacion limpia y retirar codigo o dependencias frontend obsoletas.
+6. `QA-002`: ampliar la regresion automatizada desde utilidades hacia componentes, router y flujos integrados.
+7. Mantener `ReservationForm.vue` como unica fuente visual para creacion/detalle siempre que el contexto corresponda.
+8. Mantener las notificaciones de exito fuera de la UI hasta definir un patron transversal consistente para toda la aplicacion.

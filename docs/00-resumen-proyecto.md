@@ -1,6 +1,6 @@
 # Poli-REDI - Resumen vigente para compartir
 
-Fecha de corte: 2026-07-21
+Fecha de corte: 2026-08-20
 
 ## Proposito
 
@@ -29,20 +29,20 @@ Un elemento puede estar implementado sin estar aprobado y puede estar implementa
 
 | Area | Estado | Evidencia y limite principal |
 | --- | --- | --- |
-| Autenticacion y sesion | IMPLEMENTADO | Microsoft Entra ID y modo local exclusivo de desarrollo; no se verifico el ambiente online en este corte. |
+| Autenticacion y sesion | IMPLEMENTADO | Microsoft Entra ID y modo local de desarrollo. El frontend diferencia sesion no resuelta, autenticada y anonima, y utiliza una pantalla intermedia compartida para entrada/cierre sin mostrar prematuramente el login. El ambiente online no fue reverificado en este corte. |
 | Identidad, roles y bloqueo | IMPLEMENTADO | El servidor obtiene al usuario desde la identidad validada, consulta rol/bloqueo local y protege rutas administrativas. |
 | Perfil y RUT | IMPLEMENTADO | Usuario normal debe registrar RUT para reservar o inscribirse en talleres. |
 | Recursos | IMPLEMENTADO PARCIAL | Catalogo y cambio administrativo de imagen; no existe gestion completa de altas, datos, modos y activacion. |
-| Disponibilidad | IMPLEMENTADO PARCIAL | Integra reservas y actividades programadas; la interfaz agrega talleres recurrentes. Los bloqueos no se muestran y no hay filtros de rango en el servidor. |
+| Disponibilidad | IMPLEMENTADO PARCIAL | Integra reservas, actividades programadas y talleres; el frontend permite filtrar por recurso y por existencia de bloques disponibles. El recurso puede precargarse desde Inicio mediante query string. Permanecen pendientes las brechas de backend/rango que correspondan. |
 | Creacion de reservas | IMPLEMENTADO PARCIAL | Propietario, zona horaria, jornada y duraciones son controlados por servidor; falta aplicar la confirmacion condicional aprobada segun tipo de recurso. |
 | Reglas institucionales | APROBADO / IMPLEMENTACION PARCIAL | Ventana, frecuencia y versionado prospectivo estan implementados y verificados localmente, junto con API administrativa, snapshot completo e idempotencia. Participantes, vencimiento, interfaz administrativa y correccion excepcional siguen pendientes; no se verifico el incremento en SQL Server/Azure SQL real. |
-| Cancelacion | IMPLEMENTADO PARCIAL | Propietario o administrador pueden cancelar estados activos no finalizados; la confirmacion visible no es consistente en todos los accesos. |
+| Cancelacion | IMPLEMENTADO | Propietario o administrador pueden cancelar estados activos no finalizados. El frontend utiliza confirmacion destructiva inline y evita `window.confirm`; el cambio de estado visible actua como confirmacion de la operacion. |
 | Talleres | IMPLEMENTADO | Consulta e inscripcion con RUT, cupo y duplicado controlados; no existe desinscripcion. |
 | Notificaciones | IMPLEMENTADO PARCIAL | Consulta y contador existen; no se marcan como leidas y la generacion cubre solo eventos limitados. |
 | Administracion | IMPLEMENTADO PARCIAL | Panel, lectura de usuarios, recursos, reservas e indicadores; faltan gestion del inventario oficial, usuarios, bloqueos, programacion, conflictos institucionales e infracciones. |
 | Reportes | IMPLEMENTADO PARCIAL | Indicadores calculados en frontend; no constituyen reportes institucionales completos ni consumen las vistas SQL dedicadas. |
 | Auditoria | IMPLEMENTADO PARCIAL | El esquema registra cambios de reservas, pero no existe consulta administrativa. |
-| Calidad local | VERIFICADO PARCIAL | `go test ./...`, `npm test` y `npm run build` aprobaron el 2026-07-20. No se ejecutaron pruebas integradas con Azure SQL, navegador ni ambiente online. |
+| Calidad local | VERIFICADO PARCIAL | `npm run build`, `npm test` y `git diff --check` aprobaron el 2026-08-20; la suite frontend ejecuto 25 pruebas correctamente. La validacion integrada con infraestructura, navegador y ambiente online sigue siendo una evidencia separada. |
 | Despliegue | IMPLEMENTADO SEGUN REPOSITORIO | Existen configuracion y documentacion de demo Azure; su disponibilidad actual no fue verificada en este corte. |
 
 ## Evaluacion por incremento
@@ -50,15 +50,15 @@ Un elemento puede estar implementado sin estar aprobado y puede estar implementa
 | Incremento | Estado recomendado | Lectura de producto |
 | --- | --- | --- |
 | MVP 1 | Demo funcional, cierre pendiente | La base opera y tiene pruebas locales, pero requiere validacion integrada/online, seguridad de errores y cierre de accesibilidad/responsive. |
-| MVP 2 | Avanzado con brechas obligatorias | El flujo de usuario existe, pero faltan la restriccion semanal, confirmaciones de participantes y estados condicionales ya aprobados. |
+| MVP 2 | Avanzado; UX principal unificado | El flujo de usuario visible esta consolidado: Inicio, Disponibilidad, Reservas/Historial y detalle comparten patrones. Persisten brechas de reglas grupales, validacion integral, infraestructura y pruebas de integracion. |
 | MVP 3 | Parcial | Hay lectura y resumen administrativo, no gestion institucional completa. |
 | MVP 4 | En desarrollo | Documentacion y pruebas iniciales existen; reportes, notificaciones, infracciones y evidencia final siguen incompletos. |
 
 ## Brechas y contradicciones que impiden declarar cierre
 
 1. El alcance academico definitivo excluye autenticacion institucional real y despliegue productivo, pero el repositorio documenta Entra ID y una demo Azure ya implementados.
-2. La ventana y frecuencia versionadas ya se validan en servidor; falta integracion visible y verificacion SQL/Azure. El minimo de 10 participantes sigue sin implementarse.
-3. El estado debe depender del recurso: `OPEN_USE` no requiere confirmacion de participantes; Cancha 1, 2 y 3 deben quedar pendientes hasta alcanzar el minimo y volver a `PENDING` si una retirada reduce el conteo. El flujo actual confirma todas las reservas inmediatamente.
+2. La ventana y frecuencia versionadas requieren conservar evidencia de integracion y verificacion en la infraestructura objetivo.
+3. El frontend ya soporta representar reservas `PENDING`, cantidad/minimo de participantes, condicion grupal y codigo de invitacion cuando la API entrega esos datos. El ciclo grupal completo —confirmacion, retirada, regreso a `PENDING`, vencimiento y liberacion de la oportunidad— solo debe declararse cerrado cuando backend, persistencia y pruebas de integracion demuestren todas las transiciones aprobadas.
 4. Ante actividad institucional versus reserva particular, la reserva debe cancelarse automaticamente y notificarse al usuario; ante dos actividades, el administrador debe poder cancelar una o mantener ambas. El esquema actual rechaza esos conflictos.
 5. Los ocho recursos del seed representan el inventario oficial, pero el administrador aun no puede mantenerlo de forma completa.
 
@@ -106,7 +106,14 @@ La politica se versiona y cada solicitud referencia la version aplicable. Public
 
 ## Evidencia local del corte
 
-- Backend: `go test ./...` aprobado; paquetes con pruebas de reloj, JSON, reglas horarias y servicio de reservas.
-- Frontend: `npm test` aprobado; 9 pruebas de zona horaria y reglas de agenda.
-- Frontend: `npm run build` aprobado; build de produccion generado sin error.
-- No verificado en este corte: Azure SQL en ejecucion, navegacion manual, accesibilidad, responsive, Microsoft Entra ID real y demo online.
+Evidencia mas reciente del frontend, 2026-08-20:
+
+- `npm run build`: aprobado.
+- `npm test`: 25 pruebas aprobadas.
+- `git diff --check`: aprobado.
+- Flujo revisado manualmente durante el pulido UX: carrusel manual, filtros de Disponibilidad, detalle compartido, cancelacion con confirmacion inline y transiciones de autenticacion.
+- Commit funcional de referencia: `a9a599d` (`feat: unify reservation flows and auth transitions`).
+
+Evidencia historica del backend y de infraestructura debe mantenerse separada y no inferirse a partir de estas pruebas frontend.
+
+No verificado nuevamente en este corte documental: infraestructura Azure en ejecucion, Microsoft Entra ID real, responsive exhaustivo, accesibilidad completa y demo online.

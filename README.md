@@ -23,7 +23,22 @@ Quedan fuera del MVP 1 la gestion completa de bloqueos, CRUD avanzado de recurso
 
 Estado de cierre: el MVP 1 esta funcional como demo. Zona horaria, estado controlado por servidor y limites de horario/duracion estan implementados y tienen pruebas locales, pero falta verificarlos en el ambiente integrado/online. Tambien permanecen pendientes la ampliacion de cobertura, la seguridad de errores y la coherencia responsive/accesible. El estado de producto vigente y sus contradicciones de alcance estan en `docs/00-resumen-proyecto.md` y `docs/13-estado-actual-producto.md`.
 
-Para MVP 2 y MVP 3 se aprobaron el 2026-07-20 reglas aun no implementadas: ventana y frecuencia semanal configurables; `PENDING` consume la oportunidad desde su creacion y `CANCELLED` la libera; Cancha 1, 2 y 3 corresponden a multicancha 1, 2 y 3 y requieren 10 usuarios con cuenta, incluido el solicitante; la solicitud bloquea el horario, admite cambios hasta una hora antes inclusive y se cancela si vence bajo el minimo; solo administradores pueden modificar recursos, periodos o plazos. Tambien se aprobo el catalogo ya implementado de 30 a 180 minutos en incrementos de 30, junto con la prioridad institucional y el aviso al usuario cancelado.
+Para MVP 2 y MVP 3 se aprobaron el 2026-07-20 reglas institucionales incrementales: ventana y frecuencia configurables, ciclo `PENDING`/`CONFIRMED` para recursos grupales, minimo de participantes, vencimiento, administracion de politicas y prioridad institucional. Parte de esta arquitectura ya existe en backend/frontend, pero cada regla debe considerarse cerrada solo cuando su comportamiento de punta a punta y persistencia esten verificados.
+
+## Estado UX MVP 2
+
+Actualizacion 2026-08-20:
+
+- Inicio utiliza un carrusel horizontal manual, sin autoplay.
+- Seleccionar un recurso desde Inicio abre Disponibilidad con dicho recurso seleccionado.
+- Disponibilidad permite mostrar todos los recursos, filtrar uno especifico y limitar la vista a recursos con bloques disponibles.
+- Reservas activas e Historial comparten `ReservationsView.vue`; `/history` se conserva como redireccion al tab historico.
+- `ReservationForm.vue` se reutiliza para creacion y detalle en los principales flujos.
+- La cancelacion muestra confirmacion destructiva inline y no usa `window.confirm`.
+- El detalle soporta informacion grupal cuando la API la entrega.
+- La autenticacion utiliza una pantalla intermedia global para resolver la sesion y comunicar el cierre de sesion, evitando flashes prematuros del login.
+- Los mensajes globales de exito se retiraron temporalmente hasta definir un patron transversal de notificaciones.
+- La suite frontend registra 25 pruebas correctas en la verificacion local del 2026-08-20.
 
 ## Stack
 
@@ -261,13 +276,13 @@ Antes de una demo local:
 5. Guardar RUT y verificar que permite avanzar.
 6. Crear una reserva desde Disponibilidad.
 7. Seleccionar una actividad del catalogo o dejarla sin actividad especifica.
-8. Revisar Mis Reservas, Detalle e Historial.
-9. Cancelar una reserva propia.
+8. Revisar Reservas activas y cambiar al tab Historial dentro del mismo modulo.
+9. Abrir el detalle compartido y cancelar una reserva propia confirmando la accion inline.
 10. Entrar como admin local y verificar acceso al panel administrador.
 11. Confirmar que usuario normal no ve ni accede a rutas administrativas.
 12. Confirmar que la hora de una reserva coincide entre local y demo online para `America/Santiago`; la regla ya esta implementada y verificada localmente, pero falta evidencia online.
 
-El checklist ampliado y la evidencia de la revision exhaustiva estan en `docs/12-checklist-demo-mvp1.md`. Al corte del 2026-07-20, `go test ./...`, `npm test` y `npm run build` finalizan sin errores. La cobertura sigue siendo parcial y no reemplaza la validacion integrada, manual ni online.
+El checklist ampliado y la evidencia de la revision exhaustiva estan en `docs/12-checklist-demo-mvp1.md`. En la verificacion frontend del 2026-08-20, `npm test` completo 25 pruebas y `npm run build` finalizo correctamente. La cobertura sigue siendo parcial y no reemplaza pruebas integradas, manuales, de accesibilidad, responsive ni del ambiente online.
 
 ## Documentacion relacionada
 

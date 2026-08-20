@@ -209,11 +209,11 @@ npm test
 npm run build
 ```
 
-Estado actualizado 2026-07-20:
+Evidencia acumulada:
 
-- `go test ./...` finaliza correctamente y ejecuta pruebas de reloj, JSON, agenda y servicio de reservas; la cobertura sigue parcial en `QA-001`.
-- `npm test` finaliza correctamente con 9 pruebas de zona horaria y agenda; faltan componentes, permisos y navegacion en `QA-002`.
-- `npm run build` completa el build de produccion.
+- Backend, ultima evidencia registrada 2026-07-20: `go test ./...` finaliza correctamente y ejecuta pruebas de reloj, JSON, agenda y servicio de reservas; la cobertura sigue parcial en `QA-001`.
+- Frontend, evidencia 2026-08-20: `npm test` finaliza correctamente con 25 pruebas; faltan componentes Vue, permisos, router y flujos end-to-end en `QA-002`.
+- Frontend, evidencia 2026-08-20: `npm run build` completa el build de produccion.
 - Esta evidencia es local y no sustituye la prueba manual ni la verificacion online posterior al redeploy.
 
 ## 4. Base de datos

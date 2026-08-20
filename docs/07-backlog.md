@@ -7,7 +7,7 @@ La idea es usar este documento como base para crear issues en GitHub Projects o 
 
 ## Estado base verificado
 
-Fecha base funcional: 2026-07-14. Evidencia automatizada actualizada: 2026-07-20.
+Fecha base funcional: 2026-07-14. Evidencia automatizada actualizada: 2026-08-20.
 
 Estado actual:
 
@@ -21,8 +21,9 @@ Estado actual:
 - Ruta `/api/health` funciona como verificacion publica.
 - Rutas protegidas requieren token Bearer.
 - Vista `AvailabilityView` carga datos reales.
-- El flujo `Historial -> Detalle` funciona para usuario y administrador segun permisos.
+- Reservas activas e Historial comparten actualmente `ReservationsView.vue`; el historial se selecciona mediante `?tab=history` y reutiliza el mismo flujo de detalle.
 - `npm run build` pasa en frontend.
+- `npm test` ejecuto 25 pruebas correctamente en la verificacion local del 2026-08-20.
 - `go test ./...` finaliza correctamente y ya incluye cobertura inicial del reloj de negocio; `QA-001` sigue abierto para ampliar los casos de reservas.
 - El MVP 1 permanece reabierto: zona horaria, estado y horario/duracion estan implementados y probados localmente, pero requieren verificacion integrada/online; tambien faltan cobertura, seguridad de errores y coherencia responsive/accesible.
 
@@ -379,7 +380,6 @@ Aplicar primero en:
 - `Sidebar.vue`
 - `AvailabilitySection.vue`
 - `ReservationForm.vue`
-- `ReservationDetailModal.vue`
 - `ReservationsView.vue`
 - `ResourcesView.vue`
 
@@ -419,7 +419,6 @@ Aplicar primero en:
 - `frontend/src/components/layout/Sidebar.vue`
 - `frontend/src/components/availability/AvailabilitySection.vue`
 - `frontend/src/components/forms/ReservationForm.vue`
-- `frontend/src/components/availability/ReservationDetailModal.vue`
 - `frontend/src/views/ReservationsView.vue`
 - `frontend/src/views/ResourcesView.vue`
 
@@ -457,7 +456,7 @@ Evitar que "activa", "historica" o "finalizada" se traten como estados reales cu
 ### Resultado de implementacion
 
 - Se agregaron helpers compartidos en `frontend/src/utils/reservationTime.js`.
-- `HistoryView.vue` usa `isReservationHistorical` y `getReservationDisplayStatus`.
+- `ReservationsView.vue` usa `isReservationHistorical`, `isReservationActionable` y `getReservationDisplayStatus` para los tabs activo e historico.
 - `ReservationsView.vue` usa `isReservationActionable`, `isReservationCancelable` y `getReservationDisplayStatus`.
 - `ReservationDetailView.vue` usa la misma regla de etiqueta visual y cancelacion.
 - `npm run build` paso correctamente el 2026-07-07.
@@ -465,7 +464,6 @@ Evitar que "activa", "historica" o "finalizada" se traten como estados reales cu
 ### Archivos relevantes
 
 - `frontend/src/utils/reservationTime.js`
-- `frontend/src/views/HistoryView.vue`
 - `frontend/src/views/ReservationsView.vue`
 - `frontend/src/views/ReservationDetailView.vue`
 
@@ -474,6 +472,21 @@ Evitar que "activa", "historica" o "finalizada" se traten como estados reales cu
 Prioridad: P1
 Labels: `frontend`, `ux`, `reservas`, `refactor`, `codex-ready`, `mvp1`
 Estado sugerido: Done
+
+### Actualizacion 2026-08-20
+
+La unificacion se completo tambien a nivel de navegacion.
+
+`ReservationsView.vue` concentra actualmente:
+
+- reservas activas;
+- historial mediante `?tab=history`;
+- filtros historicos;
+- apertura de detalle;
+- cancelacion segun permisos.
+
+La antigua `HistoryView.vue` fue eliminada. `/history` se conserva como redireccion al tab historico.
+
 
 ### Contexto
 
@@ -488,7 +501,7 @@ Lo que debe unificarse es el lenguaje visual y la estructura de tarjeta.
 
 ### Objetivo
 
-Crear un componente compartido para representar reservas en listas, usable por `ReservationsView.vue` y `HistoryView.vue`.
+Crear un componente compartido para representar reservas en listas, reutilizable por los contextos activo e historico de `ReservationsView.vue` y por otras superficies como el dashboard.
 
 ### Alcance sugerido para Codex
 
@@ -496,7 +509,7 @@ Crear un componente compartido para representar reservas en listas, usable por `
 2. Mover a ese componente la estructura visual comun de tarjeta.
 3. Recibir por props la reserva, etiqueta visual, modo y flags de acciones.
 4. Emitir eventos o usar slots para acciones como `Detalle`, `Ver detalle` y `Cancelar`.
-5. Usar el componente desde `ReservationsView.vue` y `HistoryView.vue`.
+5. Usar el componente desde los contextos activo e historico de `ReservationsView.vue`.
 
 ### Props/eventos sugeridos
 
@@ -525,7 +538,7 @@ Crear un componente compartido para representar reservas en listas, usable por `
 
 - Se creo `ReservationListCard.vue` como tarjeta compartida para listas de reservas.
 - `ReservationsView.vue` usa la tarjeta compartida con accion de detalle y cancelacion.
-- `HistoryView.vue` usa la tarjeta compartida en modo historial, con el mismo boton de detalle.
+- El tab historico de `ReservationsView.vue` usa la tarjeta compartida en modo historial, con el mismo acceso al detalle.
 - `ReservationsPanel.vue` del dashboard tambien usa la tarjeta compartida para proximas reservas.
 - Se retiro `components/dashboard/ReservationCard.vue` para evitar dos tarjetas de reserva conviviendo.
 - Se redujo duplicacion de markup, badges, metadatos de fecha/hora/duracion y estilos de tarjeta.
@@ -536,7 +549,6 @@ Crear un componente compartido para representar reservas en listas, usable por `
 - `frontend/src/components/reservations/ReservationListCard.vue`
 - `frontend/src/components/dashboard/ReservationsPanel.vue`
 - `frontend/src/views/ReservationsView.vue`
-- `frontend/src/views/HistoryView.vue`
 - `frontend/src/utils/reservationTime.js`
 
 ## BACK-011 - Unificar estados, filtros y vacios en vistas de reservas
@@ -544,6 +556,13 @@ Crear un componente compartido para representar reservas en listas, usable por `
 Prioridad: P2
 Labels: `frontend`, `ux`, `reservas`, `refactor`, `codex-ready`, `mvp1`
 Estado sugerido: Done
+
+### Actualizacion 2026-08-20
+
+Los estados activos e historicos utilizan la misma vista y los mismos helpers temporales.
+
+Las reservas accionables se ordenan de forma ascendente y el historial de forma descendente. Los filtros de estado y fecha se mantienen solamente en el contexto historico.
+
 
 ### Contexto
 
@@ -571,7 +590,7 @@ Alinear los estados visuales y de interaccion de las vistas relacionadas con res
 
 ### Resultado de implementacion
 
-- `HistoryView.vue` usa `app-card` y `form-field` para filtros.
+- El contexto historico de `ReservationsView.vue` usa la base global para tarjetas y filtros.
 - Mis Reservas, Historial y Proximas Reservas del dashboard quedan alineadas en tarjeta, estados y badges.
 - El componente compartido mantiene layout responsive para tablets y mobile.
 - `npm run build` paso correctamente el 2026-07-07.
@@ -579,7 +598,6 @@ Alinear los estados visuales y de interaccion de las vistas relacionadas con res
 ### Archivos relevantes
 
 - `frontend/src/views/ReservationsView.vue`
-- `frontend/src/views/HistoryView.vue`
 - `frontend/src/views/ReservationDetailView.vue`
 - `frontend/src/assets/styles/main.css`
 - `frontend/src/assets/styles/variables.css`
@@ -721,7 +739,7 @@ Estado sugerido: Done
 
 ### Contexto
 
-`ReservationDetailView.vue` y `ReservationListCard.vue` usan `getReservationDisplayStatus`, pero `ReservationDetailModal.vue` mantiene su propio `statusLabel`. Esto puede producir etiquetas distintas entre lista, detalle e inspeccion desde disponibilidad.
+Historicamente el detalle de Disponibilidad mantenia una implementacion separada del estado visual. Actualmente el flujo fue unificado y `ReservationForm.vue` en modo `detail` reutiliza `getReservationDisplayStatus`, evitando etiquetas divergentes entre lista, detalle e inspeccion desde disponibilidad.
 
 ### Objetivo
 
@@ -729,8 +747,8 @@ Usar una sola regla de estado visual para reservas en todo el flujo MVP 1.
 
 ### Alcance sugerido para Codex
 
-1. Importar `getReservationDisplayStatus` en `ReservationDetailModal.vue`.
-2. Reemplazar el `statusLabel` local por el helper compartido.
+1. Mantener `getReservationDisplayStatus` como helper comun del detalle.
+2. Evitar volver a introducir logica local de estado en modales alternativos.
 3. Mantener tratamiento especial de talleres con etiqueta `Taller programado`.
 4. Si se muestra badge de estado, usar clases compatibles con `app-badge` o estilos ya existentes.
 5. Revisar copy de advertencia para cancelacion segun estado real.
@@ -745,13 +763,13 @@ Usar una sola regla de estado visual para reservas en todo el flujo MVP 1.
 
 ### Resultado de implementacion
 
-- `ReservationDetailModal.vue` usa el helper compartido de estado visual.
+- `ReservationForm.vue` en modo `detail` usa el helper compartido de estado visual.
 - Lista, detalle e inspeccion desde disponibilidad conservan la misma etiqueta temporal.
 - 2026-07-14: validado en navegador y con build de produccion.
 
 ### Archivos relevantes
 
-- `frontend/src/components/availability/ReservationDetailModal.vue`
+- `frontend/src/components/forms/ReservationForm.vue`
 - `frontend/src/utils/reservationTime.js`
 - `frontend/src/views/ReservationDetailView.vue`
 - `frontend/src/components/reservations/ReservationListCard.vue`
@@ -841,7 +859,24 @@ Mejorar accesibilidad ligera del formulario de reserva sin cambiar el diseno vis
 
 Prioridad: P1
 Labels: `frontend`, `ux`, `dashboard`, `visual`, `codex-ready`, `mvp1`
-Estado sugerido: Ajustes visuales pendientes
+Estado sugerido: Implementado; validacion responsive pendiente
+
+### Actualizacion 2026-08-20
+
+El carrusel fue simplificado para eliminar movimiento automatico y duplicacion por loop.
+
+Comportamiento vigente:
+
+- desplazamiento horizontal manual;
+- sin autoplay;
+- soporte para mouse, touch y trackpad;
+- controles laterales;
+- tarjeta completa seleccionable;
+- navegacion a `/availability?resource=<id>`;
+- Disponibilidad interpreta el recurso enviado y lo deja seleccionado.
+
+La tarea restante es validar visualmente el comportamiento responsive en los anchos objetivo; no queda pendiente redisenar el mecanismo del carrusel.
+
 
 ### Contexto
 
@@ -855,24 +890,24 @@ Dejar el dashboard inicial mas limpio, con instalaciones visibles en un carrusel
 
 1. Eliminar o mantener fuera de la vista principal los accesos rapidos redundantes.
 2. Mantener las acciones principales disponibles desde navegacion existente.
-3. Rehacer el carrusel como una banda horizontal con desplazamiento automatico de izquierda a derecha.
-4. Evitar que la primera tarjeta quede cortada en desktop y que el centrado cambie al iniciar la animacion.
-5. Permitir control manual simple sin mostrar una barra de scroll fea ni competir con la animacion automatica.
-6. Evitar que las copias usadas para el loop generen enlaces duplicados para lectores de pantalla.
-7. Respetar `prefers-reduced-motion` y detener la animacion continua cuando el usuario lo solicite desde el sistema.
+3. Mantener el carrusel como una banda horizontal de desplazamiento exclusivamente manual.
+4. Evitar que la primera o ultima tarjeta quede cortada en desktop y mobile.
+5. Permitir control mediante mouse, touch, trackpad y controles laterales sin depender de una barra de scroll visible.
+6. No usar loop ni copias duplicadas de tarjetas.
+7. No utilizar autoplay ni movimiento continuo.
 8. Asegurar que las imagenes de recursos mantengan proporcion y encuadre consistente.
 9. Evitar que el carrusel rompa el layout en mobile.
 
 ### Criterios de aceptacion
 
 - [x] Los accesos rapidos redundantes no aparecen en el dashboard principal.
-- [ ] El carrusel se percibe como carrusel horizontal, no como grilla ni lista cortada.
-- [ ] El carrusel tiene movimiento automatico suave de izquierda a derecha.
-- [ ] El usuario puede desplazarse manualmente sin depender de una barra de scroll visible.
+- [x] El carrusel se percibe como carrusel horizontal.
+- [x] El carrusel no utiliza autoplay ni movimiento automatico.
+- [x] El usuario puede desplazarse manualmente sin depender de una barra de scroll visible.
 - [ ] La primera y ultima tarjeta no quedan cortadas al cargar en desktop o mobile.
 - [ ] Los controles manuales producen un desplazamiento perceptible y estable.
-- [ ] Las copias del loop no duplican enlaces anunciados por tecnologia asistiva.
-- [ ] Con `prefers-reduced-motion: reduce` el contenido queda usable sin movimiento continuo.
+- [x] No existen copias de loop que dupliquen enlaces.
+- [x] No existe movimiento continuo que deba desactivarse mediante `prefers-reduced-motion`.
 - [ ] Las imagenes de recursos se ven proporcionadas y consistentes.
 - [ ] El dashboard mantiene buen aspecto en desktop y mobile.
 - [x] `npm run build` pasa.
@@ -880,7 +915,7 @@ Dejar el dashboard inicial mas limpio, con instalaciones visibles en un carrusel
 ### Resultado parcial
 
 - Se eliminaron los accesos rapidos del dashboard principal.
-- Se ajusto el carrusel como banda horizontal continua, sin barra de scroll visible y con pausa al interactuar.
+- El carrusel fue reemplazado por desplazamiento horizontal manual, sin autoplay ni loop.
 - Se estabilizo la proporcion visual de las tarjetas de instalaciones.
 - La revision de 2026-07-14 detecto una tarjeta inicial cortada en desktop, contenido parcial en mobile, controles manuales que compiten con la animacion y ausencia de reduccion de movimiento.
 - La tarea permanece abierta hasta resolver esos puntos y repetir validacion visual en 360, 611 y 1440 px.
@@ -1050,7 +1085,6 @@ Permitir completar el flujo critico de reserva y detalle con teclado y lectores 
 ### Archivos relevantes
 
 - `frontend/src/components/forms/ReservationForm.vue`
-- `frontend/src/components/availability/ReservationDetailModal.vue`
 - `frontend/src/components/forms/DateTimePicker.vue`
 - `frontend/src/components/availability/CalendarToolbar.vue`
 - `frontend/src/components/availability/ResourceTimeline.vue`
@@ -1059,7 +1093,28 @@ Permitir completar el flujo critico de reserva y detalle con teclado y lectores 
 
 Prioridad: P1
 Labels: `frontend`, `router`, `auth`, `performance`, `bug`, `codex-ready`, `mvp1`
-Estado sugerido: Ready for Codex
+Estado sugerido: Partially Done
+
+### Actualizacion 2026-08-20
+
+Se implemento un bootstrap global de autenticacion mediante el store.
+
+El estado `initialized` permite distinguir entre:
+
+- sesion aun no resuelta;
+- usuario autenticado;
+- usuario anonimo.
+
+`AuthLoadingScreen.vue` se reutiliza durante inicializacion, callback y cierre de sesion. El router evita mostrar prematuramente `/login` mientras la sesion se esta resolviendo.
+
+Tambien se corrigio la transicion de logout para evitar el flash `Preparando tu cuenta` entre cierre y login.
+
+Pendiente de esta tarea:
+
+- revisar llamadas residuales a `loadAuthUser()` desde vistas individuales;
+- completar/verificar el comportamiento 404;
+- ampliar pruebas automatizadas especificas del router y bootstrap.
+
 
 ### Contexto
 
@@ -1406,7 +1461,7 @@ Asegurar que la disponibilidad muestre solo los items recibidos para el dia sele
 ### Resultado de implementacion
 
 - `ScheduleGrid.vue` filtra reservas por la fecha seleccionada.
-- `ReservationBlock.vue`, `ResourceTimeline.vue` y `ReservationDetailModal.vue` usan un helper comun para fecha/hora.
+- `ReservationBlock.vue`, `ResourceTimeline.vue` y `ReservationForm.vue` usan helpers comunes para representar fecha/hora.
 - Las horas de reserva se interpretan actualmente como horario local de agenda; `RES-009` debe reemplazar esta convencion implicita por un contrato temporal explicito.
 - La vista muestra el bloque reservado despues de crear una reserva y mantiene la validacion de solapamiento desde la base de datos.
 
@@ -1455,7 +1510,7 @@ Mostrar en disponibilidad reservas, bloqueos y actividades institucionales.
 - `backend/internal/services/reservations_service.go`
 - `backend/internal/handlers/reservations_handlers.go`
 - `frontend/src/components/availability/ReservationBlock.vue`
-- `frontend/src/components/availability/ReservationDetailModal.vue`
+- `frontend/src/components/forms/ReservationForm.vue`
 
 ## RES-005 - Mejorar validaciones del formulario de reserva
 
@@ -1478,7 +1533,7 @@ Agregar validaciones visibles antes de enviar reserva.
 - [x] Muestra error si falta hora.
 - [x] Valida duracion mayor a 0.
 - [x] Bloquea fechas y horarios pasados en frontend y backend.
-- [x] No solicita participantes mientras el dato no se persiste (`BACK-012`).
+- [x] El formulario de creacion no solicita un conteo manual de participantes; las reservas grupales gestionan participantes mediante cuentas autenticadas y codigo de invitacion (`RES-008`).
 - [x] Deshabilita boton mientras se crea la reserva.
 - [x] Muestra error devuelto por backend sin cerrar modal.
 
@@ -1539,7 +1594,25 @@ Crear una vista donde el usuario vea sus reservas.
 
 Prioridad: P1
 Labels: `frontend`, `backend`, `reservas`
-Estado sugerido: Partial
+Estado sugerido: Done
+
+### Actualizacion 2026-08-20
+
+El flujo frontend de cancelacion fue unificado.
+
+`ReservationForm.vue` controla la presentacion y la confirmacion destructiva inline, mientras que la vista padre/store conserva la responsabilidad de ejecutar la mutacion.
+
+Comportamiento vigente:
+
+- no se usa `window.confirm`;
+- no se abre un modal sobre otro modal;
+- el usuario puede volver sin cancelar;
+- la cancelacion requiere confirmacion explicita;
+- la vista padre no vuelve a solicitar confirmacion;
+- el detalle compartido se reutiliza en los principales accesos.
+
+Las restricciones de estados y autorizacion del backend se documentan y prueban en los items de integridad correspondientes, por lo que no mantienen `RES-007` abierto.
+
 
 ### Contexto
 
@@ -1553,31 +1626,33 @@ Permitir cancelar reservas desde la interfaz usando el usuario autenticado.
 
 - [x] No se usa `requestedByUserId` fijo.
 - [x] El backend determina usuario desde token o valida contra usuario autenticado.
-- [ ] La UI pide confirmacion fuerte antes de cancelar.
+- [x] La UI pide confirmacion fuerte antes de cancelar.
 - [x] La reserva cambia a estado `CANCELLED`.
-- [x] Se muestra mensaje de exito o error.
+- [x] El resultado queda reflejado en el estado visible y los errores permanecen dentro del contexto.
 - [x] La lista se actualiza sin recargar toda la app.
 
 ### Resultado parcial
 
 - Los bloques de reserva en disponibilidad son seleccionables.
-- Al seleccionar una reserva se abre `ReservationDetailModal`.
+- Al seleccionar una reserva se reutiliza `ReservationForm.vue` en modo `detail`.
 - Admin puede cancelar cualquier reserva; usuario normal solo ve accion de cancelacion para reservas propias.
 - El modal muestra errores del backend si la cancelacion falla.
 - Al cancelar, la grilla se refresca y el bloque desaparece de la disponibilidad activa.
-- Segunda revision UX: el modal muestra una advertencia, pero aun falta una confirmacion fuerte adicional antes de ejecutar la cancelacion.
+- La cancelacion usa confirmacion destructiva inline dentro del mismo modal, sin `window.confirm` ni modal sobre modal.
 
 ## RES-008 - Persistir participantes de reserva y validar capacidad
 
 Prioridad: P0
 Labels: `frontend`, `backend`, `database`, `reservas`, `ux`, `needs-architecture`, `mvp2`
-Estado sugerido: Ready for Development
+Estado sugerido: Partially Done
 
 ### Contexto
 
 El usuario confirmo el 2026-07-20 que Cancha 1, 2 y 3 corresponden formalmente a multicancha 1, 2 y 3. Cada solicitud requiere al menos 10 usuarios con cuenta, incluido el solicitante. La solicitud `PENDING` bloquea el horario y consume la oportunidad semanal. Las confirmaciones pueden registrarse o retirarse hasta exactamente una hora antes inclusive, valor configurable. Si vence bajo el minimo, se cancela, libera el horario y deja de consumir la oportunidad.
 
-El flujo actual no registra participantes y crea toda reserva directamente como `CONFIRMED`, por lo que no cumple la regla aprobada.
+El flujo grupal ya registra participantes persistidos y no confirma todas las reservas inmediatamente. Una reserva de recurso grupal nace en `PENDING`, registra al solicitante como primer participante y pasa a `CONFIRMED` cuando alcanza el minimo.
+
+La implementacion sigue siendo parcial porque existe una divergencia respecto de la regla aprobada: una retirada que baja el conteo bajo el minimo despues de confirmar conserva actualmente `reservation.status = CONFIRMED` y expone `groupCondition = AT_RISK`, en vez de volver el estado persistido a `PENDING`. El vencimiento automatico bajo el minimo y la liberacion de la oportunidad semanal tambien requieren evidencia de cierre.
 
 ### Objetivo
 
@@ -1601,10 +1676,10 @@ Registrar confirmaciones de participantes unicos, mantener la solicitud grupal e
 
 ### Criterios de aceptacion
 
-- [ ] Una solicitud grupal nueva comienza en `PENDING`.
+- [x] Una solicitud grupal nueva comienza en `PENDING`.
 - [ ] Un mismo participante no puede aumentar dos veces el conteo vigente.
-- [ ] Con 9 confirmaciones la solicitud permanece `PENDING`.
-- [ ] La decima confirmacion valida cambia la solicitud a `CONFIRMED` si las demas reglas siguen cumpliendose.
+- [x] Con 9 confirmaciones la solicitud permanece `PENDING`.
+- [x] La decima confirmacion valida cambia la solicitud a `CONFIRMED` si las demas reglas siguen cumpliendose.
 - [ ] `OPEN_USE` no solicita confirmaciones de participantes.
 - [ ] El cliente no puede forzar `CONFIRMED` ni declarar un conteo arbitrario.
 - [ ] Se rechaza una confirmacion que supere la capacidad del recurso cuando corresponda.
@@ -1612,7 +1687,7 @@ Registrar confirmaciones de participantes unicos, mantener la solicitud grupal e
 - [ ] Si una retirada valida reduce el conteo de 10 a 9 antes del limite, la reserva vuelve a `PENDING`.
 - [ ] Confirmar o retirar despues del limite configurado se rechaza sin cambiar el conteo.
 - [ ] El valor inicial del limite es una hora antes del inicio y un cambio autorizado se refleja en las solicitudes posteriores aplicables.
-- [ ] El solicitante cuenta una vez entre los 10 y toda confirmacion corresponde a una cuenta autenticada.
+- [x] El solicitante cuenta una vez entre los 10 y las operaciones de participacion utilizan al usuario autenticado.
 - [ ] Mientras esta `PENDING`, el horario aparece ocupado para solicitudes incompatibles.
 - [ ] Exactamente una hora antes se admite el ultimo cambio; despues se rechaza.
 - [ ] Al vencer bajo el minimo cambia a `CANCELLED`, libera horario y oportunidad semanal.
@@ -1895,7 +1970,7 @@ Estado sugerido: Done
 
 ### Contexto
 
-`HistoryView.vue` ya lista reservas historicas reales con comportamiento por rol.
+El contexto `?tab=history` de `ReservationsView.vue` lista reservas historicas reales con comportamiento por rol.
 
 ### Objetivo
 
@@ -1911,8 +1986,8 @@ Mostrar historial de reservas pasadas, canceladas o rechazadas.
 
 ### Resultado parcial
 
-- `HistoryView.vue` muestra reservas pasadas o canceladas desde `/api/reservations/mine` para usuario normal y desde `/api/reservations` para administrador.
-- `HistoryView.vue` permite filtrar por estado y rango de fecha.
+- El tab historico de `ReservationsView.vue` muestra reservas pasadas o canceladas desde la fuente correspondiente al rol.
+- El tab historico permite filtrar por estado y rango de fecha.
 
 ## UI-004 - Conectar Dashboard a datos reales
 
@@ -2532,6 +2607,21 @@ Prioridad: P1
 Labels: `frontend`, `testing`, `ux`, `accessibility`, `codex-ready`, `mvp1`
 Estado sugerido: Partially Done
 
+### Actualizacion 2026-08-20
+
+La base automatizada frontend crecio y fue verificada nuevamente.
+
+Evidencia local 2026-08-20:
+
+- `npm test`: 25 pruebas correctas;
+- `npm run build`: correcto;
+- `git diff --check`: correcto.
+
+La suite actual cubre utilidades de tiempo de negocio, reglas de reserva, disponibilidad, clasificacion/foco de reservas y configuracion de alcance.
+
+La tarea permanece parcial porque aun falta cobertura directa de componentes Vue, router, autenticacion y flujos end-to-end.
+
+
 ### Objetivo
 
 Agregar pruebas o checklist automatizado para pantallas criticas.
@@ -3095,7 +3185,7 @@ Revision realizada durante la conexion de actividades reales.
 - `frontend/src/views/SettingsView.vue`: muestra datos reales de la cuenta autenticada.
 - `frontend/src/views/ReservationsView.vue`: lista reservas propias para usuarios normales y todas las reservas para administradores.
 - `frontend/src/views/ReservationDetailView.vue`: muestra detalle real de reservas propias o globales segun rol.
-- `frontend/src/views/HistoryView.vue`: lista historial propio para usuarios normales y todo el historial para administradores.
+- `frontend/src/views/ReservationsView.vue`: concentra reservas activas e historial, con fuente de datos segun rol.
 - `frontend/src/views/AdminView.vue`: muestra resumen administrativo con recursos y reservas reales.
 - `frontend/src/views/ReportsView.vue`: muestra indicadores calculados desde reservas y recursos reales.
 - `frontend/src/views/UsersView.vue`: lista usuarios reales desde Azure SQL para administradores.

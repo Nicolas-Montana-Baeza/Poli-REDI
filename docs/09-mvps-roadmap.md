@@ -11,7 +11,7 @@ Los MVPs organizan el proyecto desde una base tecnica funcional hasta una versio
 | MVP | Nombre | Proposito | Estado |
 | --- | --- | --- | --- |
 | MVP 1 | Base tecnica funcional | Dejar frontend, backend, base de datos, autenticacion, seguridad minima y demo online operando con datos reales. | Reabierto para pulido final |
-| MVP 2 | Flujo usuario completo | Permitir que un usuario normal consulte disponibilidad, solicite, confirme por participantes cuando corresponda, cancele y revise su informacion. | Avanzado con brechas obligatorias |
+| MVP 2 | Flujo usuario completo | Permitir que un usuario normal consulte disponibilidad, solicite, confirme por participantes cuando corresponda, cancele y revise su informacion. | Avanzado; UX principal unificado |
 | MVP 3 | Administracion institucional | Completar calendario institucional, bloqueos, recursos y gestion administrativa. | Parcial |
 | MVP 4 | Entrega, calidad y soporte | Completar reportes, notificaciones, pruebas, documentacion y despliegue. | En desarrollo |
 
@@ -118,11 +118,11 @@ Pulido visible y estabilidad transversal:
 - Impedir seleccion de instalaciones no reservables antes del submit (`BACK-020`).
 - Corregir header, campana y sidebar en mobile y teclado (`BACK-021`).
 - Completar foco, Escape, labels y teclado en modales/calendario (`BACK-022`).
-- Incorporar 404 y eliminar cargas duplicadas de sesion (`BACK-023`).
+- Completar el 404 y revisar llamadas residuales de carga de usuario en vistas individuales; el bootstrap global de autenticacion y la eliminacion del flash de login ya estan implementados (`BACK-023`).
 - Sanitizar respuestas de error internas (`SEC-005`).
-- Terminar el carrusel sin cortes, duplicacion accesible ni movimiento forzado (`BACK-018`).
+- Validar responsive final del carrusel manual ya implementado (`BACK-018`).
 - Hacer reproducible la instalacion limpia de `frontend/` y retirar duplicados muertos (`BACK-024`).
-- Ampliar la base de regresion frontend, hoy limitada a 9 pruebas de tiempo y agenda, hacia componentes, permisos y navegacion (`QA-002`).
+- Ampliar la base de regresion frontend, actualmente con 25 pruebas verificadas localmente el 2026-08-20, hacia componentes Vue, permisos, router y navegacion (`QA-002`).
 - Automatizar despliegue del backend Docker si se mantiene App Service con contenedor.
 - Mantener el plan de corte desde Google Calendar antes de mover operacion real (`OPS-001`).
 
@@ -148,6 +148,15 @@ Pulido visible y estabilidad transversal:
 - Seleccion de instalacion operable con teclado (`BACK-017`).
 - Verificacion 2026-07-14 de build frontend, autorizacion basica y flujo Historial -> Detalle.
 - Verificacion local 2026-07-20 de pruebas backend, 9 pruebas frontend de tiempo/agenda y build de produccion.
+- Unificacion 2026-08-20 de Reservas e Historial en `ReservationsView.vue`.
+- Retiro de `HistoryView.vue` y del modal de detalle duplicado de Disponibilidad.
+- Reutilizacion de `ReservationForm.vue` para creacion y detalle.
+- Confirmacion destructiva inline para cancelacion de reservas, sin `window.confirm`.
+- Carrusel de recursos manual con navegacion a Disponibilidad filtrada.
+- Filtros de recurso y disponibilidad incorporados a Disponibilidad.
+- Bootstrap global de autenticacion con pantalla intermedia para entrada y cierre de sesion.
+- Eliminacion del flash de Login durante la resolucion de sesion.
+- Verificacion local 2026-08-20 de build frontend y 25 pruebas automatizadas.
 
 ### Criterio de cierre
 
@@ -172,8 +181,13 @@ Entregar una experiencia usable para el usuario normal, desde login hasta reserv
 - Mis Reservas.
 - Detalle de reserva.
 - Cancelacion de reserva propia.
-- Historial de reservas.
+- Historial de reservas integrado en el mismo modulo de Reservas mediante tabs controlados por URL.
 - Filtros de historial por estado y fecha.
+- Modal compartido de creacion y detalle mediante `ReservationForm.vue`.
+- Confirmacion inline antes de cancelar una reserva.
+- Filtros de disponibilidad por recurso y por existencia de bloques disponibles.
+- Carrusel manual de recursos con navegacion contextual a Disponibilidad.
+- Pantalla intermedia reutilizable para inicializacion y cierre de sesion.
 - Talleres deportivos con inscripcion.
 - Catalogo de recursos con datos reales.
 - Filtros basicos de recursos en frontend.
@@ -244,7 +258,17 @@ Entregar una experiencia usable para el usuario normal, desde login hasta reserv
 
 ### Estado actual
 
-Avanzado con brechas obligatorias aprobadas.
+Avanzado; el flujo UX principal se encuentra unificado y las brechas restantes se concentran principalmente en validacion integral, reglas grupales, infraestructura y cobertura de pruebas.
+
+Actualizacion 2026-08-20:
+
+- Reservas activas e historial comparten una misma vista.
+- Inicio, Disponibilidad y Reservas reutilizan el patron de detalle.
+- La cancelacion exige confirmacion inline.
+- El carrusel de inicio es manual.
+- Disponibilidad permite filtrar recursos.
+- Las transiciones de autenticacion evitan mostrar Login mientras la sesion aun se esta resolviendo.
+- La suite frontend local registra 25 pruebas correctas.
 
 Incluye tambien una primera version funcional de talleres deportivos: listado de talleres activos, busqueda, cupos, estado de inscripcion e inscripcion protegida por RUT. La disponibilidad ya consume un endpoint sanitizado y muestra talleres como ocupacion recurrente; los recursos `OPEN_USE` operan como uso libre con intensidad de uso. El catalogo y dashboard ya pueden mostrar imagenes configuradas para recursos.
 
@@ -253,7 +277,7 @@ Incluye tambien una primera version funcional de talleres deportivos: listado de
 - Completar filtros backend de reservas por fecha/rango/estado (`API-002`).
 - Completar filtros por fecha/rango y sumar bloqueos al endpoint de disponibilidad; las actividades programadas ya estan integradas (`API-004`, `ADMIN-004`).
 - Cargar el detalle por ID sin descargar colecciones completas (`API-006`).
-- Agregar confirmacion fuerte antes de cancelar reservas (`RES-007`).
+- Mantener la confirmacion fuerte de cancelacion ya implementada y completar su evidencia de pruebas (`RES-007`).
 - Integrar en frontend y verificar en SQL Server/Azure SQL la ventana y frecuencia versionadas ya implementadas localmente; `PENDING` consume desde su creacion y `CANCELLED` libera la oportunidad (`RES-012`).
 - Registrar al solicitante y participantes mediante cuentas unicas, exigiendo al menos 10 para las tres multicanchas (`RES-008`).
 - Mantener solicitudes grupales en `PENDING`, bloquear el horario, confirmar al alcanzar el minimo y volver a `PENDING` si una retirada reduce el conteo (`RES-008`, `RES-010`).

@@ -25,10 +25,13 @@ Este documento describe el flujo funcional de reservas en Poli-REDI, sus validac
 10. El backend rechaza usuarios normales sin RUT.
 11. El servicio valida zona horaria de negocio, fecha/hora, duracion permitida, paso de inicio, jornada operativa, ventana reservable y frecuencia desde la creacion de la solicitud activa anterior.
 12. La base de datos vuelve a proteger ventana y frecuencia ante concurrencia, ademas de validar conflictos de recurso, usuario, bloqueos y actividades programadas.
-13. Si la reserva se crea, la UI refresca disponibilidad y muestra mensaje de exito.
-14. Si existe conflicto, el formulario mantiene el error visible.
+13. Si la reserva se crea, el mismo modal pasa a mostrar el resultado de la operacion y la UI refresca disponibilidad.
+14. No se muestra por ahora un toast global de exito; la confirmacion se comunica mediante el nuevo estado visible de la reserva.
+15. Si existe conflicto, el formulario mantiene el error visible y permite corregir los datos sin perder el contexto.
 
-Este flujo describe el comportamiento implementado, no el flujo objetivo completo aprobado el 2026-07-20. La ventana y la frecuencia versionadas estan implementadas y verificadas localmente, pero aun no se han verificado en Azure SQL. Todavia no se registran confirmaciones de participantes y toda reserva se crea como `CONFIRMED`.
+Este flujo se ha extendido durante MVP 2. La interfaz ya representa correctamente reservas `PENDING` cuando la API las entrega y el modal de detalle soporta informacion grupal como cantidad de participantes, minimo requerido, condicion del grupo y codigo de invitacion. Por lo tanto, la documentacion ya no debe asumir que toda reserva se crea necesariamente como `CONFIRMED`.
+
+La ventana y la frecuencia versionadas permanecen sujetas a la validacion de infraestructura indicada en sus requisitos correspondientes. El ciclo completo de confirmacion grupal debe considerarse cerrado solo cuando backend, persistencia y pruebas de integracion validen conjuntamente todas las transiciones definidas en `RES-008`, `RES-010` y `RES-012`.
 
 ## Flujo objetivo aprobado de solicitud y confirmacion
 
@@ -57,30 +60,44 @@ Solo un usuario con rol administrador puede modificar los recursos sujetos a con
 
 ## Flujo actual de cancelacion
 
-1. El usuario selecciona una reserva existente.
-2. La UI abre el detalle de reserva.
-3. La UI muestra accion de cancelacion solo si el usuario puede cancelar.
-4. El frontend solicita cancelacion enviando el ID de reserva.
-5. El backend obtiene el usuario autenticado desde middleware.
-6. El servicio valida que el usuario sea propietario o administrador.
-7. Si la reserva existe, no esta cancelada y su termino no ha pasado, cambia su estado a `CANCELLED`.
-8. La UI refresca disponibilidad y muestra mensaje de exito.
+1. El usuario selecciona una reserva existente desde Disponibilidad, Inicio o el modulo de Reservas.
+2. La UI abre `ReservationForm.vue` en modo `detail` cuando ese flujo utiliza el modal compartido.
+3. La accion de cancelacion solo aparece cuando el usuario posee permisos para cancelar la reserva.
+4. Al pulsar cancelar, el modal cambia a una confirmacion destructiva inline.
+5. El usuario puede volver sin modificar la reserva o confirmar explicitamente la cancelacion.
+6. Solo despues de la confirmacion el componente emite el evento de cancelacion.
+7. La vista padre ejecuta la mutacion a traves del store.
+8. El backend obtiene el usuario autenticado desde middleware.
+9. El servicio valida que el usuario sea propietario o administrador.
+10. Si la reserva es cancelable, cambia su estado a `CANCELLED`.
+11. La UI refresca los datos afectados y el nuevo estado visible confirma la accion.
+12. Por decision UX temporal no se muestra un toast global de exito.
+
+La responsabilidad queda separada de esta forma:
+
+- `ReservationForm.vue`: presentacion y confirmacion de la accion destructiva.
+- vista/store: mutacion de datos.
+- backend: autorizacion e integridad de la transicion.
 
 Estado de integridad MVP 1:
 
 - El servidor permite la transicion solo desde estados activos y no confia en estados enviados por el cliente (`RES-010`, en revision por despliegue).
 - Todas las comparaciones de inicio/termino usan la zona de negocio definida por `APP_TIMEZONE` (`RES-009`, en revision por despliegue).
 
-## Mejora requerida en cancelacion
+## Confirmacion de cancelacion implementada
 
-La interfaz actual muestra una advertencia, pero debe agregarse una confirmacion fuerte antes de ejecutar la cancelacion.
+La confirmacion fuerte dejo de ser una mejora pendiente del frontend.
 
-Confirmacion recomendada:
+Comportamiento vigente:
 
-- Titulo: `Cancelar reserva`.
-- Resumen: recurso, fecha, horario y actividad.
-- Acciones: `Mantener reserva` y `Cancelar reserva`.
-- Mensaje: `Esta accion cambiara la reserva a estado cancelada.`
+- no se usa `window.confirm`;
+- no se abre un segundo modal encima del detalle;
+- el mismo modal muestra una advertencia destructiva;
+- existe una accion para volver;
+- existe una accion explicita para confirmar la cancelacion;
+- la vista padre no vuelve a pedir confirmacion.
+
+La confirmacion debe mantenerse consistente en todas las superficies que reutilizan `ReservationForm.vue`.
 
 ## Estado real y clasificacion temporal
 
@@ -113,7 +130,14 @@ Regla UX:
 - `CONFIRMED` pasada se muestra como `Finalizada`.
 - `CANCELLED` siempre se muestra como `Cancelada`.
 
-`Mis Reservas` muestra reservas accionables para el usuario normal. `Historial` muestra reservas pasadas o canceladas. Estas vistas no representan estados de base de datos, sino formas de consultar la misma entidad segun contexto.
+El modulo `/reservations` presenta dos contextos sobre la misma entidad:
+
+- reservas activas o accionables;
+- historial mediante `?tab=history`.
+
+`/history` se conserva como redireccion al tab historico. La antigua vista separada de Historial fue retirada.
+
+Estas categorias no representan nuevos estados de base de datos, sino distintas formas de consultar y ordenar la misma entidad segun contexto.
 
 ## Validaciones funcionales
 
@@ -161,7 +185,7 @@ Validaciones backend pendientes antes de cerrar MVP 1:
 
 - Mostrar siempre el rango completo de la reserva antes de confirmar.
 - Redondear seleccion de horario a intervalos institucionales.
-- Mostrar capacidad y avance de confirmaciones. Los participantes deben incorporarse de punta a punta para recursos grupales en MVP 2 (`RES-008`).
+- Mostrar capacidad y avance de confirmaciones en reservas grupales. El detalle frontend ya soporta `participantCount`, `minimumParticipants` y condicion del grupo cuando la API los entrega; el cierre funcional de punta a punta sigue sujeto a `RES-008`.
 - Diferenciar visualmente reserva, bloqueo, mantencion y actividad institucional.
 - No exponer informacion personal de reservas ajenas en disponibilidad.
 - Mantener errores recuperables dentro del mismo contexto visual.
@@ -184,7 +208,7 @@ sequenceDiagram
   DB->>DB: Valida conflictos
   DB-->>API: Reserva creada o error
   API-->>UI: Resultado
-  UI-->>Usuario: Exito o error accionable
+  UI-->>Usuario: Estado actualizado o error accionable
 ```
 
 ## Pruebas recomendadas para cierre del flujo

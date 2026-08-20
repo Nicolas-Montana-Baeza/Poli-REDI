@@ -321,7 +321,7 @@ Fecha de corte: 2026-07-21
 **Regla:** El cliente no decide el estado. `OPEN_USE` no requiere confirmacion de participantes; Cancha 1, 2 y 3 quedan `PENDING` hasta alcanzar el minimo, pasan automaticamente a `CONFIRMED` al cumplirlo y vuelven a `PENDING` si una retirada valida deja menos de 10 confirmaciones vigentes.<br>
 **Justificacion:** Ajusta la confirmacion al modo de uso del recurso.  
 **Fuente:** Decision explicita del usuario del 2026-07-20.  
-**Estado:** APROBADO; no IMPLEMENTADO. El flujo actual crea toda reserva como `CONFIRMED`.  
+**Estado:** APROBADO e IMPLEMENTADO PARCIAL. La creacion de recursos grupales ya genera `PENDING`, registra al solicitante, mantiene participantes persistidos y cambia a `CONFIRMED` al alcanzar el minimo. La implementacion actual diverge de la regla aprobada al retirar participantes despues de confirmar: conserva `CONFIRMED` con condicion derivada `AT_RISK` en vez de regresar a `PENDING`. El vencimiento bajo el minimo y su liberacion asociada requieren cierre y evidencia adicional.
 **Excepciones:** Recursos cuya politica oficial no exija participantes.
 
 **RN-007 — Conflictos y modos de recurso**  

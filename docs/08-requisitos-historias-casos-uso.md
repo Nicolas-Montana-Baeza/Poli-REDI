@@ -205,7 +205,22 @@ Pendiente relacionado: `RES-012`.
 
 El sistema debe registrar confirmaciones de usuarios unicos y exigir al menos 10, incluido el solicitante, para multicancha 1, 2 y 3, identificadas en el inventario como Cancha 1, 2 y 3. Todos los participantes deben tener cuenta. Las confirmaciones pueden registrarse o retirarse hasta exactamente una hora antes inclusive, plazo configurable.
 
-Estado actual: APROBADO el 2026-07-20; no implementado.
+Estado actual: APROBADO e IMPLEMENTADO PARCIAL.
+
+Implementado actualmente:
+
+- las reservas de recursos grupales nacen en `PENDING`;
+- el solicitante queda registrado como primer participante;
+- se persisten participantes por cuenta autenticada;
+- se expone avance, minimo y condicion grupal;
+- existe codigo de invitacion;
+- alcanzar el minimo cambia la reserva a `CONFIRMED`.
+
+Pendiente de cierre:
+
+- completar y verificar todas las reglas temporales;
+- resolver la divergencia de retirada bajo el minimo;
+- verificar vencimiento automatico y liberacion de la oportunidad semanal de punta a punta.
 
 Pendiente relacionado: `RES-008`.
 
@@ -213,7 +228,11 @@ Pendiente relacionado: `RES-008`.
 
 El sistema debe mantener `PENDING` y bloquear el horario hasta alcanzar el minimo, cambiar automaticamente a `CONFIRMED` al cumplirlo y devolverla a `PENDING` si una retirada valida reduce el conteo. Si llega al limite con menos de 10, debe cambiar a `CANCELLED`, liberar el horario y dejar de consumir la oportunidad semanal. Los recursos `OPEN_USE` no requieren confirmacion grupal.
 
-Estado actual: APROBADO el 2026-07-20; no implementado. El flujo actual confirma todas las reservas al crearlas.
+Estado actual: APROBADO e IMPLEMENTADO PARCIAL.
+
+La creacion grupal ya utiliza `PENDING` y el paso al minimo produce `CONFIRMED`. Sin embargo, existe una divergencia entre el comportamiento aprobado y el codigo actual: si una reserva ya confirmada baja nuevamente del minimo, la implementacion conserva `CONFIRMED` y expone `groupCondition = AT_RISK`, en lugar de regresar el estado persistido a `PENDING`.
+
+El vencimiento automatico bajo el minimo y la liberacion asociada deben mantenerse como pendientes hasta contar con evidencia integrada.
 
 Pendiente relacionado: `RES-008`, `RES-010`.
 
@@ -237,7 +256,7 @@ Pendiente relacionado: `ADMIN-003`.
 
 El sistema debe permitir exclusivamente a usuarios con rol administrador publicar nuevas versiones del periodo de reserva, el plazo previo de confirmacion y los recursos sujetos a confirmacion grupal. Los cambios normales son prospectivos y cada solicitud conserva la version vigente al crearse. Excepcionalmente, el administrador puede migrar solicitudes futuras `PENDING` o `CONFIRMED` seleccionadas a otra version mediante simulacion, motivo obligatorio, confirmacion, aplicacion atomica y auditoria; la operacion no edita versiones historicas ni cancela solicitudes implicitamente.
 
-Estado actual: APROBADO e IMPLEMENTADO PARCIAL; VERIFICADO LOCALMENTE el 2026-07-21 para publicacion prospectiva de condiciones y recursos permitidos, historial administrativo, DTO publico minimo, permisos e idempotencia. La clasificacion de recursos sujetos a confirmacion grupal, participantes, minimo, transiciones, interfaz administrativa y correcciones excepcionales siguen PENDIENTES; no se verifico contra SQL Server/Azure SQL real.
+Estado actual: APROBADO e IMPLEMENTADO PARCIAL; VERIFICADO LOCALMENTE el 2026-07-21 para publicacion prospectiva de condiciones y recursos permitidos, historial administrativo, DTO publico minimo, permisos e idempotencia. La clasificacion de recursos grupales, persistencia de participantes, minimo y transicion inicial `PENDING -> CONFIRMED` ya cuentan con implementacion. Permanecen pendientes la alineacion completa de transiciones posteriores, vencimiento, interfaz administrativa, correcciones excepcionales y la verificacion integral en la infraestructura objetivo.
 
 Pendiente relacionado: `ADMIN-006`.
 
