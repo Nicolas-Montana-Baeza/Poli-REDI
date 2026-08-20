@@ -102,6 +102,7 @@ const form = ref({
 })
 
 const fieldErrors = ref({})
+const cancelConfirmationOpen = ref(false)
 
 const detailJoinCode = ref('')
 const detailJoinCodeCopied = ref(false)
@@ -202,7 +203,56 @@ const isDetailMode = computed(() => {
   return props.mode === 'detail'
 })
 
+const isAvailabilityBlock = computed(() => {
+  return (
+    props.reservation?.type === 'blocked' ||
+    props.reservation?.isAvailabilityBlock === true
+  )
+})
+
+const detailModalTitle = computed(() => {
+  if (isAvailabilityBlock.value) {
+    return 'Bloqueo de disponibilidad'
+  }
+
+  if (props.reservation?.isScheduledActivity) {
+    return 'Detalle de programación'
+  }
+
+  if (props.reservation?.isWorkshop) {
+    return 'Detalle de taller'
+  }
+
+  return 'Detalle de reserva'
+})
+
+const detailModalDescription = computed(() => {
+  if (
+    isAvailabilityBlock.value ||
+    props.reservation?.isScheduledActivity ||
+    props.reservation?.isWorkshop
+  ) {
+    return 'Información del bloque seleccionado.'
+  }
+
+  return 'Información de la reserva seleccionada.'
+})
+
 const detailStatus = computed(() => {
+  if (isAvailabilityBlock.value) {
+    return {
+      label: 'Bloqueo',
+      className: 'scheduled'
+    }
+  }
+
+  if (props.reservation?.isWorkshop) {
+    return {
+      label: 'Taller programado',
+      className: 'scheduled'
+    }
+  }
+
   return getReservationDisplayStatus(
     props.reservation
   )
@@ -243,8 +293,18 @@ const detailRows = computed(() => {
     reservation.title &&
     reservation.title !== 'Reserva'
   ) {
+    let label = 'Actividad'
+
+    if (isAvailabilityBlock.value) {
+      label = 'Bloqueo'
+    } else if (reservation.isScheduledActivity) {
+      label = 'Programación'
+    } else if (reservation.isWorkshop) {
+      label = 'Taller'
+    }
+
     rows.push({
-      label: 'Actividad',
+      label,
       value: reservation.title
     })
   }
@@ -260,6 +320,25 @@ const detailRows = computed(() => {
 })
 
 const handleDetailCancel = () => {
+  if (
+    !props.reservation ||
+    props.cancelDisabled
+  ) {
+    return
+  }
+
+  cancelConfirmationOpen.value = true
+}
+
+const dismissDetailCancel = () => {
+  if (props.cancelDisabled) {
+    return
+  }
+
+  cancelConfirmationOpen.value = false
+}
+
+const confirmDetailCancel = () => {
   if (
     !props.reservation ||
     props.cancelDisabled
@@ -359,6 +438,8 @@ const handleActivityUpdate = () => {
 watch(
   () => props.visible,
   (visible) => {
+    cancelConfirmationOpen.value = false
+
     if (visible) {
       fieldErrors.value = {}
     }
@@ -376,6 +457,7 @@ watch(
 watch(
   () => props.reservation?.id,
   () => {
+    cancelConfirmationOpen.value = false
     detailJoinCode.value = ''
     detailJoinCodeCopied.value = false
     detailJoinCodeLoading.value = false
@@ -552,7 +634,7 @@ const handleClose = () => {
             <h2>
               {{
                 isDetailMode
-                  ? 'Detalle de reserva'
+                  ? detailModalTitle
                   : createdReservation
                     ? 'Reserva creada correctamente'
                     : 'Crear Reserva'
@@ -562,7 +644,7 @@ const handleClose = () => {
             <p>
               {{
                 isDetailMode
-                  ? 'Información de la reserva seleccionada.'
+                  ? detailModalDescription
                   : createdReservation
                     ? 'Revisa la información antes de cerrar.'
                     : 'Completa la información de la reserva.'
@@ -697,7 +779,65 @@ const handleClose = () => {
               {{ errorMessage }}
             </div>
 
-            <div class="actions detail-actions">
+            <section
+              v-if="canCancel && cancelConfirmationOpen"
+              class="cancel-confirmation"
+              role="alert"
+              aria-live="polite"
+            >
+              <div class="cancel-confirmation__content">
+
+                <span
+                  class="cancel-confirmation__icon"
+                  aria-hidden="true"
+                >
+                  !
+                </span>
+
+                <div>
+                  <strong>
+                    ¿Cancelar esta reserva?
+                  </strong>
+
+                  <p>
+                    Esta acción no se puede deshacer.
+                    La reserva dejará de estar activa.
+                  </p>
+                </div>
+
+              </div>
+
+              <div class="actions detail-actions">
+
+                <button
+                  class="app-button secondary"
+                  type="button"
+                  :disabled="cancelDisabled"
+                  @click="dismissDetailCancel"
+                >
+                  Volver
+                </button>
+
+                <button
+                  class="app-button danger"
+                  type="button"
+                  :disabled="cancelDisabled"
+                  @click="confirmDetailCancel"
+                >
+                  {{
+                    cancelDisabled
+                      ? 'Cancelando...'
+                      : 'Sí, cancelar reserva'
+                  }}
+                </button>
+
+              </div>
+            </section>
+
+            <div
+              v-else
+              class="actions detail-actions"
+            >
               <button
                 v-if="canCancel"
                 class="app-button danger"
@@ -705,7 +845,7 @@ const handleClose = () => {
                 :disabled="cancelDisabled"
                 @click="handleDetailCancel"
               >
-                {{ cancelDisabled ? 'Cancelando...' : 'Cancelar reserva' }}
+                Cancelar reserva
               </button>
 
               <button
@@ -1389,4 +1529,55 @@ const handleClose = () => {
     width: 100%;
   }
 }
+
+.cancel-confirmation {
+  display: grid;
+  gap: 16px;
+
+  padding: 16px;
+
+  background: var(--color-error-soft);
+  border: 1px solid var(--color-error-border);
+  border-radius: var(--radius-lg);
+}
+
+.cancel-confirmation__content {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.cancel-confirmation__icon {
+  width: 32px;
+  height: 32px;
+
+  flex: 0 0 32px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 50%;
+
+  background: var(--color-error);
+  color: white;
+
+  font-weight: 800;
+}
+
+.cancel-confirmation__content strong {
+  display: block;
+
+  color: var(--color-error);
+}
+
+.cancel-confirmation__content p {
+  margin: 4px 0 0;
+
+  color: var(--color-text-muted);
+
+  font-size: 14px;
+  line-height: 1.45;
+}
+
 </style>

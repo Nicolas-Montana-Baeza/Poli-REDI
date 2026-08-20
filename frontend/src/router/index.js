@@ -3,7 +3,7 @@ import {
   createWebHistory
 } from 'vue-router'
 
-import { isAuthenticated } from '../auth/authService'
+import { getSafeRedirectPath } from '../auth/authService'
 
 import DashboardView from '../views/DashboardView.vue'
 import AvailabilityView from '../views/AvailabilityView.vue'
@@ -175,14 +175,57 @@ const router = createRouter({
 })
 
 router.beforeEach(async (to) => {
+  const authStore = useAuthStore()
+
+  // El callback de Microsoft controla su propia pantalla
+  // intermedia mientras MSAL procesa el redirect.
+  if (
+    to.path === '/auth/callback' ||
+    to.path === '/blocked'
+  ) {
+    return true
+  }
+
+  // Login nunca debe renderizarse hasta saber con certeza
+  // si ya existe una sesión.
+  if (to.path === '/login') {
+    // Si venimos explícitamente de un cierre de sesión,
+    // no intentamos reconstruir la cuenta otra vez.
+    //
+    // Esto también cubre el nuevo arranque de Vue después
+    // de logoutRedirect de Microsoft.
+    if (authStore.loggingOut) {
+      authStore.finishLogout()
+      return true
+    }
+
+    const user =
+      authStore.initialized
+        ? authStore.user
+        : await authStore.initializeSession()
+
+    if (authStore.account && user) {
+      return getSafeRedirectPath(
+        to.query.redirect
+      )
+    }
+
+    return true
+  }
+
   if (to.meta.public) {
     return true
   }
 
   if (to.meta.requiresAuth) {
-    const authenticated = await isAuthenticated()
+    const user =
+      authStore.initialized
+        ? authStore.user
+        : await authStore.initializeSession()
 
-    if (!authenticated) {
+    // Solo enviamos al login después de haber resuelto
+    // definitivamente que no existe una cuenta.
+    if (!authStore.account) {
       return {
         path: '/login',
         query: {
@@ -191,25 +234,31 @@ router.beforeEach(async (to) => {
       }
     }
 
-    const authStore = useAuthStore()
-
-    // El callback de Entra precarga el usuario local antes de abandonar la
-    // pantalla de transición. En navegaciones posteriores reutilizamos ese
-    // estado y evitamos una segunda petición innecesaria a /api/me.
-    const user =
-      authStore.user ||
-      await authStore.loadAuthUser()
-
-    if (!user && authStore.errorStatus === 403) {
-      return { path: '/blocked' }
+    if (
+      !user &&
+      authStore.errorStatus === 403
+    ) {
+      return {
+        path: '/blocked'
+      }
     }
 
-    if (to.meta.requiresAdmin && user?.isAdmin !== true) {
-      if (to.path === '/availability') {
-        return true
+    if (!user) {
+      return {
+        path: '/login',
+        query: {
+          redirect: to.fullPath
+        }
       }
+    }
 
-      return { path: '/availability' }
+    if (
+      to.meta.requiresAdmin &&
+      user.isAdmin !== true
+    ) {
+      return {
+        path: '/availability'
+      }
     }
   }
 

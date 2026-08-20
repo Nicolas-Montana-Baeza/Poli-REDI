@@ -246,15 +246,6 @@ const canCancelSelected = computed(() => {
 const cancelReservation = async (
   reservation
 ) => {
-  const confirmed =
-    window.confirm(
-      '¿Deseas cancelar esta reserva?'
-    )
-
-  if (!confirmed) {
-    return
-  }
-
   cancellingId.value =
     reservation.id
 

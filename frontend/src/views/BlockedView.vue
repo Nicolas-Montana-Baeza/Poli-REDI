@@ -8,8 +8,15 @@ const router = useRouter()
 const authStore = useAuthStore()
 
 const handleLogout = async () => {
-  await authStore.logoutUser()
-  await router.replace('/login')
+  try {
+    await authStore.logoutUser()
+
+    await router.replace('/login')
+
+    authStore.finishLogout()
+  } catch {
+    // El store restaura la interfaz y conserva el error.
+  }
 }
 </script>
 

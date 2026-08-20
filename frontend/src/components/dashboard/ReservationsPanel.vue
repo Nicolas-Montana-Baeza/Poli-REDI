@@ -7,6 +7,10 @@ defineProps({
     default: () => []
   }
 })
+
+const emit = defineEmits([
+  'open-detail'
+])
 </script>
 
 <template>
@@ -62,7 +66,9 @@ defineProps({
         v-for="reservation in reservations"
         :key="reservation.id"
         :reservation="reservation"
-        :detail-to="`/reservations/${reservation.id}`"
+        @open-detail="
+          emit('open-detail', $event)
+        "
       />
 
     </div>

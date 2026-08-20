@@ -1,19 +1,24 @@
 <script setup>
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 
 import FacilityCarousel from '../components/dashboard/FacilityCarousel.vue'
 import ReservationsPanel from '../components/dashboard/ReservationsPanel.vue'
+import ReservationForm from '@/components/forms/ReservationForm.vue'
 import SkeletonLoader from '@/components/ui/SkeletonLoader.vue'
 
 import { useResourcesStore } from '@/stores/resources'
 import { useReservationsStore } from '@/stores/reservations'
 import {
   isReservationActionable,
+  isReservationCancelable,
   parseReservationDateTime
 } from '@/utils/reservationTime'
 
 const resourcesStore = useResourcesStore()
 const reservationsStore = useReservationsStore()
+
+const selectedReservation = ref(null)
+const cancellingId = ref(null)
 
 onMounted(async () => {
   await Promise.all([
@@ -47,6 +52,68 @@ const reservations = computed(() => {
     })
     .slice(0, 3)
 })
+
+
+const openReservationDetail = async (
+  reservation
+) => {
+  reservationsStore.clearActionError?.()
+  reservationsStore.clearActionSuccess?.()
+
+  selectedReservation.value =
+    reservation
+
+  const detail =
+    await reservationsStore.fetchReservationDetail(
+      reservation.id
+    )
+
+  if (
+    detail &&
+    String(selectedReservation.value?.id) ===
+      String(reservation.id)
+  ) {
+    selectedReservation.value =
+      detail
+  }
+}
+
+const closeReservationDetail = () => {
+  selectedReservation.value = null
+
+  reservationsStore.clearActionError?.()
+}
+
+const cancelReservation = async (
+  reservation
+) => {
+  cancellingId.value =
+    reservation.id
+
+  try {
+    const cancelled =
+      await reservationsStore.cancelReservation(
+        reservation.id
+      )
+
+    if (
+      selectedReservation.value &&
+      String(selectedReservation.value.id) ===
+        String(reservation.id)
+    ) {
+      selectedReservation.value =
+        cancelled
+    }
+
+    reservationsStore.setActionSuccess(
+      'Reserva cancelada correctamente'
+    )
+  } catch {
+    // El store mantiene el mensaje de error.
+  } finally {
+    cancellingId.value = null
+  }
+}
 </script>
 
 <template>
@@ -155,9 +222,32 @@ const reservations = computed(() => {
       <ReservationsPanel
         v-else
         :reservations="reservations"
+        @open-detail="openReservationDetail"
       />
 
     </section>
+
+    <ReservationForm
+      :visible="Boolean(selectedReservation)"
+      mode="detail"
+      :reservation="selectedReservation"
+      :can-cancel="
+        selectedReservation
+          ? isReservationCancelable(
+              selectedReservation
+            )
+          : false
+      "
+      :cancel-disabled="
+        cancellingId ===
+          selectedReservation?.id
+      "
+      :error-message="
+        reservationsStore.actionError
+      "
+      @close="closeReservationDetail"
+      @cancel="cancelReservation"
+    />
 
   </main>
 </template>

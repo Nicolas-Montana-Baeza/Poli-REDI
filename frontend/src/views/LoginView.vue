@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, ref } from 'vue'
+import { ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import {
@@ -10,7 +10,6 @@ import {
 
 import {
   isDevAuthEnabled,
-  isAuthenticated,
   getSafeRedirectPath,
   login,
   loginLocal
@@ -31,11 +30,6 @@ const redirectPath = () => {
   return getSafeRedirectPath(route.query.redirect)
 }
 
-onMounted(async () => {
-  if (await isAuthenticated()) {
-    await router.replace(redirectPath())
-  }
-})
 
 const handleMicrosoftLogin = async () => {
   const account = await login(redirectPath())

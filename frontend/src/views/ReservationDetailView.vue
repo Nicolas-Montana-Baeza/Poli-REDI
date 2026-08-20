@@ -33,6 +33,7 @@ const router = useRouter()
 const authStore = useAuthStore()
 const reservationsStore = useReservationsStore()
 const cancelling = ref(false)
+const cancelConfirmationOpen = ref(false)
 const rotatingJoinCode = ref(false)
 const joinCode = ref('')
 const joinCodeCopied = ref(false)
@@ -153,20 +154,14 @@ const cancelReservation = async () => {
     return
   }
 
-  const confirmed = window.confirm(
-    '¿Deseas cancelar esta reserva?'
-  )
-
-  if (!confirmed) {
-    return
-  }
-
   cancelling.value = true
 
   try {
     await reservationsStore.cancelReservation(
       reservation.value.id
     )
+
+    cancelConfirmationOpen.value = false
 
     reservationsStore.setActionSuccess(
       'Reserva cancelada correctamente'
@@ -300,13 +295,58 @@ const goBack = () => {
           class="cancel-button"
           type="button"
           :disabled="cancelling"
-          @click="cancelReservation"
+          @click="cancelConfirmationOpen = true"
         >
           <XCircle :size="18" />
           Cancelar
         </button>
 
       </header>
+
+      <section
+        v-if="canCancel && cancelConfirmationOpen"
+        class="cancel-confirmation"
+        role="alert"
+      >
+        <div>
+          <strong>
+            ¿Cancelar esta reserva?
+          </strong>
+
+          <p>
+            Esta acción no se puede deshacer.
+            La reserva dejará de estar activa.
+          </p>
+        </div>
+
+        <div class="cancel-confirmation__actions">
+
+          <button
+            type="button"
+            class="cancel-confirmation__back"
+            :disabled="cancelling"
+            @click="cancelConfirmationOpen = false"
+          >
+            Volver
+          </button>
+
+          <button
+            type="button"
+            class="cancel-button"
+            :disabled="cancelling"
+            @click="cancelReservation"
+          >
+            <XCircle :size="18" />
+
+            {{
+              cancelling
+                ? 'Cancelando...'
+                : 'Sí, cancelar reserva'
+            }}
+          </button>
+
+        </div>
+      </section>
 
       <div
         v-if="reservationsStore.actionError"
@@ -1020,4 +1060,55 @@ const goBack = () => {
     width: 100%;
   }
 }
+
+.cancel-confirmation {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+
+  padding: 16px 18px;
+
+  background: var(--color-error-soft);
+  border: 1px solid var(--color-error-border);
+  border-radius: var(--radius-lg);
+}
+
+.cancel-confirmation strong {
+  color: var(--color-error);
+}
+
+.cancel-confirmation p {
+  margin: 4px 0 0;
+
+  color: var(--color-text-muted);
+
+  font-size: 14px;
+}
+
+.cancel-confirmation__actions {
+  display: flex;
+  gap: 10px;
+
+  flex-shrink: 0;
+}
+
+.cancel-confirmation__back {
+  padding: 10px 16px;
+
+  background: var(--color-surface);
+  color: var(--color-text);
+
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.cancel-confirmation__back:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 </style>

@@ -81,9 +81,17 @@ const initials = computed(() => {
 })
 
 const handleLogout = async () => {
-  await authStore.logoutUser()
-  notificationsStore.clearNotifications()
-  await router.replace('/login')
+  try {
+    await authStore.logoutUser()
+
+    notificationsStore.clearNotifications()
+
+    await router.replace('/login')
+
+    authStore.finishLogout()
+  } catch {
+    // El store restaura la interfaz y conserva el error.
+  }
 }
 
 const handleRutSubmit = async () => {

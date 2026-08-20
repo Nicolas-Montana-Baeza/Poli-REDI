@@ -6,7 +6,6 @@ import CalendarToolbar from './CalendarToolbar.vue'
 import CalendarMini from './CalendarMini.vue'
 import ScheduleGrid from './ScheduleGrid.vue'
 import GeneralCalendarView from './GeneralCalendarView.vue'
-import ReservationDetailModal from './ReservationDetailModal.vue'
 import ReservationForm from '../forms/ReservationForm.vue'
 import SkeletonLoader from '@/components/ui/SkeletonLoader.vue'
 
@@ -34,6 +33,22 @@ const policyStore = useReservationPolicyStore()
 
 const route = useRoute()
 const router = useRouter()
+
+const successToast = ref('')
+let successToastTimer = null
+
+const showSuccessToast = (message) => {
+  successToast.value = message
+
+  if (successToastTimer) {
+    clearTimeout(successToastTimer)
+  }
+
+  successToastTimer = setTimeout(() => {
+    successToast.value = ''
+    successToastTimer = null
+  }, 3000)
+}
 
 const formatDateKey = (date) => {
   return [
@@ -464,6 +479,8 @@ const createdReservationResult = ref(null)
 
 /* LOAD DATA */
 onMounted(async () => {
+  reservationsStore.clearActionSuccess?.()
+
   await Promise.all([
     authStore.loadAuthUser(),
     resourcesStore.fetchResources(),
@@ -532,14 +549,44 @@ const handleSlotSelected = (slot) => {
 }
 
 /* RESERVATION SELECT */
-const handleReservationSelected = (reservation) => {
+const isSpecialAvailabilityItem = (reservation) => {
+  return (
+    reservation?.type === 'blocked' ||
+    reservation?.isAvailabilityBlock === true ||
+    reservation?.isWorkshop === true ||
+    reservation?.isScheduledActivity === true
+  )
+}
+
+const handleReservationSelected = async (reservation) => {
   reservationsStore.clearActionError?.()
   reservationsStore.clearActionSuccess?.()
 
   selectedSlot.value = null
   createdReservationResult.value = null
   showReservationForm.value = false
+
   selectedReservation.value = reservation
+
+  if (
+    !reservation?.id ||
+    isSpecialAvailabilityItem(reservation)
+  ) {
+    return
+  }
+
+  const detail =
+    await reservationsStore.fetchReservationDetail(
+      reservation.id
+    )
+
+  if (
+    detail &&
+    String(selectedReservation.value?.id) ===
+      String(reservation.id)
+  ) {
+    selectedReservation.value = detail
+  }
 }
 
 /* CLOSE */
@@ -693,10 +740,6 @@ const cancelSelectedReservation = async () => {
     selectedReservation.value = null
 
     await loadAvailabilityForDate(selectedDate.value)
-
-    reservationsStore.setActionSuccess(
-      'Reserva cancelada correctamente'
-    )
   } catch {
     // El store mantiene el error visible dentro del modal.
   }
@@ -1028,16 +1071,19 @@ const goToday = () => {
     />
 
     <!-- DETAIL -->
-    <ReservationDetailModal
+    <ReservationForm
       :visible="Boolean(selectedReservation)"
+      mode="detail"
       :reservation="selectedReservation"
       :can-cancel="canCancelSelectedReservation"
+      :cancel-disabled="reservationsStore.loading"
       :error-message="reservationsStore.actionError"
       @close="closeReservationDetail"
       @cancel="cancelSelectedReservation"
     />
 
   </section>
+
 </template>
 
 <style scoped>
@@ -1349,4 +1395,6 @@ const goToday = () => {
     min-width: 0;
   }
 }
+
+
 </style>

@@ -69,9 +69,18 @@ const close = (event) => {
 
 const handleLogout = async () => {
   open.value = false
-  await authStore.logoutUser()
-  notificationsStore.clearNotifications()
-  await router.replace('/login')
+
+  try {
+    await authStore.logoutUser()
+
+    notificationsStore.clearNotifications()
+
+    await router.replace('/login')
+
+    authStore.finishLogout()
+  } catch {
+    // El store restaura la interfaz y conserva el error.
+  }
 }
 
 const goToSettings = async () => {
