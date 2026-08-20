@@ -2,7 +2,7 @@
 
 Sistema web para gestion de reservas deportivas institucionales.
 
-Poli-REDI permite consultar disponibilidad de recursos deportivos, crear y cancelar reservas, revisar historial, administrar usuarios y recursos, y visualizar indicadores iniciales de uso. El sistema usa autenticacion con Microsoft Entra ID y datos persistidos en Azure SQL Database.
+Poli-REDI permite consultar disponibilidad de recursos deportivos, crear y cancelar reservas, revisar historial, administrar usuarios y recursos, y visualizar indicadores iniciales de uso. El sistema usa autenticacion con Microsoft Entra ID y datos persistidos en PostgreSQL 16.
 
 ## Alcance MVP 1
 
@@ -56,13 +56,15 @@ Actualizacion 2026-08-20:
 
 - Go
 - Fiber
-- Microsoft SQL Server driver for Go (`github.com/microsoft/go-mssqldb`)
+- PostgreSQL driver `pgx` (`github.com/jackc/pgx/v5`)
+- El backend compilable utiliza `pgx`; `go-mssqldb` fue retirado tras completar el retiro de los modulos SQL Server ejecutables
 - Microsoft Entra ID para validacion de tokens JWT
 
 ### Base de datos
 
-- Azure SQL Database
-- Scripts T-SQL en `database/`
+- PostgreSQL 16
+- Migraciones vigentes en `database/postgres/migrations/`
+- Scripts Azure SQL / SQL Server conservados como legado en la raiz de `database/`
 
 ### Despliegue online inicial
 
@@ -76,7 +78,7 @@ Actualizacion 2026-08-20:
 ```txt
 Poli-REDI/
   backend/      API Go/Fiber
-  database/     Scripts T-SQL de esquema, datos iniciales y limpieza
+  database/     PostgreSQL vigente y scripts SQL Server legacy
   docs/         Documentacion tecnica del proyecto
   frontend/     Aplicacion Vue/Vite
   files/        Archivos de apoyo para datos
@@ -86,7 +88,7 @@ Poli-REDI/
 
 - Node.js y npm
 - Go compatible con `backend/go.mod`
-- Acceso a una base Azure SQL Database
+- PostgreSQL 16 local o una instancia PostgreSQL accesible
 - Aplicacion registrada en Microsoft Entra ID para el frontend y la API
 
 ## Configuracion del backend
@@ -98,35 +100,32 @@ Variables principales:
 ```env
 PORT=3000
 
-DB_SERVER=poli-redi-server.database.windows.net
-DB_PORT=1433
-DB_NAME=poli-redi-database
-DB_USER=poli-redi-admin
-DB_PASSWORD=
-DB_ENCRYPT=true
-DB_TRUST_SERVER_CERTIFICATE=false
+# DATABASE_URL tiene precedencia sobre PG*
+DATABASE_URL=postgres://poliredi_app:change-me-local-only@localhost:55432/poliredi?sslmode=disable
+
+PGHOST=localhost
+PGPORT=55432
+PGDATABASE=poliredi
+PGUSER=poliredi_app
+PGPASSWORD=change-me-local-only
+PGSSLMODE=disable
+
+MVP_SCOPE=mvp1
+APP_TIMEZONE=America/Santiago
 
 ENTRA_TENANT_ID=
 ENTRA_API_CLIENT_ID=
 ENTRA_ISSUER=
 CORS_ALLOWED_ORIGINS=http://localhost:5173
-APP_TIMEZONE=America/Santiago
 
-# Solo desarrollo local
 DEV_AUTH_ENABLED=false
 ```
 
-`DB_PASSWORD` debe existir solo en `backend/.env` local o en las variables de entorno del despliegue. No debe guardarse en archivos versionados.
+Las credenciales deben mantenerse fuera de Git.
 
-Tambien se puede usar `AZURE_SQL_CONNECTION_STRING` como alternativa a las variables `DB_*`, segun la plantilla incluida en `backend/.env.example`.
+`DATABASE_URL` tiene precedencia sobre las variables `PG*`.
 
-Para pruebas locales sin Microsoft, se puede usar:
-
-```env
-DEV_AUTH_ENABLED=true
-```
-
-Con esta opcion, el frontend muestra accesos locales de prueba y el backend acepta headers `X-Dev-Auth-*`. No activar esta bandera en produccion.
+El instalador Quadlet genera credenciales locales seguras fuera del repositorio.
 
 ## Configuracion del frontend
 
@@ -149,23 +148,26 @@ VITE_ENTRA_API_SCOPE=
 
 ## Base de datos
 
-Los scripts actuales estan preparados para Azure SQL Database:
+La persistencia vigente utiliza PostgreSQL 16.
 
-```txt
-database/drop.sql
-database/schema.sql
-database/seed.sql
+La baseline local MVP1 puede instalarse con:
+
+```bash
+bash infra/local/quadlet/install.sh install
 ```
 
-Para preparar una base limpia:
+El provisionamiento automatico actual aplica:
 
-1. Ejecutar `database/drop.sql` si se necesita limpiar objetos existentes.
-2. Ejecutar `database/schema.sql`.
-3. Ejecutar `database/seed.sql` para cargar datos iniciales de desarrollo.
-4. Configurar `backend/.env`.
-5. Levantar el backend y validar `/api/health`.
+- `PG16_0001`;
+- `PG16_0002`;
+- `PG16_0003`;
+- seed MVP1.
 
-No usar scripts ni cadenas de conexion PostgreSQL para el entorno actual.
+Las migraciones MVP2 `PG16_0004` a `PG16_0008` ya existen, pero todavia deben incorporarse al instalador Quadlet.
+
+Los scripts T-SQL ubicados directamente en `database/` son legado de la etapa Azure SQL y no deben ejecutarse contra PostgreSQL.
+
+Consultar `database/README.md` para la clasificacion completa.
 
 ## Ejecutar backend
 
@@ -290,7 +292,7 @@ El checklist ampliado y la evidencia de la revision exhaustiva estan en `docs/12
 - `docs/00-resumen-proyecto.md`: resumen vigente y paquete inicial para compartir.
 - `docs/01-instalacion-y-ejecucion.md`: preparacion y ejecucion local.
 - `docs/02-arquitectura.md`: arquitectura general.
-- `docs/03-base-de-datos.md`: modelo Azure SQL Database.
+- `docs/03-base-de-datos.md`: modelo y evolucion de persistencia.
 - `docs/06-flujo-reservas.md`: flujo funcional de reservas.
 - `docs/07-backlog.md`: backlog maestro y estado de tareas.
 - `docs/08-requisitos-historias-casos-uso.md`: requisitos y casos de uso vigentes.
@@ -299,6 +301,7 @@ El checklist ampliado y la evidencia de la revision exhaustiva estan en `docs/12
 - `docs/11-plan-corte-google-calendar.md`: plan de transicion desde Google Calendar legado.
 - `docs/12-checklist-demo-mvp1.md`: validacion manual y evidencia automatizada.
 - `docs/13-estado-actual-producto.md`: analisis de producto, contradicciones y decisiones pendientes.
+- `docs/14-evolucion-y-trazabilidad-requisitos.md`: ingenieria inversa, genealogia y versionado conceptual de requisitos.
 
 ## Seguridad
 

@@ -3,13 +3,10 @@ package services
 import (
 	"database/sql"
 	"errors"
-	"regexp"
 	"sort"
 	"strconv"
-	"strings"
 	"time"
 
-	"poli-redi-api/internal/appscope"
 	"poli-redi-api/internal/businessclock"
 	"poli-redi-api/internal/models"
 	"poli-redi-api/internal/repositories"
@@ -22,18 +19,6 @@ var (
 	ErrReservationNotFound  = errors.New("reserva no encontrada")
 	ErrReservationForbidden = errors.New("no tienes permisos para consultar esta reserva")
 )
-
-var workshopTimePattern = regexp.MustCompile(`(?:(lunes|martes|miercoles|jueves|viernes|sabado|domingo)\s+)?(\d{1,2}:\d{2})\s*a\s*(\d{1,2}:\d{2})`)
-
-var dayNames = []string{
-	"domingo",
-	"lunes",
-	"martes",
-	"miercoles",
-	"jueves",
-	"viernes",
-	"sabado",
-}
 
 func GetReservations() ([]models.Reservation, error) {
 	return repositories.GetAllReservations()
@@ -225,16 +210,12 @@ func createReservationAt(
 		reservation.ActivityID = nil
 	}
 
-	// Los talleres todavía pertenecen a la superficie legacy FULL.
+	// La disponibilidad institucional ya se protege en PostgreSQL.
+	// PG16_0006 impide que una reserva nueva se solape con una actividad
+	// institucional SCHEDULED, incluidos talleres institucionales.
 	//
-	// MVP2 habilita el nuevo flujo de reservas grupales sobre PostgreSQL,
-	// pero no debe activar módulos antiguos que todavía dependen del
-	// esquema SQL Server.
-	if appscope.IsFull() {
-		if err := validateWorkshopAvailability(reservation); err != nil {
-			return models.Reservation{}, err
-		}
-	}
+	// No se mantiene una segunda validacion basada en las tablas legacy
+	// workshops/workshop_enrollments de SQL Server.
 
 	createdReservation, err := repositories.AddReservationWithPolicy(reservation, func(policy models.ReservationPolicy) error {
 		return validateReservationPolicySnapshot(reservation, now, policy)
@@ -260,210 +241,6 @@ func enforceInitialReservationStatus(
 ) models.Reservation {
 	reservation.Status = models.ReservationStatusConfirmed
 	return reservation
-}
-
-func validateWorkshopAvailability(reservation models.Reservation) error {
-	resource, err := repositories.GetResourceByID(reservation.ResourceID)
-
-	if err != nil {
-		return err
-	}
-
-	if resource.ReservationMode == "OPEN_USE" {
-		return nil
-	}
-
-	workshops, err := repositories.GetActiveWorkshops()
-
-	if err != nil {
-		return err
-	}
-
-	reservationStart := reservation.StartTime
-	reservationEnd := reservationStart.Add(
-		time.Duration(reservation.DurationMinutes) * time.Minute,
-	)
-
-	for _, workshop := range workshops {
-		if workshop.ResourceID != reservation.ResourceID {
-			continue
-		}
-
-		if !workshopOccursOnDate(workshop, reservationStart) {
-			continue
-		}
-
-		for _, timeRange := range workshopTimeRangesForDate(workshop, reservationStart) {
-			workshopStart := time.Date(
-				reservationStart.Year(),
-				reservationStart.Month(),
-				reservationStart.Day(),
-				timeRange.startHour,
-				timeRange.startMinute,
-				0,
-				0,
-				reservationStart.Location(),
-			)
-
-			workshopEnd := time.Date(
-				reservationStart.Year(),
-				reservationStart.Month(),
-				reservationStart.Day(),
-				timeRange.endHour,
-				timeRange.endMinute,
-				0,
-				0,
-				reservationStart.Location(),
-			)
-
-			if reservationStart.Before(workshopEnd) && reservationEnd.After(workshopStart) {
-				return errors.New("el recurso tiene un taller programado en ese horario")
-			}
-		}
-	}
-
-	return nil
-}
-
-type workshopTimeRange struct {
-	startHour   int
-	startMinute int
-	endHour     int
-	endMinute   int
-}
-
-func workshopOccursOnDate(workshop models.Workshop, date time.Time) bool {
-	selectedDay := dayNames[int(date.Weekday())]
-	dayText := normalizeWorkshopText(workshop.DayText)
-
-	return strings.Contains(dayText, selectedDay) ||
-		dayMatchesWorkshopRange(dayText, selectedDay)
-}
-
-func dayMatchesWorkshopRange(text string, selectedDay string) bool {
-	for startIndex, startDay := range dayNames {
-		for endIndex, endDay := range dayNames {
-			if !strings.Contains(text, startDay+" a "+endDay) {
-				continue
-			}
-
-			selectedIndex := dayIndex(selectedDay)
-
-			if selectedIndex < 0 {
-				return false
-			}
-
-			if startIndex <= endIndex {
-				return selectedIndex >= startIndex && selectedIndex <= endIndex
-			}
-
-			return selectedIndex >= startIndex || selectedIndex <= endIndex
-		}
-	}
-
-	return false
-}
-
-func workshopTimeRangesForDate(
-	workshop models.Workshop,
-	date time.Time,
-) []workshopTimeRange {
-	selectedDay := dayNames[int(date.Weekday())]
-	scheduleText := normalizeWorkshopText(workshop.ScheduleText)
-	matches := workshopTimePattern.FindAllStringSubmatch(scheduleText, -1)
-	ranges := []workshopTimeRange{}
-
-	for _, match := range matches {
-		if len(match) != 4 {
-			continue
-		}
-
-		explicitDay := match[1]
-
-		if explicitDay != "" && explicitDay != selectedDay {
-			continue
-		}
-
-		startHour, startMinute, ok := parseWorkshopHour(match[2])
-
-		if !ok {
-			continue
-		}
-
-		endHour, endMinute, ok := parseWorkshopHour(match[3])
-
-		if !ok {
-			continue
-		}
-
-		if endHour*60+endMinute <= startHour*60+startMinute {
-			continue
-		}
-
-		ranges = append(ranges, workshopTimeRange{
-			startHour:   startHour,
-			startMinute: startMinute,
-			endHour:     endHour,
-			endMinute:   endMinute,
-		})
-	}
-
-	return ranges
-}
-
-func parseWorkshopHour(value string) (int, int, bool) {
-	parts := strings.Split(value, ":")
-
-	if len(parts) != 2 {
-		return 0, 0, false
-	}
-
-	hour, err := strconv.Atoi(parts[0])
-
-	if err != nil {
-		return 0, 0, false
-	}
-
-	minute, err := strconv.Atoi(parts[1])
-
-	if err != nil {
-		return 0, 0, false
-	}
-
-	if hour < 0 || hour > 23 || minute < 0 || minute > 59 {
-		return 0, 0, false
-	}
-
-	return hour, minute, true
-}
-
-func dayIndex(day string) int {
-	for index, name := range dayNames {
-		if name == day {
-			return index
-		}
-	}
-
-	return -1
-}
-
-func normalizeWorkshopText(value string) string {
-	replacer := strings.NewReplacer(
-		"á", "a",
-		"é", "e",
-		"í", "i",
-		"ó", "o",
-		"ú", "u",
-		"ñ", "n",
-		"Ã¡", "a",
-		"Ã©", "e",
-		"Ã­", "i",
-		"Ã³", "o",
-		"Ãº", "u",
-		"Ã±", "n",
-	)
-
-	return replacer.Replace(strings.ToLower(value))
 }
 
 func mapDatabaseReservationError(err error) error {

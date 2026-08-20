@@ -108,74 +108,372 @@ func GetReservationPolicyHistory() ([]models.ReservationPolicy, error) {
 	return policies, nil
 }
 
-func PublishReservationPolicy(request models.PublishReservationPolicyRequest, createdBy int, key, payloadHash string) (models.ReservationPolicy, bool, error) {
+func PublishReservationPolicy(
+	request models.PublishReservationPolicyRequest,
+	createdBy int,
+	key string,
+	payloadHash string,
+) (models.ReservationPolicy, bool, error) {
 	ctx := context.Background()
-	tx, err := database.DB.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelSerializable})
+
+	tx, err := database.DB.BeginTx(
+		ctx,
+		&sql.TxOptions{
+			Isolation: sql.LevelSerializable,
+		},
+	)
 	if err != nil {
 		return models.ReservationPolicy{}, false, err
 	}
+
 	defer tx.Rollback()
 
+	// Una sola publicacion administrativa puede modificar la linea temporal
+	// de reservation_policies a la vez.
+	//
+	// SHARE ROW EXCLUSIVE permite lecturas normales y serializa publicadores
+	// sin hints especificos de SQL Server.
+	if _, err := tx.ExecContext(
+		ctx,
+		`LOCK TABLE reservation_policies
+		 IN SHARE ROW EXCLUSIVE MODE`,
+	); err != nil {
+		return models.ReservationPolicy{}, false, err
+	}
+
 	var existingHash string
-	err = tx.QueryRowContext(ctx, `SELECT idempotency_payload_hash FROM dbo.reservation_policies WITH (UPDLOCK, HOLDLOCK) WHERE idempotency_key = @p1`, key).Scan(&existingHash)
+
+	err = tx.QueryRowContext(
+		ctx,
+		`
+		SELECT idempotency_payload_hash
+		FROM reservation_policies
+		WHERE idempotency_key = $1
+		`,
+		key,
+	).Scan(&existingHash)
+
 	if err == nil {
 		if existingHash != payloadHash {
-			return models.ReservationPolicy{}, false, ErrIdempotencyPayloadConflict
+			return models.ReservationPolicy{},
+				false,
+				ErrIdempotencyPayloadConflict
 		}
-		existing, err := scanPolicy(tx.QueryRowContext(ctx, `SELECT `+policyColumns+` FROM dbo.reservation_policies WHERE idempotency_key = @p1`, key))
+
+		existing, err := scanPolicy(
+			tx.QueryRowContext(
+				ctx,
+				`
+				SELECT `+policyColumns+`
+				FROM reservation_policies
+				WHERE idempotency_key = $1
+				`,
+				key,
+			),
+		)
 		if err != nil {
-			return models.ReservationPolicy{}, false, err
+			return models.ReservationPolicy{},
+				false,
+				err
 		}
-		if err := loadPolicyCollections(ctx, tx, &existing); err != nil {
-			return models.ReservationPolicy{}, false, err
+
+		if err := loadPolicyCollections(
+			ctx,
+			tx,
+			&existing,
+		); err != nil {
+			return models.ReservationPolicy{},
+				false,
+				err
 		}
-		return existing, true, tx.Commit()
+
+		if err := tx.Commit(); err != nil {
+			return models.ReservationPolicy{},
+				false,
+				err
+		}
+
+		return existing, true, nil
 	}
+
 	if !errors.Is(err, sql.ErrNoRows) {
-		return models.ReservationPolicy{}, false, err
+		return models.ReservationPolicy{},
+			false,
+			err
+	}
+
+	// Conservamos la politica vigente para heredar configuracion grupal que
+	// todavia no forma parte del contrato administrativo.
+	//
+	// Actualmente PublishReservationPolicyRequest no expone:
+	//   - groupResourceIds;
+	//   - lateWithdrawalMinutes;
+	//   - groupRecoveryDeadlineMinutes.
+	//
+	// Hasta que producto cierre CAND-002, publicar una politica NO debe
+	// resetear silenciosamente estos valores.
+	currentPolicyID := 0
+	currentLateWithdrawalMinutes := 60
+	currentGroupRecoveryDeadlineMinutes := 0
+
+	err = tx.QueryRowContext(
+		ctx,
+		`
+		SELECT
+			id,
+			late_withdrawal_minutes,
+			group_recovery_deadline_minutes
+		FROM reservation_policies
+		WHERE is_published = true
+		  AND effective_to IS NULL
+		ORDER BY effective_from DESC, id DESC
+		LIMIT 1
+		FOR UPDATE
+		`,
+	).Scan(
+		&currentPolicyID,
+		&currentLateWithdrawalMinutes,
+		&currentGroupRecoveryDeadlineMinutes,
+	)
+
+	if err != nil &&
+		!errors.Is(err, sql.ErrNoRows) {
+		return models.ReservationPolicy{},
+			false,
+			err
+	}
+
+	if currentPolicyID > 0 {
+		if _, err := tx.ExecContext(
+			ctx,
+			`
+			UPDATE reservation_policies
+			SET effective_to = CURRENT_TIMESTAMP
+			WHERE id = $1
+			  AND effective_to IS NULL
+			`,
+			currentPolicyID,
+		); err != nil {
+			return models.ReservationPolicy{},
+				false,
+				err
+		}
 	}
 
 	var id int
-	err = tx.QueryRowContext(ctx, `
-		DECLARE @now DATETIME2(0) = SYSUTCDATETIME();
-		DECLARE @current_id INT;
-		SELECT @current_id = id FROM dbo.reservation_policies WITH (UPDLOCK, HOLDLOCK) WHERE effective_to IS NULL;
-		IF @current_id IS NOT NULL UPDATE dbo.reservation_policies SET effective_to = @now WHERE id = @current_id;
-		INSERT INTO dbo.reservation_policies (reservable_window_days, request_frequency_days, confirmation_deadline_minutes, minimum_participants, opening_minute, closing_minute, slot_interval_minutes, effective_from, created_by_user_id, idempotency_key, idempotency_payload_hash, is_published)
-		OUTPUT INSERTED.id VALUES (@p1,@p2,@p3,@p4,@p5,@p6,@p7,@now,@p8,@p9,@p10,0);`,
-		request.ReservableWindowDays, request.RequestFrequencyDays, request.ConfirmationDeadlineMinutes,
-		request.MinimumParticipants, request.OpeningMinute, request.ClosingMinute,
-		request.SlotIntervalMinutes, createdBy, key, payloadHash).Scan(&id)
+
+	err = tx.QueryRowContext(
+		ctx,
+		`
+		INSERT INTO reservation_policies (
+			reservable_window_days,
+			request_frequency_days,
+			confirmation_deadline_minutes,
+			minimum_participants,
+			opening_minute,
+			closing_minute,
+			slot_interval_minutes,
+			effective_from,
+			created_by_user_id,
+			idempotency_key,
+			idempotency_payload_hash,
+			is_published,
+			late_withdrawal_minutes,
+			group_recovery_deadline_minutes
+		)
+		VALUES (
+			$1,
+			$2,
+			$3,
+			$4,
+			$5,
+			$6,
+			$7,
+			CURRENT_TIMESTAMP,
+			$8,
+			$9,
+			$10,
+			false,
+			$11,
+			$12
+		)
+		RETURNING id
+		`,
+		request.ReservableWindowDays,
+		request.RequestFrequencyDays,
+		request.ConfirmationDeadlineMinutes,
+		request.MinimumParticipants,
+		request.OpeningMinute,
+		request.ClosingMinute,
+		request.SlotIntervalMinutes,
+		createdBy,
+		key,
+		payloadHash,
+		currentLateWithdrawalMinutes,
+		currentGroupRecoveryDeadlineMinutes,
+	).Scan(&id)
+
 	if err != nil {
-		return models.ReservationPolicy{}, false, err
+		return models.ReservationPolicy{},
+			false,
+			err
 	}
+
 	for _, value := range request.AllowedDurations {
-		if _, err := tx.ExecContext(ctx, `INSERT INTO dbo.reservation_policy_durations (policy_id, duration_minutes) VALUES (@p1,@p2)`, id, value); err != nil {
-			return models.ReservationPolicy{}, false, err
+		if _, err := tx.ExecContext(
+			ctx,
+			`
+			INSERT INTO reservation_policy_durations (
+				policy_id,
+				duration_minutes
+			)
+			VALUES ($1, $2)
+			ON CONFLICT DO NOTHING
+			`,
+			id,
+			value,
+		); err != nil {
+			return models.ReservationPolicy{},
+				false,
+				err
 		}
 	}
+
 	for _, value := range request.ResourceIDs {
-		result, err := tx.ExecContext(ctx, `INSERT INTO dbo.reservation_policy_resources (policy_id, resource_id) SELECT @p1, id FROM dbo.resources WHERE id = @p2 AND is_active = 1`, id, value)
+		result, err := tx.ExecContext(
+			ctx,
+			`
+			INSERT INTO reservation_policy_resources (
+				policy_id,
+				resource_id
+			)
+			SELECT
+				$1,
+				id
+			FROM resources
+			WHERE id = $2
+			  AND is_active = true
+			ON CONFLICT DO NOTHING
+			`,
+			id,
+			value,
+		)
 		if err != nil {
-			return models.ReservationPolicy{}, false, err
+			return models.ReservationPolicy{},
+				false,
+				err
 		}
-		count, _ := result.RowsAffected()
+
+		count, err := result.RowsAffected()
+		if err != nil {
+			return models.ReservationPolicy{},
+				false,
+				err
+		}
+
 		if count != 1 {
-			return models.ReservationPolicy{}, false, fmt.Errorf("%w: recurso %d no existe o no esta activo", ErrInvalidPolicyResource, value)
+			return models.ReservationPolicy{},
+				false,
+				fmt.Errorf(
+					"%w: recurso %d no existe o no esta activo",
+					ErrInvalidPolicyResource,
+					value,
+				)
 		}
 	}
-	if _, err := tx.ExecContext(ctx, `UPDATE dbo.reservation_policies SET is_published = 1 WHERE id = @p1 AND is_published = 0`, id); err != nil {
-		return models.ReservationPolicy{}, false, err
+
+	var hasGroupResourceTable bool
+
+	if err := tx.QueryRowContext(
+		ctx,
+		`
+		SELECT
+			to_regclass(
+				'public.reservation_policy_group_resources'
+			) IS NOT NULL
+		`,
+	).Scan(&hasGroupResourceTable); err != nil {
+		return models.ReservationPolicy{},
+			false,
+			err
 	}
-	p, err := scanPolicy(tx.QueryRowContext(ctx, `SELECT `+policyColumns+` FROM dbo.reservation_policies WHERE id = @p1`, id))
+
+	if hasGroupResourceTable &&
+		currentPolicyID > 0 {
+		if _, err := tx.ExecContext(
+			ctx,
+			`
+			INSERT INTO reservation_policy_group_resources (
+				policy_id,
+				resource_id
+			)
+			SELECT
+				$1,
+				old_group.resource_id
+			FROM reservation_policy_group_resources old_group
+			INNER JOIN reservation_policy_resources new_scope
+				ON new_scope.policy_id = $1
+				AND new_scope.resource_id =
+					old_group.resource_id
+			WHERE old_group.policy_id = $2
+			ON CONFLICT DO NOTHING
+			`,
+			id,
+			currentPolicyID,
+		); err != nil {
+			return models.ReservationPolicy{},
+				false,
+				err
+		}
+	}
+
+	if _, err := tx.ExecContext(
+		ctx,
+		`
+		UPDATE reservation_policies
+		SET is_published = true
+		WHERE id = $1
+		  AND is_published = false
+		`,
+		id,
+	); err != nil {
+		return models.ReservationPolicy{},
+			false,
+			err
+	}
+
+	p, err := scanPolicy(
+		tx.QueryRowContext(
+			ctx,
+			`
+			SELECT `+policyColumns+`
+			FROM reservation_policies
+			WHERE id = $1
+			`,
+			id,
+		),
+	)
 	if err != nil {
-		return models.ReservationPolicy{}, false, err
+		return models.ReservationPolicy{},
+			false,
+			err
 	}
-	if err := loadPolicyCollections(ctx, tx, &p); err != nil {
-		return models.ReservationPolicy{}, false, err
+
+	if err := loadPolicyCollections(
+		ctx,
+		tx,
+		&p,
+	); err != nil {
+		return models.ReservationPolicy{},
+			false,
+			err
 	}
+
 	if err := tx.Commit(); err != nil {
-		return models.ReservationPolicy{}, false, err
+		return models.ReservationPolicy{},
+			false,
+			err
 	}
+
 	return p, false, nil
 }

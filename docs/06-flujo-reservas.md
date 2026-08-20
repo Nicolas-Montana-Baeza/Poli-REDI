@@ -9,7 +9,7 @@ Este documento describe el flujo funcional de reservas en Poli-REDI, sus validac
 - Usuario normal: consulta disponibilidad, crea reservas propias, cancela reservas propias y revisa historial.
 - Administrador: consulta informacion operacional y puede cancelar reservas segun permisos.
 - Backend: valida autenticacion, usuario, RUT, recurso, permisos y estado.
-- Azure SQL Database: aplica restricciones de integridad y reglas de conflicto.
+- PostgreSQL 16: aplica restricciones de integridad, concurrencia y reglas de conflicto. Los restos T-SQL pertenecen a la deuda EV-011.
 
 ## Flujo actual de creacion de reserva
 
@@ -19,7 +19,7 @@ Este documento describe el flujo funcional de reservas en Poli-REDI, sus validac
 4. El sistema muestra recursos, reservas, talleres y actividades institucionales del dia seleccionado.
 5. El usuario selecciona un horario libre.
 6. Si el usuario normal no tiene RUT, la UI bloquea la accion.
-7. El formulario permite ajustar recurso, fecha, hora, duracion y actividad. Participantes no se solicita en MVP 1 porque todavia no se persiste.
+7. El formulario permite ajustar recurso, fecha, hora, duracion y actividad. En MVP2, las reservas grupales persisten participantes autenticados y el detalle presenta avance y condicion del grupo.
 8. El frontend valida campos obligatorios.
 9. El backend toma el usuario desde la sesion autenticada.
 10. El backend rechaza usuarios normales sin RUT.
@@ -84,7 +84,7 @@ Estas transiciones pueden originar notificaciones sin convertir `groupCondition`
 
 1. El administrador registra o modifica una actividad institucional.
 2. El sistema detecta ocupaciones solapadas y las presenta al administrador.
-3. Si existe una reserva particular, el sistema la cancela automaticamente al confirmar la actividad institucional.
+3. Si existe una reserva particular, el sistema registra el conflicto. RF-023/v1 define cancelacion automatica por prioridad institucional, mientras `EV-010` mantiene abierta la decision de adoptar la resolucion administrativa como modelo general.
 4. Si existe otra actividad institucional, el administrador puede cancelar cualquiera de las dos o mantener ambas cuando compartan validamente el espacio.
 5. El sistema notifica al usuario cuya reserva particular fue cancelada automaticamente.
 6. El sistema registra la decision y actualiza la agenda.
@@ -191,7 +191,7 @@ Estas categorias no representan nuevos estados de base de datos, sino distintas 
 - `durationMinutes` en `30, 60, 90, 120, 150, 180`.
 - Inicio entre 08:00 y 21:30, en intervalos de 15 minutos.
 - Termino completo de la reserva a mas tardar a las 22:00.
-- El payload publico no acepta `status`; el servidor asigna `CONFIRMED`.
+- El payload publico no acepta `status`; el servidor asigna el estado segun la politica del recurso. Una reserva grupal puede iniciar `PENDING + PENDING_MINIMUM`.
 - Cancelacion solo por propietario o administrador.
 - Cancelacion permitida unicamente desde `CONFIRMED` o `PENDING`.
 
@@ -228,7 +228,7 @@ sequenceDiagram
   actor Usuario
   participant UI as Frontend
   participant API as Backend
-  participant DB as Azure SQL
+  participant DB as PostgreSQL 16
 
   Usuario->>UI: Selecciona horario disponible
   UI->>UI: Valida datos visibles
@@ -250,7 +250,7 @@ sequenceDiagram
 - Crear una nueva solicitud antes del mismo dia de la semana siguiente debe fallar; al llegar a ese dia debe permitirse, salvo otro impedimento.
 - Una solicitud grupal con 9 participantes confirmados debe permanecer `PENDING`.
 - La decima confirmacion valida debe cambiarla a `CONFIRMED` si las demas reglas siguen vigentes.
-- Retirar una confirmacion y bajar de 10 antes del limite debe devolverla a `PENDING` sin liberar el horario.
+- Retirar una confirmacion de una reserva ya confirmada y bajar de 10 debe conservar `CONFIRMED`, cambiar a `AT_RISK` y mantener el horario bloqueado.
 - El solicitante cuenta una vez y no puede retirar su participacion; si desea abandonar debe cancelar la solicitud completa.
 - Confirmar o retirar exactamente una hora antes debe permitirse; cualquier intento posterior debe rechazarse.
 - Una solicitud que llega al limite con menos de 10 confirmaciones debe cancelarse, liberar el horario y liberar la oportunidad semanal.
@@ -258,14 +258,14 @@ sequenceDiagram
 - Crear reserva con conflicto debe fallar y mantener modal abierto.
 - Enviar un estado manipulado no debe alterar el estado inicial ni evitar conflictos.
 - Crear fuera de horario o con duracion no permitida debe fallar en backend.
-- La misma reserva debe conservar hora y categoria temporal en local y Azure.
+- La misma reserva debe conservar hora y categoria temporal en local y en cualquier entorno PostgreSQL integrado/desplegado.
 - Cancelar reserva propia debe pedir confirmacion y actualizar grilla.
 - Cancelar reserva ajena debe fallar para usuario normal.
 - Cancelar una reserva rechazada, expirada, cancelada o finalizada debe fallar.
 - Admin puede cancelar reserva ajena.
 - Cambio de fecha no debe mostrar reservas de otro dia.
 - Reservas canceladas no deben bloquear disponibilidad activa.
-- Una actividad institucional en conflicto debe cancelar automaticamente la reserva particular.
+- Un conflicto actividad institucional/reserva particular debe seguir la decision que cierre `EV-010`; mientras tanto se valida deteccion y resolucion sin asumir como definitiva la cancelacion automatica.
 - Dos actividades institucionales en conflicto deben permitir al administrador cancelar una o mantener ambas.
 
 ## Cambios administrativos de politica
@@ -278,4 +278,4 @@ sequenceDiagram
 
 ## Politica temporal vigente
 
-Poli-REDI usa `APP_TIMEZONE=America/Santiago` como zona de negocio y un reloj inyectable en pruebas. La estrategia vigente mantiene `DATETIME2` como hora local institucional: un valor `2026-07-14 10:30:00` significa 10:30 de Chile. Requests con offset se convierten a Santiago antes de persistir; requests sin offset se interpretan directamente en la zona institucional. La API responde fechas RFC 3339 con el offset real de Chile para evitar que frontend y backend clasifiquen reservas con horas distintas.
+Poli-REDI usa `APP_TIMEZONE=America/Santiago` como zona de negocio y un reloj inyectable en pruebas. La persistencia PostgreSQL vigente utiliza tipos temporales adecuados y las migraciones actuales emplean `timestamptz` para instantes. La API conserva un contrato temporal explicito para evitar que frontend, backend y base clasifiquen reservas con horas distintas. La antigua estrategia `DATETIME2` corresponde a la etapa Azure SQL registrada en `EV-011`.

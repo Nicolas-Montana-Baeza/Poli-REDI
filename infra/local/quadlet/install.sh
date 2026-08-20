@@ -57,7 +57,7 @@ install_files() {
     # una configuración anterior vuelva a apuntar al puerto 5432 de MVP2.
     if [[ -f "${backend_env}" ]]; then
         sed -i -E \
-            "s#^DATABASE_URL=(postgres://poliredi_app:[^@]+@127\\.0\\.0\\.1:)[0-9]+(/poliredi\\?sslmode=disable)$#DATABASE_URL=\\1${postgres_host_port}\\2#" \
+            "s#^DATABASE_URL=(postgres://poliredi_app:[^@]+@127\\.0\\.0\\.1:)[0-9]+(/poliredi\\?sslmode=disable)\$#DATABASE_URL=\\1${postgres_host_port}\\2#" \
             "${backend_env}"
     fi
 
@@ -72,6 +72,12 @@ install_files() {
     install -m 0644 "${repository_root}/database/postgres/migrations/PG16_0002_mvp1_indexes.sql" "${runtime_dir}/20_mvp1_indexes.sql"
     install -m 0644 "${repository_root}/database/postgres/migrations/PG16_0003_mvp1_invariants.sql" "${runtime_dir}/30_mvp1_invariants.sql"
     install -m 0644 "${repository_root}/database/postgres/seed/PG16_seed_mvp1.sql" "${runtime_dir}/40_mvp1_seed.sql"
+    install -m 0644 "${repository_root}/database/postgres/migrations/PG16_0004_mvp2_group_participants.sql" "${runtime_dir}/50_mvp2_group_participants.sql"
+    install -m 0644 "${repository_root}/database/postgres/migrations/PG16_0005_mvp2_institutional_scheduling.sql" "${runtime_dir}/60_mvp2_institutional_scheduling.sql"
+    install -m 0644 "${repository_root}/database/postgres/migrations/PG16_0006_mvp2_institutional_availability.sql" "${runtime_dir}/70_mvp2_institutional_availability.sql"
+    install -m 0644 "${repository_root}/database/postgres/migrations/PG16_0007_mvp2_schedule_exceptions.sql" "${runtime_dir}/80_mvp2_schedule_exceptions.sql"
+    install -m 0644 "${repository_root}/database/postgres/migrations/PG16_0008_mvp2_schedule_exception_availability.sql" "${runtime_dir}/90_mvp2_schedule_exception_availability.sql"
+    install -m 0644 "${repository_root}/database/postgres/migrations/PG16_0009_full_notifications.sql" "${runtime_dir}/95_full_notifications.sql"
 
     systemctl --user daemon-reload
     printf 'Quadlet instalado. Variables de la API: %s\n' "${backend_env}"

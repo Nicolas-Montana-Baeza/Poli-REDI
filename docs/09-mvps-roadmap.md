@@ -65,10 +65,11 @@ Construir la base operativa del sistema: aplicacion web, API, base de datos real
 
 - Backend Go/Fiber.
 - Frontend Vue/Vite.
-- Azure SQL Database como base objetivo.
-- Migracion desde PostgreSQL historico a SQL Server/Azure SQL.
-- Scripts `drop.sql`, `schema.sql` y `seed.sql` funcionales.
-- Conexion backend a Azure SQL.
+- PostgreSQL 16 como motor de persistencia vigente.
+- Genealogia EV-011: PostgreSQL inicial -> Azure SQL intermedio -> PostgreSQL 16 vigente.
+- Migraciones canonicas `PG16_*` bajo `database/postgres/migrations/`.
+- Conexion backend mediante `pgx` y `DATABASE_URL`/variables `PG*`.
+- Scripts T-SQL conservados temporalmente como legado, no como esquema vigente.
 - Endpoint publico `/api/health`.
 - Rutas protegidas con token Bearer.
 - Autenticacion Microsoft Entra ID.
@@ -200,7 +201,7 @@ Pulido visible y estabilidad transversal:
 
 ### Criterio de cierre
 
-El MVP 1 se considera cerrado definitivamente cuando backend, frontend y Azure SQL funcionan juntos en local y en Azure; la autenticacion protege rutas internas; las reservas usan usuario, estado, horario y zona temporal controlados por servidor; CORS permite solo origenes configurados; no existen secretos ni errores internos expuestos; existen pruebas reales para reglas criticas; y el flujo visible es coherente y operable en mobile, escritorio y teclado.
+El MVP 1 se considera cerrado definitivamente cuando backend, frontend y PostgreSQL funcionan juntos en un ambiente reproducible e integrado; la autenticacion protege rutas internas; las reservas usan usuario, estado, horario y zona temporal controlados por servidor; CORS permite solo origenes configurados; no existen secretos ni errores internos expuestos; existen pruebas reales para reglas criticas; y el flujo visible es coherente y operable en mobile, escritorio y teclado. La demo Azure SQL de julio se conserva como evidencia historica y no define el motor vigente.
 
 ## MVP 2 - Flujo usuario completo
 
@@ -318,7 +319,7 @@ Incluye tambien una primera version funcional de talleres deportivos: listado de
 - Completar filtros por fecha/rango y sumar bloqueos al endpoint de disponibilidad; las actividades programadas ya estan integradas (`API-004`, `ADMIN-004`).
 - Cargar el detalle por ID sin descargar colecciones completas (`API-006`).
 - Mantener la confirmacion fuerte de cancelacion ya implementada y completar su evidencia de pruebas (`RES-007`).
-- Integrar en frontend y verificar en SQL Server/Azure SQL la ventana y frecuencia versionadas ya implementadas localmente; `PENDING` consume desde su creacion y `CANCELLED` libera la oportunidad (`RES-012`).
+- Integrar en frontend y verificar de punta a punta en PostgreSQL la ventana y frecuencia versionadas; `PENDING` consume desde su creacion y `CANCELLED` libera la oportunidad (`RES-012`).
 - Registrar al solicitante y participantes mediante cuentas unicas, exigiendo al menos 10 para las tres multicanchas (`RES-008`).
 - Mantener solicitudes grupales en `PENDING`, bloquear el horario, confirmar al alcanzar el minimo y volver a `PENDING` si una retirada reduce el conteo (`RES-008`, `RES-010`).
 - Aceptar cambios hasta exactamente una hora antes inclusive y cancelar al vencer bajo el minimo, liberando horario y oportunidad (`RES-008`, `RES-012`).
@@ -396,9 +397,9 @@ Parcial.
 - Completar la integracion de bloqueos en el calendario unificado; reservas y actividades programadas ya comparten contrato (`RES-004`).
 - Crear bloqueos de disponibilidad desde administracion (`ADMIN-004`).
 - Completar la gestion del inventario oficial de ocho recursos; la actualizacion de imagen ya esta implementada (`ADMIN-003`).
-- Completar la interfaz administrativa y verificar en SQL Server/Azure SQL la publicacion prospectiva ya implementada para periodo, frecuencia, plazo, jornada, duraciones y recursos (`ADMIN-006`). Las correcciones excepcionales quedan para un incremento posterior.
+- Completar la interfaz administrativa y migrar/verificar en PostgreSQL la publicacion prospectiva de politicas (`ADMIN-006`). Lectura, historial y escritura administrativa ya utilizan PostgreSQL; permanece pendiente la interfaz y el cierre funcional completo. Las correcciones excepcionales quedan para un incremento posterior.
 - Bloquear y desbloquear usuarios con auditoria (`ADMIN-002`).
-- Registrar programacion institucional, cancelar automaticamente reservas particulares en conflicto y permitir que el administrador cancele una actividad o mantenga ambas cuando el conflicto sea institucional (`ADMIN-005`).
+- Completar `ADMIN-005`: el backend ya registra programacion institucional, detecta conflictos N-elementos y permite resolucion administrativa `KEEP`/`ALLOW`/`CANCEL`/`RESCHEDULE`. Falta cerrar la decision `EV-010` sobre cancelacion automatica versus resolucion administrativa, integrar notificaciones y completar la experiencia administrativa.
 - Agregar filtros backend de recursos por sede, tipo y estado (`API-001`).
 - Centralizar validacion de administrador con middleware (`API-005`).
 - Completar reportes desde vistas SQL e infracciones si corresponde (`REP-001`).
@@ -487,9 +488,9 @@ Estos incrementos no reemplazan los cuatro MVPs generales; ordenan `RES-012`, `R
 1. **Versionado y reglas de solicitud:** politica inicial e inmutable por solicitud, ventana, frecuencia y liberacion al cancelar.
 2. **Participantes y estado condicionado:** solicitante contado sin posibilidad de retiro, confirmaciones de terceros, bloqueo `PENDING` y transiciones por minimo.
 3. **Plazo y vencimiento:** limite inclusivo, cancelacion bajo el minimo y resolucion antes de consultas o escrituras relevantes.
-4. **Administracion:** la API de nuevas versiones prospectivas, historial, permisos e idempotencia esta implementada y verificada localmente; faltan interfaz y verificacion SQL/Azure. Las correcciones excepcionales quedan fuera del incremento actual.
+4. **Administracion:** lectura, historial y publicacion administrativa de politicas operan sobre PostgreSQL. Faltan interfaz y cierre integrado. Las correcciones excepcionales quedan fuera del incremento actual.
 
-`ADMIN-005` queda expresamente para una entrega arquitectonica posterior y no bloquea estos cuatro incrementos.
+`ADMIN-005` dejo de ser una entrega arquitectonica exclusivamente futura: existe una implementacion backend parcial en MVP 2. Su cierre funcional sigue perteneciendo a administracion institucional y no bloquea los cuatro incrementos tecnicos de reservas grupales.
 
 ```mermaid
 flowchart LR

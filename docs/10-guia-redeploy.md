@@ -8,9 +8,12 @@ Arquitectura actual:
 
 - Frontend: Vue/Vite en Azure Static Web Apps.
 - Backend: Go/Fiber en Azure App Service con contenedor Docker.
-- Base de datos: Azure SQL Database.
+- Base de datos del runtime vigente: PostgreSQL 16. La demo Azure documentada originalmente utilizo Azure SQL y debe considerarse despliegue historico hasta revalidar un backend online con PostgreSQL.
 - Autenticacion: Microsoft Entra ID.
 - CI/CD frontend: GitHub Actions.
+
+
+> **Estado EV-011:** las URL de frontend/backend Azure que aparecen en esta guia corresponden a la demo existente, pero la configuracion de base de datos Azure SQL ya no representa la arquitectura vigente. Antes de redeployar el backend actual debe existir una instancia PostgreSQL accesible desde App Service (Azure Database for PostgreSQL u otro servicio compatible) y definirse `DATABASE_URL`/`PG*`. No asumir que la demo online actual esta sincronizada con PostgreSQL hasta verificarlo.
 
 URLs actuales:
 
@@ -35,7 +38,7 @@ Usar este criterio antes de redeployar:
 | Solo variables `VITE_*` | Reejecutar workflow o hacer commit vacio |
 | Solo backend | Construir nueva imagen Docker, publicarla, actualizar tag en App Service y reiniciar |
 | Backend y frontend | Probar local, push a `main`, esperar frontend, luego redeploy backend |
-| Base de datos | Ejecutar `drop.sql`, `schema.sql`, `seed.sql` solo en ambiente de prueba o con respaldo |
+| Base de datos PostgreSQL | Aplicar migraciones `PG16_*` de forma controlada; no ejecutar scripts T-SQL legacy contra PostgreSQL |
 | Datos demo de hoy | Ejecutar `database/seed_today_temp.sql` despues del seed normal |
 
 ## 2. Variables obligatorias
@@ -47,15 +50,10 @@ Archivo: `backend/.env`
 ```env
 PORT=3000
 CORS_ALLOWED_ORIGINS=http://localhost:5173
-
-DB_SERVER=poli-redi-server.database.windows.net
-DB_PORT=1433
-DB_NAME=poli-redi-database
-DB_USER=poli-redi-admin
-DB_PASSWORD=
-DB_ENCRYPT=true
-DB_TRUST_SERVER_CERTIFICATE=false
 APP_TIMEZONE=America/Santiago
+MVP_SCOPE=mvp1
+
+DATABASE_URL=postgres://poliredi_app:password@127.0.0.1:55432/poliredi?sslmode=disable
 
 ENTRA_TENANT_ID=
 ENTRA_API_CLIENT_ID=
@@ -66,10 +64,10 @@ DEV_AUTH_ENABLED=true
 
 Notas:
 
-- `DB_PASSWORD` nunca debe quedar versionado.
+- Las credenciales PostgreSQL nunca deben quedar versionadas.
+- `DATABASE_URL` tiene precedencia sobre variables `PG*`.
 - Para pruebas locales rapidas se puede usar `DEV_AUTH_ENABLED=true`.
 - Para probar Microsoft Entra ID real en local, usar `DEV_AUTH_ENABLED=false`.
-- Tambien se puede usar `AZURE_SQL_CONNECTION_STRING` en vez de las variables `DB_*`.
 
 ### 2.2 Frontend local
 
@@ -104,13 +102,9 @@ PORT=3000
 CORS_ALLOWED_ORIGINS=https://purple-ground-0205c9f10.7.azurestaticapps.net
 APP_TIMEZONE=America/Santiago
 
-DB_SERVER=poli-redi-server.database.windows.net
-DB_PORT=1433
-DB_NAME=poli-redi-database
-DB_USER=poli-redi-admin
-DB_PASSWORD=
-DB_ENCRYPT=true
-DB_TRUST_SERVER_CERTIFICATE=false
+# Configurar cuando exista la instancia PostgreSQL online:
+DATABASE_URL=postgres://USER:PASSWORD@POSTGRES_HOST:5432/poliredi?sslmode=require
+MVP_SCOPE=mvp1
 
 ENTRA_TENANT_ID=
 ENTRA_API_CLIENT_ID=
@@ -128,10 +122,10 @@ Reglas:
 
 Contrato temporal:
 
-- Azure SQL conserva hora institucional de muro en sus columnas `DATETIME2` de agenda.
-- El backend interpreta esas columnas con `APP_TIMEZONE=America/Santiago` y serializa con offset.
+- PostgreSQL es el motor vigente y el contrato temporal debe mantenerse consistente con `APP_TIMEZONE=America/Santiago`.
+- Los instantes persistidos deben conservar semantica explicita y la API serializa fechas sin depender de `DATETIME2`.
 - Una zona invalida impide iniciar el backend con un error de configuracion claro.
-- Antes de validar `RES-009`, comprobar online que una reserva creada para una hora de Chile conserve la misma hora al recargar.
+- Antes de validar `RES-009`, comprobar en el ambiente PostgreSQL integrado que una reserva creada para una hora de Chile conserve la misma hora al recargar.
 
 ### 2.4 Frontend Azure Static Web Apps
 
@@ -437,7 +431,7 @@ Debe existir fallback a `index.html` para que Vue Router maneje rutas como `/log
 - No copiar passwords en README, docs, issues ni capturas.
 - Mantener secretos backend en Azure App Service.
 - Mantener variables frontend no secretas en GitHub Actions Variables.
-- Rotar la clave de Azure SQL si fue compartida fuera de un canal seguro.
+- Las credenciales Azure SQL historicas deben considerarse retiradas/rotadas si alguna vez fueron compartidas; las nuevas credenciales PostgreSQL deben gestionarse como secretos independientes.
 - Mantener modo local (`DEV_AUTH_ENABLED`) desactivado en nube.
 - Evitar CORS amplio en despliegue publico.
 

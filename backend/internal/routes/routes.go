@@ -15,8 +15,8 @@ import (
 //
 //   - MVP1 mantiene únicamente la superficie estable original;
 //   - MVP2 agrega las funcionalidades ya migradas y validadas en PostgreSQL;
-//   - FULL agrega además los módulos legacy que todavía están siendo
-//     adaptados progresivamente.
+//   - FULL agrega además módulos administrativos o funcionalidad que
+//     todavía no pertenece al alcance validado de MVP1/MVP2.
 //
 // Esto evita que habilitar MVP2 exponga accidentalmente funcionalidades
 // antiguas que aún no forman parte del bloque validado.
@@ -254,7 +254,7 @@ func RegisterRoutes(app *fiber.App) {
 	}
 
 	// ------------------------------------------------------------
-	// Superficie FULL / legacy.
+	// Superficie FULL.
 	// ------------------------------------------------------------
 
 	protected.Patch(

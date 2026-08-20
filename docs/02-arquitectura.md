@@ -12,7 +12,7 @@ flowchart LR
   Frontend --> Entra["Microsoft Entra ID"]
   Frontend --> API["Backend Go/Fiber"]
   API --> EntraKeys["JWKS / validacion JWT"]
-  API --> DB["Azure SQL Database"]
+  API --> DB["PostgreSQL 16"]
   DB --> API
   API --> Frontend
 ```
@@ -49,7 +49,7 @@ Estructura principal:
 - `internal/middleware/`: autenticacion, modo local y usuario actual.
 - `internal/handlers/`: entrada HTTP.
 - `internal/services/`: reglas de negocio.
-- `internal/repositories/`: consultas Azure SQL.
+- `internal/repositories/`: acceso a PostgreSQL vigente; algunos repositorios legacy conservan T-SQL mientras termina EV-011.
 - `internal/models/`: modelos de datos.
 - `internal/validators/`: validadores reutilizables.
 
@@ -64,11 +64,11 @@ Responsabilidades principales:
 - Exponer disponibilidad sanitizada para usuarios normales y detalle completo de reservas solo a administradores.
 - Validar que reservas no se crucen con talleres activos asociados al mismo recurso.
 - Validar RUT obligatorio para usuarios normales.
-- Exponer datos desde Azure SQL Database.
+- Exponer datos desde PostgreSQL 16.
 
 ## Base de datos
 
-La base vigente es Azure SQL Database.
+La base vigente es PostgreSQL 16. Los scripts y modulos SQL Server/Azure SQL se conservan temporalmente como legado de EV-011 y no representan la arquitectura objetivo.
 
 Scripts principales:
 
@@ -111,7 +111,7 @@ sequenceDiagram
   actor Usuario
   participant UI as Frontend
   participant API as Backend
-  participant DB as Azure SQL
+  participant DB as PostgreSQL 16
 
   Usuario->>UI: Selecciona horario
   UI->>API: POST /api/reservations
@@ -129,13 +129,13 @@ La demo online inicial usa:
 
 - Frontend: Azure Static Web Apps.
 - Backend: Azure App Service con Docker.
-- Base de datos: Azure SQL Database.
+- Base de datos: PostgreSQL 16.
 - Variables frontend `VITE_*` desde GitHub Actions.
 - Variables backend en App Service.
 
 ## Arquitectura de politicas de reserva
 
-Estado: APROBADA e IMPLEMENTADA para el versionado prospectivo y la publicacion administrativa; VERIFICADA LOCALMENTE el 2026-07-21. La ejecucion contra SQL Server/Azure SQL y la concurrencia real siguen PENDIENTES de verificacion.
+Estado: APROBADA e IMPLEMENTADA de forma parcial. Lectura, historial y publicacion administrativa de politicas utilizan PostgreSQL. La publicacion conserva idempotencia, serializacion y herencia de la clasificacion grupal vigente. La evidencia del 2026-07-21 corresponde a la etapa Azure SQL y se conserva como historia de QA.
 
 - Las politicas de ventana, frecuencia, plazo, minimo, jornada, intervalo, duraciones y recursos permitidos se almacenan como versiones inmutables. La clasificacion de recursos que requeriran confirmacion grupal permanece APROBADA pero PENDIENTE.
 - Cada solicitud referencia la version vigente al crearse y conserva sus condiciones.
@@ -145,24 +145,37 @@ Estado: APROBADA e IMPLEMENTADA para el versionado prospectivo y la publicacion 
 - Confirmar o retirar participacion, recalcular el estado y resolver el vencimiento forman una sola operacion transaccional por reserva.
 - Los vencimientos se resuelven antes de consultar o modificar las reservas relevantes. Un ejecutor programado queda como mejora futura si se exige notificacion exactamente al minuto sin actividad del sistema.
 - Una correccion excepcional permanece fuera de este incremento: el diseno aprobado exige seleccionar solicitudes futuras activas, previsualizar el efecto, declarar un motivo y aplicar el lote de forma atomica y auditada, sin editar versiones historicas ni cancelar implicitamente.
-- `ADMIN-005`, incluida la prioridad de actividades institucionales, se disenara en una entrega arquitectonica posterior.
+- `ADMIN-005` ya cuenta con una base arquitectonica MVP2 para unidades, actividades institucionales y resolucion administrativa de conflictos. Su grado funcional debe evaluarse por separado antes de declararlo cerrado.
 
 ### Contratos implementados
 
-- `GET /api/reservation-policy/current`: autenticado; devuelve solo condiciones operativas, sin ID, autoria, vigencias ni metadatos de auditoria.
-- `GET /api/admin/reservation-policies`: solo administrador; devuelve el historial completo.
-- `POST /api/admin/reservation-policies`: solo administrador; exige `Idempotency-Key` (maximo 100 caracteres). Responde `201` al crear, `200` al repetir la misma clave con payload equivalente y `409` al reutilizarla con datos distintos.
+Politicas de reserva:
 
-Los endpoints de participantes y correcciones que siguen son contratos aprobados pero PENDIENTES, no parte del incremento verificado:
-- `PUT /api/reservations/:id/participants/me`: confirmar participacion propia.
-- `DELETE /api/reservations/:id/participants/me`: retirar participacion propia; el solicitante recibe rechazo y debe cancelar.
+- `GET /api/reservation-policy/current`: autenticado; devuelve condiciones operativas vigentes.
+- `GET /api/admin/reservation-policies`: solo administrador en la superficie que lo habilita; devuelve historial completo.
+- `POST /api/admin/reservation-policies`: publicacion administrativa versionada e idempotente en la superficie correspondiente.
+
+Reservas grupales MVP 2:
+
+- `GET /api/reservations/join/:code`: consulta progreso y condicion del grupo mediante codigo de invitacion.
+- `POST /api/reservations/join/:code`: incorpora al usuario autenticado como participante.
+- `DELETE /api/reservations/join/:code`: retira al usuario autenticado; el owner no puede abandonar de esta forma y debe cancelar la reserva.
+- `GET /api/reservations/:id/participants`: lista participantes para owner o administrador.
+- `POST /api/reservations/:id/join-code`: rota el codigo de invitacion para owner o administrador.
+
+La identidad del participante proviene de la sesion autenticada y no de un `userId` enviado por el cliente.
+
+### Contratos pendientes
+
+Las correcciones excepcionales de politicas permanecen como diseño aprobado pero no deben presentarse como parte implementada del incremento:
+
 - `POST /api/admin/reservation-policy-corrections/preview`: simular una correccion excepcional.
 - `POST /api/admin/reservation-policy-corrections/apply`: aplicar una simulacion vigente con idempotencia por lote.
 
 ## Riesgos y mejoras recomendadas
 
 - Extender el endpoint de disponibilidad para aceptar fecha o rango y sumar bloqueos; las actividades programadas activas ya forman parte del contrato.
-- Verificar en el ambiente integrado/online el contrato temporal ya implementado entre `DATETIME2`, API y frontend mediante `APP_TIMEZONE` (`RES-009`).
+- Verificar en el ambiente integrado/online el contrato temporal PostgreSQL/API/frontend mediante `APP_TIMEZONE=America/Santiago` (`RES-009`). La estrategia `DATETIME2` queda como antecedente EV-011.
 - Verificar desplegado que estado inicial y transiciones de reserva pertenecen exclusivamente al servidor (`RES-010`).
 - Verificar desplegadas la jornada y las duraciones permitidas que ya aplica el backend (`RES-011`).
 - Ampliar las pruebas backend actuales hacia permisos, conflictos y persistencia; `go test ./...` ya ejecuta casos reales (`QA-001`).

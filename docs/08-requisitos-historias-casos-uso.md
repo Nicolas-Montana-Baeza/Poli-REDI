@@ -47,7 +47,7 @@ Responsabilidades principales:
 - Entregar tokens para consumir la API protegida.
 - Proveer datos base de identidad, como correo, nombre, tenant y object id.
 
-### Base de datos Azure SQL
+### Base de datos PostgreSQL 16
 
 Sistema de persistencia.
 
@@ -95,7 +95,7 @@ Pendiente relacionado: `RES-004`.
 
 El sistema debe permitir crear solicitudes de reserva sobre recursos disponibles, asociadas al usuario autenticado y, opcionalmente, a una actividad. El servidor debe asignar el estado segun la politica del recurso, aplicar la restriccion semanal y aceptar para todos los recursos solo duraciones de 30, 60, 90, 120, 150 o 180 minutos dentro de la jornada institucional.
 
-Estado actual: Implementado parcialmente. La asociacion al usuario, el estado controlado por servidor, la zona `America/Santiago` y el catalogo de duraciones aprobado tienen pruebas locales; falta la restriccion semanal y la confirmacion condicional por participantes aprobadas el 2026-07-20.
+Estado actual: Implementado parcialmente. La asociacion al usuario, el estado controlado por servidor, la zona `America/Santiago`, el catalogo de duraciones y la restriccion semanal cuentan con implementacion y evidencia local. El flujo de confirmacion grupal esta implementado parcialmente y mantiene pendientes de cierre el vencimiento y sus integraciones posteriores.
 
 Pendiente relacionado: `RES-008`, `RES-009`, `RES-010`, `RES-011`.
 
@@ -111,7 +111,7 @@ Pendiente relacionado: `RES-004`, `RES-010`, `ADMIN-004`.
 
 El sistema debe permitir cancelar reservas propias y permitir que administradores cancelen reservas segun permisos, siempre que el estado admita cancelacion y la reserva no haya finalizado segun la zona horaria institucional.
 
-Estado actual: Implementado parcialmente. Propiedad, rol, estados cancelables, reserva finalizada y zona horaria ya se validan; falta una confirmacion consistente en todos los puntos de acceso y verificacion integrada/online.
+Estado actual: Implementado. Propiedad, rol, estados cancelables, reserva finalizada y zona horaria se validan; el frontend utiliza confirmacion destructiva inline en el flujo compartido. La validacion integrada/online permanece como evidencia separada.
 
 Pendiente relacionado: `RES-009`, `RES-010`.
 
@@ -167,7 +167,7 @@ Pendiente relacionado: `ADMIN-004`.
 
 El sistema debe permitir registrar clases, talleres, eventos, campeonatos o entrenamientos institucionales.
 
-Estado actual: Pendiente.
+Estado actual: IMPLEMENTADO PARCIAL. El backend MVP 2 permite crear programacion institucional asociada a unidades y recursos, con autorizacion para administradores o gestores de unidad, tipos estructurados y horarios `SINGLE` o `WEEKLY`. Existen pruebas de integracion sobre persistencia, recurrencia, disponibilidad y bloqueos administrativos. Permanecen pendientes el cierre de interfaz y la validacion funcional completa del flujo institucional.
 
 Pendiente relacionado: `ADMIN-005`.
 
@@ -197,7 +197,7 @@ Estado actual: Implementado.
 
 El sistema debe limitar las fechas reservables al periodo institucional configurado y evitar que un usuario cree mas de una solicitud dentro del periodo contado desde la fecha local de creacion de su solicitud anterior. `PENDING` y `CONFIRMED` consumen la oportunidad; `CANCELLED` deja de consumirla. Con siete dias, un martes permite elegir hasta el lunes siguiente y una solicitud creada ese martes permite volver a solicitar desde el martes posterior.
 
-Estado actual: APROBADO e IMPLEMENTADO; VERIFICADO LOCALMENTE el 2026-07-21. Verificacion contra SQL Server/Azure SQL y concurrencia real PENDIENTES.
+Estado actual: APROBADO e IMPLEMENTADO. La verificacion del 2026-07-21 corresponde a la etapa Azure SQL y se conserva como evidencia historica. La arquitectura vigente PostgreSQL cuenta con pruebas locales/de integracion; permanece pendiente el cierre integral del ambiente objetivo y la concurrencia de punta a punta donde corresponda.
 
 Pendiente relacionado: `RES-012`.
 
@@ -250,7 +250,7 @@ Pendiente relacionado: `RES-008`, `RES-010`, `NOTIF-001`.
 
 El sistema debe cancelar automaticamente una reserva particular cuando entra en conflicto con una actividad institucional y notificar al usuario afectado. Si el conflicto es entre dos actividades, debe informar al administrador y permitirle cancelar cualquiera de ellas o mantener ambas.
 
-Estado actual: APROBADO el 2026-07-20; no implementado. Las restricciones actuales rechazan el solapamiento antes de permitir la decision.
+Estado actual: APROBADO e IMPLEMENTADO PARCIAL. El backend ya detecta conflictos de programacion como grupos de multiples ocupaciones, permite consulta administrativa y soporta resoluciones `KEEP`, `ALLOW`, `CANCEL` y `RESCHEDULE`, con efectos persistidos y pruebas de integracion. La implementacion actual no aplica automaticamente la cancelacion de una reserva particular al crear la actividad: genera un conflicto para resolucion administrativa. Esta diferencia se registra como candidato de evolucion `EV-010`. La notificacion al usuario afectado permanece pendiente.
 
 Pendiente relacionado: `ADMIN-005`, `RES-004`, `NOTIF-001`.
 
@@ -305,7 +305,7 @@ Las pruebas actuales cubren reglas temporales y de agenda, pero no constituyen c
 
 ### RNF-006 - Compatibilidad local
 
-El proyecto debe poder ejecutarse localmente con backend Go/Fiber, frontend Vue/Vite y Azure SQL Database configurada.
+El proyecto debe poder ejecutarse localmente con backend Go/Fiber, frontend Vue/Vite y PostgreSQL 16 configurado. El provisionamiento automatico MVP2 debe aplicar las migraciones PostgreSQL requeridas antes de habilitar `MVP_SCOPE=mvp2`.
 
 ### RNF-007 - Usabilidad
 
@@ -519,24 +519,32 @@ Criterios de aceptacion:
 - La solicitud comienza en estado `PENDING`.
 - El solicitante cuenta una vez y todos los participantes se identifican mediante una cuenta.
 - La solicitud `PENDING` bloquea el horario para usos incompatibles.
-- Con menos de 10 confirmaciones no se presenta como reserva confirmada.
-- La decima confirmacion cambia automaticamente la solicitud a `CONFIRMED` si las demas reglas siguen vigentes.
-- Si una retirada valida reduce el conteo por debajo de 10, la reserva vuelve a `PENDING`.
+- Antes de alcanzar el minimo por primera vez, con menos de 10 confirmaciones permanece `PENDING + PENDING_MINIMUM`.
+- La decima confirmacion cambia automaticamente la solicitud a `CONFIRMED + HEALTHY` si las demas reglas siguen vigentes.
+- Si una reserva ya confirmada pierde participantes y baja del minimo, conserva `CONFIRMED` y cambia a `AT_RISK`.
+- Si recupera el minimo antes del vencimiento, conserva `CONFIRMED` y vuelve a `HEALTHY`.
 - Las confirmaciones y retiradas se aceptan hasta exactamente una hora antes inclusive y se rechazan despues.
 - Si vence bajo el minimo, cambia a `CANCELLED`, libera el horario y la oportunidad semanal.
 - El cliente no puede forzar el estado ni el conteo.
 
 ### HU-016 - Resolver conflictos institucionales
 
-Como administrador, quiero conocer los conflictos de una actividad institucional para aplicar la prioridad institucional sin impedir usos compartidos validos.
+Como administrador, quiero conocer y resolver los conflictos de una actividad institucional para aplicar la prioridad institucional sin impedir usos compartidos validos.
 
-Criterios de aceptacion:
+Criterios de aceptacion vigentes no controvertidos:
 
-- Un conflicto con reserva particular cancela automaticamente esa reserva y muestra el efecto al administrador.
-- El usuario afectado recibe una notificacion de la cancelacion automatica.
-- Un conflicto entre actividades permite cancelar cualquiera de ellas o mantener ambas.
-- Mantener ambas requiere una decision administrativa explicita.
-- La decision queda trazable.
+- El sistema detecta todas las ocupaciones involucradas en un conflicto.
+- El administrador puede consultar el conflicto y sus elementos.
+- Los conflictos entre actividades permiten decisiones administrativas explicitas.
+- La resolucion puede conservar, autorizar coexistencia, cancelar o reprogramar cuando corresponda.
+- La decision y sus efectos quedan trazables.
+- El usuario afectado por una cancelacion debe recibir una notificacion sin exponer informacion de terceros.
+
+Decision pendiente `EV-010`:
+
+- RF-023/v1 establece cancelacion automatica de una reserva particular ante prioridad institucional.
+- La implementacion actual incorpora la reserva al conflicto y permite que la cancelacion sea parte de una resolucion administrativa.
+- Hasta cerrar `EV-010`, ninguno de estos dos comportamientos debe presentarse como reemplazo definitivo del otro.
 
 ### HU-017 - Mantener inventario oficial
 
@@ -780,19 +788,20 @@ Flujo principal:
 2. El participante confirma su participacion.
 3. El sistema valida identidad y duplicado.
 4. El sistema actualiza el conteo de confirmaciones vigentes.
-5. Al alcanzar 10 confirmaciones, vuelve a validar las demas reglas y cambia la solicitud a `CONFIRMED`.
+5. Al alcanzar 10 confirmaciones, vuelve a validar las demas reglas y cambia la solicitud a `CONFIRMED + HEALTHY`.
 6. Hasta exactamente el limite configurable inclusive, una persona puede retirar su confirmacion.
-7. Si el conteo vigente baja de 10, el sistema devuelve la reserva a `PENDING`.
-8. Si la solicitud llega al limite bajo el minimo, el sistema la cambia a `CANCELLED`, libera el horario y la oportunidad semanal.
+7. Si la reserva ya habia alcanzado el minimo y el conteo baja de 10, conserva `CONFIRMED` y cambia su condicion grupal a `AT_RISK`.
+8. Si recupera el minimo antes del vencimiento, conserva `CONFIRMED` y vuelve a condicion `HEALTHY`.
+9. Si la solicitud llega al limite aplicable bajo el minimo, el flujo de vencimiento debe cambiarla a `CANCELLED`, liberar el horario y la oportunidad semanal.
 
 Postcondiciones:
 
 - La confirmacion queda registrada una sola vez.
-- La reserva solo queda confirmada al alcanzar el minimo.
+- La primera confirmacion de la reserva ocurre al alcanzar el minimo; una perdida posterior se representa mediante `AT_RISK` sin borrar dicha transicion.
 
 Flujos alternativos:
 
-- Con menos de 10 confirmaciones, permanece `PENDING`.
+- Si nunca ha alcanzado el minimo y tiene menos de 10 confirmaciones, permanece `PENDING + PENDING_MINIMUM`.
 - Una confirmacion o retirada exactamente una hora antes se acepta; una posterior se rechaza sin cambiar el conteo.
 - Si la solicitud deja de ser valida antes de alcanzar el minimo, no se confirma automaticamente.
 
@@ -805,22 +814,33 @@ Precondiciones:
 - Existe una actividad institucional nueva o modificada.
 - El mismo recurso presenta al menos una ocupacion solapada.
 
-Flujo principal:
+Flujo base vigente:
 
-1. El sistema detecta y muestra todas las ocupaciones en conflicto.
-2. Para cada reserva particular, el sistema aplica cancelacion automatica por prioridad institucional.
-3. Para cada actividad institucional, el administrador elige cancelar una de las dos o mantener ambas.
-4. El sistema registra la decision y actualiza la agenda.
+1. El sistema detecta todas las ocupaciones conectadas por el conflicto.
+2. Registra un conflicto con sus elementos afectados.
+3. El administrador consulta el conflicto y su estado.
+4. Para los elementos que admiten resolucion administrativa puede utilizar `KEEP`, `ALLOW`, `CANCEL` o `RESCHEDULE` segun las reglas aplicables.
+5. Cada decision exige trazabilidad y actualiza los efectos correspondientes.
+6. El conflicto se cierra cuando no quedan elementos pendientes.
+
+Decision pendiente `EV-010`:
+
+- RF-023/v1 exige que una reserva particular sea cancelada automaticamente por prioridad institucional.
+- La implementacion actual permite incluir esa reserva dentro del proceso de resolucion administrativa.
+- La politica definitiva debe decidir si la cancelacion particular permanece automatica o si la resolucion administrativa se adopta como modelo general.
 
 Postcondiciones:
 
-- Las reservas particulares en conflicto quedan canceladas.
-- Las actividades conservadas reflejan la decision administrativa.
+- Las decisiones aplicadas quedan persistidas y trazables.
+- Una cancelacion actualiza el estado de la ocupacion correspondiente.
+- Una coexistencia autorizada permanece explicitamente registrada.
+- Una reprogramacion debe volver a participar en deteccion de conflictos.
 
 Flujos alternativos:
 
-- Si el administrador cancela la nueva actividad, las otras actividades se mantienen.
-- Si decide mantener ambas, el sistema conserva el solapamiento institucional de forma explicita.
+- Un plan incompatible debe rechazarse sin efectos parciales.
+- Puede autorizarse coexistencia cuando institucionalmente corresponda.
+- Una reprogramacion que genere un nuevo solapamiento origina un nuevo conflicto.
 
 ### CU-011 - Configurar politicas de reserva
 

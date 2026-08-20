@@ -17,14 +17,14 @@ Fecha de corte: 2026-08-20
 | `../Documentos/levantamiento_poli_redi.txt` | Gestion manual; jornada 08:00-22:00; reserva aproximada de una hora; espera semanal; minimo de 10 participantes; prioridad institucional y decisiones administrativas. | HECHO documental; requiere confirmar vigencia institucional |
 | `../Documentos/alcance_definitivo_prototipo_poli_redi.txt` | MVP 1 y 2 son el nucleo; participantes, restriccion semanal y bloqueos forman parte del alcance; Entra real y despliegue productivo aparecen fuera de alcance. | APROBADO segun nombre del documento, pero contradicho por documentacion posterior |
 | `docs/08-requisitos-historias-casos-uso.md` | Consolida 25 requisitos funcionales, incluidos los acuerdos del 2026-07-20 y el estado parcial verificado localmente de las politicas prospectivas. | ACTUALIZADO |
-| `backend/internal/routes/routes.go` | Existen rutas de identidad, RUT, lectura de recursos/actividades/notificaciones/talleres, inscripcion, disponibilidad, reservas y lectura administrativa. No existen rutas de gestion completa de usuarios, bloqueos, programacion, infracciones o reportes. | IMPLEMENTADO |
+| `backend/internal/routes/routes.go` | La superficie comun incluye identidad, recursos, disponibilidad y reservas. MVP2 agrega reservas grupales, talleres institucionales, unidades, programacion institucional y resolucion administrativa de conflictos. `FULL` conserva modulos legacy como notificaciones y administracion de politicas. | IMPLEMENTADO por scopes; cierre funcional variable |
 | `backend/internal/middleware/auth_middleware.go` | La identidad se valida en servidor; rol, bloqueo y RUT provienen del usuario local; `DEV_AUTH_ENABLED` selecciona el modo local. | IMPLEMENTADO |
 | `backend/internal/services/reservations_service.go` y flujo de participantes | La reserva usa el usuario autenticado y aplica estado inicial segun politica. Los recursos grupales pueden comenzar `PENDING`, registrar participantes y alcanzar `CONFIRMED`; la condicion grupal se mantiene separada del ciclo de vida. | IMPLEMENTADO PARCIAL y con pruebas locales/integracion disponibles |
-| `database/schema.sql` | El esquema versiona politicas por solicitud y protege ventana, frecuencia y conflictos de recurso, usuario, bloqueos y actividades programadas; contiene auditoria de reservas. | IMPLEMENTADO en script; ventana/frecuencia no verificadas contra Azure SQL en este corte |
+| `database/postgres/migrations/` | PostgreSQL 16 es la linea canonica vigente. `PG16_0001` a `0008` cubren baseline, invariantes, participantes, programacion institucional, disponibilidad y excepciones. | IMPLEMENTADO incremental; provisioning automatico MVP2 PENDIENTE |
 | `frontend/src/components/availability/AvailabilitySection.vue` | La interfaz combina reservas, actividades programadas y talleres; no incorpora bloqueos visibles y permite abrir seleccion sobre recursos que despues puede rechazar el servidor. | IMPLEMENTADO PARCIAL |
 | `database/seed.sql` | Contiene los ocho recursos confirmados como inventario oficial inicial. | APROBADO como linea base; gestion completa PENDIENTE |
 | Decisiones explicitas del usuario del 2026-07-20 | Confirman que `PENDING` consume y `CANCELLED` libera la oportunidad; el solicitante cuenta y todos los participantes tienen cuenta; la solicitud bloquea, admite cambios en el limite exacto y se cancela al vencer bajo el minimo; las tres canchas son multicanchas y solo administradores modifican politicas. | APROBADO |
-| Pruebas locales 2026-07-21 | El incremento de politicas fue aceptado tras cuatro rondas QA con pruebas Go y validaciones de contrato; `npm test` y `npm run build` aprobaron. `go vet` no se ejecuto en la ronda final por cuota. | VERIFICADO LOCAL; SQL/Azure PENDIENTE |
+| Pruebas locales 2026-07-21 | Evidencia historica de la etapa Azure SQL: cuatro rondas QA, pruebas Go y validaciones de contrato; `npm test` y `npm run build` aprobaron. | EVIDENCIA HISTORICA; no define el motor vigente |
 | `docs/12-checklist-demo-mvp1.md` | La mayor parte de la prueba manual e integrada sigue pendiente; no hay verificacion online actual registrada. | PENDIENTE |
 
 ### 3. Alcance
@@ -54,7 +54,7 @@ Fecha de corte: 2026-08-20
 #### Futuro posible
 
 - Gestion administrativa completa de usuarios, inventario oficial, bloqueos y programacion.
-- Implementacion de participantes y validacion de capacidad de punta a punta como trabajo obligatorio de MVP 2.
+- Cierre de vencimiento, capacidad e integraciones del flujo grupal de punta a punta como trabajo obligatorio de MVP 2.
 - Infracciones, notificaciones completas, reportes institucionales y consulta de auditoria.
 - Filtros de servidor, detalle individual de reserva y disponibilidad por rango.
 - Cierre de accesibilidad, responsive, seguridad de errores y pruebas integradas.
@@ -116,7 +116,7 @@ Fecha de corte: 2026-08-20
 **Actor:** Usuario normal o administrador.  
 **Precondiciones:** Usuario activo; RUT para usuario normal; recurso existente.  
 **Comportamiento esperado:** Ignorar identidad y estado decididos por el cliente, validar fecha, jornada, duracion y conflictos, y asignar el estado inicial.  
-**Resultado:** Reserva confirmada o rechazo explicativo sin efectos parciales.  
+**Resultado:** Solicitud creada con el estado asignado por su politica (`PENDING` o `CONFIRMED`) o rechazo explicativo sin efectos parciales.<br>
 **Prioridad:** MUST.  
 **Fuente:** RF-006, RF-007, codigo y esquema.  
 **Estado:** IMPLEMENTADO para las reglas actuales; alcance institucional en contradiccion.  
@@ -131,7 +131,7 @@ Fecha de corte: 2026-08-20
 **Resultado:** Estado `CANCELLED` o rechazo sin modificar la reserva.  
 **Prioridad:** MUST.  
 **Fuente:** RF-008 y flujo actual.  
-**Estado:** IMPLEMENTADO PARCIAL; confirmacion inconsistente segun punto de acceso.  
+**Estado:** IMPLEMENTADO; la confirmacion destructiva inline se utiliza en el flujo compartido. Verificacion integrada/online PENDIENTE como evidencia separada.<br>
 **Dependencias:** RF-001, RF-002 y RN-008.
 
 **ID:** RF-006  
@@ -167,32 +167,32 @@ Fecha de corte: 2026-08-20
 **Resultado:** Reserva aceptada o rechazada de forma verificable.  
 **Prioridad:** MUST.  
 **Fuente:** Alcance definitivo, levantamiento y decision explicita del usuario del 2026-07-20.  
-**Estado:** APROBADO e IMPLEMENTADO; VERIFICADO local, verificacion en Azure SQL PENDIENTE.<br>
+**Estado:** APROBADO e IMPLEMENTADO. Existe evidencia local y PostgreSQL vigente; falta cierre integral en el ambiente objetivo.<br>
 **Dependencias:** RF-025 para modificar el periodo institucional.
 
 **ID:** RF-021  
 **Titulo:** Confirmacion de participantes minimos  
 **Descripcion:** Para multicancha 1, 2 y 3, registradas como Cancha 1, 2 y 3, el sistema debe exigir al menos 10 usuarios unicos con cuenta, incluido el solicitante, y aceptar cambios hasta exactamente una hora antes inclusive, plazo configurable.<br>
 **Actor:** Solicitante y participantes.  
-**Precondiciones:** Reserva grupal pendiente y participantes identificables.  
-**Comportamiento esperado:** Contabilizar confirmaciones validas sin duplicados y comparar con el minimo.  
-**Resultado:** La reserva permanece pendiente bajo el minimo, se confirma automaticamente al alcanzar 10 y puede perder la confirmacion si el conteo vigente vuelve a bajar antes del limite.<br>
+**Precondiciones:** Reserva grupal identificable y participantes autenticados.<br>
+**Comportamiento esperado:** Contabilizar confirmaciones validas sin duplicados, respetar capacidad y comparar con el minimo.<br>
+**Resultado:** Antes del primer cumplimiento del minimo permanece `PENDING`; al alcanzar 10 pasa a `CONFIRMED`; una perdida posterior del minimo se representa mediante `AT_RISK` sin borrar la confirmacion alcanzada.<br>
 **Prioridad:** MUST.  
-**Fuente:** Alcance definitivo, levantamiento y decision explicita del usuario del 2026-07-20.  
-**Estado:** APROBADO; no IMPLEMENTADO.  
+**Fuente:** Alcance definitivo, levantamiento, decision del 2026-07-20 y refinamiento del 2026-08-20.<br>
+**Estado:** APROBADO e IMPLEMENTADO PARCIAL; persistencia, owner, join, conteo y transicion inicial cuentan con implementacion y pruebas. Vencimiento e integraciones posteriores permanecen pendientes.<br>
 **Dependencias:** Identidad autenticada de cada participante y RF-025 para modificar el plazo o los recursos sujetos.
 
 **ID:** RF-022  
-**Titulo:** Confirmacion condicionada por recurso  
-**Descripcion:** El sistema debe determinar el estado inicial y la confirmacion de una solicitud segun la politica del recurso.  
+**Titulo:** Ciclo de vida y condicion grupal segun recurso<br>
+**Descripcion:** El sistema debe determinar el estado inicial segun la politica del recurso y mantener separadas la etapa de ciclo de vida (`status`) y la condicion operacional del grupo (`groupCondition`).<br>
 **Actor:** Usuario normal.  
 **Precondiciones:** Recurso activo con politica de reserva definida.  
-**Comportamiento esperado:** `OPEN_USE` no exige integrantes; las tres multicanchas quedan `PENDING` y bloquean el horario, se confirman al alcanzar 10, vuelven a `PENDING` al perder el minimo y se cancelan al llegar al limite bajo el minimo.<br>
-**Resultado:** El estado refleja el conteo; la cancelacion por vencimiento libera horario y oportunidad semanal.<br>
+**Comportamiento esperado:** `OPEN_USE` no exige integrantes. Las multicanchas comienzan `PENDING + PENDING_MINIMUM`, alcanzan `CONFIRMED + HEALTHY` al cumplir el minimo y, si posteriormente bajan del minimo, conservan `CONFIRMED` con `AT_RISK`. Recuperar el minimo devuelve la condicion a `HEALTHY`.<br>
+**Resultado:** El ciclo de vida conserva que la reserva fue confirmada y la condicion grupal expresa riesgo o recuperacion. El vencimiento bajo el minimo puede llevar a `CANCELLED` segun la politica.<br>
 **Prioridad:** MUST.  
-**Fuente:** Decision explicita del usuario del 2026-07-20.  
-**Estado:** APROBADO; no IMPLEMENTADO. El sistema actual confirma toda reserva al crearla.  
-**Dependencias:** RF-020, RF-021 y RF-025.
+**Fuente:** Decision del 2026-07-20 refinada durante MVP 2 el 2026-08-20.<br>
+**Estado:** APROBADO e IMPLEMENTADO PARCIAL; la transicion inicial y `AT_RISK` existen. Vencimiento e integracion de notificaciones permanecen pendientes.<br>
+**Dependencias:** RF-020, RF-021, RF-025 y notificaciones.
 
 **ID:** RF-023  
 **Titulo:** Resolver conflictos de actividades institucionales  
@@ -203,7 +203,7 @@ Fecha de corte: 2026-08-20
 **Resultado:** La agenda conserva la prioridad institucional, el usuario conoce la cancelacion y se registra la decision administrativa cuando compartir espacio es valido.<br>
 **Prioridad:** MUST.  
 **Fuente:** Decision explicita del usuario del 2026-07-20.  
-**Estado:** APROBADO; no IMPLEMENTADO y contradicho por las restricciones actuales.  
+**Estado:** APROBADO e IMPLEMENTADO PARCIAL. La deteccion N-elementos, consulta y resolucion administrativa cuentan con backend y pruebas de integracion. La cancelacion automatica de reservas particulares no coincide con el modelo implementado, que exige una resolucion administrativa explicita; esta diferencia queda bajo evaluacion como `EV-010`. La notificacion asociada permanece pendiente.<br>
 **Dependencias:** Programacion institucional, auditoria y notificaciones.
 
 **ID:** RF-024  
@@ -227,7 +227,7 @@ Fecha de corte: 2026-08-20
 **Resultado:** Politica institucional actualizada sin facultades equivalentes para usuarios normales.<br>
 **Prioridad:** SHOULD para MVP 3.<br>
 **Fuente:** Decision explicita del usuario del 2026-07-20.<br>
-**Estado:** APROBADO e IMPLEMENTADO PARCIAL; VERIFICADO LOCAL para publicacion prospectiva de condiciones y recursos permitidos, historial, DTO minimo, permisos e idempotencia. La clasificacion de confirmacion grupal, participantes, minimo, transiciones, interfaz y correccion excepcional permanecen PENDIENTES; SQL/Azure no verificado.<br>
+**Estado:** APROBADO e IMPLEMENTADO PARCIAL. La publicacion prospectiva, historial, permisos, idempotencia, clasificacion de recursos grupales, participantes persistidos, minimo y transiciones principales cuentan con implementacion incremental. Permanecen pendientes la interfaz administrativa completa, el vencimiento automatico, las correcciones excepcionales y la evidencia integral del ambiente objetivo.<br>
 **Dependencias:** RF-002, RF-020 a RF-022 y arquitectura aprobada de versionado prospectivo con correcciones excepcionales.
 
 #### Requisitos no funcionales
@@ -342,18 +342,18 @@ Fecha de corte: 2026-08-20
 **Regla:** La longitud del periodo es configurable y actualmente corresponde a siete dias calendario en `America/Santiago`. `PENDING` consume la oportunidad desde su creacion; `CONFIRMED` la mantiene consumida; al pasar a `CANCELLED` deja de consumirla y se recalcula la proxima fecha permitida.<br>
 **Justificacion:** Regla levantada para distribuir acceso.  
 **Fuente:** Levantamiento, alcance definitivo y decision explicita del usuario del 2026-07-20.  
-**Estado:** APROBADO e IMPLEMENTADO; VERIFICADO local, verificacion en Azure SQL PENDIENTE.<br>
+**Estado:** APROBADO e IMPLEMENTADO. Existe evidencia local y PostgreSQL vigente; falta cierre integral en el ambiente objetivo.<br>
 **Excepciones:** Una solicitud rechazada que no llega a crearse no consume la frecuencia.
 
 **RN-010 — Participantes minimos**  
 **Regla:** Multicancha 1, 2 y 3, identificadas como Cancha 1, 2 y 3, requieren al menos 10 usuarios unicos con cuenta y confirmacion vigente. El solicitante cuenta una vez dentro del minimo.<br>
 **Justificacion:** Regla levantada para justificar el uso del espacio.  
 **Fuente:** Levantamiento, alcance definitivo y decision explicita del usuario del 2026-07-20.  
-**Estado:** APROBADO; no IMPLEMENTADO de punta a punta.  
+**Estado:** APROBADO e IMPLEMENTADO PARCIAL; participantes persistidos, solicitante incluido, conteo y transiciones principales cuentan con implementacion. El cierre temporal completo sigue pendiente.<br>
 **Excepciones:** `OPEN_USE` y los demas recursos no clasificados para confirmacion grupal.
 
 **RN-011 — Prioridad institucional**  
-**Regla:** Una actividad institucional en conflicto cancela automaticamente una reserva particular y el sistema notifica al usuario afectado. Entre dos actividades institucionales, el sistema informa el conflicto y el administrador decide cancelar una de ellas o mantener ambas.<br>
+**Regla:** RF-023/v1 establece cancelacion automatica de una reserva particular ante prioridad institucional. La implementacion MVP 2 utiliza conflictos administrables con resoluciones `KEEP`, `ALLOW`, `CANCEL` y `RESCHEDULE`. `EV-010` debe decidir cual de ambos modelos queda vigente para reservas particulares. Entre actividades institucionales ya existe resolucion administrativa explicita.<br>
 **Justificacion:** Mantener disponibilidad para clases y actividades oficiales.  
 **Fuente:** Levantamiento y decision explicita del usuario del 2026-07-20.  
 **Estado:** APROBADO; no IMPLEMENTADO.  
@@ -408,16 +408,17 @@ Alternativas y errores:
 - Conflicto no visible, por ejemplo un bloqueo: rechazo al confirmar.
 - Recurso `OPEN_USE`: permite concurrencia conforme a la regla actual.
 
-#### Flujo objetivo aprobado: confirmacion por participantes
+#### Flujo vigente: confirmacion por participantes
 
 1. El usuario solicita una de las tres multicanchas dentro de la ventana configurable.
-2. El sistema registra la solicitud como `PENDING`; desde ese momento consume la oportunidad semanal y bloquea el horario.
-3. El solicitante cuenta una vez. Los demas participantes se autentican con sus cuentas y confirman sin duplicados hasta exactamente una hora antes inclusive.
-4. Mientras existan menos de 10 confirmaciones validas, la solicitud no se presenta como reserva confirmada.
-5. Al alcanzar 10 confirmaciones, el sistema cambia automaticamente la solicitud a `CONFIRMED`, siempre que las demas reglas sigan cumpliendose.
-6. Si una persona retira su confirmacion dentro del plazo y quedan menos de 10, el sistema devuelve la reserva a `PENDING`.
-7. Si llega al limite bajo el minimo, el sistema la cambia a `CANCELLED`, libera el horario y deja de consumir la oportunidad semanal.
-8. Para `OPEN_USE`, el sistema no exige este proceso de confirmacion grupal.
+2. El sistema registra la solicitud como `PENDING + PENDING_MINIMUM`; desde ese momento consume la oportunidad semanal y bloquea el horario.
+3. El solicitante cuenta una vez. Los demas participantes se autentican con sus cuentas y confirman sin duplicados hasta el limite aplicable.
+4. Mientras la solicitud nunca haya alcanzado el minimo y existan menos de 10 confirmaciones validas, permanece `PENDING`.
+5. Al alcanzar 10 confirmaciones, cambia a `CONFIRMED + HEALTHY`, siempre que las demas reglas sigan cumpliendose.
+6. Si posteriormente una retirada deja menos de 10, conserva `CONFIRMED` y cambia a `AT_RISK`.
+7. Si recupera el minimo antes del vencimiento, conserva `CONFIRMED` y vuelve a `HEALTHY`.
+8. Si llega al limite aplicable bajo el minimo, el flujo de vencimiento debe llevarla a `CANCELLED`, liberar el horario y dejar de consumir la oportunidad semanal.
+9. Para `OPEN_USE`, el sistema no exige este proceso de confirmacion grupal.
 
 Alternativa: un intento de confirmacion posterior al limite se rechaza sin alterar el conteo ni el estado ya resuelto.
 
@@ -425,7 +426,7 @@ Alternativa: un intento de confirmacion posterior al limite se rechaza sin alter
 
 1. El administrador registra o modifica una actividad institucional.
 2. El sistema detecta todas las ocupaciones solapadas sobre el recurso.
-3. Si existe una reserva particular, el sistema la cancela automaticamente, presenta el efecto al administrador y notifica al usuario afectado.
+3. Si existe una reserva particular, el sistema la incorpora al conflicto. La cancelacion automatica corresponde a RF-023/v1; la resolucion administrativa implementada queda bajo decision `EV-010`. La notificacion al usuario afectado permanece requerida cuando exista cancelacion.
 4. Si existe otra actividad institucional, el sistema informa el conflicto.
 5. El administrador elige cancelar una de las actividades o mantener ambas cuando puedan compartir el espacio.
 6. La decision y sus efectos quedan trazables.
@@ -487,7 +488,7 @@ Dado un candidato a cierre, cuando se informa como `VERIFICADO`, entonces existe
 Dado un periodo vigente de siete dias y una solicitud creada un martes en `America/Santiago`, cuando el mismo usuario intenta crear otra antes del martes siguiente, entonces se rechaza y se comunica el martes siguiente como proxima fecha permitida; desde ese martes puede continuar si cumple las demas reglas.
 
 **CA-015**  
-Dada una solicitud sobre Cancha 1, Cancha 2 o Cancha 3 con menos de 10 participantes unicos confirmados, cuando se consulta su estado, entonces permanece `PENDING` y no se presenta como reserva confirmada.
+Dada una solicitud nueva sobre Cancha 1, Cancha 2 o Cancha 3 que aun nunca ha alcanzado el minimo y tiene menos de 10 participantes unicos confirmados, cuando se consulta su estado, entonces permanece `PENDING + PENDING_MINIMUM`.
 
 **CA-016**  
 Dada una solicitud grupal con 9 participantes confirmados, cuando se registra la decima confirmacion valida y las demas reglas siguen cumpliendose, entonces cambia automaticamente a `CONFIRMED` una sola vez.
@@ -508,7 +509,7 @@ Dado el inventario oficial de ocho recursos, cuando un administrador autorizado 
 Dado un periodo vigente de siete dias y que hoy es martes en `America/Santiago`, cuando el usuario elige una fecha, entonces puede elegir desde ese martes hasta el lunes siguiente inclusive y se rechaza el martes posterior por quedar fuera de la ventana.
 
 **CA-022**<br>
-Dada una reserva de Cancha 1, 2 o 3 con 10 confirmaciones y aun antes del limite, cuando una persona retira su confirmacion y quedan 9 vigentes, entonces la reserva vuelve a `PENDING` y el conteo visible se actualiza.
+Dada una reserva de Cancha 1, 2 o 3 que ya alcanzo 10 confirmaciones y se encuentra `CONFIRMED + HEALTHY`, cuando una persona retira su confirmacion y quedan 9 vigentes antes del limite, entonces conserva `CONFIRMED`, cambia a `AT_RISK` y el conteo visible se actualiza.
 
 **CA-023**<br>
 Dado que el limite vigente es una hora antes del inicio, cuando una persona confirma o retira exactamente en ese instante, entonces el cambio se acepta y se evalua inmediatamente el minimo; si queda bajo 10, se aplica la cancelacion de vencimiento. Cualquier intento posterior se rechaza.
@@ -572,8 +573,8 @@ Dado un usuario normal y un administrador, cuando intentan modificar periodo, pl
 | ID | Fuentes en conflicto | Diferencia | Efecto |
 | --- | --- | --- | --- |
 | C-01 | Alcance definitivo vs repositorio | Entra ID real y demo Azure estaban fuera del alcance original y hoy estan implementados/documentados. | El informe puede describir un alcance distinto del prototipo entregado. |
-| C-03 | Reglas aprobadas vs flujo actual | La ventana/frecuencia versionadas ya se aplican localmente, pero falta verificarlas en Azure SQL; el minimo de 10 participantes aun no se aplica. | MVP 2 no puede cerrarse. |
-| C-04 | Confirmacion aprobada vs flujo actual | Las multicanchas requieren cuentas, bloqueo `PENDING`, estados reversibles y cancelacion al vencer; el sistema confirma toda reserva al crearla y no registra participantes. | Solicitudes grupales pueden quedar confirmadas sin cumplir las reglas. |
+| C-03 | Reglas implementadas vs evidencia de cierre | La ventana/frecuencia y parte del flujo grupal ya se aplican localmente, pero faltan verificaciones integradas y cierre del vencimiento. | MVP 2 no debe declararse completamente verificado todavia. |
+| C-04 | Evolucion documental del flujo grupal | La regla anterior hacia regresar una reserva confirmada a `PENDING`; la decision vigente utiliza `CONFIRMED + AT_RISK`. | Historias, criterios y documentos antiguos deben conservarse como trazabilidad, no como regla vigente. |
 | C-05 | Prioridad institucional aprobada vs esquema actual | Debe cancelarse y notificarse la reserva particular y permitirse decision entre actividades, pero el esquema rechaza el solapamiento al registrar la actividad. | El comportamiento aprobado no puede ejecutarse. |
 | C-06 | Inventario y politicas aprobadas vs administracion actual | Los ocho recursos son oficiales; la API administrativa ya publica politicas prospectivas, pero faltan interfaz y gestion completa del inventario. | La operacion institucional aun no puede mantenerse completamente desde la interfaz. |
 | C-07 | Disponibilidad visible vs regla de base | Bloqueos impiden reservar, pero no se muestran en el endpoint actual. | Un horario puede parecer libre y fallar al confirmar. |
@@ -588,7 +589,7 @@ No quedan preguntas bloqueantes para el incremento analizado.
 
 | Riesgo | Probabilidad | Impacto | Mitigacion propuesta |
 | --- | --- | --- | --- |
-| Defender como cumplidas reglas aprobadas pero no verificadas | Alta | Alto | Presentar RF-020 como implementado y verificado localmente, pendiente en Azure SQL; mantener RF-021 a RF-025 como pendientes o parciales segun corresponda. |
+| Defender como cumplidas reglas aprobadas pero no verificadas | Alta | Alto | Separar evidencia historica Azure SQL de validacion PostgreSQL vigente; presentar cada RF como implementado, parcial o pendiente segun pruebas actuales y no segun el motor anterior. |
 | Mostrar disponibilidad incompleta por omitir bloqueos | Alta | Alto | Mantener el rechazo servidor y priorizar la visibilidad de bloqueos antes de operacion real. |
 | Cancelar automaticamente sin informar al usuario afectado | Media | Alto | Tratar el aviso ya aprobado como criterio obligatorio y verificar su entrega antes de habilitar prioridad institucional. |
 | Solicitudes pendientes que acaparen horarios | Media | Alto | Aplicar el bloqueo aprobado y cancelacion automatica al vencer bajo el minimo. |
@@ -606,16 +607,16 @@ Estado de la entrega:
 APROBABLE
 
 Siguiente rol recomendado:
-DESARROLLADOR
+ORQUESTADOR / REVISION DE PRODUCTO
 
 Motivo:
-Los requisitos y la arquitectura quedaron aprobados. La implementacion debe comenzar por el versionado compatible y las reglas de solicitud, seguida por participantes, vencimiento y administracion.
+La base funcional, el versionado de politicas y una parte sustantiva del flujo grupal ya estan implementados. El siguiente trabajo debe validar la trazabilidad reconstruida, cerrar vencimiento e integraciones pendientes y continuar luego con administracion y notificaciones.
 
 Contexto que debería recibir:
 docs/00-resumen-proyecto.md, este informe, docs/08-requisitos-historias-casos-uso.md, docs/09-mvps-roadmap.md, docs/12-checklist-demo-mvp1.md y los documentos historicos de levantamiento/alcance.
 
 Decisiones aprobadas:
-Aplicacion prospectiva, correcciones retroactivas excepcionales controladas, cuatro incrementos tecnicos, prohibicion de retiro del solicitante y entrega posterior de ADMIN-005.
+Aplicacion prospectiva, correcciones retroactivas excepcionales controladas, cuatro incrementos tecnicos y prohibicion de retiro del solicitante. `ADMIN-005` ya posee una implementacion backend parcial y su diferencia entre cancelacion automatica y resolucion administrativa se mantiene como decision de producto pendiente (`EV-010`).
 ```
 
 ### 15. Cambios propuestos a fuentes de verdad

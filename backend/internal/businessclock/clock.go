@@ -79,9 +79,10 @@ func ParseDateTime(value string) (time.Time, error) {
 	return time.Time{}, errors.New("fecha de inicio invalida")
 }
 
-// FromDatabaseWallTime asigna la zona institucional sin mover la fecha ni la
-// hora almacenadas en SQL Server DATETIME2. Los DATETIME2 de reservas representan
-// hora de muro chilena, no instantes UTC.
+// FromDatabaseWallTime es un helper de compatibilidad heredado de la etapa
+// SQL Server. Conserva los campos de calendario y les asigna la zona
+// institucional. El runtime PostgreSQL vigente persiste instantes con tipos
+// temporales explicitos y no depende de este helper para reservas nuevas.
 func FromDatabaseWallTime(value time.Time) time.Time {
 	return time.Date(
 		value.Year(),
@@ -95,9 +96,9 @@ func FromDatabaseWallTime(value time.Time) time.Time {
 	)
 }
 
-// ToDatabaseWallTime quita la zona manteniendo los campos de hora institucional
-// esperados por SQL Server DATETIME2. La zona UTC retornada solo transporta el
-// valor para database/sql; no debe interpretarse como instante UTC de agenda.
+// ToDatabaseWallTime es un helper de compatibilidad heredado de la etapa
+// SQL Server. Devuelve los mismos campos de calendario en UTC sin convertir el
+// instante. No debe utilizarse como contrato de persistencia PostgreSQL nuevo.
 func ToDatabaseWallTime(value time.Time) time.Time {
 	localValue := value.In(Location())
 

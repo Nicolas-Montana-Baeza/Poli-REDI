@@ -25,7 +25,7 @@ Si la respuesta es no, no se agrega.
 - Invariantes de seguridad.
 - Manejo temporal y zona horaria.
 - Transacciones, concurrencia y prevencion de conflictos.
-- Constraints, indices, triggers y vistas de SQL Server.
+- Constraints, indices, funciones, triggers y mecanismos de concurrencia PostgreSQL. SQL Server se menciona solo al documentar legado EV-011.
 - Efectos secundarios relevantes.
 - Diferencias entre funcionalidad implementada y trabajo pendiente.
 
@@ -37,7 +37,7 @@ Si la respuesta es no, no se agrega.
 - Agregar encabezados decorativos sin informacion nueva.
 - Documentar intenciones no comprobadas.
 - Usar `TODO` sin incertidumbre concreta.
-- Introducir conceptos de PostgreSQL en scripts actuales de SQL Server.
+- Introducir T-SQL o conceptos SQL Server en migraciones PostgreSQL vigentes. Los scripts SQL Server legacy deben permanecer claramente separados.
 - Recomendar `DEV_AUTH_ENABLED=true` fuera de desarrollo.
 - Exponer secretos, tokens, passwords o cadenas de conexion reales.
 
@@ -49,7 +49,7 @@ Buenas razones para comentar:
 
 - Un handler ignora datos enviados por el cliente por seguridad.
 - Un service duplica una validacion que tambien existe en base de datos.
-- Un repository convierte una hora entre contrato institucional y `DATETIME2`.
+- Un repository preserva el contrato temporal institucional al leer/escribir tipos PostgreSQL (`timestamptz` u otros tipos definidos por el esquema).
 - Un error SQL se traduce a mensaje de dominio.
 
 No comentar:
@@ -70,7 +70,7 @@ Usar JSDoc o comentarios breves solo cuando aclaren:
 
 No comentar markup, estilos o bindings autoexplicativos.
 
-## SQL Server y T-SQL
+## PostgreSQL vigente y SQL Server legacy
 
 Documentar especialmente:
 
@@ -79,7 +79,7 @@ Documentar especialmente:
 - Indices unicos filtrados.
 - Vistas que actuan como contrato de lectura.
 - Scripts destructivos o con precondiciones.
-- Uso de `DATETIME2` para hora institucional de muro.
+- Uso de tipos PostgreSQL coherentes con el contrato temporal; `DATETIME2` solo debe aparecer al explicar la version Azure SQL historica.
 - Uso de `SYSUTCDATETIME()` para timestamps UTC.
 
 No repetir cada columna si el nombre ya lo explica.
@@ -90,7 +90,7 @@ No repetir cada columna si el nombre ya lo explica.
 - Las rutas administrativas deben validar rol admin en backend.
 - `DEV_AUTH_ENABLED` es solo para desarrollo.
 - Las reservas usan hora institucional de muro en `America/Santiago`.
-- `DATETIME2` de agenda no debe tratarse como UTC.
+- No reutilizar reglas semanticas de `DATETIME2` en PostgreSQL; documentar explicitamente la semantica temporal de cada columna vigente.
 - `created_at` y `updated_at` generados con `SYSUTCDATETIME()` representan UTC.
 - Los modos `OPEN_USE`, `RESERVABLE`, `INFORMATIVE` y `ADMIN_ONLY` tienen semanticas diferentes.
 - Los triggers de base de datos son parte efectiva del contrato, no solo respaldo tecnico.

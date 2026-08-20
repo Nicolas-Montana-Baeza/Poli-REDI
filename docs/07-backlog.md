@@ -1,5 +1,8 @@
 ﻿# Poli-REDI - Backlog maestro
 
+
+> **Nota EV-011 (2026-08-20):** este backlog contiene tareas cerradas durante la etapa Azure SQL de julio de 2026. Esas entradas se conservan como evidencia historica y no deben reinterpretarse como arquitectura vigente. PostgreSQL 16 es ahora la fuente de verdad. Las tareas nuevas deben usar migraciones `PG16_*`; los restos T-SQL se consideran deuda de migracion.
+
 ## Objetivo
 Este backlog consolida las tareas reales detectadas durante la revision inicial, la migracion a Azure SQL Database y las primeras pruebas funcionales del frontend/backend.
 
@@ -2206,7 +2209,7 @@ Permitir que admin cree bloqueos por mantencion, cierre, evento u otro motivo.
 
 Prioridad: P0
 Labels: `frontend`, `backend`, `admin`, `disponibilidad`
-Estado sugerido: Backlog
+Estado actual: Implementado parcial
 
 ### Objetivo
 
@@ -2214,17 +2217,18 @@ Permitir registrar clases, talleres, eventos, campeonatos o entrenamientos insti
 
 ### Criterios de aceptacion
 
-- [ ] Admin crea actividad programada sobre un recurso.
-- [ ] El sistema detecta y muestra todas las ocupaciones solapadas antes de aplicar efectos.
-- [ ] Si existe una reserva particular, se cancela automaticamente al confirmar la actividad institucional.
-- [ ] Si existen dos actividades en conflicto, el administrador puede cancelar cualquiera de ellas o mantener ambas.
-- [ ] Mantener ambas requiere una decision administrativa explicita y no se rechaza solo por compartir recurso y horario.
-- [ ] Actividades aparecen en calendario.
-- [ ] Soporta descripcion y tipo.
-- [ ] La decision y las cancelaciones quedan trazables.
-- [ ] El administrador ve un resumen de reservas y actividades afectadas.
-- [ ] El usuario cuya reserva particular se cancela automaticamente recibe una notificacion del cambio sin exponer datos de otras personas.
-- [ ] Define comportamiento futuro de recurrencia.
+- [x] Backend permite crear actividad programada sobre un recurso mediante administrador global o gestor autorizado de unidad.
+- [x] El sistema detecta ocupaciones solapadas y las agrupa como conflictos N-elementos consultables.
+- [ ] Cerrar `EV-010`: la regla aprobada exige cancelacion automatica de una reserva particular, mientras la implementacion actual requiere resolucion administrativa explicita.
+- [x] En conflictos entre actividades, el administrador puede cancelar, conservar o autorizar coexistencia segun el plan de resolucion.
+- [x] Mantener ocupaciones solapadas requiere una resolucion administrativa `ALLOW` con justificacion.
+- [x] Actividades institucionales se incorporan al calendario/disponibilidad del backend.
+- [x] El modelo soporta descripcion y tipos institucionales.
+- [x] Resoluciones y efectos quedan trazables en el modelo de conflictos.
+- [x] El administrador puede consultar listado y detalle de reservas/actividades afectadas.
+- [ ] El usuario cuya reserva sea cancelada por prioridad institucional debe recibir una notificacion sin exponer datos de terceros.
+- [x] Programacion soporta horarios `SINGLE` y recurrencia `WEEKLY`.
+- [ ] Completar interfaz administrativa y validacion de punta a punta.
 
 ## ADMIN-006 - Configurar politicas institucionales de reserva
 
@@ -2258,7 +2262,7 @@ Permitir que solo usuarios con rol administrador modifiquen el periodo de reserv
 - Asociar cada reserva mediante `reservations.policy_id`.
 - Registrar excepciones en `reservation_policy_corrections` con version anterior/nueva, administrador, motivo, fecha UTC y lote.
 - Separar `preview` y `apply` en rutas administrativas protegidas.
-- Mantener `ADMIN-005` fuera de esta entrega y disenarlo posteriormente.
+- `ADMIN-005` evoluciono en paralelo y ya dispone de una base backend MVP 2; su semantica final de prioridad (`EV-010`), notificaciones e interfaz permanecen como cierre posterior.
 
 ### Resultado implementado y evidencia
 
@@ -3307,3 +3311,51 @@ Desde esta fecha, cualquier intervencion sobre `Poli-REDI` debe cerrar con una r
 ## Responsable
 
 Codex queda encargado de revisar y mantener `docs/` cada vez que trabaje sobre `Poli-REDI`, con foco minimo en `docs/07-backlog.md`, `docs/08-requisitos-historias-casos-uso.md` y `docs/09-mvps-roadmap.md`.
+
+## BACK-024 - Completar retiro de SQL Server legacy
+
+Prioridad: P0
+Labels: `backend`, `database`, `postgresql`, `migration`, `ev-011`
+Estado actual: Cerrado tecnicamente; scripts historicos conservados
+
+### Contexto
+
+PostgreSQL 16 es el motor vigente. EV-011 detecto restos compilados de la etapa SQL Server y esta tarea retira o migra todos los restos ejecutables.
+
+### Alcance
+
+- [x] Migrar la escritura/publicacion de politicas a PostgreSQL conservando idempotencia y serializacion.
+- [x] Migrar `notifications_repository.go` a PostgreSQL y agregar `PG16_0009_full_notifications.sql`.
+- [x] Retirar el modulo antiguo de talleres tras confirmar que la superficie institucional lo reemplaza y que PG16_0006 protege solapes de reservas.
+- [x] Retirar `scheduled_activities_repository.go` tras confirmar que no poseia consumidores reales.
+- [x] Eliminar `go-mssqldb` tras retirar su ultimo import compilado.
+- [ ] Mantener los scripts T-SQL solo como archivo historico o moverlos a una ubicacion legacy claramente identificada.
+- [ ] Ejecutar `go test ./...` y `go vet ./...` despues del retiro.
+
+### Criterio de cierre
+
+El backend compilable no contiene imports ni consultas SQL Server salvo material historico no ejecutable.
+
+## INFRA-006 - Automatizar provisionamiento PostgreSQL MVP2
+
+Prioridad: P0
+Labels: `infra`, `postgresql`, `mvp2`, `quadlet`
+Estado actual: Pendiente
+
+### Contexto
+
+`infra/local/quadlet/install.sh` aplica automaticamente `PG16_0001` a `PG16_0003`, mientras las migraciones MVP2 `PG16_0004` a `PG16_0008` ya existen.
+
+### Criterios
+
+- [ ] El instalador aplica migraciones MVP2 en orden sobre volumen nuevo cuando se solicita scope MVP2.
+- [ ] El procedimiento es idempotente o falla de forma segura sobre una base ya inicializada.
+- [ ] `MVP_SCOPE=mvp2` solo se habilita cuando el esquema requerido existe.
+- [ ] Existe verificacion automatizada de participantes, programacion institucional y disponibilidad MVP2.
+- [ ] La baseline MVP1 continua siendo reproducible cuando se selecciona ese scope.
+
+### Evidencia 2026-08-20 - bootstrap PostgreSQL completo
+
+`infra/local/quadlet/install.sh` fue actualizado para que una base nueva cargue
+el seed MVP1 y todas las migraciones `PG16_0004` a `PG16_0009`. El scope HTTP
+permanece independiente del nivel fisico del esquema.

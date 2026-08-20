@@ -6,7 +6,7 @@ Este documento registra el estado actual del backend y las mejoras recomendadas 
 
 ## Estado actual observado
 
-El backend usa Go, Fiber, Azure SQL Database y autenticacion con Microsoft Entra ID.
+El backend usa Go, Fiber, PostgreSQL 16 mediante `pgx` y autenticacion con Microsoft Entra ID. La migracion EV-011 conserva algunos modulos T-SQL legacy aislados que aun deben retirarse o migrarse.
 
 La estructura principal esta organizada por capas:
 
@@ -15,9 +15,27 @@ La estructura principal esta organizada por capas:
 - `internal/middleware/`: autenticacion y usuario local.
 - `internal/handlers/`: entrada HTTP.
 - `internal/services/`: reglas de negocio.
-- `internal/repositories/`: acceso a Azure SQL.
+- `internal/repositories/`: persistencia PostgreSQL vigente y algunos repositorios legacy T-SQL identificados por EV-011.
 - `internal/models/`: modelos de dominio.
 - `internal/validators/`: validaciones reutilizables.
+
+## Scopes funcionales del backend
+
+El router distingue tres superficies:
+
+- `MVP1`: flujo base estable sobre PostgreSQL;
+- `MVP2`: agrega reservas grupales, talleres institucionales, unidades, programacion institucional y resolucion de conflictos ya migrados;
+- `FULL`: agrega modulos legacy o administrativos que todavia pueden contener deuda de migracion.
+
+La existencia de una ruta o repositorio bajo `FULL` no implica que forme parte del bloque PostgreSQL validado para MVP2.
+
+En particular:
+
+- los talleres expuestos en MVP2 utilizan el modulo institucional nuevo;
+- el modulo antiguo `workshops_repository.go` conserva T-SQL y es legacy;
+- notificaciones permanecen en `FULL`, pero su repositorio ya utiliza PostgreSQL;
+- la publicacion administrativa de politicas ya utiliza PostgreSQL;
+- `scheduled_activities_repository.go` pertenece al modelo anterior y debe revisarse para retiro.
 
 ## Fortalezas actuales
 
@@ -96,7 +114,7 @@ Estado:
 
 ### Contrato temporal de reservas
 
-Azure SQL guarda reservas en `DATETIME2` como hora local institucional. Backend y frontend usan `APP_TIMEZONE=America/Santiago`; los requests con offset se convierten a la zona de negocio y los requests sin offset se interpretan directamente en esa zona. La API serializa respuestas RFC 3339 con el offset real de Chile.
+PostgreSQL utiliza tipos temporales adecuados, incluido `timestamptz` para instantes persistidos. Las reglas institucionales se interpretan mediante `APP_TIMEZONE=America/Santiago`; la API mantiene el contrato temporal institucional y serializa respuestas con informacion temporal explicita.
 
 Estado para MVP 1:
 
@@ -105,7 +123,7 @@ Estado para MVP 1:
 
 ### Estado y limites controlados por servidor
 
-El contrato publico de creacion ya no acepta `status`; el servicio fuerza el estado inicial `CONFIRMED` y la cancelacion solo permite transiciones desde estados activos. La API valida duraciones permitidas, paso de 15 minutos, apertura 08:00, cierre 22:00 y termino completo dentro de la jornada.
+El contrato publico de creacion no permite que el cliente fuerce `status`. El estado inicial depende de la politica del recurso: una reserva grupal puede comenzar `PENDING + PENDING_MINIMUM`, mientras otros recursos siguen su politica correspondiente. La API valida duraciones permitidas, paso de 15 minutos, apertura 08:00, cierre 22:00 y termino completo dentro de la jornada.
 
 Estado para MVP 1:
 
@@ -128,7 +146,16 @@ Estado: IMPLEMENTADA y VERIFICADA LOCALMENTE. Todas las rutas exigen autenticaci
 - `GET /api/admin/reservation-policies`: historial completo para administradores.
 - `POST /api/admin/reservation-policies`: snapshot completo con vigencia inmediata. Exige `Idempotency-Key`; devuelve `201` para publicacion nueva, `200` para replay identico y `409` para replay divergente.
 
-El repositorio publica con aislamiento serializable y bloqueos `UPDLOCK, HOLDLOCK`. Esta garantia fue cubierta localmente y por inspeccion estatica, pero no se sometio a carga concurrente contra SQL Server/Azure SQL real. La correccion excepcional permanece fuera de alcance y no tiene rutas implementadas.
+La lectura, historial y publicacion administrativa de politicas utilizan PostgreSQL. La publicacion se serializa mediante lock PostgreSQL, conserva idempotencia y hereda la clasificacion grupal de los recursos que permanecen habilitados.
+
+Por lo tanto:
+
+- lectura de politica vigente: PostgreSQL;
+- lectura de historial: PostgreSQL;
+- publicacion administrativa: PostgreSQL;
+- correccion excepcional: pendiente.
+
+Las rutas administrativas de politicas permanecen en la superficie `FULL` y no deben considerarse parte cerrada del scope MVP2 hasta completar esta migracion.
 
 ## Pruebas backend recomendadas
 

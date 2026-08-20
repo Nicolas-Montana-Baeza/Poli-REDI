@@ -7,11 +7,13 @@ import (
 	"poli-redi-api/internal/models"
 )
 
-func GetNotificationsByUserID(userID int) ([]models.Notification, error) {
+func GetNotificationsByUserID(
+	userID int,
+) ([]models.Notification, error) {
 	rows, err := database.DB.QueryContext(
 		context.Background(),
 		`
-		SELECT TOP (20)
+		SELECT
 			id,
 			user_id,
 			reservation_id,
@@ -20,9 +22,12 @@ func GetNotificationsByUserID(userID int) ([]models.Notification, error) {
 			type,
 			is_read,
 			created_at
-		FROM dbo.notifications
-		WHERE user_id = @p1
-		ORDER BY is_read ASC, created_at DESC;
+		FROM notifications
+		WHERE user_id = $1
+		ORDER BY
+			is_read ASC,
+			created_at DESC
+		LIMIT 20
 		`,
 		userID,
 	)
@@ -38,7 +43,7 @@ func GetNotificationsByUserID(userID int) ([]models.Notification, error) {
 	for rows.Next() {
 		var notification models.Notification
 
-		err := rows.Scan(
+		if err := rows.Scan(
 			&notification.ID,
 			&notification.UserID,
 			&notification.ReservationID,
@@ -47,13 +52,14 @@ func GetNotificationsByUserID(userID int) ([]models.Notification, error) {
 			&notification.Type,
 			&notification.IsRead,
 			&notification.CreatedAt,
-		)
-
-		if err != nil {
+		); err != nil {
 			return nil, err
 		}
 
-		notifications = append(notifications, notification)
+		notifications = append(
+			notifications,
+			notification,
+		)
 	}
 
 	if err := rows.Err(); err != nil {

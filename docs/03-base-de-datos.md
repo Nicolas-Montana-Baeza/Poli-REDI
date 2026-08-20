@@ -1,74 +1,83 @@
-﻿# Poli-REDI - Base de datos
+﻿# Poli-REDI - Base de datos y modelo de persistencia
+
+Fecha de corte: 2026-08-20
 
 ## Objetivo del documento
 
-Este documento describe el modelo de datos actual de Poli-REDI, la decision de usar Azure SQL Database y el estado de la migracion desde la implementacion anterior basada en PostgreSQL.
+Este documento describe el modelo de datos funcional de Poli-REDI y la evolucion de su persistencia.
+
+La fuente de verdad tecnica vigente es PostgreSQL 16. La etapa Azure SQL se conserva como antecedente arquitectonico dentro de `EV-011`.
 
 ## Estado actual
 
-La base de datos objetivo del proyecto es Azure SQL Database. El backend ya fue migrado para conectarse mediante el driver oficial de SQL Server para Go:
+Motor vigente:
 
 ```txt
-github.com/microsoft/go-mssqldb
+PostgreSQL 16
 ```
 
-El frontend ya logra cargar datos desde el backend conectado a Azure SQL Database.
-
-## Datos de conexion
-
-La configuracion local del backend se realiza mediante variables de entorno. La plantilla segura esta en:
+Driver backend:
 
 ```txt
-backend/.env.example
+github.com/jackc/pgx/v5
 ```
 
-Variables principales:
+Configuracion:
 
 ```env
-DB_SERVER=poli-redi-server.database.windows.net
-DB_PORT=1433
-DB_NAME=poli-redi-database
-DB_USER=poli-redi-admin
-DB_PASSWORD=
-DB_ENCRYPT=true
-DB_TRUST_SERVER_CERTIFICATE=false
+DATABASE_URL=postgres://...
+PGHOST=
+PGPORT=
+PGDATABASE=
+PGUSER=
+PGPASSWORD=
+PGSSLMODE=
 ```
 
-Importante: `DB_PASSWORD` no debe guardarse en archivos versionados. Solo debe existir en `backend/.env` local o en variables de entorno del despliegue.
+El backend rechaza URLs de base de datos con esquema distinto de `postgres` o `postgresql`.
 
-## Archivos de base de datos
+## Estructura canonica
 
 ```txt
-database/schema.sql      # Modelo principal en T-SQL para Azure SQL Database
-database/seed.sql        # Datos iniciales de prueba/desarrollo
-database/drop.sql        # Limpieza de objetos de base de datos
-database/schema_0.1.sql  # Referencia historica
+database/postgres/bootstrap/
+database/postgres/migrations/
+database/postgres/seed/
+database/postgres/check/
 ```
 
-## Motor de base de datos
-
-Motor actual:
+Migraciones vigentes:
 
 ```txt
-Azure SQL Database
+PG16_0001_mvp1_baseline.sql
+PG16_0002_mvp1_indexes.sql
+PG16_0003_mvp1_invariants.sql
+PG16_0004_mvp2_group_participants.sql
+PG16_0005_mvp2_institutional_scheduling.sql
+PG16_0006_mvp2_institutional_availability.sql
+PG16_0007_mvp2_schedule_exceptions.sql
+PG16_0008_mvp2_schedule_exception_availability.sql
 ```
 
-Lenguaje de definicion:
+## Genealogia EV-011
 
-```txt
-T-SQL
-```
+1. PostgreSQL inicial - 2026-05-23.
+2. Migracion deliberada a Azure SQL - 2026-07-03.
+3. Nueva baseline PostgreSQL 16 - 2026-08-14.
+4. Integracion estable MVP1 PostgreSQL - 2026-08-17.
 
-La implementacion anterior usaba PostgreSQL. Por eso se eliminaron o reemplazaron elementos como:
+La etapa Azure SQL fue valida durante julio de 2026 y produjo evidencia real de QA. No debe borrarse de la historia, pero tampoco describirse como motor actual.
 
-- `CREATE EXTENSION`
-- `btree_gist`
-- `SERIAL`
-- `BOOLEAN`
-- `EXCLUDE USING gist`
-- `tsrange`
-- `plpgsql`
-- `CREATE OR REPLACE FUNCTION`
+## SQL Server legacy
+
+Los archivos en la raiz de `database/` (`schema.sql`, `seed.sql`, `drop.sql`, `seed_today_temp.sql`, `queries*.sql`) pertenecen a la etapa SQL Server/Azure SQL.
+
+El backend compilable ya no conserva consultas T-SQL. Talleres y actividades programadas legacy fueron retirados; notificaciones y publicacion de politicas fueron migradas a PostgreSQL. Los scripts SQL Server se conservan solo como historia arquitectonica.
+
+Consultar `database/README.md` para la clasificacion operativa actual.
+
+## Nota sobre las entidades descritas abajo
+
+Las secciones siguientes conservan el modelo conceptual de entidades construido durante el proyecto. Cuando aparezcan tipos o mecanismos especificamente SQL Server (`DATETIME2`, `dbo`, `UPDLOCK`, `HOLDLOCK`), deben interpretarse como descripcion de la version Azure SQL previa, no como contrato de la persistencia PostgreSQL vigente.
 
 ## Tablas principales
 
@@ -489,7 +498,7 @@ erDiagram
 
 ## Estado verificado
 
-- Backend compila correctamente con Azure SQL.
+- La etapa Azure SQL compilo y fue validada historicamente; el backend vigente utiliza PostgreSQL 16.
 - Frontend compila correctamente.
 - El frontend ya carga datos desde el backend.
 - `/api/me` funciona despues de corregir el manejo de `OUTPUT` en tablas con triggers.
@@ -506,7 +515,7 @@ erDiagram
 
 ## Politicas versionadas
 
-Estado: APROBADO e IMPLEMENTADO en los scripts; VERIFICADO LOCALMENTE por pruebas de contrato. La ejecucion del esquema actualizado sobre SQL Server/Azure SQL real sigue PENDIENTE.
+Estado historico: la version Azure SQL fue aprobada y probada durante julio. Estado vigente: PostgreSQL 16 reemplaza esa arquitectura; las reglas deben verificarse contra las migraciones `PG16_*` y las pruebas de integracion actuales.
 
 El modelo agrega:
 
@@ -523,7 +532,7 @@ Debe existir una sola version vigente. Publicar una politica cierra la anterior 
 
 La persistencia y los endpoints de correcciones excepcionales no estan implementados en este incremento. Su contrato aprobado exige solicitudes futuras activas, vista previa temporal de un solo uso vinculada al administrador, motivo, revalidacion y aplicacion atomica auditada, sin cancelaciones implicitas.
 
-Los conflictos de recursos grupales deben considerar `PENDING` y `CONFIRMED`. Confirmacion, retiro, cancelacion y vencimiento deben serializarse por reserva mediante transaccion y bloqueos compatibles con Azure SQL, por ejemplo `UPDLOCK, HOLDLOCK`.
+Los conflictos de recursos grupales deben considerar `PENDING` y `CONFIRMED`. Confirmacion, retiro, cancelacion y vencimiento deben serializarse mediante mecanismos transaccionales PostgreSQL. `UPDLOCK/HOLDLOCK` corresponde al diseno Azure SQL historico y no debe introducirse en migraciones nuevas.
 
 ## Recomendacion siguiente
 

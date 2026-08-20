@@ -102,10 +102,10 @@ No usar `docs/00-revision-inicial.md` como estado vigente; es un registro histor
 2. Al crear una solicitud, el usuario no puede crear otra hasta el mismo dia de la semana siguiente; por ejemplo, si la crea un martes para el miercoles, vuelve a poder solicitar desde el martes siguiente. La duracion de este periodo debe ser configurable.
 3. Una solicitud `PENDING` consume la oportunidad desde su creacion; al pasar a `CANCELLED` deja de consumirla.
 4. El minimo de 10 participantes es obligatorio para Cancha 1, Cancha 2 y Cancha 3, que corresponden formalmente a multicancha 1, 2 y 3. El solicitante cuenta y todos los participantes deben tener cuenta.
-5. La solicitud `PENDING` bloquea el horario. Las confirmaciones pueden registrarse o retirarse hasta exactamente una hora antes del inicio, inclusive, con plazo configurable. Si una retirada deja menos de 10, vuelve a `PENDING`; si llega al limite bajo el minimo, cambia a `CANCELLED` y libera la oportunidad semanal.
+5. La solicitud `PENDING` bloquea el horario. Las confirmaciones pueden registrarse o retirarse hasta exactamente una hora antes del inicio, inclusive, con plazo configurable. La version aprobada en esta fecha indicaba retorno a `PENDING` al perder el minimo despues de confirmar; esta parte fue reemplazada el 2026-08-20 por `CONFIRMED + AT_RISK`. El vencimiento bajo el minimo mantiene como objetivo la cancelacion y liberacion correspondiente.
 6. Para todos los recursos se aprueban duraciones de 30, 60, 90, 120, 150 y 180 minutos.
 7. `OPEN_USE` no requiere confirmacion de integrantes; los recursos grupales indicados se confirman automaticamente al alcanzar el minimo.
-8. Un conflicto entre actividad institucional y reserva particular cancela automaticamente la reserva particular y debe notificar al usuario afectado.
+8. RF-023/v1 aprobo cancelacion automatica de una reserva particular ante prioridad institucional y notificacion al usuario. La implementacion MVP 2 incorpora estos casos a un conflicto administrable; `EV-010` mantiene pendiente la decision entre ambos modelos.
 9. Un conflicto entre dos actividades debe informarse al administrador, quien puede cancelar una de ellas o mantener ambas.
 10. Los ocho recursos actuales constituyen el inventario oficial. Solo usuarios con rol administrador pueden modificar recursos, periodos, plazos o recursos sujetos a la politica.
 
@@ -115,7 +115,7 @@ No usar `docs/00-revision-inicial.md` como estado vigente; es un registro histor
 
 ## Arquitectura de politicas: estado de implementacion
 
-La politica se versiona y cada solicitud referencia la version aplicable. Publicacion inmediata, snapshot completo, permisos, historial e idempotencia estan implementados y verificados localmente. Participantes/estados, plazo/vencimiento, interfaz administrativa y correcciones excepcionales siguen pendientes. `ADMIN-005` se mantiene para una entrega arquitectonica posterior.
+La politica se versiona y cada solicitud referencia la version aplicable. Publicacion, snapshot, permisos, historial e idempotencia cuentan con implementacion; participantes, estados principales y parte de la programacion institucional tambien existen en MVP 2. Permanecen pendientes el cierre de plazo/vencimiento, interfaces administrativas, correcciones excepcionales y validacion integral. `ADMIN-005` ya dispone de backend para unidades, actividades, deteccion y resolucion administrativa de conflictos; la semantica automatica de prioridad institucional y sus notificaciones requieren cierre de producto.
 
 ## Evidencia local del corte
 

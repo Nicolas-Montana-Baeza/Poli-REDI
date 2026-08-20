@@ -4,6 +4,9 @@
 
 Validar rapidamente que la base tecnica del MVP 1 sigue operativa antes de una presentacion o revision.
 
+
+> **Nota de trazabilidad EV-011:** este checklist conserva evidencia de la demo MVP1 ejecutada durante la etapa Azure SQL de julio de 2026. Las referencias a Azure SQL dentro de filas historicas no describen la arquitectura vigente. PostgreSQL 16 es el motor actual y debe tener su propia evidencia de integracion.
+
 Este checklist no reemplaza pruebas automatizadas. Sirve como prueba de humo manual para confirmar que frontend, backend, Azure SQL, autenticacion y flujo minimo de reservas funcionan juntos.
 
 ## Datos de ejecucion
@@ -111,7 +114,7 @@ Estas validaciones son obligatorias para el cierre definitivo reabierto del MVP 
 
 ## Validaciones aprobadas para MVP 2 y MVP 3
 
-Estas filas registran decisiones del 2026-07-20. No forman parte de la evidencia de cierre del MVP 1 y permanecen pendientes de implementacion.
+Estas filas se originaron en decisiones del 2026-07-20 y se mantienen actualizadas con los refinamientos posteriores del dominio. No forman parte de la evidencia de cierre del MVP 1; su estado refleja el grado de validacion pendiente de cada flujo.
 
 | Paso | Resultado esperado | Estado | Backlog |
 | --- | --- | --- | --- |
@@ -119,14 +122,14 @@ Estas filas registran decisiones del 2026-07-20. No forman parte de la evidencia
 | Crear una solicitud `PENDING` un martes y volver a solicitar antes del martes siguiente | El servidor rechaza; si la primera pasa a `CANCELLED`, libera la oportunidad | Pendiente | `RES-012` |
 | Confirmar 9 participantes unicos en un recurso grupal | La solicitud permanece `PENDING` | Pendiente | `RES-008` |
 | Registrar la decima confirmacion valida | La solicitud cambia una sola vez a `CONFIRMED` si sigue siendo valida | Pendiente | `RES-008`, `RES-010` |
-| Retirar una confirmacion vigente y bajar de 10 antes del limite | La reserva vuelve a `PENDING` | Pendiente | `RES-008`, `RES-010` |
+| Retirar una confirmacion de una reserva ya confirmada y bajar de 10 antes del limite | Conserva `CONFIRMED`, cambia a `AT_RISK` y actualiza el conteo | Pendiente de cierre integrado | `RES-008`, `RES-010`, `NOTIF-001` |
 | Confirmar o retirar exactamente una hora antes | La operacion se acepta; cualquier intento posterior se rechaza | Pendiente | `RES-008` |
 | Llegar al limite con 9 confirmaciones | La solicitud se cancela y libera horario y oportunidad semanal | Pendiente | `RES-008`, `RES-012` |
 | Intentar confirmar con una identidad sin cuenta | La operacion se rechaza | Pendiente | `RES-008` |
 | Consultar disponibilidad mientras existe una solicitud grupal `PENDING` | El horario aparece ocupado para usos incompatibles | Pendiente | `RES-008`, `API-004` |
 | Usar un recurso `OPEN_USE` | No se exige confirmacion grupal | Pendiente | `RES-008` |
-| Programar actividad institucional sobre reserva particular | La reserva se cancela, el administrador ve el efecto y el usuario recibe una notificacion | Pendiente | `ADMIN-005`, `NOTIF-001` |
-| Programar actividad sobre otra actividad | El administrador puede cancelar una o mantener ambas | Pendiente | `ADMIN-005` |
+| Programar actividad institucional sobre reserva particular | Detectar el conflicto; semantica de cancelacion automatica vs resolucion administrativa pendiente de `EV-010`; notificacion pendiente | Implementado parcial / decision pendiente | `ADMIN-005`, `NOTIF-001`, `EV-010` |
+| Programar actividad sobre otra actividad | El conflicto se detecta y el administrador puede resolverlo, incluida coexistencia explicita | Backend implementado; interfaz pendiente | `ADMIN-005` |
 | Modificar un recurso oficial como administrador | Catalogo y disponibilidad reflejan el cambio sin perder historial | Pendiente | `ADMIN-003` |
 | Modificar periodo, plazo o recurso sujeto a confirmacion | Solo un administrador puede hacerlo y el sistema informa desde cuando rige | Pendiente | `ADMIN-006` |
 
