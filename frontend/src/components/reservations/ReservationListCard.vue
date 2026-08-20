@@ -71,13 +71,13 @@ const handleCancel = () => {
 <template>
   <article
     class="reservation-list-card"
-    :class="{ interactive: !detailTo && mode === 'history' }"
-    :role="!detailTo && mode === 'history' ? 'link' : undefined"
-    :tabindex="!detailTo && mode === 'history' ? 0 : undefined"
-    :aria-label="!detailTo && mode === 'history'
+    :class="{ interactive: !detailTo }"
+    :role="!detailTo ? 'button' : undefined"
+    :tabindex="!detailTo ? 0 : undefined"
+    :aria-label="!detailTo
       ? `Ver detalle de ${reservation.title || 'reserva'}`
       : undefined"
-    @click="!detailTo && mode === 'history' ? emit('open-detail', reservation) : null"
+    @click="!detailTo ? emit('open-detail', reservation) : null"
     @keydown="handleCardKeydown"
   >
 

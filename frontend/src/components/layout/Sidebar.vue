@@ -7,7 +7,6 @@ import {
   Home,
   Calendar,
   ClipboardList,
-  History,
   Users,
   Settings,
   Menu,
@@ -63,15 +62,9 @@ const menu = computed(() => {
         },
 
         {
-          label: 'Mis Reservas',
+          label: 'Reservas',
           icon: ClipboardList,
           to: '/reservations'
-        },
-
-        {
-          label: 'Historial',
-          icon: History,
-          to: '/history'
         },
 
         {

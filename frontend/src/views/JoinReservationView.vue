@@ -3,6 +3,7 @@ import { computed, ref } from 'vue'
 
 import ParticipantsProgress from '../components/ui/ParticipantsProgress.vue'
 import { reservationsService } from '../services/reservations.service'
+import { getReservationDisplayStatus } from '../utils/reservationTime'
 
 // ------------------------------------------------------------
 // Estado de la búsqueda.
@@ -29,6 +30,12 @@ const normalizedJoinCode = computed(() => {
 
 const canSearch = computed(() => {
   return normalizedJoinCode.value.length > 0 && !loading.value
+})
+
+const reservationStatusLabel = computed(() => {
+  return getReservationDisplayStatus(
+    progress.value
+  ).label
 })
 
 // ------------------------------------------------------------
@@ -189,7 +196,7 @@ const leaveReservation = async () => {
         <div class="reservation-result__meta">
           <div>
             <span>Estado de reserva</span>
-            <strong>{{ progress.status }}</strong>
+            <strong>{{ reservationStatusLabel }}</strong>
           </div>
 
           <div>

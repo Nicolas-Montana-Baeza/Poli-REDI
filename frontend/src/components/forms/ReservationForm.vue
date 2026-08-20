@@ -1,13 +1,16 @@
 ﻿<script setup>
 import { computed, ref, watch } from 'vue'
 
-import ResourcePicker from './ResourcePicker.vue'
 import DateTimePicker from './DateTimePicker.vue'
 import {
+  formatReservationDate,
+  formatReservationTimeRange,
   getBusinessDateKey,
+  getReservationDisplayStatus,
   parseReservationDateTime
 } from '@/utils/reservationTime'
 import { getReservationScheduleError } from '@/utils/reservationRules'
+import { reservationsService } from '@/services/reservations.service'
 
 const props = defineProps({
   visible: {
@@ -32,7 +35,13 @@ const props = defineProps({
 
   policy: {
     type: Object,
-    required: true
+    default: () => ({
+      openingMinute: 480,
+      closingMinute: 1320,
+      slotIntervalMinutes: 15,
+      allowedDurations: [60],
+      resourceIds: []
+    })
   },
 
   errorMessage: {
@@ -43,12 +52,40 @@ const props = defineProps({
   submitting: {
     type: Boolean,
     default: false
+  },
+
+  createdReservation: {
+    type: Object,
+    default: null
+  },
+
+  mode: {
+    type: String,
+    default: 'create',
+    validator: value => ['create', 'detail'].includes(value)
+  },
+
+  reservation: {
+    type: Object,
+    default: null
+  },
+
+  canCancel: {
+    type: Boolean,
+    default: false
+  },
+
+  cancelDisabled: {
+    type: Boolean,
+    default: false
   }
 })
 
 const emit = defineEmits([
   'close',
   'submit'
+,
+  'cancel'
 ])
 
 /* FORM */
@@ -65,6 +102,240 @@ const form = ref({
 })
 
 const fieldErrors = ref({})
+
+const detailJoinCode = ref('')
+const detailJoinCodeCopied = ref(false)
+const detailJoinCodeLoading = ref(false)
+const detailJoinCodeError = ref('')
+
+const groupConditionLabel = computed(() => {
+  const condition =
+    props.reservation?.groupCondition
+
+  switch (condition) {
+    case 'PENDING_MINIMUM':
+      return 'Pendiente de participantes'
+
+    case 'AT_RISK':
+      return 'Bajo el mínimo de participantes'
+
+    case 'MINIMUM_REACHED':
+    case 'READY':
+    case 'CONFIRMED':
+      return 'Mínimo de participantes alcanzado'
+
+    case 'CANCELLED':
+      return 'Cancelada'
+
+    case 'EXPIRED':
+      return 'Expirada'
+
+    default:
+      return condition
+        ? 'Estado del grupo actualizado'
+        : 'Pendiente de participantes'
+  }
+})
+
+const canRegenerateJoinCode = computed(() => {
+  return (
+    isDetailMode.value &&
+    props.reservation?.isGroupReservation === true &&
+    props.canCancel === true
+  )
+})
+
+const regenerateDetailJoinCode = async () => {
+  if (
+    !canRegenerateJoinCode.value ||
+    detailJoinCodeLoading.value
+  ) {
+    return
+  }
+
+  detailJoinCodeLoading.value = true
+  detailJoinCode.value = ''
+  detailJoinCodeCopied.value = false
+  detailJoinCodeError.value = ''
+
+  try {
+    const result =
+      await reservationsService.rotateJoinCode(
+        props.reservation.id
+      )
+
+    detailJoinCode.value =
+      result?.joinCode || ''
+
+    if (!detailJoinCode.value) {
+      detailJoinCodeError.value =
+        'No se recibió el nuevo código de invitación.'
+    }
+  } catch (error) {
+    detailJoinCodeError.value =
+      error?.response?.data?.error ||
+      'No fue posible generar un nuevo código.'
+  } finally {
+    detailJoinCodeLoading.value = false
+  }
+}
+
+const copyDetailJoinCode = async () => {
+  if (!detailJoinCode.value) {
+    return
+  }
+
+  try {
+    await navigator.clipboard.writeText(
+      detailJoinCode.value
+    )
+
+    detailJoinCodeCopied.value = true
+  } catch {
+    detailJoinCodeError.value =
+      'No fue posible copiar el código al portapapeles.'
+  }
+}
+
+
+const isDetailMode = computed(() => {
+  return props.mode === 'detail'
+})
+
+const detailStatus = computed(() => {
+  return getReservationDisplayStatus(
+    props.reservation
+  )
+})
+
+const detailRows = computed(() => {
+  const reservation = props.reservation
+
+  if (!reservation) {
+    return []
+  }
+
+  const rows = [
+    {
+      label: 'Recurso',
+      value: reservation.resourceName || 'Recurso'
+    },
+    {
+      label: 'Fecha',
+      value: formatReservationDate(
+        reservation.startTime
+      )
+    },
+    {
+      label: 'Horario',
+      value: formatReservationTimeRange(
+        reservation.startTime,
+        reservation.durationMinutes
+      )
+    },
+    {
+      label: 'Duración',
+      value: `${reservation.durationMinutes || 0} minutos`
+    }
+  ]
+
+  if (
+    reservation.title &&
+    reservation.title !== 'Reserva'
+  ) {
+    rows.push({
+      label: 'Actividad',
+      value: reservation.title
+    })
+  }
+
+  if (reservation.isGroupReservation === true) {
+    rows.push({
+      label: 'Participantes',
+      value: `${reservation.participantCount || 0} / ${reservation.minimumParticipants || 0}`
+    })
+  }
+
+  return rows
+})
+
+const handleDetailCancel = () => {
+  if (
+    !props.reservation ||
+    props.cancelDisabled
+  ) {
+    return
+  }
+
+  emit('cancel', props.reservation)
+}
+
+const copiedJoinCode = ref(false)
+
+const selectedActivityName = computed(() => {
+  if (isOpenUseResource.value || !form.value.activityId) return ''
+
+  return props.activities.find(
+    activity => Number(activity.id) === Number(form.value.activityId)
+  )?.name || ''
+})
+
+const reservationDateLabel = computed(() => {
+  const [year, month, day] = String(form.value.date || '')
+    .split('-')
+    .map(Number)
+
+  if (!year || !month || !day) return form.value.date
+
+  return new Date(year, month - 1, day).toLocaleDateString('es-CL', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric'
+  })
+})
+
+const reservationEndHour = computed(() => {
+  const [hour, minute] = String(form.value.hour || '')
+    .split(':')
+    .map(Number)
+
+  if (!Number.isFinite(hour) || !Number.isFinite(minute)) return ''
+
+  const total =
+    hour * 60 +
+    minute +
+    Number(form.value.durationMinutes || 0)
+
+  const end = total % (24 * 60)
+
+  return `${String(Math.floor(end / 60)).padStart(2, '0')}:${String(end % 60).padStart(2, '0')}`
+})
+
+const reservationStatusLabel = computed(() => {
+  switch (String(props.createdReservation?.status || '').toUpperCase()) {
+    case 'CONFIRMED':
+      return 'Confirmada'
+    case 'PENDING':
+      return 'Pendiente'
+    case 'CANCELLED':
+      return 'Cancelada'
+    default:
+      return props.createdReservation?.status || 'Creada'
+  }
+})
+
+const copyJoinCode = async () => {
+  const code = props.createdReservation?.joinCode
+  if (!code) return
+
+  try {
+    await navigator.clipboard.writeText(code)
+    copiedJoinCode.value = true
+  } catch {
+    copiedJoinCode.value = false
+  }
+}
 
 const canSubmit = computed(() => {
   return (
@@ -91,6 +362,24 @@ watch(
     if (visible) {
       fieldErrors.value = {}
     }
+  }
+)
+
+watch(
+  () => props.createdReservation,
+  () => {
+    copiedJoinCode.value = false
+  }
+)
+
+
+watch(
+  () => props.reservation?.id,
+  () => {
+    detailJoinCode.value = ''
+    detailJoinCodeCopied.value = false
+    detailJoinCodeLoading.value = false
+    detailJoinCodeError.value = ''
   }
 )
 
@@ -185,7 +474,7 @@ const validateForm = () => {
   const errors = {}
 
   if (!form.value.resource?.id) {
-    errors.resource = 'Selecciona una instalación.'
+    errors.resource = 'Selecciona un recurso.'
   }
 
   if (!form.value.date) {
@@ -260,28 +549,264 @@ const handleClose = () => {
         <div class="modal-header">
 
           <div>
-
             <h2>
-              Crear Reserva
+              {{
+                isDetailMode
+                  ? 'Detalle de reserva'
+                  : createdReservation
+                    ? 'Reserva creada correctamente'
+                    : 'Crear Reserva'
+              }}
             </h2>
 
             <p>
-              Completa la información de la reserva.
+              {{
+                isDetailMode
+                  ? 'Información de la reserva seleccionada.'
+                  : createdReservation
+                    ? 'Revisa la información antes de cerrar.'
+                    : 'Completa la información de la reserva.'
+              }}
             </p>
-
           </div>
 
           <button
             class="close-btn"
             type="button"
-            aria-label="Cerrar formulario de reserva"
-            :disabled="submitting"
+            aria-label="Cerrar modal de reserva"
+            :disabled="submitting || cancelDisabled"
             @click="handleClose"
           >
             ✕
           </button>
 
         </div>
+
+        <!-- DETAIL MODE -->
+        <template v-if="isDetailMode">
+
+          <section
+            v-if="reservation"
+            class="reservation-detail-panel"
+          >
+            <div class="detail-status-row">
+              <span
+                class="detail-status app-badge"
+                :class="detailStatus.className"
+              >
+                {{ detailStatus.label }}
+              </span>
+            </div>
+
+            <div class="detail-grid">
+              <div
+                v-for="row in detailRows"
+                :key="row.label"
+                class="detail-field"
+              >
+                <span>{{ row.label }}</span>
+                <strong>{{ row.value }}</strong>
+              </div>
+            </div>
+
+            <div
+              v-if="reservation.isGroupReservation"
+              class="group-detail"
+            >
+              <strong>Reserva grupal</strong>
+
+              <p>
+                Estado del grupo:
+                {{ groupConditionLabel }}
+              </p>
+            </div>
+
+            <div
+              v-if="canRegenerateJoinCode"
+              class="join-code-panel"
+            >
+
+              <template v-if="detailJoinCode">
+
+                <span>
+                  Nuevo código de invitación
+                </span>
+
+                <strong class="join-code">
+                  {{ detailJoinCode }}
+                </strong>
+
+                <button
+                  type="button"
+                  class="app-button secondary"
+                  @click="copyDetailJoinCode"
+                >
+                  {{
+                    detailJoinCodeCopied
+                      ? 'Copiado'
+                      : 'Copiar código'
+                  }}
+                </button>
+
+                <small>
+                  Este código se muestra una sola vez.
+                  Compártelo con los participantes.
+                </small>
+
+              </template>
+
+              <template v-else>
+
+                <span>
+                  Código de invitación actual
+                </span>
+
+                <button
+                  type="button"
+                  class="app-button secondary"
+                  :disabled="detailJoinCodeLoading"
+                  @click="regenerateDetailJoinCode"
+                >
+                  {{
+                    detailJoinCodeLoading
+                      ? 'Generando...'
+                      : 'Generar nuevo código'
+                  }}
+                </button>
+
+                <small>
+                  El código actual no puede recuperarse.
+                  Al generar uno nuevo, el anterior dejará de funcionar.
+                </small>
+
+              </template>
+
+              <p
+                v-if="detailJoinCodeError"
+                class="field-error"
+              >
+                {{ detailJoinCodeError }}
+              </p>
+
+            </div>
+
+            <div
+              v-if="errorMessage"
+              class="form-error"
+            >
+              {{ errorMessage }}
+            </div>
+
+            <div class="actions detail-actions">
+              <button
+                v-if="canCancel"
+                class="app-button danger"
+                type="button"
+                :disabled="cancelDisabled"
+                @click="handleDetailCancel"
+              >
+                {{ cancelDisabled ? 'Cancelando...' : 'Cancelar reserva' }}
+              </button>
+
+              <button
+                class="app-button primary"
+                type="button"
+                :disabled="cancelDisabled"
+                @click="handleClose"
+              >
+                Cerrar
+              </button>
+            </div>
+          </section>
+
+        </template>
+
+        <!-- CREATE MODE -->
+        <template v-else>
+
+        <template v-if="createdReservation">
+
+          <section
+            class="success-panel"
+            role="status"
+            aria-live="polite"
+          >
+            <div class="success-mark">
+              ✓
+            </div>
+
+            <div class="success-grid">
+              <div>
+                <span>Recurso</span>
+                <strong>{{ form.resource?.name }}</strong>
+              </div>
+
+              <div>
+                <span>Fecha</span>
+                <strong>{{ reservationDateLabel }}</strong>
+              </div>
+
+              <div>
+                <span>Horario</span>
+                <strong>
+                  {{ form.hour }} - {{ reservationEndHour }}
+                </strong>
+              </div>
+
+              <div>
+                <span>Duración</span>
+                <strong>{{ form.durationMinutes }} minutos</strong>
+              </div>
+
+              <div v-if="selectedActivityName">
+                <span>Actividad</span>
+                <strong>{{ selectedActivityName }}</strong>
+              </div>
+
+              <div>
+                <span>Estado</span>
+                <strong>{{ reservationStatusLabel }}</strong>
+              </div>
+            </div>
+
+            <div
+              v-if="createdReservation.joinCode"
+              class="join-code-panel"
+            >
+              <span>Código de invitación</span>
+
+              <strong class="join-code">
+                {{ createdReservation.joinCode }}
+              </strong>
+
+              <button
+                type="button"
+                class="app-button secondary"
+                @click="copyJoinCode"
+              >
+                {{ copiedJoinCode ? 'Copiado' : 'Copiar código' }}
+              </button>
+
+              <small>
+                Compártelo con los participantes.
+                Por seguridad, este código no puede recuperarse después.
+              </small>
+            </div>
+
+            <div class="actions">
+              <button
+                class="submit-btn app-button primary"
+                type="button"
+                @click="handleClose"
+              >
+                Cerrar
+              </button>
+            </div>
+          </section>
+
+        </template>
+
+        <template v-else>
 
         <!-- SUMMARY -->
         <div
@@ -292,7 +817,7 @@ const handleClose = () => {
           <div>
 
             <span>
-              Instalación
+              Recurso
             </span>
 
             <strong>
@@ -316,11 +841,37 @@ const handleClose = () => {
         </div>
 
         <!-- RESOURCE -->
-        <ResourcePicker
-          :resources="resources"
-          :selected-id="form.resource?.id"
-          @select="handleResourceSelect"
-        />
+        <div class="field">
+          <label for="reservation-resource">
+            Recurso
+          </label>
+
+          <select
+            id="reservation-resource"
+            :value="form.resource?.id || ''"
+            :disabled="submitting"
+            :class="{ invalid: fieldErrors.resource }"
+            @change="handleResourceSelect(
+              resources.find(
+                resource =>
+                  String(resource.id) ===
+                  String($event.target.value)
+              ) || null
+            )"
+          >
+            <option value="" disabled>
+              Selecciona un recurso
+            </option>
+
+            <option
+              v-for="resource in resources"
+              :key="resource.id"
+              :value="resource.id"
+            >
+              {{ resource.name }}
+            </option>
+          </select>
+        </div>
 
         <p
           v-if="fieldErrors.resource"
@@ -422,6 +973,10 @@ const handleClose = () => {
           </button>
 
         </div>
+
+        </template>
+
+        </template>
 
       </div>
 
@@ -683,6 +1238,136 @@ const handleClose = () => {
   box-shadow: none;
 }
 
+.success-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.success-mark {
+  width: 64px;
+  height: 64px;
+  display: grid;
+  place-items: center;
+  align-self: center;
+  border-radius: 999px;
+  background: var(--color-success-soft);
+  color: var(--color-success);
+  font-size: 34px;
+  font-weight: 800;
+}
+
+.success-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+}
+
+.success-grid div,
+.join-code-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 16px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-soft);
+}
+
+.success-grid span,
+.join-code-panel > span {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+}
+
+.join-code-panel {
+  text-align: center;
+  align-items: center;
+  background: var(--color-primary-soft);
+  border-color: #bfdbfe;
+}
+
+.join-code {
+  font-size: 28px;
+  letter-spacing: 0.14em;
+  color: var(--color-primary-strong);
+}
+
+.join-code-panel small {
+  color: var(--color-text-muted);
+  max-width: 460px;
+}
+
+.reservation-detail-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.detail-status-row {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.detail-status {
+  font-size: 13px;
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+}
+
+.detail-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  padding: 16px;
+
+  background: var(--color-surface-soft);
+
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+}
+
+.detail-field span {
+  color: var(--color-text-muted);
+
+  font-size: 12px;
+  font-weight: 700;
+
+  text-transform: uppercase;
+}
+
+.detail-field strong {
+  color: var(--color-text);
+
+  font-size: 15px;
+}
+
+.group-detail {
+  padding: 16px;
+
+  background: var(--color-primary-soft);
+
+  border: 1px solid #bfdbfe;
+  border-radius: var(--radius-lg);
+}
+
+.group-detail p {
+  margin: 6px 0 0;
+
+  color: var(--color-text-muted);
+}
+
+.detail-actions {
+  justify-content: flex-end;
+}
+
 /* MOBILE */
 @media (max-width: 768px) {
   .modal {
@@ -691,7 +1376,8 @@ const handleClose = () => {
     border-radius: 24px;
   }
 
-  .summary {
+  .summary,
+  .success-grid {
     grid-template-columns: 1fr;
   }
 

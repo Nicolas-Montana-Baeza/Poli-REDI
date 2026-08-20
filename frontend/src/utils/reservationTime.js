@@ -86,8 +86,16 @@ export const getReservationTemporalState = (reservation) => {
 }
 
 export const isReservationHistorical = (reservation) => {
+  const terminalStatuses = [
+    'CANCELLED',
+    'REJECTED',
+    'EXPIRED'
+  ]
+
   return (
-    reservation?.status === 'CANCELLED' ||
+    terminalStatuses.includes(
+      reservation?.status
+    ) ||
     getReservationTemporalState(reservation) === 'past'
   )
 }

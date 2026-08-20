@@ -1,5 +1,6 @@
 ﻿<script setup>
 import { ref, computed, nextTick, onMounted, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 
 import CalendarToolbar from './CalendarToolbar.vue'
 import CalendarMini from './CalendarMini.vue'
@@ -30,6 +31,9 @@ const reservationsStore = useReservationsStore()
 const authStore = useAuthStore()
 const activitiesStore = useActivitiesStore()
 const policyStore = useReservationPolicyStore()
+
+const route = useRoute()
+const router = useRouter()
 
 const formatDateKey = (date) => {
   return [
@@ -124,6 +128,268 @@ const eligibleResources = computed(() => {
   )
 })
 
+const readRouteQueryValue = (value) => {
+  if (Array.isArray(value)) {
+    return String(value[0] || '')
+  }
+
+  return value === null || value === undefined
+    ? ''
+    : String(value)
+}
+
+const resourceFilterOptions = computed(() => {
+  return resourcesStore.resources
+})
+
+const selectedResourceId = computed(() => {
+  const requested =
+    readRouteQueryValue(route.query.resource)
+
+  if (!requested) {
+    return ''
+  }
+
+  const exists = resourceFilterOptions.value.some(
+    resource => String(resource.id) === requested
+  )
+
+  return exists ? requested : ''
+})
+
+const selectedResource = computed(() => {
+  if (!selectedResourceId.value) {
+    return null
+  }
+
+  return resourceFilterOptions.value.find(
+    resource =>
+      String(resource.id) ===
+      selectedResourceId.value
+  ) || null
+})
+
+const onlyAvailable = computed(() => {
+  return (
+    readRouteQueryValue(route.query.available) ===
+    'true'
+  )
+})
+
+const selectedResourceIsEligible = computed(() => {
+  if (!selectedResource.value) {
+    return false
+  }
+
+  return eligibleResources.value.some(
+    resource =>
+      Number(resource.id) ===
+      Number(selectedResource.value.id)
+  )
+})
+
+const formatMinuteToHour = (minuteOfDay) => {
+  const hour =
+    Math.floor(minuteOfDay / 60)
+
+  const minute =
+    minuteOfDay % 60
+
+  return (
+    `${String(hour).padStart(2, '0')}:` +
+    `${String(minute).padStart(2, '0')}`
+  )
+}
+
+const resourceHasAvailableBlock = (resource) => {
+  if (!policy.value) {
+    return false
+  }
+
+  const durations =
+    (policy.value.allowedDurations || [])
+      .map(Number)
+      .filter(duration => duration > 0)
+
+  if (durations.length === 0) {
+    return false
+  }
+
+  const minimumDuration =
+    Math.min(...durations)
+
+  const openingMinute =
+    Number(policy.value.openingMinute)
+
+  const closingMinute =
+    Number(policy.value.closingMinute)
+
+  const intervalMinutes =
+    Number(policy.value.slotIntervalMinutes) || 15
+
+  for (
+    let minute = openingMinute;
+    minute + minimumDuration <= closingMinute;
+    minute += intervalMinutes
+  ) {
+    const hour =
+      formatMinuteToHour(minute)
+
+    const start =
+      buildLocalDateTime(
+        selectedDate.value,
+        hour
+      )
+
+    if (!start) {
+      continue
+    }
+
+    if (start.getTime() <= Date.now()) {
+      continue
+    }
+
+    const end = new Date(
+      start.getTime() +
+      minimumDuration * 60000
+    )
+
+    const conflict =
+      hasReservationConflict({
+        items: availabilityItems.value,
+        resource,
+        userId: authStore.user?.id,
+        start,
+        end
+      })
+
+    if (!conflict) {
+      return true
+    }
+  }
+
+  return false
+}
+
+const filteredResources = computed(() => {
+  let resources =
+    eligibleResources.value.slice()
+
+  if (selectedResourceId.value) {
+    resources = resources.filter(
+      resource =>
+        String(resource.id) ===
+        selectedResourceId.value
+    )
+  }
+
+  if (onlyAvailable.value) {
+    resources = resources.filter(
+      resource =>
+        resourceHasAvailableBlock(resource)
+    )
+  }
+
+  return resources
+})
+
+const resourceFilterEmptyMessage = computed(() => {
+  if (
+    selectedResource.value &&
+    !selectedResourceIsEligible.value
+  ) {
+    return (
+      `${selectedResource.value.name} no está habilitado ` +
+      'para reservas particulares.'
+    )
+  }
+
+  if (
+    selectedResource.value &&
+    onlyAvailable.value
+  ) {
+    return (
+      `${selectedResource.value.name} no tiene bloques ` +
+      'disponibles para la fecha seleccionada.'
+    )
+  }
+
+  if (onlyAvailable.value) {
+    return (
+      'No hay recursos con bloques disponibles ' +
+      'para la fecha seleccionada.'
+    )
+  }
+
+  return 'No hay recursos disponibles.'
+})
+
+const replaceAvailabilityQuery = async ({
+  resourceId = selectedResourceId.value,
+  available = onlyAvailable.value
+} = {}) => {
+  const query = {
+    ...route.query
+  }
+
+  if (resourceId) {
+    query.resource = String(resourceId)
+  } else {
+    delete query.resource
+  }
+
+  if (available) {
+    query.available = 'true'
+  } else {
+    delete query.available
+  }
+
+  await router.replace({
+    query
+  })
+}
+
+const handleResourceFilterChange = (event) => {
+  void replaceAvailabilityQuery({
+    resourceId: event.target.value,
+    available: onlyAvailable.value
+  })
+}
+
+const handleAvailabilityFilterChange = (event) => {
+  void replaceAvailabilityQuery({
+    resourceId: selectedResourceId.value,
+    available:
+      event.target.value === 'available'
+  })
+}
+
+const normalizeResourceQuery = async () => {
+  const requested =
+    readRouteQueryValue(route.query.resource)
+
+  if (
+    !requested ||
+    resourcesStore.loading ||
+    resourcesStore.resources.length === 0
+  ) {
+    return
+  }
+
+  const exists =
+    resourcesStore.resources.some(
+      resource =>
+        String(resource.id) === requested
+    )
+
+  if (!exists) {
+    await replaceAvailabilityQuery({
+      resourceId: '',
+      available: onlyAvailable.value
+    })
+  }
+}
+
 const availabilityIsCurrent = computed(() => {
   return reservationsStore.availabilityRangeKey === selectedDate.value
 })
@@ -194,8 +460,7 @@ const canCancelSelectedReservation = computed(() => {
 const showReservationForm = ref(false)
 const isCreatingReservation = ref(false)
 const focusReservationId = ref(null)
-const createdJoinCode = ref('')
-const joinCodeCopied = ref(false)
+const createdReservationResult = ref(null)
 
 /* LOAD DATA */
 onMounted(async () => {
@@ -206,6 +471,7 @@ onMounted(async () => {
     policyStore.fetchCurrentPolicy()
   ])
 
+  await normalizeResourceQuery()
   await loadAvailabilityForDate(selectedDate.value)
 })
 
@@ -220,9 +486,17 @@ watch(selectedDate, async (dateKey, previousDate) => {
   }
 
   selectedSlot.value = null
+  createdReservationResult.value = null
   showReservationForm.value = false
   await loadAvailabilityForDate(dateKey)
 })
+
+watch(
+  () => route.query.resource,
+  () => {
+    void normalizeResourceQuery()
+  }
+)
 
 /* SLOT SELECT */
 const handleSlotSelected = (slot) => {
@@ -246,6 +520,7 @@ const handleSlotSelected = (slot) => {
   }
 
   selectedReservation.value = null
+  createdReservationResult.value = null
 
   selectedSlot.value = {
     resource: slot.resource,
@@ -262,6 +537,7 @@ const handleReservationSelected = (reservation) => {
   reservationsStore.clearActionSuccess?.()
 
   selectedSlot.value = null
+  createdReservationResult.value = null
   showReservationForm.value = false
   selectedReservation.value = reservation
 }
@@ -270,6 +546,7 @@ const handleReservationSelected = (reservation) => {
 const closeReservationForm = () => {
   showReservationForm.value = false
   selectedSlot.value = null
+  createdReservationResult.value = null
 
   reservationsStore.clearActionError?.()
 }
@@ -369,22 +646,10 @@ const submitReservation = async (reservation) => {
       payload.activityId = activityId
     }
 
-    const createdReservation = await reservationsStore.createReservation(payload)
-// ------------------------------------------------------------
-// Código de invitación generado al crear una reserva grupal.
-// ------------------------------------------------------------
-//
-// El backend entrega el código en texto plano una sola vez.
-// Lo conservamos únicamente en memoria para permitir copiarlo
-// inmediatamente después de crear la reserva.
-createdJoinCode.value =
-  createdReservation?.isGroupReservation === true
-    ? createdReservation.joinCode || ''
-    : ''
+    const createdReservation =
+      await reservationsStore.createReservation(payload)
 
-joinCodeCopied.value = false
-    showReservationForm.value = false
-    selectedSlot.value = null
+    createdReservationResult.value = createdReservation
     viewMode.value = 'resources'
 
     reservationsStore.clearActionError?.()
@@ -392,11 +657,8 @@ joinCodeCopied.value = false
     await loadAvailabilityForDate(selectedDate.value)
     await nextTick()
 
-    focusReservationId.value = createdReservation?.id || null
-
-    reservationsStore.setActionSuccess(
-      'Reserva creada correctamente. Mostrando el horario reservado.'
-    )
+    focusReservationId.value =
+      createdReservation?.id || null
   } catch {
     // El store mantiene el error visible dentro del formulario.
   } finally {
@@ -589,39 +851,6 @@ const goToday = () => {
       >
         {{ reservationsStore.actionSuccess }}
       </div>
-      <div
-  v-if="createdJoinCode"
-  class="created-group-code"
-  role="status"
-  aria-live="polite"
->
-  <div>
-    <strong>
-      Código de invitación
-    </strong>
-
-    <span>
-      {{ createdJoinCode }}
-    </span>
-
-    <small>
-      Compártelo con los participantes de tu reserva.
-      Por seguridad, este código no puede recuperarse después.
-    </small>
-  </div>
-
-  <button
-    type="button"
-    class="copy-created-code-button"
-    @click="copyCreatedJoinCode"
-  >
-    {{ joinCodeCopied
-      ? 'Copiado'
-      : 'Copiar código'
-    }}
-  </button>
-</div>
-
       <!-- ACTION ERROR -->
       <div
         v-if="!showReservationForm && reservationsStore.actionError"
@@ -698,9 +927,57 @@ const goToday = () => {
             </button>
           </div>
 
+          <div
+            v-if="viewMode === 'resources'"
+            class="availability-filters"
+            aria-label="Filtros de disponibilidad"
+          >
+            <label class="filter-field">
+              <span>
+                Recurso
+              </span>
+
+              <select
+                :value="selectedResourceId"
+                @change="handleResourceFilterChange"
+              >
+                <option value="">
+                  Todos
+                </option>
+
+                <option
+                  v-for="resource in resourceFilterOptions"
+                  :key="resource.id"
+                  :value="String(resource.id)"
+                >
+                  {{ resource.name }}
+                </option>
+              </select>
+            </label>
+
+            <label class="filter-field">
+              <span>
+                Mostrar
+              </span>
+
+              <select
+                :value="onlyAvailable ? 'available' : 'all'"
+                @change="handleAvailabilityFilterChange"
+              >
+                <option value="all">
+                  Todos
+                </option>
+
+                <option value="available">
+                  Con bloques disponibles
+                </option>
+              </select>
+            </label>
+          </div>
+
           <ScheduleGrid
-            v-if="policy && viewMode === 'resources'"
-            :resources="eligibleResources"
+            v-if="policy && viewMode === 'resources' && filteredResources.length > 0"
+            :resources="filteredResources"
             :reservations="availabilityItems"
             :selected-date="selectedDate"
             :start-hour="Math.floor(policy.openingMinute / 60)"
@@ -713,6 +990,13 @@ const goToday = () => {
             @reservation-selected="handleReservationSelected"
             @reservation-focused="clearReservationFocus"
           />
+
+          <div
+            v-else-if="policy && viewMode === 'resources'"
+            class="filter-empty"
+          >
+            {{ resourceFilterEmptyMessage }}
+          </div>
 
           <GeneralCalendarView
             v-else-if="policy"
@@ -738,6 +1022,7 @@ const goToday = () => {
       :policy="policy"
       :error-message="reservationsStore.actionError"
       :submitting="isCreatingReservation"
+      :created-reservation="createdReservationResult"
       @close="closeReservationForm"
       @submit="submitReservation"
     />
@@ -889,6 +1174,66 @@ const goToday = () => {
   min-width: 0;
 }
 
+.availability-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+
+  gap: 12px;
+
+  margin-bottom: 16px;
+}
+
+.filter-field {
+  display: flex;
+  flex-direction: column;
+
+  gap: 6px;
+
+  min-width: 220px;
+}
+
+.filter-field span {
+  color: var(--color-text-muted);
+
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.filter-field select {
+  min-height: 40px;
+
+  padding: 0 12px;
+
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+
+  background: var(--color-surface);
+  color: var(--color-text);
+
+  font: inherit;
+
+  cursor: pointer;
+}
+
+.filter-field select:focus {
+  border-color: var(--color-primary);
+  outline: 2px solid var(--color-primary-soft);
+  outline-offset: 1px;
+}
+
+.filter-empty {
+  padding: var(--space-5);
+
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-lg);
+
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+
+  font-weight: 700;
+}
+
 .view-switch {
   display: inline-flex;
   align-items: center;
@@ -991,6 +1336,17 @@ const goToday = () => {
 
   .section-header p {
     font-size: 14px;
+  }
+}
+@media (max-width: 768px) {
+  .availability-filters {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .filter-field {
+    width: 100%;
+    min-width: 0;
   }
 }
 </style>

@@ -9,7 +9,6 @@ import DashboardView from '../views/DashboardView.vue'
 import AvailabilityView from '../views/AvailabilityView.vue'
 import ReservationsView from '../views/ReservationsView.vue'
 import ReservationDetailView from '../views/ReservationDetailView.vue'
-import HistoryView from '../views/HistoryView.vue'
 import UsersView from '../views/UsersView.vue'
 import SettingsView from '../views/SettingsView.vue'
 import LoginView from '../views/LoginView.vue'
@@ -40,8 +39,12 @@ const routes = [
   },
   {
     path: '/history',
-    component: HistoryView,
-    meta: { requiresAuth: true }
+    redirect: {
+      path: '/reservations',
+      query: {
+        tab: 'history'
+      }
+    }
   },
   {
     path: '/users',

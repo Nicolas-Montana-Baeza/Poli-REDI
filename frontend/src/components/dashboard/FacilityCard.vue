@@ -1,7 +1,11 @@
-﻿<script setup>
+<script setup>
 import { computed, ref, watch } from 'vue'
 
 const props = defineProps({
+  resourceId: {
+    type: [Number, String],
+    default: null
+  },
   name: String,
   type: String,
   status: {
@@ -9,6 +13,22 @@ const props = defineProps({
     default: 'available'
   },
   image: String
+})
+
+const availabilityTarget = computed(() => {
+  const query = {}
+
+  if (
+    props.resourceId !== null &&
+    props.resourceId !== undefined
+  ) {
+    query.resource = String(props.resourceId)
+  }
+
+  return {
+    path: '/availability',
+    query
+  }
 })
 
 const statusLabel = computed(() => {
@@ -86,7 +106,7 @@ watch(
 <template>
   <RouterLink
     class="card"
-    to="/availability"
+    :to="availabilityTarget"
   >
 
     <div
