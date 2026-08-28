@@ -95,7 +95,7 @@ Pendiente relacionado: `RES-004`.
 
 El sistema debe permitir crear solicitudes de reserva sobre recursos disponibles, asociadas al usuario autenticado y, opcionalmente, a una actividad. El servidor debe asignar el estado segun la politica del recurso, aplicar la restriccion semanal y aceptar para todos los recursos solo duraciones de 30, 60, 90, 120, 150 o 180 minutos dentro de la jornada institucional.
 
-Estado actual: Implementado parcialmente. La asociacion al usuario, el estado controlado por servidor, la zona `America/Santiago`, el catalogo de duraciones y la restriccion semanal cuentan con implementacion y evidencia local. El flujo de confirmacion grupal esta implementado parcialmente y mantiene pendientes de cierre el vencimiento y sus integraciones posteriores.
+Estado actual: Implementado con evidencia local e integracion PostgreSQL para el flujo grupal. La asociacion al usuario, el estado controlado por servidor, la zona `America/Santiago`, el catalogo de duraciones, la restriccion semanal, las transiciones y la expiracion bajo el minimo cuentan con implementacion. El cierre reproducible, manual y online se controla en `docs/15-checklist-cierre-mvp2.md`.
 
 Pendiente relacionado: `RES-008`, `RES-009`, `RES-010`, `RES-011`.
 
@@ -203,9 +203,9 @@ Pendiente relacionado: `RES-012`.
 
 ### RF-021 - Confirmacion de participantes minimos
 
-El sistema debe registrar confirmaciones de usuarios unicos y exigir al menos 10, incluido el solicitante, para multicancha 1, 2 y 3, identificadas en el inventario como Cancha 1, 2 y 3. Todos los participantes deben tener cuenta. Las confirmaciones pueden registrarse o retirarse hasta exactamente una hora antes inclusive, plazo configurable.
+El sistema debe registrar participantes unicos, incluido el solicitante, y aplicar el minimo versionado del recurso. El valor inicial es 10 para Cancha 1, Cancha 2 y Sala Multiuso. Todos los participantes deben tener cuenta. Altas y retiros se aceptan antes del deadline configurable de 60 minutos y se cierran al alcanzarlo.
 
-Estado actual: APROBADO e IMPLEMENTADO PARCIAL.
+Estado actual: APROBADO e IMPLEMENTADO; cierre integral 14D pendiente.
 
 Implementado actualmente:
 
@@ -214,13 +214,15 @@ Implementado actualmente:
 - se persisten participantes por cuenta autenticada;
 - se expone avance, minimo y condicion grupal;
 - existe codigo de invitacion;
-- alcanzar el minimo cambia la reserva a `CONFIRMED`.
+- alcanzar el minimo cambia la reserva a `CONFIRMED`;
+- el solape personal impide incorporaciones incompatibles;
+- el deadline unico rige en `PENDING` y `CONFIRMED`;
+- una solicitud que vence `PENDING` bajo el minimo se cancela con `MINIMUM_NOT_MET`.
 
 Pendiente de cierre:
 
-- completar y verificar todas las reglas temporales;
-- completar la integracion de `AT_RISK` con los flujos posteriores de recuperacion, vencimiento y notificaciones;
-- verificar vencimiento automatico y liberacion de la oportunidad semanal de punta a punta.
+- completar la evidencia manual de liberacion del horario tras `MINIMUM_NOT_MET`;
+- ejecutar la cadena efimera y el smoke test online definidos para el cierre MVP2.
 
 Pendiente relacionado: `RES-008`.
 
@@ -240,7 +242,7 @@ Para recursos sujetos a confirmacion grupal:
 
 Estado actual: APROBADO e IMPLEMENTADO PARCIAL.
 
-La creacion `PENDING`, persistencia de participantes, transicion al minimo y condicion `AT_RISK` estan implementadas. El vencimiento automatico, la liberacion completa asociada y la integracion con notificaciones permanecen como trabajo incremental.
+La creacion `PENDING`, persistencia de participantes, transicion al minimo, condicion `AT_RISK` y vencimiento automatico `MINIMUM_NOT_MET` estan implementados. La comprobacion manual de liberacion y la evidencia online permanecen abiertas; los generadores generales de notificaciones estan fuera de este cierre.
 
 Decision refinada el 2026-08-20: reemplaza la regla anterior que hacia regresar una reserva ya confirmada a `PENDING`.
 
@@ -266,7 +268,7 @@ Pendiente relacionado: `ADMIN-003`.
 
 El sistema debe permitir exclusivamente a usuarios con rol administrador publicar nuevas versiones del periodo de reserva, el plazo previo de confirmacion y los recursos sujetos a confirmacion grupal. Los cambios normales son prospectivos y cada solicitud conserva la version vigente al crearse. Excepcionalmente, el administrador puede migrar solicitudes futuras `PENDING` o `CONFIRMED` seleccionadas a otra version mediante simulacion, motivo obligatorio, confirmacion, aplicacion atomica y auditoria; la operacion no edita versiones historicas ni cancela solicitudes implicitamente.
 
-Estado actual: APROBADO e IMPLEMENTADO PARCIAL; VERIFICADO LOCALMENTE el 2026-07-21 para publicacion prospectiva de condiciones y recursos permitidos, historial administrativo, DTO publico minimo, permisos e idempotencia. La clasificacion de recursos grupales, persistencia de participantes, minimo y transicion inicial `PENDING -> CONFIRMED` ya cuentan con implementacion. Permanecen pendientes la alineacion completa de transiciones posteriores, vencimiento, interfaz administrativa, correcciones excepcionales y la verificacion integral en la infraestructura objetivo.
+Estado actual: APROBADO e IMPLEMENTADO para el bloque funcional MVP2. La publicacion prospectiva, permisos, idempotencia, minimo por recurso, snapshot, participantes, transiciones, solapes personales y expiracion cuentan con evidencia local. Permanecen pendientes la compuerta 14D completa, la prueba manual y el ambiente online; la interfaz administrativa y las correcciones excepcionales no pertenecen a este cierre.
 
 Pendiente relacionado: `ADMIN-006`.
 
@@ -519,12 +521,13 @@ Criterios de aceptacion:
 - La solicitud comienza en estado `PENDING`.
 - El solicitante cuenta una vez y todos los participantes se identifican mediante una cuenta.
 - La solicitud `PENDING` bloquea el horario para usos incompatibles.
-- Antes de alcanzar el minimo por primera vez, con menos de 10 confirmaciones permanece `PENDING + PENDING_MINIMUM`.
-- La decima confirmacion cambia automaticamente la solicitud a `CONFIRMED + HEALTHY` si las demas reglas siguen vigentes.
+- Antes de alcanzar el minimo snapshot permanece `PENDING + PENDING_MINIMUM`.
+- La confirmacion que alcanza el minimo cambia automaticamente la solicitud a `CONFIRMED + HEALTHY` si las demas reglas siguen vigentes.
 - Si una reserva ya confirmada pierde participantes y baja del minimo, conserva `CONFIRMED` y cambia a `AT_RISK`.
 - Si recupera el minimo antes del vencimiento, conserva `CONFIRMED` y vuelve a `HEALTHY`.
-- Las confirmaciones y retiradas se aceptan hasta exactamente una hora antes inclusive y se rechazan despues.
-- Si vence bajo el minimo, cambia a `CANCELLED`, libera el horario y la oportunidad semanal.
+- Las altas y retiradas se aceptan antes del deadline de una hora y se cierran al alcanzarlo.
+- Si al deadline sigue `PENDING` bajo el minimo, cambia a `CANCELLED`, libera el horario y la oportunidad semanal.
+- Si ya fue confirmada y luego baja del minimo, conserva `CONFIRMED + AT_RISK`; no se cancela por `MINIMUM_NOT_MET`.
 - El cliente no puede forzar el estado ni el conteo.
 
 ### HU-016 - Resolver conflictos institucionales
@@ -565,7 +568,7 @@ Criterios de aceptacion:
 
 - Solo usuarios con rol administrador pueden modificar las politicas.
 - Los valores iniciales son siete dias y una hora antes del inicio.
-- Cancha 1, 2 y 3 corresponden a multicancha 1, 2 y 3 y comienzan sujetas a confirmacion grupal.
+- Cancha 1, Cancha 2 y Sala Multiuso comienzan sujetas a confirmacion grupal con minimo inicial 10 por recurso.
 - El cambio informa desde cuando rige.
 - Los cambios normales se aplican prospectivamente y las solicitudes conservan su version.
 - Una correccion excepcional exige seleccionar solicitudes futuras activas, previsualizar el resultado, informar un motivo y confirmar la aplicacion.
@@ -788,11 +791,11 @@ Flujo principal:
 2. El participante confirma su participacion.
 3. El sistema valida identidad y duplicado.
 4. El sistema actualiza el conteo de confirmaciones vigentes.
-5. Al alcanzar 10 confirmaciones, vuelve a validar las demas reglas y cambia la solicitud a `CONFIRMED + HEALTHY`.
-6. Hasta exactamente el limite configurable inclusive, una persona puede retirar su confirmacion.
-7. Si la reserva ya habia alcanzado el minimo y el conteo baja de 10, conserva `CONFIRMED` y cambia su condicion grupal a `AT_RISK`.
+5. Al alcanzar el minimo snapshot, vuelve a validar las demas reglas y cambia la solicitud a `CONFIRMED + HEALTHY`.
+6. Antes del deadline configurable una persona no owner puede retirar su confirmacion; al alcanzar el limite los cambios quedan cerrados.
+7. Si la reserva ya habia alcanzado el minimo y el conteo baja de dicho valor, conserva `CONFIRMED` y cambia su condicion grupal a `AT_RISK`.
 8. Si recupera el minimo antes del vencimiento, conserva `CONFIRMED` y vuelve a condicion `HEALTHY`.
-9. Si la solicitud llega al limite aplicable bajo el minimo, el flujo de vencimiento debe cambiarla a `CANCELLED`, liberar el horario y la oportunidad semanal.
+9. Si la solicitud llega al deadline todavia `PENDING` bajo el minimo, el housekeeping la cambia a `CANCELLED` con `MINIMUM_NOT_MET`, libera el horario y la oportunidad semanal.
 
 Postcondiciones:
 
@@ -801,8 +804,8 @@ Postcondiciones:
 
 Flujos alternativos:
 
-- Si nunca ha alcanzado el minimo y tiene menos de 10 confirmaciones, permanece `PENDING + PENDING_MINIMUM`.
-- Una confirmacion o retirada exactamente una hora antes se acepta; una posterior se rechaza sin cambiar el conteo.
+- Si nunca ha alcanzado el minimo snapshot, permanece `PENDING + PENDING_MINIMUM` antes del deadline.
+- Una alta o retirada en el instante exacto del deadline se rechaza sin cambiar el conteo.
 - Si la solicitud deja de ser valida antes de alcanzar el minimo, no se confirma automaticamente.
 
 ### CU-010 - Resolver conflicto de actividad institucional

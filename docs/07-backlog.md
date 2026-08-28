@@ -3340,22 +3340,30 @@ El backend compilable no contiene imports ni consultas SQL Server salvo material
 
 Prioridad: P0
 Labels: `infra`, `postgresql`, `mvp2`, `quadlet`
-Estado actual: Pendiente
+Estado actual: En validacion 14D
 
 ### Contexto
 
-`infra/local/quadlet/install.sh` aplica automaticamente `PG16_0001` a `PG16_0003`, mientras las migraciones MVP2 `PG16_0004` a `PG16_0008` ya existen.
+`infra/local/quadlet/install.sh` instala en volumen nuevo el bootstrap, el seed
+y `PG16_0001` a `PG16_0010`. La compuerta efimera permite probar la cadena sin
+modificar el volumen de desarrollo habitual.
 
 ### Criterios
 
-- [ ] El instalador aplica migraciones MVP2 en orden sobre volumen nuevo cuando se solicita scope MVP2.
-- [ ] El procedimiento es idempotente o falla de forma segura sobre una base ya inicializada.
+- [x] El instalador aplica las migraciones MVP2 en orden sobre un volumen nuevo.
+- [x] `PG16_0010` es transaccional e idempotente sobre una base ya inicializada.
 - [ ] `MVP_SCOPE=mvp2` solo se habilita cuando el esquema requerido existe.
-- [ ] Existe verificacion automatizada de participantes, programacion institucional y disponibilidad MVP2.
-- [ ] La baseline MVP1 continua siendo reproducible cuando se selecciona ese scope.
+- [x] Existe verificacion automatizada de esquema, participantes, programacion institucional y disponibilidad MVP2.
+- [x] La superficie MVP1 continua protegida mediante `MVP_SCOPE=mvp1` y sus pruebas de rutas.
 
 ### Evidencia 2026-08-20 - bootstrap PostgreSQL completo
 
 `infra/local/quadlet/install.sh` fue actualizado para que una base nueva cargue
-el seed MVP1 y todas las migraciones `PG16_0004` a `PG16_0009`. El scope HTTP
+el seed MVP1 y todas las migraciones `PG16_0004` a `PG16_0010`. El scope HTTP
 permanece independiente del nivel fisico del esquema.
+
+### Evidencia 2026-08-25 - compuerta efimera MVP2
+
+Se agregaron `infra/local/quadlet/verify-mvp2-ephemeral.sh` y
+`database/postgres/check/PG16_verify_mvp2.sql`. Su primera ejecucion completa
+en WSL permanece pendiente y se registra en `docs/15-checklist-cierre-mvp2.md`.

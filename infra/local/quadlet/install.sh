@@ -78,6 +78,7 @@ install_files() {
     install -m 0644 "${repository_root}/database/postgres/migrations/PG16_0007_mvp2_schedule_exceptions.sql" "${runtime_dir}/80_mvp2_schedule_exceptions.sql"
     install -m 0644 "${repository_root}/database/postgres/migrations/PG16_0008_mvp2_schedule_exception_availability.sql" "${runtime_dir}/90_mvp2_schedule_exception_availability.sql"
     install -m 0644 "${repository_root}/database/postgres/migrations/PG16_0009_full_notifications.sql" "${runtime_dir}/95_full_notifications.sql"
+    install -m 0644 "${repository_root}/database/postgres/migrations/PG16_0010_mvp2_group_resource_rules.sql" "${runtime_dir}/97_mvp2_group_resource_rules.sql"
 
     systemctl --user daemon-reload
     printf 'Quadlet instalado. Variables de la API: %s\n' "${backend_env}"

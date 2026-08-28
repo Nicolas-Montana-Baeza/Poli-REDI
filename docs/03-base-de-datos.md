@@ -1,6 +1,6 @@
 ﻿# Poli-REDI - Base de datos y modelo de persistencia
 
-Fecha de corte: 2026-08-20
+Fecha de corte: 2026-08-25
 
 ## Objetivo del documento
 
@@ -56,7 +56,18 @@ PG16_0005_mvp2_institutional_scheduling.sql
 PG16_0006_mvp2_institutional_availability.sql
 PG16_0007_mvp2_schedule_exceptions.sql
 PG16_0008_mvp2_schedule_exception_availability.sql
+PG16_0009_full_notifications.sql
+PG16_0010_mvp2_group_resource_rules.sql
 ```
+
+La migracion `0010` agrega minimo por recurso grupal, snapshot del minimo,
+Sala Multiuso como recurso grupal y una politica prospectiva con deadline de
+60 minutos. `0009` mantiene la tabla fisica de notificaciones, aunque sus
+generadores generales permanecen fuera del cierre funcional MVP2.
+
+La cadena completa puede comprobarse sobre una base descartable mediante
+`infra/local/quadlet/verify-mvp2-ephemeral.sh` y
+`database/postgres/check/PG16_verify_mvp2.sql`.
 
 ## Genealogia EV-011
 

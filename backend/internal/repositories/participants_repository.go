@@ -28,6 +28,10 @@ var (
 	ErrParticipationWindowClosed = errors.New(
 		"el periodo para modificar participantes ya termino",
 	)
+
+	ErrParticipantScheduleOverlap = errors.New(
+		"ya participas en otra reserva durante ese horario",
+	)
 )
 
 // normalizeJoinCode establece una representación canónica del código.
@@ -219,7 +223,10 @@ func GetReservationProgress(
 					WHERE pa.status = 'CONFIRMED'
 				),
 
-			p.minimum_participants,
+			COALESCE(
+				r.group_minimum_participants_snapshot,
+				p.minimum_participants
+			),
 			r.group_capacity_snapshot,
 
 			EXISTS (
@@ -253,6 +260,7 @@ func GetReservationProgress(
 		GROUP BY
 			r.id,
 			r.status,
+			r.group_minimum_participants_snapshot,
 			p.minimum_participants,
 			r.group_capacity_snapshot
 		`,
@@ -333,16 +341,27 @@ func ChangeParticipation(
 
 	defer tx.Rollback()
 
+	// Comparte la misma familia de advisory lock utilizada al crear reservas.
+	// De esta forma dos altas concurrentes del mismo usuario, o una creación
+	// y una incorporación simultáneas, observan una agenda personal estable.
+	if _, err := tx.ExecContext(
+		ctx,
+		`SELECT pg_advisory_xact_lock(73002, $1)`,
+		userID,
+	); err != nil {
+		return models.ReservationProgress{}, err
+	}
+
 	var (
-		reservationID                int
-		reservationStatus            string
-		startTime                    time.Time
-		capacity                     int
-		minimum                      int
-		confirmationDeadlineMinutes  int
-		lateWithdrawalMinutes        int
-		groupRecoveryDeadlineMinutes int
-		dbNow                        time.Time
+		reservationID               int
+		reservationStatus           string
+		startTime                   time.Time
+		endTime                     time.Time
+		capacity                    int
+		minimum                     int
+		confirmationDeadlineMinutes int
+		lateWithdrawalMinutes       int
+		dbNow                       time.Time
 	)
 
 	err = tx.QueryRowContext(
@@ -352,11 +371,14 @@ func ChangeParticipation(
 			r.id,
 			r.status,
 			r.start_time,
+			r.end_time,
 			r.group_capacity_snapshot,
-			p.minimum_participants,
+			COALESCE(
+				r.group_minimum_participants_snapshot,
+				p.minimum_participants
+			),
 			p.confirmation_deadline_minutes,
 			p.late_withdrawal_minutes,
-			p.group_recovery_deadline_minutes,
 			CURRENT_TIMESTAMP
 
 		FROM reservations r
@@ -375,11 +397,11 @@ func ChangeParticipation(
 		&reservationID,
 		&reservationStatus,
 		&startTime,
+		&endTime,
 		&capacity,
 		&minimum,
 		&confirmationDeadlineMinutes,
 		&lateWithdrawalMinutes,
-		&groupRecoveryDeadlineMinutes,
 		&dbNow,
 	)
 
@@ -399,38 +421,15 @@ func ChangeParticipation(
 			ErrParticipationWindowClosed
 	}
 
-	// Para ingresar al grupo usamos dos ventanas:
-	//
-	// PENDING:
-	//     confirmation_deadline_minutes
-	//
-	// CONFIRMED:
-	//     group_recovery_deadline_minutes
-	//
-	// Esto permite que un grupo que quedó AT_RISK pueda buscar reemplazos
-	// hasta el límite configurado.
-	if confirm {
-
-		deadlineMinutes :=
-			confirmationDeadlineMinutes
-
-		if reservationStatus ==
-			models.ReservationStatusConfirmed {
-
-			deadlineMinutes =
-				groupRecoveryDeadlineMinutes
-		}
-
-		deadline :=
-			startTime.Add(
-				-time.Duration(deadlineMinutes) *
-					time.Minute,
-			)
-
-		if !dbNow.Before(deadline) {
-			return models.ReservationProgress{},
-				ErrParticipationWindowClosed
-		}
+	// El mismo deadline rige para altas y retiros en reservas PENDING y
+	// CONFIRMED. Alcanzar el mínimo no amplía ni acorta la ventana de cambios.
+	if !participantConfirmationWindowOpen(
+		dbNow,
+		startTime,
+		confirmationDeadlineMinutes,
+	) {
+		return models.ReservationProgress{},
+			ErrParticipationWindowClosed
 	}
 
 	// ---------------------------------------------------------------------
@@ -511,6 +510,53 @@ func ChangeParticipation(
 		!errors.Is(err, sql.ErrNoRows) {
 
 		return models.ReservationProgress{}, err
+	}
+
+	// Una confirmación idempotente no necesita volver a validar la agenda:
+	// el usuario ya forma parte de esta misma reserva. Para una incorporación
+	// nueva o una reinscripción, se consideran tanto reservas propias como
+	// participaciones CONFIRMED en cualquier otra reserva activa.
+	if confirm &&
+		(!participantExists || oldParticipantStatus != "CONFIRMED") {
+
+		var hasScheduleOverlap bool
+
+		err = tx.QueryRowContext(
+			ctx,
+			`
+			SELECT EXISTS (
+				SELECT 1
+				FROM reservations other
+				WHERE other.id <> $2
+				  AND other.status IN ('PENDING', 'CONFIRMED')
+				  AND other.start_time < $4
+				  AND other.end_time > $3
+				  AND (
+					other.user_id = $1
+					OR EXISTS (
+						SELECT 1
+						FROM participants membership
+						WHERE membership.reservation_id = other.id
+						  AND membership.user_id = $1
+						  AND membership.status = 'CONFIRMED'
+					)
+				  )
+			)
+			`,
+			userID,
+			reservationID,
+			startTime,
+			endTime,
+		).Scan(&hasScheduleOverlap)
+
+		if err != nil {
+			return models.ReservationProgress{}, err
+		}
+
+		if hasScheduleOverlap {
+			return models.ReservationProgress{},
+				ErrParticipantScheduleOverlap
+		}
 	}
 
 	// ---------------------------------------------------------------------

@@ -284,6 +284,16 @@ func participantErrorResponse(
 
 	case errors.Is(
 		err,
+		services.ErrParticipantScheduleOverlap,
+	):
+		return c.Status(fiber.StatusConflict).JSON(
+			fiber.Map{
+				"error": err.Error(),
+			},
+		)
+
+	case errors.Is(
+		err,
 		services.ErrOwnerCannotWithdraw,
 	):
 		return c.Status(fiber.StatusConflict).JSON(

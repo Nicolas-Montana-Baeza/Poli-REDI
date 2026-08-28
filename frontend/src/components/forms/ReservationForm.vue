@@ -6,6 +6,7 @@ import {
   formatReservationDate,
   formatReservationTimeRange,
   getBusinessDateKey,
+  getReservationCancellationMessage,
   getReservationDisplayStatus,
   parseReservationDateTime
 } from '@/utils/reservationTime'
@@ -254,6 +255,12 @@ const detailStatus = computed(() => {
   }
 
   return getReservationDisplayStatus(
+    props.reservation
+  )
+})
+
+const detailCancellationMessage = computed(() => {
+  return getReservationCancellationMessage(
     props.reservation
   )
 })
@@ -679,6 +686,14 @@ const handleClose = () => {
                 {{ detailStatus.label }}
               </span>
             </div>
+
+            <p
+              v-if="detailCancellationMessage"
+              class="cancellation-reason"
+              role="status"
+            >
+              {{ detailCancellationMessage }}
+            </p>
 
             <div class="detail-grid">
               <div
@@ -1453,6 +1468,19 @@ const handleClose = () => {
 
 .detail-status {
   font-size: 13px;
+}
+
+.cancellation-reason {
+  margin: 0;
+  padding: 14px 16px;
+
+  color: #92400e;
+  background: #fffbeb;
+
+  border: 1px solid #fde68a;
+  border-radius: var(--radius-lg);
+
+  font-weight: 650;
 }
 
 .detail-grid {

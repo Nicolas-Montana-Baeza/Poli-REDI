@@ -3,7 +3,49 @@ package repositories
 import (
 	"errors"
 	"testing"
+	"time"
 )
+
+func TestParticipantConfirmationWindowClosesAtDeadline(
+	t *testing.T,
+) {
+	startTime := time.Date(
+		2026,
+		time.August,
+		26,
+		18,
+		0,
+		0,
+		0,
+		time.FixedZone("America/Santiago", -4*60*60),
+	)
+
+	deadline := startTime.Add(-60 * time.Minute)
+
+	if !participantConfirmationWindowOpen(
+		deadline.Add(-time.Nanosecond),
+		startTime,
+		60,
+	) {
+		t.Fatal("window should remain open immediately before deadline")
+	}
+
+	if participantConfirmationWindowOpen(
+		deadline,
+		startTime,
+		60,
+	) {
+		t.Fatal("window should close at the exact deadline")
+	}
+
+	if participantConfirmationWindowOpen(
+		deadline.Add(time.Nanosecond),
+		startTime,
+		60,
+	) {
+		t.Fatal("window should remain closed after deadline")
+	}
+}
 
 func TestParticipantTransitionPendingReachesMinimum(t *testing.T) {
 	mutate, participantStatus, reservationStatus, err :=

@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"testing"
@@ -32,10 +33,12 @@ func TestParticipantsIntegrationConfirmedToAtRisk(t *testing.T) {
 	// ---------------------------------------------------------------------
 
 	var (
-		policyID   int
-		resourceID int
-		capacity   int
-		activityID int
+		policyID          int
+		resourceID        int
+		openUseResourceID int
+		capacity          int
+		minimum           int
+		activityID        int
 	)
 
 	err := database.DB.QueryRowContext(
@@ -43,7 +46,7 @@ func TestParticipantsIntegrationConfirmedToAtRisk(t *testing.T) {
 		`
 		SELECT id
 		FROM reservation_policies
-		WHERE idempotency_key = 'mvp2-group-participants-v1'
+		WHERE idempotency_key = 'mvp2-group-resource-rules-v1'
 		`,
 	).Scan(&policyID)
 
@@ -54,15 +57,42 @@ func TestParticipantsIntegrationConfirmedToAtRisk(t *testing.T) {
 	err = database.DB.QueryRowContext(
 		ctx,
 		`
-		SELECT id, capacity
-		FROM resources
-		WHERE name = 'Cancha 1, Centro Deportivo'
-		  AND reservation_mode = 'RESERVABLE'
+		SELECT
+			resource.id,
+			resource.capacity,
+			group_rule.minimum_participants
+		FROM resources resource
+		INNER JOIN reservation_policy_group_resources group_rule
+			ON group_rule.resource_id = resource.id
+		   AND group_rule.policy_id = $1
+		WHERE resource.name = 'Cancha 1, Centro Deportivo'
+		  AND resource.reservation_mode = 'RESERVABLE'
 		`,
-	).Scan(&resourceID, &capacity)
+		policyID,
+	).Scan(&resourceID, &capacity, &minimum)
 
 	if err != nil {
 		t.Fatalf("load resource: %v", err)
+	}
+
+	err = database.DB.QueryRowContext(
+		ctx,
+		`
+		SELECT resource.id
+		FROM resources resource
+		INNER JOIN reservation_policy_resources scope
+			ON scope.resource_id = resource.id
+		   AND scope.policy_id = $1
+		WHERE resource.reservation_mode = 'OPEN_USE'
+		  AND resource.is_active = true
+		ORDER BY resource.id
+		LIMIT 1
+		`,
+		policyID,
+	).Scan(&openUseResourceID)
+
+	if err != nil {
+		t.Fatalf("load OPEN_USE resource: %v", err)
 	}
 
 	err = database.DB.QueryRowContext(
@@ -176,7 +206,8 @@ func TestParticipantsIntegrationConfirmedToAtRisk(t *testing.T) {
 			duration_minutes,
 			status,
 			join_code_hash,
-			group_capacity_snapshot
+			group_capacity_snapshot,
+			group_minimum_participants_snapshot
 		)
 		VALUES (
 			$1,
@@ -187,7 +218,8 @@ func TestParticipantsIntegrationConfirmedToAtRisk(t *testing.T) {
 			60,
 			'PENDING',
 			$6,
-			$7
+			$7,
+			$8
 		)
 		RETURNING id
 		`,
@@ -198,6 +230,7 @@ func TestParticipantsIntegrationConfirmedToAtRisk(t *testing.T) {
 		startTime,
 		codeHash(joinCode),
 		capacity,
+		minimum,
 	).Scan(&reservationID)
 
 	if err != nil {
@@ -359,6 +392,77 @@ func TestParticipantsIntegrationConfirmedToAtRisk(t *testing.T) {
 	// 9/10 -> 10/10
 	// PENDING -> CONFIRMED
 	// ---------------------------------------------------------------------
+
+	// Primero demostramos que una reserva propia solapada impide ingresar.
+	// Se utiliza otro recurso OPEN_USE para aislar la regla de agenda personal
+	// de la exclusividad del recurso de la reserva grupal.
+	var conflictingReservationID int
+
+	err = database.DB.QueryRowContext(
+		ctx,
+		`
+		INSERT INTO reservations (
+			policy_id,
+			user_id,
+			resource_id,
+			activity_id,
+			start_time,
+			duration_minutes,
+			status
+		)
+		VALUES (
+			$1,
+			$2,
+			$3,
+			NULL,
+			$4,
+			60,
+			'CONFIRMED'
+		)
+		RETURNING id
+		`,
+		policyID,
+		userIDs[9],
+		openUseResourceID,
+		startTime,
+	).Scan(&conflictingReservationID)
+
+	if err != nil {
+		t.Fatalf("create overlapping personal reservation: %v", err)
+	}
+
+	defer func() {
+		if conflictingReservationID > 0 {
+			_, _ = database.DB.ExecContext(
+				ctx,
+				`DELETE FROM reservations WHERE id = $1`,
+				conflictingReservationID,
+			)
+		}
+	}()
+
+	_, err = ChangeParticipation(
+		joinCode,
+		userIDs[9],
+		true,
+	)
+
+	if !errors.Is(err, ErrParticipantScheduleOverlap) {
+		t.Fatalf(
+			"expected ErrParticipantScheduleOverlap, got %v",
+			err,
+		)
+	}
+
+	if _, err := database.DB.ExecContext(
+		ctx,
+		`DELETE FROM reservations WHERE id = $1`,
+		conflictingReservationID,
+	); err != nil {
+		t.Fatalf("delete overlapping personal reservation: %v", err)
+	}
+
+	conflictingReservationID = 0
 
 	confirmed, err := ChangeParticipation(
 		joinCode,

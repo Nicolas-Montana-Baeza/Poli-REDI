@@ -40,13 +40,14 @@ La ventana y la frecuencia versionadas permanecen sujetas a la validacion de inf
 3. El servidor valida la frecuencia configurable desde la fecha de creacion de la solicitud anterior. Una solicitud `PENDING` consume la oportunidad desde que se crea; una solicitud `CANCELLED` deja de consumirla.
 4. El sistema consulta la politica del recurso.
 5. Si el recurso es `OPEN_USE`, no exige confirmacion grupal.
-6. Para multicancha 1, 2 y 3, identificadas en el inventario como Cancha 1, 2 y 3, registra la solicitud como `PENDING` y bloquea el horario.
-7. El solicitante cuenta entre los 10. Los participantes, todos con cuenta, confirman hasta el limite configurable, inicialmente una hora antes del inicio e inclusivo en el instante exacto.
-8. Mientras nunca haya alcanzado el minimo, con menos de 10 confirmaciones vigentes la solicitud permanece `PENDING` con condicion `PENDING_MINIMUM`.
-9. Al alcanzar 10 confirmaciones, el sistema vuelve a validar las demas reglas y cambia la reserva a `CONFIRMED` con condicion `HEALTHY`.
-10. Una vez confirmada, una retirada que reduzca el grupo bajo el minimo no revierte el ciclo de vida: la reserva conserva `CONFIRMED` y su condicion grupal cambia a `AT_RISK`.
-11. Si el grupo recupera el minimo antes del plazo, conserva `CONFIRMED` y vuelve a condicion `HEALTHY`.
-12. Si al alcanzar el limite aplicable el grupo permanece bajo el minimo, el flujo de vencimiento debe cancelar la reserva, liberar el horario y dejar de consumir la oportunidad semanal conforme a la politica vigente.
+6. Para Cancha 1, Cancha 2 y Sala Multiuso registra la solicitud como `PENDING` y bloquea el horario.
+7. El solicitante cuenta entre los participantes. El minimo se obtiene de la regla versionada del recurso y queda congelado en la reserva.
+8. Altas y retiros se aceptan antes del deadline configurable, inicialmente una hora antes del inicio; al alcanzar el instante exacto la ventana queda cerrada.
+9. Mientras nunca haya alcanzado el minimo snapshot, la solicitud permanece `PENDING` con condicion `PENDING_MINIMUM`.
+10. Al alcanzar el minimo, el sistema vuelve a validar las demas reglas y cambia la reserva a `CONFIRMED` con condicion `HEALTHY`.
+11. Una vez confirmada, una retirada que reduzca el grupo bajo el minimo no revierte el ciclo de vida: la reserva conserva `CONFIRMED` y su condicion grupal cambia a `AT_RISK`.
+12. Si el grupo recupera el minimo antes del plazo, conserva `CONFIRMED` y vuelve a condicion `HEALTHY`.
+13. Si al alcanzar el deadline una solicitud sigue `PENDING` bajo el minimo, el housekeeping la cambia a `CANCELLED` con motivo `MINIMUM_NOT_MET`. Una reserva ya confirmada no se cancela por esta regla.
 
 Solo un usuario con rol administrador puede modificar los recursos sujetos a confirmacion, el periodo semanal o el plazo previo. Como propuesta no bloqueante, los cambios se aplican a solicitudes creadas despues de la modificacion.
 
@@ -76,7 +77,7 @@ Transiciones especialmente relevantes para futuros MVP:
 - `PENDING_MINIMUM -> HEALTHY`: minimo alcanzado;
 - `HEALTHY -> AT_RISK`: grupo bajo el minimo;
 - `AT_RISK -> HEALTHY`: grupo recuperado;
-- `AT_RISK -> CANCELLED`: vencimiento bajo el minimo.
+- `PENDING_MINIMUM -> INACTIVE`: vencimiento `MINIMUM_NOT_MET` antes de alcanzar el minimo.
 
 Estas transiciones pueden originar notificaciones sin convertir `groupCondition` en un nuevo estado de reserva.
 

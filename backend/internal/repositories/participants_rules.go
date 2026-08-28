@@ -1,11 +1,14 @@
 package repositories
 
-import "errors"
+import (
+	"errors"
+	"time"
+)
 
 var (
-	ErrOwnerCannotWithdraw = errors.New("el solicitante no puede retirarse de su propia reserva")
-	ErrGroupCapacity       = errors.New("la reserva alcanzo su capacidad maxima")
-	ErrInvalidGroupConfig  = errors.New("configuracion grupal invalida")
+	ErrOwnerCannotWithdraw    = errors.New("el solicitante no puede retirarse de su propia reserva")
+	ErrGroupCapacity          = errors.New("la reserva alcanzo su capacidad maxima")
+	ErrInvalidGroupConfig     = errors.New("configuracion grupal invalida")
 	ErrReservationNotJoinable = errors.New("la reserva no admite cambios de participantes")
 )
 
@@ -15,6 +18,22 @@ const (
 	GroupConditionAtRisk   = "AT_RISK"
 	GroupConditionInactive = "INACTIVE"
 )
+
+// participantConfirmationWindowOpen aplica un único límite temporal para
+// altas en reservas grupales, independientemente de si la reserva aún está
+// PENDING o ya alcanzó CONFIRMED. En el instante exacto del deadline la
+// ventana ya está cerrada.
+func participantConfirmationWindowOpen(
+	now time.Time,
+	startTime time.Time,
+	confirmationDeadlineMinutes int,
+) bool {
+	deadline := startTime.Add(
+		-time.Duration(confirmationDeadlineMinutes) * time.Minute,
+	)
+
+	return now.Before(deadline)
+}
 
 // participantTransition calcula el cambio de participación sin tocar la BD.
 //

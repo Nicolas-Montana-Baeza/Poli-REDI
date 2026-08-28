@@ -22,6 +22,7 @@ import { useReservationsStore } from '@/stores/reservations'
 import {
   formatReservationDate,
   formatReservationTimeRange,
+  getReservationCancellationMessage,
   getReservationDisplayStatus,
   isReservationCancelable
 } from '@/utils/reservationTime'
@@ -73,6 +74,12 @@ const statusLabel = computed(() => {
 
 const statusClass = computed(() => {
   return getReservationDisplayStatus(reservation.value).className
+})
+
+const cancellationMessage = computed(() => {
+  return getReservationCancellationMessage(
+    reservation.value
+  )
 })
 
 const isGroupReservation = computed(() => {
@@ -360,6 +367,14 @@ const goBack = () => {
         class="state-card success"
       >
         {{ reservationsStore.actionSuccess }}
+      </div>
+
+      <div
+        v-if="cancellationMessage"
+        class="state-card notice"
+        role="status"
+      >
+        {{ cancellationMessage }}
       </div>
 
       <section class="details-grid">
@@ -777,6 +792,14 @@ const goBack = () => {
   color: #166534;
 
   border-color: #bbf7d0;
+}
+
+.state-card.notice {
+  background: #fffbeb;
+
+  color: #92400e;
+
+  border-color: #fde68a;
 }
 
 .detail-panel {

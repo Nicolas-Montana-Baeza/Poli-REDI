@@ -173,3 +173,17 @@ export const getReservationDisplayStatus = (reservation) => {
       }
   }
 }
+
+export const getReservationCancellationMessage = (reservation) => {
+  if (reservation?.status !== 'CANCELLED') {
+    return ''
+  }
+
+  switch (reservation?.cancellationReason) {
+    case 'MINIMUM_NOT_MET':
+      return 'La reserva se canceló porque no alcanzó el mínimo de participantes antes del plazo.'
+
+    default:
+      return ''
+  }
+}

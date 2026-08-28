@@ -1,6 +1,6 @@
 # Poli-REDI - Resumen vigente para compartir
 
-Fecha de corte: 2026-08-20
+Fecha de corte: 2026-08-25
 
 ## Proposito
 
@@ -35,14 +35,14 @@ Un elemento puede estar implementado sin estar aprobado y puede estar implementa
 | Recursos | IMPLEMENTADO PARCIAL | Catalogo y cambio administrativo de imagen; no existe gestion completa de altas, datos, modos y activacion. |
 | Disponibilidad | IMPLEMENTADO PARCIAL | Integra reservas, actividades programadas y talleres; el frontend permite filtrar por recurso y por existencia de bloques disponibles. El recurso puede precargarse desde Inicio mediante query string. Permanecen pendientes las brechas de backend/rango que correspondan. |
 | Creacion de reservas | IMPLEMENTADO PARCIAL | Propietario, zona horaria, jornada y duraciones son controlados por servidor. Los recursos grupales pueden comenzar `PENDING`, registran al solicitante y alcanzan `CONFIRMED` segun participantes; quedan integraciones de cierre por completar. |
-| Reglas institucionales | APROBADO / IMPLEMENTACION PARCIAL | Ventana, frecuencia, versionado y flujo grupal tienen implementacion incremental. Participantes, `PENDING -> CONFIRMED` y `AT_RISK` existen; vencimiento, notificaciones, interfaz administrativa y correcciones excepcionales requieren cierre adicional. |
+| Reglas institucionales | APROBADO / IMPLEMENTACION PARCIAL | Ventana, frecuencia, versionado y flujo grupal tienen implementacion incremental. Participantes, `PENDING -> CONFIRMED`, `AT_RISK` y vencimiento `MINIMUM_NOT_MET` existen; notificaciones generales, interfaz administrativa y correcciones excepcionales pertenecen a incrementos posteriores. |
 | Cancelacion | IMPLEMENTADO | Propietario o administrador pueden cancelar estados activos no finalizados. El frontend utiliza confirmacion destructiva inline y evita `window.confirm`; el cambio de estado visible actua como confirmacion de la operacion. |
 | Talleres | IMPLEMENTADO | Consulta e inscripcion con RUT, cupo y duplicado controlados; no existe desinscripcion. |
 | Notificaciones | IMPLEMENTADO PARCIAL | Consulta y contador existen; no se marcan como leidas y la generacion cubre solo eventos limitados. |
 | Administracion | IMPLEMENTADO PARCIAL | Panel, lectura de usuarios, recursos, reservas e indicadores; faltan gestion del inventario oficial, usuarios, bloqueos, programacion, conflictos institucionales e infracciones. |
 | Reportes | IMPLEMENTADO PARCIAL | Indicadores calculados en frontend; no constituyen reportes institucionales completos ni consumen las vistas SQL dedicadas. |
 | Auditoria | IMPLEMENTADO PARCIAL | El esquema registra cambios de reservas, pero no existe consulta administrativa. |
-| Calidad local | VERIFICADO PARCIAL | `npm run build`, `npm test` y `git diff --check` aprobaron el 2026-08-20; la suite frontend ejecuto 25 pruebas correctamente. La validacion integrada con infraestructura, navegador y ambiente online sigue siendo una evidencia separada. |
+| Calidad local | VERIFICADO PARCIAL | Suite Go, `go vet`, 27 pruebas frontend, build y `git diff --check` aprobaron el 2026-08-25. Dos pruebas PostgreSQL reales acreditan transiciones, solapes y expiracion; faltan la cadena efimera completa, navegador y ambiente online. |
 | Despliegue | IMPLEMENTADO SEGUN REPOSITORIO | Existen configuracion y documentacion de demo Azure; su disponibilidad actual no fue verificada en este corte. |
 
 ## Criterio de evolucion del producto
@@ -71,7 +71,7 @@ La adopcion de `CONFIRMED + AT_RISK` para reservas que ya alcanzaron el minimo e
 
 1. El alcance academico definitivo excluye autenticacion institucional real y despliegue productivo, pero el repositorio documenta Entra ID y una demo Azure ya implementados.
 2. La ventana y frecuencia versionadas requieren conservar evidencia de integracion y verificacion en la infraestructura objetivo.
-3. El flujo grupal ya soporta `PENDING`, participantes, codigo de invitacion, confirmacion por minimo y condicion `AT_RISK`. La regla fue refinada durante MVP 2: una reserva ya confirmada no regresa a `PENDING` al caer bajo el minimo; conserva `CONFIRMED` y cambia su condicion grupal. El cierre pendiente se concentra en vencimiento, liberacion asociada e integracion con notificaciones.
+3. El flujo grupal soporta `PENDING`, participantes, codigo de invitacion, confirmacion por minimo, `AT_RISK` y cancelacion `MINIMUM_NOT_MET` al vencer bajo el minimo. El cierre pendiente se concentra en reproducibilidad desde cero, prueba manual y despliegue online; las notificaciones generales no forman parte de este cierre.
 4. Ante actividad institucional versus reserva particular, la reserva debe cancelarse automaticamente y notificarse al usuario; ante dos actividades, el administrador debe poder cancelar una o mantener ambas. El esquema actual rechaza esos conflictos.
 5. Los ocho recursos del seed representan el inventario oficial, pero el administrador aun no puede mantenerlo de forma completa.
 
@@ -86,6 +86,7 @@ Compartir en este orden:
 3. `docs/08-requisitos-historias-casos-uso.md`: catalogo funcional vigente del repositorio.
 4. `docs/09-mvps-roadmap.md`: agrupacion incremental y pendientes.
 5. `docs/12-checklist-demo-mvp1.md`: evidencia automatizada y validaciones manuales pendientes.
+6. `docs/15-checklist-cierre-mvp2.md`: compuerta funcional, efimera y online del MVP2.
 
 Agregar segun el destinatario:
 
@@ -101,8 +102,8 @@ No usar `docs/00-revision-inicial.md` como estado vigente; es un registro histor
 1. Con la configuracion vigente, un usuario solo puede elegir fechas desde el dia actual hasta el dia anterior al mismo dia de la semana siguiente; por ejemplo, un martes puede reservar hasta el lunes siguiente.
 2. Al crear una solicitud, el usuario no puede crear otra hasta el mismo dia de la semana siguiente; por ejemplo, si la crea un martes para el miercoles, vuelve a poder solicitar desde el martes siguiente. La duracion de este periodo debe ser configurable.
 3. Una solicitud `PENDING` consume la oportunidad desde su creacion; al pasar a `CANCELLED` deja de consumirla.
-4. El minimo de 10 participantes es obligatorio para Cancha 1, Cancha 2 y Cancha 3, que corresponden formalmente a multicancha 1, 2 y 3. El solicitante cuenta y todos los participantes deben tener cuenta.
-5. La solicitud `PENDING` bloquea el horario. Las confirmaciones pueden registrarse o retirarse hasta exactamente una hora antes del inicio, inclusive, con plazo configurable. La version aprobada en esta fecha indicaba retorno a `PENDING` al perder el minimo despues de confirmar; esta parte fue reemplazada el 2026-08-20 por `CONFIRMED + AT_RISK`. El vencimiento bajo el minimo mantiene como objetivo la cancelacion y liberacion correspondiente.
+4. La decision operativa fue refinada el 2026-08-25: el minimo inicial de 10 participantes se configura por recurso para Cancha 1, Cancha 2 y Sala Multiuso. El solicitante cuenta y todos los participantes deben tener cuenta.
+5. La solicitud `PENDING` bloquea el horario. La regla fue refinada el 2026-08-25: las altas y retiros se aceptan antes del deadline configurable y se cierran al alcanzarlo. Una reserva que sigue `PENDING` bajo el minimo se cancela con `MINIMUM_NOT_MET`; una reserva que ya fue confirmada conserva `CONFIRMED + AT_RISK` si luego baja del minimo.
 6. Para todos los recursos se aprueban duraciones de 30, 60, 90, 120, 150 y 180 minutos.
 7. `OPEN_USE` no requiere confirmacion de integrantes; los recursos grupales indicados se confirman automaticamente al alcanzar el minimo.
 8. RF-023/v1 aprobo cancelacion automatica de una reserva particular ante prioridad institucional y notificacion al usuario. La implementacion MVP 2 incorpora estos casos a un conflicto administrable; `EV-010` mantiene pendiente la decision entre ambos modelos.
@@ -115,14 +116,17 @@ No usar `docs/00-revision-inicial.md` como estado vigente; es un registro histor
 
 ## Arquitectura de politicas: estado de implementacion
 
-La politica se versiona y cada solicitud referencia la version aplicable. Publicacion, snapshot, permisos, historial e idempotencia cuentan con implementacion; participantes, estados principales y parte de la programacion institucional tambien existen en MVP 2. Permanecen pendientes el cierre de plazo/vencimiento, interfaces administrativas, correcciones excepcionales y validacion integral. `ADMIN-005` ya dispone de backend para unidades, actividades, deteccion y resolucion administrativa de conflictos; la semantica automatica de prioridad institucional y sus notificaciones requieren cierre de producto.
+La politica se versiona y cada solicitud referencia la version aplicable. Publicacion, snapshot por recurso, permisos, historial, idempotencia, participantes, deadline unico y expiracion cuentan con implementacion. Permanecen pendientes la validacion integral 14D, las interfaces administrativas y las correcciones excepcionales de incrementos posteriores. `ADMIN-005` dispone de backend para unidades, actividades, deteccion y resolucion administrativa de conflictos; la semantica automatica de prioridad institucional y sus notificaciones requieren cierre de producto.
 
 ## Evidencia local del corte
 
-Evidencia mas reciente del frontend, 2026-08-20:
+Evidencia mas reciente, 2026-08-25:
 
 - `npm run build`: aprobado.
-- `npm test`: 25 pruebas aprobadas.
+- `npm test`: 27 pruebas aprobadas.
+- `go test ./...` y `go vet ./...`: aprobados.
+- Integracion PostgreSQL `PENDING -> CONFIRMED -> AT_RISK`: aprobada.
+- Integracion PostgreSQL de expiracion `MINIMUM_NOT_MET`: aprobada e idempotente.
 - `git diff --check`: aprobado.
 - Flujo revisado manualmente durante el pulido UX: carrusel manual, filtros de Disponibilidad, detalle compartido, cancelacion con confirmacion inline y transiciones de autenticacion.
 - Commit funcional de referencia: `a9a599d` (`feat: unify reservation flows and auth transitions`).

@@ -21,6 +21,7 @@ PG16_0006_mvp2_institutional_availability.sql
 PG16_0007_mvp2_schedule_exceptions.sql
 PG16_0008_mvp2_schedule_exception_availability.sql
 PG16_0009_full_notifications.sql
+PG16_0010_mvp2_group_resource_rules.sql
 ```
 
 Los scripts T-SQL historicos ubicados directamente bajo `database/` no pertenecen a esta linea de migraciones.
@@ -61,22 +62,27 @@ Los secretos quedan en:
 El instalador Quadlet aplica automaticamente:
 
 1. `bootstrap/PG16_0000_local_role.sql`
-2. `PG16_0001_mvp1_baseline.sql`
-3. `PG16_0002_mvp1_indexes.sql`
-4. `PG16_0003_mvp1_invariants.sql`
-5. `seed/PG16_seed_mvp1.sql`
+2. `PG16_0001` a `PG16_0003`;
+3. `seed/PG16_seed_mvp1.sql`;
+4. `PG16_0004` a `PG16_0010`.
 
-Esto significa que el instalador sigue provisionando MVP1 por defecto.
+El `MVP_SCOPE` controla las rutas que expone la API; no reduce el esquema
+fisico inicializado en PostgreSQL.
 
-## Migraciones MVP2
+## Aplicar PG16_0010 a un volumen existente
 
-Las migraciones `PG16_0004` a `PG16_0008` existen en el repositorio, pero todavia no estan conectadas automaticamente a `infra/local/quadlet/install.sh`.
+Los scripts de inicializacion solo se ejecutan al crear un volumen nuevo. En
+un volumen local que ya contiene `PG16_0004` a `PG16_0009`, ejecutar desde la
+raiz del repositorio:
 
-Por esa razon:
+```bash
+podman exec -i poliredi-postgres-mvp1 \
+  sh -c 'psql --username="$POSTGRES_USER" --dbname="$POSTGRES_DB" -v ON_ERROR_STOP=1' \
+  < database/postgres/migrations/PG16_0010_mvp2_group_resource_rules.sql
+```
 
-- `MVP_SCOPE=mvp1` sigue siendo el valor seguro generado por el instalador;
-- `MVP_SCOPE=mvp2` requiere una base preparada con las migraciones MVP2;
-- automatizar esta aplicacion forma parte de la deuda de infraestructura.
+La migracion usa una transaccion y falla completa ante cualquier precondicion
+incumplida.
 
 ## Ejecutar backend
 
@@ -126,12 +132,12 @@ orden:
 1. rol local;
 2. `PG16_0001` a `PG16_0003`;
 3. seed MVP1;
-4. `PG16_0004` a `PG16_0009`.
+4. `PG16_0004` a `PG16_0010`.
 
 El `MVP_SCOPE` controla la superficie HTTP expuesta, no la version fisica del
 esquema. Mantener el esquema completo permite cambiar de `mvp1` a `mvp2` o
 `full` sin reintroducir una base parcial.
 
-Los volumenes PostgreSQL ya existentes no vuelven a ejecutar
-`docker-entrypoint-initdb.d`; cualquier migracion nueva debe aplicarse de forma
+Los volumenes PostgreSQL ya existentes no vuelven a ejecutar el directorio de
+inicializacion de la imagen; cualquier migracion nueva debe aplicarse de forma
 explicita al volumen existente.

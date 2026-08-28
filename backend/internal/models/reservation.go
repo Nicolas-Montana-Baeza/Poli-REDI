@@ -10,6 +10,8 @@ const (
 	ReservationStatusExpired   = "EXPIRED"
 )
 
+const CancellationReasonMinimumNotMet = "MINIMUM_NOT_MET"
+
 const (
 	GroupConditionPending  = "PENDING_MINIMUM"
 	GroupConditionHealthy  = "HEALTHY"
@@ -18,16 +20,17 @@ const (
 )
 
 type Reservation struct {
-	ID              int       `json:"id"`
-	PolicyID        int       `json:"policyId"`
-	UserID          int       `json:"userId"`
-	ResourceID      int       `json:"resourceId"`
-	ActivityID      *int      `json:"activityId"`
-	StartTime       time.Time `json:"startTime"`
-	DurationMinutes int       `json:"durationMinutes"`
-	Status          string    `json:"status"`
-	CreatedAt       time.Time `json:"createdAt"`
-	UpdatedAt       time.Time `json:"updatedAt"`
+	ID                 int       `json:"id"`
+	PolicyID           int       `json:"policyId"`
+	UserID             int       `json:"userId"`
+	ResourceID         int       `json:"resourceId"`
+	ActivityID         *int      `json:"activityId"`
+	StartTime          time.Time `json:"startTime"`
+	DurationMinutes    int       `json:"durationMinutes"`
+	Status             string    `json:"status"`
+	CancellationReason string    `json:"cancellationReason,omitempty"`
+	CreatedAt          time.Time `json:"createdAt"`
+	UpdatedAt          time.Time `json:"updatedAt"`
 
 	// Datos utilizados por el frontend.
 	Hour         string `json:"hour"`

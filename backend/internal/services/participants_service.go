@@ -14,13 +14,14 @@ import (
 // handlers pueda distinguir correctamente errores de validación, permisos
 // y conflictos sin depender directamente de la capa de persistencia.
 var (
-	ErrInvalidJoinCode           = repositories.ErrInvalidJoinCode
-	ErrParticipantIneligible     = repositories.ErrParticipantIneligible
-	ErrParticipationWindowClosed = repositories.ErrParticipationWindowClosed
-	ErrOwnerCannotWithdraw       = repositories.ErrOwnerCannotWithdraw
-	ErrGroupCapacity             = repositories.ErrGroupCapacity
-	ErrInvalidGroupConfig        = repositories.ErrInvalidGroupConfig
-	ErrReservationNotJoinable    = repositories.ErrReservationNotJoinable
+	ErrInvalidJoinCode            = repositories.ErrInvalidJoinCode
+	ErrParticipantIneligible      = repositories.ErrParticipantIneligible
+	ErrParticipationWindowClosed  = repositories.ErrParticipationWindowClosed
+	ErrParticipantScheduleOverlap = repositories.ErrParticipantScheduleOverlap
+	ErrOwnerCannotWithdraw        = repositories.ErrOwnerCannotWithdraw
+	ErrGroupCapacity              = repositories.ErrGroupCapacity
+	ErrInvalidGroupConfig         = repositories.ErrInvalidGroupConfig
+	ErrReservationNotJoinable     = repositories.ErrReservationNotJoinable
 )
 
 // GetReservationProgressByJoinCode obtiene el estado actual de una reserva
@@ -46,6 +47,10 @@ func GetReservationProgressByJoinCode(
 	if userID <= 0 {
 		return models.ReservationProgress{},
 			errors.New("usuario autenticado es obligatorio")
+	}
+
+	if err := runReservationHousekeeping(); err != nil {
+		return models.ReservationProgress{}, err
 	}
 
 	return repositories.GetReservationProgress(
@@ -80,6 +85,10 @@ func JoinGroupReservation(
 			errors.New("usuario autenticado es obligatorio")
 	}
 
+	if err := runReservationHousekeeping(); err != nil {
+		return models.ReservationProgress{}, err
+	}
+
 	return repositories.ChangeParticipation(
 		code,
 		userID,
@@ -112,6 +121,10 @@ func LeaveGroupReservation(
 			errors.New("usuario autenticado es obligatorio")
 	}
 
+	if err := runReservationHousekeeping(); err != nil {
+		return models.ReservationProgress{}, err
+	}
+
 	return repositories.ChangeParticipation(
 		code,
 		userID,
@@ -139,6 +152,10 @@ func GetReservationParticipantsForUser(
 
 	if reservationID <= 0 {
 		return nil, ErrReservationNotFound
+	}
+
+	if err := runReservationHousekeeping(); err != nil {
+		return nil, err
 	}
 
 	reservation, err :=
@@ -186,6 +203,10 @@ func RotateReservationJoinCodeForUser(
 
 	if reservationID <= 0 {
 		return "", ErrReservationNotFound
+	}
+
+	if err := runReservationHousekeeping(); err != nil {
+		return "", err
 	}
 
 	reservation, err :=

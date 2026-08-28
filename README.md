@@ -39,7 +39,8 @@ Actualizacion 2026-08-20:
 - Las reservas grupales separan ciclo de vida (`status`) y condicion del grupo (`groupCondition`): una reserva ya confirmada que cae bajo el minimo permanece `CONFIRMED` y pasa a `AT_RISK`.
 - La autenticacion utiliza una pantalla intermedia global para resolver la sesion y comunicar el cierre de sesion, evitando flashes prematuros del login.
 - Los mensajes globales de exito se retiraron temporalmente hasta definir un patron transversal de notificaciones.
-- La suite frontend registra 25 pruebas correctas en la verificacion local del 2026-08-20.
+- La suite frontend registra 27 pruebas correctas en la verificacion local del 2026-08-25.
+- Las reglas grupales por recurso, el deadline unico, los solapes personales y la expiracion `MINIMUM_NOT_MET` cuentan con pruebas PostgreSQL reales.
 
 ## Stack
 
@@ -158,12 +159,20 @@ bash infra/local/quadlet/install.sh install
 
 El provisionamiento automatico actual aplica:
 
-- `PG16_0001`;
-- `PG16_0002`;
-- `PG16_0003`;
-- seed MVP1.
+- bootstrap del rol local;
+- `PG16_0001` a `PG16_0003`;
+- seed MVP1;
+- `PG16_0004` a `PG16_0010`.
 
-Las migraciones MVP2 `PG16_0004` a `PG16_0008` ya existen, pero todavia deben incorporarse al instalador Quadlet.
+`MVP_SCOPE` controla la superficie HTTP y no reduce el esquema fisico. El
+instalador conserva `mvp1` como valor seguro por defecto.
+
+Para validar MVP2 desde una base completamente nueva, sin tocar el volumen
+habitual:
+
+```bash
+bash infra/local/quadlet/verify-mvp2-ephemeral.sh
+```
 
 Los scripts T-SQL ubicados directamente en `database/` son legado de la etapa Azure SQL y no deben ejecutarse contra PostgreSQL.
 
@@ -285,7 +294,7 @@ Antes de una demo local:
 11. Confirmar que usuario normal no ve ni accede a rutas administrativas.
 12. Confirmar que la hora de una reserva coincide entre local y demo online para `America/Santiago`; la regla ya esta implementada y verificada localmente, pero falta evidencia online.
 
-El checklist ampliado y la evidencia de la revision exhaustiva estan en `docs/12-checklist-demo-mvp1.md`. En la verificacion frontend del 2026-08-20, `npm test` completo 25 pruebas y `npm run build` finalizo correctamente. La cobertura sigue siendo parcial y no reemplaza pruebas integradas, manuales, de accesibilidad, responsive ni del ambiente online.
+El checklist MVP1 esta en `docs/12-checklist-demo-mvp1.md` y el cierre MVP2 en `docs/15-checklist-cierre-mvp2.md`. En la verificacion frontend del 2026-08-25, `npm test` completo 27 pruebas y `npm run build` finalizo correctamente. La cobertura automatizada no reemplaza las pruebas manuales, de accesibilidad, responsive ni del ambiente online.
 
 ## Documentacion relacionada
 
@@ -302,6 +311,7 @@ El checklist ampliado y la evidencia de la revision exhaustiva estan en `docs/12
 - `docs/12-checklist-demo-mvp1.md`: validacion manual y evidencia automatizada.
 - `docs/13-estado-actual-producto.md`: analisis de producto, contradicciones y decisiones pendientes.
 - `docs/14-evolucion-y-trazabilidad-requisitos.md`: ingenieria inversa, genealogia y versionado conceptual de requisitos.
+- `docs/15-checklist-cierre-mvp2.md`: compuerta local, integrada y online para cerrar MVP2.
 
 ## Seguridad
 

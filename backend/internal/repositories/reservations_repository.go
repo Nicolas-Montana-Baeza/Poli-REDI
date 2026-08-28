@@ -29,7 +29,8 @@ func (e RequestFrequencyError) Error() string {
 
 const reservationColumns = `
 	r.id, r.policy_id, r.user_id, r.resource_id, r.activity_id,
-	r.start_time, r.duration_minutes, r.status, r.created_at, r.updated_at,
+	r.start_time, r.duration_minutes, r.status,
+	COALESCE(r.cancellation_reason, ''), r.created_at, r.updated_at,
 	COALESCE(a.name, 'Reserva') AS activity_name,
 	res.name AS resource_name,
 	COALESCE(u.full_name, '') AS user_full_name,
@@ -44,9 +45,13 @@ const reservationColumns = `
 	-- la capacidad vigente al momento de su creación.
 	r.group_capacity_snapshot,
 
-	-- El mínimo se obtiene desde la versión exacta de política asociada
-	-- a la reserva, no desde la política publicada actualmente.
-	COALESCE(p.minimum_participants, 0),
+	-- El minimo queda congelado en la reserva. El fallback permite leer
+	-- filas historicas creadas antes de PG16_0010.
+	COALESCE(
+		r.group_minimum_participants_snapshot,
+		p.minimum_participants,
+		0
+	),
 
 	-- Solo las participaciones CONFIRMED forman parte del grupo activo.
 	COALESCE((
@@ -73,6 +78,10 @@ type reservationQueryer interface {
 	QueryRowContext(context.Context, string, ...any) *sql.Row
 }
 
+type reservationExecer interface {
+	ExecContext(context.Context, string, ...any) (sql.Result, error)
+}
+
 func scanReservation(scanner reservationScanner) (models.Reservation, error) {
 	var reservation models.Reservation
 	var activityName, resourceName, userFullName, userEmail, userRUT string
@@ -88,6 +97,7 @@ func scanReservation(scanner reservationScanner) (models.Reservation, error) {
 		&reservation.StartTime,
 		&reservation.DurationMinutes,
 		&reservation.Status,
+		&reservation.CancellationReason,
 		&reservation.CreatedAt,
 		&reservation.UpdatedAt,
 		&activityName,
@@ -154,6 +164,62 @@ func GetAllReservations() ([]models.Reservation, error) {
 		return nil, err
 	}
 	return scanReservationRows(rows)
+}
+
+// ExpirePendingGroupReservations cancela solicitudes grupales que llegaron a
+// su confirmation deadline sin alcanzar el mínimo congelado en la reserva.
+//
+// La operación es atómica e idempotente. El filtro por status=PENDING permite
+// que PostgreSQL vuelva a evaluar la fila si una incorporación concurrente la
+// confirmó mientras este UPDATE esperaba su bloqueo.
+func ExpirePendingGroupReservations(now time.Time) (int64, error) {
+	return expirePendingGroupReservations(
+		context.Background(),
+		database.DB,
+		now,
+	)
+}
+
+func expirePendingGroupReservations(
+	ctx context.Context,
+	execer reservationExecer,
+	now time.Time,
+) (int64, error) {
+	result, err := execer.ExecContext(
+		ctx,
+		`
+		UPDATE reservations reservation
+		SET
+			status = 'CANCELLED',
+			cancellation_reason = $2
+		FROM reservation_policies policy
+		WHERE policy.id = reservation.policy_id
+		  AND reservation.status = 'PENDING'
+		  AND reservation.group_capacity_snapshot IS NOT NULL
+		  AND reservation.start_time
+			  - make_interval(
+					mins => policy.confirmation_deadline_minutes
+				)
+			  <= $1
+		  AND (
+			SELECT COUNT(*)
+			FROM participants participant
+			WHERE participant.reservation_id = reservation.id
+			  AND participant.status = 'CONFIRMED'
+		  ) < COALESCE(
+			reservation.group_minimum_participants_snapshot,
+			policy.minimum_participants
+		  )
+		`,
+		now,
+		models.CancellationReasonMinimumNotMet,
+	)
+
+	if err != nil {
+		return 0, err
+	}
+
+	return result.RowsAffected()
 }
 
 func GetReservationsByUserID(userID int) ([]models.Reservation, error) {
@@ -490,25 +556,25 @@ func AddReservationWithPolicy(
 	// versionada mediante reservation_policy_group_resources. De esta
 	// forma la configuración puede cambiar sin modificar código Go.
 
-	var isGroupReservation bool
+	var groupMinimumParticipants sql.NullInt64
 
 	err = tx.QueryRowContext(
 		ctx,
 		`
-		SELECT EXISTS (
-			SELECT 1
-			FROM reservation_policy_group_resources
-			WHERE policy_id = $1
-			  AND resource_id = $2
-		)
+		SELECT minimum_participants
+		FROM reservation_policy_group_resources
+		WHERE policy_id = $1
+		  AND resource_id = $2
 		`,
 		policy.ID,
 		reservation.ResourceID,
-	).Scan(&isGroupReservation)
+	).Scan(&groupMinimumParticipants)
 
-	if err != nil {
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return models.Reservation{}, err
 	}
+
+	isGroupReservation := groupMinimumParticipants.Valid
 
 	// ------------------------------------------------------------
 	// Reserva no grupal.
@@ -592,8 +658,10 @@ func AddReservationWithPolicy(
 
 	// El mínimo nunca puede ser cero, negativo ni superar la capacidad
 	// disponible del recurso.
-	if policy.MinimumParticipants <= 0 ||
-		policy.MinimumParticipants >
+	minimumParticipants := int(groupMinimumParticipants.Int64)
+
+	if minimumParticipants <= 0 ||
+		minimumParticipants >
 			int(capacity.Int64) {
 
 		return models.Reservation{},
@@ -616,7 +684,7 @@ func AddReservationWithPolicy(
 
 	// Se mantiene la lógica genérica por si una futura política define
 	// un grupo cuyo mínimo sea un único participante.
-	if policy.MinimumParticipants <= 1 {
+	if minimumParticipants <= 1 {
 		initialStatus =
 			models.ReservationStatusConfirmed
 	}
@@ -638,7 +706,8 @@ func AddReservationWithPolicy(
 			duration_minutes,
 			status,
 			join_code_hash,
-			group_capacity_snapshot
+			group_capacity_snapshot,
+			group_minimum_participants_snapshot
 		)
 		VALUES (
 			$1,
@@ -649,7 +718,8 @@ func AddReservationWithPolicy(
 			$6,
 			$7,
 			$8,
-			$9
+			$9,
+			$10
 		)
 		RETURNING id
 		`,
@@ -662,6 +732,7 @@ func AddReservationWithPolicy(
 		initialStatus,
 		codeHash(joinCode),
 		int(capacity.Int64),
+		minimumParticipants,
 	).Scan(&reservationID)
 
 	if err != nil {
@@ -727,7 +798,7 @@ func AddReservationWithPolicy(
 	created.IsGroupReservation = true
 	created.ParticipantCount = 1
 	created.MinimumParticipants =
-		policy.MinimumParticipants
+		minimumParticipants
 	created.Capacity = &capacityValue
 
 	// La condición grupal es independiente de reservation.status.
@@ -741,7 +812,7 @@ func AddReservationWithPolicy(
 		participantGroupCondition(
 			initialStatus,
 			1,
-			policy.MinimumParticipants,
+			minimumParticipants,
 		)
 
 	// Ninguna parte de la reserva queda persistida hasta que todas

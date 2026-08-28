@@ -143,28 +143,29 @@ func TestCreateGroupReservationIntegration(t *testing.T) {
 
 	// Confirmamos que el recurso pertenece explícitamente al flujo grupal
 	// de la política vigente y no depende de un ID hardcodeado en Go.
-	var isGroupResource bool
+	var configuredMinimum int
 
 	err = database.DB.QueryRowContext(
 		ctx,
 		`
-		SELECT EXISTS (
-			SELECT 1
-			FROM reservation_policy_group_resources
-			WHERE policy_id = $1
-			  AND resource_id = $2
-		)
+		SELECT minimum_participants
+		FROM reservation_policy_group_resources
+		WHERE policy_id = $1
+		  AND resource_id = $2
 		`,
 		policyID,
 		resourceID,
-	).Scan(&isGroupResource)
+	).Scan(&configuredMinimum)
 
 	if err != nil {
 		t.Fatalf("check group resource: %v", err)
 	}
 
-	if !isGroupResource {
-		t.Fatal("Cancha 1 is not configured as group resource")
+	if configuredMinimum <= 0 {
+		t.Fatalf(
+			"Cancha 1 has invalid configured minimum: %d",
+			configuredMinimum,
+		)
 	}
 
 	// ------------------------------------------------------------
@@ -329,9 +330,10 @@ func TestCreateGroupReservationIntegration(t *testing.T) {
 		)
 	}
 
-	if created.MinimumParticipants != 10 {
+	if created.MinimumParticipants != configuredMinimum {
 		t.Fatalf(
-			"expected minimum 10, got %d",
+			"expected configured minimum %d, got %d",
+			configuredMinimum,
 			created.MinimumParticipants,
 		)
 	}
@@ -376,8 +378,9 @@ func TestCreateGroupReservationIntegration(t *testing.T) {
 	// ------------------------------------------------------------
 
 	var (
-		storedHash       string
-		capacitySnapshot int
+		storedHash              string
+		capacitySnapshot        int
+		minimumParticipantsSnap int
 	)
 
 	err = database.DB.QueryRowContext(
@@ -385,7 +388,8 @@ func TestCreateGroupReservationIntegration(t *testing.T) {
 		`
 		SELECT
 			join_code_hash,
-			group_capacity_snapshot
+			group_capacity_snapshot,
+			group_minimum_participants_snapshot
 		FROM reservations
 		WHERE id = $1
 		`,
@@ -393,6 +397,7 @@ func TestCreateGroupReservationIntegration(t *testing.T) {
 	).Scan(
 		&storedHash,
 		&capacitySnapshot,
+		&minimumParticipantsSnap,
 	)
 
 	if err != nil {
@@ -416,6 +421,14 @@ func TestCreateGroupReservationIntegration(t *testing.T) {
 			"expected stored capacity %d, got %d",
 			capacity,
 			capacitySnapshot,
+		)
+	}
+
+	if minimumParticipantsSnap != created.MinimumParticipants {
+		t.Fatalf(
+			"expected stored minimum %d, got %d",
+			created.MinimumParticipants,
+			minimumParticipantsSnap,
 		)
 	}
 

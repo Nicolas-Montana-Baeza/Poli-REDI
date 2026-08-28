@@ -21,10 +21,18 @@ var (
 )
 
 func GetReservations() ([]models.Reservation, error) {
+	if err := runReservationHousekeeping(); err != nil {
+		return nil, err
+	}
+
 	return repositories.GetAllReservations()
 }
 
 func GetAvailabilityItems(from, to time.Time, userID int, isAdmin bool) ([]models.AvailabilityItem, error) {
+	if err := runReservationHousekeeping(); err != nil {
+		return nil, err
+	}
+
 	reservations, err := repositories.GetActiveReservationsForAvailability(from, to, userID, isAdmin)
 
 	if err != nil {
@@ -157,10 +165,18 @@ func GetMyReservations(userID int) ([]models.Reservation, error) {
 		return nil, errors.New("usuario autenticado es obligatorio")
 	}
 
+	if err := runReservationHousekeeping(); err != nil {
+		return nil, err
+	}
+
 	return repositories.GetReservationsByUserID(userID)
 }
 
 func GetReservationDetail(id int, requestedBy models.LocalAuthUser) (models.Reservation, error) {
+	if err := runReservationHousekeeping(); err != nil {
+		return models.Reservation{}, err
+	}
+
 	reservation, err := repositories.GetReservationByID(id)
 	if errors.Is(err, sql.ErrNoRows) {
 		return models.Reservation{}, ErrReservationNotFound
@@ -198,6 +214,10 @@ func createReservationAt(
 
 	if reservation.StartTime.Before(now) {
 		return models.Reservation{}, errors.New("no puedes crear reservas en el pasado")
+	}
+
+	if err := runReservationHousekeepingAt(now); err != nil {
+		return models.Reservation{}, err
 	}
 
 	resource, err := repositories.GetResourceByID(reservation.ResourceID)
@@ -312,6 +332,10 @@ func cancelReservationAt(
 		return models.Reservation{}, errors.New("usuario autenticado es obligatorio")
 	}
 
+	if err := runReservationHousekeepingAt(now); err != nil {
+		return models.Reservation{}, err
+	}
+
 	cancelledReservation, err := repositories.CancelReservationAuthorized(reservationID, requestedByUser, now)
 	if errors.Is(err, sql.ErrNoRows) {
 		return models.Reservation{}, ErrReservationNotFound
@@ -331,6 +355,17 @@ func cancelReservationAt(
 	}
 
 	return cancelledReservation, nil
+}
+
+func runReservationHousekeeping() error {
+	return runReservationHousekeepingAt(
+		businessclock.Now(),
+	)
+}
+
+func runReservationHousekeepingAt(now time.Time) error {
+	_, err := repositories.ExpirePendingGroupReservations(now)
+	return err
 }
 
 func validateCancellationStatus(status string) error {

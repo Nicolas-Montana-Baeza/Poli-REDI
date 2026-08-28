@@ -1,6 +1,6 @@
 # Poli-REDI - Instalacion y ejecucion local
 
-Fecha de corte: 2026-08-20
+Fecha de corte: 2026-08-25
 
 ## Objetivo
 
@@ -67,11 +67,11 @@ PG16_0006_mvp2_institutional_availability.sql
 PG16_0007_mvp2_schedule_exceptions.sql
 PG16_0008_mvp2_schedule_exception_availability.sql
 PG16_0009_full_notifications.sql
+PG16_0010_mvp2_group_resource_rules.sql
 ```
 
-El instalador automatiza actualmente `0001` a `0003`.
-
-Las migraciones `0004` a `0008` forman parte de MVP2, pero su aplicacion automatica mediante Quadlet sigue pendiente.
+El instalador automatiza actualmente el bootstrap, `0001` a `0003`, el seed
+MVP1 y `0004` a `0010` para todo volumen nuevo.
 
 Por eso el instalador genera:
 
@@ -81,7 +81,22 @@ MVP_SCOPE=mvp1
 
 como valor seguro.
 
-No usar `MVP_SCOPE=mvp2` sobre una base que no tenga las migraciones MVP2 requeridas.
+Un volumen existente no vuelve a ejecutar los archivos de inicializacion. En
+ese caso las migraciones nuevas deben aplicarse explicitamente antes de usar
+`MVP_SCOPE=mvp2`.
+
+## Verificacion limpia MVP2
+
+Desde la raiz del repositorio:
+
+```bash
+bash infra/local/quadlet/verify-mvp2-ephemeral.sh
+```
+
+La verificacion crea otra base y otro volumen, aplica `0001` a `0010`, ejecuta
+la comprobacion SQL, la suite Go con integraciones, `go vet`, las pruebas
+frontend y el build. El entorno efimero se elimina al terminar y no modifica
+la instancia habitual.
 
 ## Variables del backend
 

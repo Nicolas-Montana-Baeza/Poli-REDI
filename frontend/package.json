@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "node --test src/utils/businessTime.test.js src/utils/reservationRules.test.js src/utils/availabilityRules.test.js src/utils/reservationFocus.test.js src/config/appScope.test.js"
+    "test": "node --test src/utils/businessTime.test.js src/utils/reservationRules.test.js src/utils/availabilityRules.test.js src/utils/reservationFocus.test.js src/utils/reservationTime.test.js src/config/appScope.test.js"
   },
   "dependencies": {
     "@azure/msal-browser": "^5.11.0",

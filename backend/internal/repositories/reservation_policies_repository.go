@@ -405,11 +405,13 @@ func PublishReservationPolicy(
 			`
 			INSERT INTO reservation_policy_group_resources (
 				policy_id,
-				resource_id
+				resource_id,
+				minimum_participants
 			)
 			SELECT
 				$1,
-				old_group.resource_id
+				old_group.resource_id,
+				old_group.minimum_participants
 			FROM reservation_policy_group_resources old_group
 			INNER JOIN reservation_policy_resources new_scope
 				ON new_scope.policy_id = $1
