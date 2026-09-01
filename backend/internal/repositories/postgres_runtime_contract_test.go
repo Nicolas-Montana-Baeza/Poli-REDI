@@ -370,6 +370,12 @@ func TestMVP2EphemeralVerificationContracts(t *testing.T) {
 		"VITE_MVP_SCOPE='MVP2'",
 		"NPM RUN BUILD",
 		"PODMAN VOLUME RM",
+		"CHMOD 0755 \"${RUNTIME_DIR}\"",
+		"WAIT_UNTIL_INITIALIZED",
+		"POSTGRESQL INIT PROCESS COMPLETE; READY FOR START UP.",
+		"FRONTEND_RUNTIME_DIR",
+		"--EXCLUDE='./NODE_MODULES'",
+		"NPM CI",
 	} {
 		if !strings.Contains(script, required) {
 			t.Fatalf(

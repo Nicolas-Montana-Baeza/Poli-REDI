@@ -1,8 +1,10 @@
 # Checklist de cierre MVP2
 
-Fecha de corte: 2026-08-25  
-Rama de trabajo: `feature/mvp2`  
-Estado: **EN VALIDACION 14D**
+Fecha de corte: 2026-09-01
+
+Rama de trabajo: `feature/mvp2`
+
+Estado: **EN VALIDACION MANUAL LOCAL**
 
 ## Alcance de este cierre
 
@@ -53,14 +55,18 @@ lista de espera ni nuevos actores.
 
 - [x] Existe verificacion SQL MVP2 independiente.
 - [x] Existe un script que crea un contenedor y volumen efimeros sin tocar la base habitual.
-- [ ] Ejecutar desde cero `PG16_0001` a `PG16_0010` en la base efimera.
-- [ ] Ejecutar toda la suite Go con `POLIREDI_INTEGRATION=1` contra esa base.
-- [ ] Ejecutar `go vet ./...` contra el corte.
+- [x] Ejecutar desde cero `PG16_0001` a `PG16_0010` en la base efimera.
+- [x] Ejecutar toda la suite Go con `POLIREDI_INTEGRATION=1` contra esa base.
+- [x] Ejecutar `go vet ./...` contra el corte.
 - [x] Suite Go local sin integracion externa aprobada.
 - [x] Suite frontend local aprobada: 27 pruebas.
 - [x] Build Vite local aprobado: 1880 modulos.
 - [x] `git diff --check` aprobado.
-- [ ] Registrar el resultado final de `verify-mvp2-ephemeral.sh`.
+- [x] Registrar el resultado final de `verify-mvp2-ephemeral.sh`.
+
+Evidencia del 2026-09-01: `CIERRE AUTOMATIZADO MVP2: PASS`. La ejecucion
+incluyo la cadena limpia de PostgreSQL 16, verificacion SQL, integraciones Go,
+`go vet`, 27 pruebas frontend y build Vite en un entorno Linux temporal.
 
 Comando unico de cierre automatizado:
 

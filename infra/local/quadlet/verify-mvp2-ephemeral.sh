@@ -8,8 +8,15 @@ readonly volume_name="poliredi-mvp2-verify-${UID}-$$"
 readonly postgres_image="docker.io/library/postgres:16-alpine"
 
 runtime_dir="$(mktemp -d "${TMPDIR:-/tmp}/poliredi-mvp2-init.XXXXXX")"
+readonly frontend_runtime_dir="${runtime_dir}/frontend"
 owner_password=""
 app_password=""
+
+# mktemp crea el directorio con modo 0700. El proceso postgres del contenedor
+# necesita atravesarlo para leer los scripts montados como solo lectura. Los
+# archivos no contienen secretos y se mantienen en 0644; las contrasenas se
+# entregan exclusivamente mediante variables de entorno.
+chmod 0755 "${runtime_dir}"
 
 require_command() {
     if ! command -v "$1" >/dev/null 2>&1; then
@@ -92,9 +99,51 @@ wait_until_healthy() {
     return 1
 }
 
+wait_until_initialized() {
+    local attempt state initialization_log query_result
+
+    for attempt in $(seq 1 90); do
+        initialization_log="$(podman logs "${container_name}" 2>&1 || true)"
+
+        if [[ "${initialization_log}" == *'PostgreSQL init process complete; ready for start up.'* ]]; then
+            query_result="$(
+                podman exec "${container_name}" \
+                    psql \
+                        --username=poliredi_owner \
+                        --dbname=poliredi \
+                        --no-psqlrc \
+                        --tuples-only \
+                        --no-align \
+                        --command='SELECT 1' \
+                    2>/dev/null || true
+            )"
+
+            if [[ "${query_result}" == "1" ]]; then
+                return
+            fi
+        fi
+
+        state="$(
+            podman inspect \
+                --format '{{.State.Status}}' \
+                "${container_name}" 2>/dev/null || true
+        )"
+
+        if [[ "${state}" == "exited" || "${state}" == "stopped" ]]; then
+            printf 'PostgreSQL efimero termino durante la inicializacion.\n' >&2
+            return 1
+        fi
+
+        sleep 2
+    done
+
+    printf 'PostgreSQL efimero no completo las migraciones dentro del plazo.\n' >&2
+    return 1
+}
+
 trap cleanup EXIT INT TERM
 
-for command_name in podman go node npm install mktemp seq; do
+for command_name in podman go node npm install mktemp mkdir seq tar; do
     require_command "${command_name}"
 done
 
@@ -166,6 +215,7 @@ podman run --detach \
     "${postgres_image}" >/dev/null
 
 wait_until_healthy
+wait_until_initialized
 
 port_mapping="$(podman port "${container_name}" 5432/tcp | tail -n 1)"
 host_port="${port_mapping##*:}"
@@ -204,13 +254,22 @@ printf '=== Ejecutando backend e integraciones contra la base efimera ===\n'
 )
 
 printf '=== Ejecutando frontend MVP2 ===\n'
+mkdir -p "${frontend_runtime_dir}"
 (
     cd "${repository_root}/frontend"
+    tar \
+        --exclude='./node_modules' \
+        --exclude='./dist' \
+        --exclude='./.env' \
+        --exclude='./.env.*' \
+        -cf - \
+        .
+) | tar -xf - -C "${frontend_runtime_dir}"
 
-    if [[ ! -d node_modules ]]; then
-        npm ci
-    fi
+(
+    cd "${frontend_runtime_dir}"
 
+    npm ci
     npm test
 
     VITE_MVP_SCOPE='mvp2' \
