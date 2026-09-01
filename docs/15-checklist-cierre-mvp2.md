@@ -97,12 +97,26 @@ MVP2. Antes de declarar el incremento completamente entregado:
 
 - [ ] PostgreSQL online creado desde la cadena aprobada.
 - [ ] Secretos fuera del repositorio y usuario de aplicacion sin privilegios globales.
-- [ ] Backend desplegado con `MVP_SCOPE=mvp2` y autenticacion de desarrollo deshabilitada.
-- [ ] Frontend compilado con `VITE_MVP_SCOPE=mvp2` y URL real de la API.
+- [x] Backend desplegado con `MVP_SCOPE=mvp2` y autenticacion de desarrollo deshabilitada.
+- [x] Frontend compilado con `VITE_MVP_SCOPE=mvp2` y URL real de la API.
 - [ ] CORS, HTTPS y autenticacion institucional comprobados.
 - [ ] Smoke test online de crear, unir, retirar, cancelar y expirar.
 - [ ] Evidencia de logs sin datos personales ni secretos.
 - [ ] Procedimiento de rollback probado o documentado.
+
+Evidencia online de desarrollo del 2026-09-01:
+
+- acceso publico mediante Tailscale Funnel y HTTPS aprobado;
+- frontend servido por Caddy sobre Podman;
+- `/api/health` aprobado a traves del extremo publico;
+- Microsoft Entra ID probado con `DEV_AUTH_ENABLED=false`;
+- token `access_as_user` enviado al backend;
+- issuer v2 validado por la API;
+- `/api/me` autenticado respondio `200 OK`.
+
+Esta evidencia corresponde al entorno online de desarrollo con PostgreSQL 16
+local. No acredita todavia una base PostgreSQL desplegada en infraestructura
+externa ni reemplaza el smoke test funcional pendiente.
 
 ## Criterio de salida
 
