@@ -26,15 +26,15 @@ PG16_0010_mvp2_group_resource_rules.sql
 
 Los scripts T-SQL historicos ubicados directamente bajo `database/` no pertenecen a esta linea de migraciones.
 
-## Requisitos locales
+## Requisitos de desarrollo y verificación
 
 - Linux o WSL.
 - Podman rootless.
 - cgroup v2.
 - systemd de usuario.
-- Podman Quadlet.
+- Podman y systemd de usuario.
 
-## Instalacion local
+## Crear una base limpia de desarrollo
 
 Desde la raiz:
 
@@ -42,7 +42,9 @@ Desde la raiz:
 bash infra/local/quadlet/install.sh install
 ```
 
-El instalador genera credenciales aleatorias fuera del repositorio y levanta PostgreSQL 16.
+El instalador Quadlet genera credenciales fuera del repositorio y levanta una
+base PostgreSQL 16 de desarrollo. El despliegue vigente usa Podman Compose y un
+volumen externo; consultar `docs/10-guia-redeploy.md`.
 
 PostgreSQL se publica en:
 
@@ -97,7 +99,7 @@ cd backend
 go run ./cmd
 ```
 
-## Operacion
+## Operación de la base de desarrollo Quadlet
 
 ```bash
 bash infra/local/quadlet/install.sh status

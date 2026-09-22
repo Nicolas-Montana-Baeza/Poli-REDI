@@ -17,6 +17,17 @@ flowchart LR
   API --> Frontend
 ```
 
+Vista de despliegue vigente:
+
+```mermaid
+flowchart LR
+  Internet --> Funnel["Tailscale Funnel"]
+  Funnel --> Caddy["Caddy :8443"]
+  Caddy --> Static["Frontend Vue compilado"]
+  Caddy --> API["Backend Go/Fiber"]
+  API --> DB["PostgreSQL 16"]
+```
+
 ## Frontend
 
 El frontend vive en `frontend/` y usa:
@@ -125,13 +136,18 @@ sequenceDiagram
 
 ## Despliegue
 
-La demo online inicial usa:
+El despliegue vigente usa tres contenedores administrados como un stack:
 
-- Frontend: Azure Static Web Apps.
-- Backend: Azure App Service con Docker.
-- Base de datos: PostgreSQL 16.
-- Variables frontend `VITE_*` desde GitHub Actions.
-- Variables backend en App Service.
+- PostgreSQL 16 con volumen externo persistente.
+- Backend Go/Fiber en Podman.
+- Caddy sirviendo `frontend/dist` y actuando como proxy de `/api/*`.
+- Podman Compose como unidad operativa.
+- systemd de usuario para iniciar el stack al arrancar Debian.
+- Tailscale Funnel publicando Caddy en HTTPS.
+
+La definición operativa vive en el repositorio `poliredi-infra`. La antigua demo
+en Azure Static Web Apps/App Service y Azure SQL es historia arquitectónica y no
+representa el entorno desplegado actual.
 
 ## Arquitectura de politicas de reserva
 

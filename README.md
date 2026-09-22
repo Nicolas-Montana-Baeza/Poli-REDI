@@ -17,7 +17,8 @@ El MVP 1 cubre el flujo base de reservas deportivas:
 - Listado de mis reservas, detalle, historial y cancelacion.
 - Panel administrador base con usuarios, recursos y reportes iniciales.
 - Notificaciones internas basicas.
-- Demo online inicial en Azure con frontend, backend, base de datos y autenticacion real.
+- Demo self-hosted con PostgreSQL, backend y frontend/Caddy administrados por
+  Podman Compose, autenticación Entra ID y publicación mediante Tailscale Funnel.
 
 Quedan fuera del MVP 1 la gestion completa de bloqueos, CRUD avanzado de recursos, infracciones, programacion institucional y endurecimiento de despliegue productivo institucional.
 
@@ -67,12 +68,16 @@ Actualizacion 2026-08-20:
 - Migraciones vigentes en `database/postgres/migrations/`
 - Scripts Azure SQL / SQL Server conservados como legado en la raiz de `database/`
 
-### Despliegue online inicial
+### Despliegue vigente
 
-- Frontend en Azure Static Web Apps
-- Backend en Azure App Service con Docker
-- Variables `VITE_*` inyectadas desde GitHub Actions
-- Microsoft Entra ID configurado para local y nube
+- Podman Compose con PostgreSQL 16, backend Go y Caddy/frontend.
+- Volumen PostgreSQL externo y persistente.
+- Servicio systemd de usuario para el arranque del stack en Debian.
+- Tailscale Funnel para acceso HTTPS público.
+- Microsoft Entra ID para autenticación real.
+
+Azure Static Web Apps, App Service y Azure SQL corresponden a una demo histórica
+de julio de 2026 y no describen el entorno operativo actual.
 
 ## Estructura del proyecto
 
@@ -83,6 +88,7 @@ Poli-REDI/
   docs/         Documentacion tecnica del proyecto
   frontend/     Aplicacion Vue/Vite
   files/        Archivos de apoyo para datos
+  infra/        Verificación local y referencia del stack
 ```
 
 ## Requisitos
@@ -126,7 +132,8 @@ Las credenciales deben mantenerse fuera de Git.
 
 `DATABASE_URL` tiene precedencia sobre las variables `PG*`.
 
-El instalador Quadlet genera credenciales locales seguras fuera del repositorio.
+El instalador Quadlet genera credenciales para bases limpias de desarrollo. El
+runtime desplegado se administra desde `poliredi-infra` con Podman Compose.
 
 ## Configuracion del frontend
 
@@ -151,13 +158,13 @@ VITE_ENTRA_API_SCOPE=
 
 La persistencia vigente utiliza PostgreSQL 16.
 
-La baseline local MVP1 puede instalarse con:
+Una base limpia para desarrollo o verificación puede instalarse con:
 
 ```bash
 bash infra/local/quadlet/install.sh install
 ```
 
-El provisionamiento automatico actual aplica:
+El provisionamiento limpio aplica:
 
 - bootstrap del rol local;
 - `PG16_0001` a `PG16_0003`;
@@ -265,17 +272,18 @@ GET /api/notifications
 
 En modo `DEV_AUTH_ENABLED=true`, las rutas protegidas tambien pueden probarse con los headers locales enviados por el frontend de desarrollo.
 
-## Demo online
+## Demo desplegada
 
-La demo online inicial usa:
+La aplicación vigente se publica mediante Tailscale Funnel:
 
 ```txt
-Frontend: https://purple-ground-0205c9f10.7.azurestaticapps.net/
-Backend:  https://poli-redi.azurewebsites.net
-Health:   https://poli-redi.azurewebsites.net/api/health
+Aplicación: https://desktop-epot7cf.tail16d8fb.ts.net
+Health:     https://desktop-epot7cf.tail16d8fb.ts.net/api/health
 ```
 
-Para nube, `CORS_ALLOWED_ORIGINS` debe incluir la URL de Static Web Apps y el frontend debe compilarse con `VITE_API_BASE_URL` apuntando al backend Azure.
+El frontend público utiliza `VITE_API_BASE_URL=/api`; Caddy entrega los archivos
+estáticos y redirige `/api/*` al backend dentro del stack. La operación,
+actualización y recuperación están en `docs/10-guia-redeploy.md`.
 
 ## Checklist MVP 1
 
@@ -306,12 +314,15 @@ El checklist MVP1 esta en `docs/12-checklist-demo-mvp1.md` y el cierre MVP2 en `
 - `docs/07-backlog.md`: backlog maestro y estado de tareas.
 - `docs/08-requisitos-historias-casos-uso.md`: requisitos y casos de uso vigentes.
 - `docs/09-mvps-roadmap.md`: estado y criterio de cierre por incremento.
-- `docs/10-guia-redeploy.md`: ejecucion local y redeploy en Azure.
+- `docs/10-guia-redeploy.md`: despliegue y operación vigente con Podman Compose,
+  Caddy, systemd y Tailscale Funnel.
 - `docs/11-plan-corte-google-calendar.md`: plan de transicion desde Google Calendar legado.
 - `docs/12-checklist-demo-mvp1.md`: validacion manual y evidencia automatizada.
 - `docs/13-estado-actual-producto.md`: analisis de producto, contradicciones y decisiones pendientes.
 - `docs/14-evolucion-y-trazabilidad-requisitos.md`: ingenieria inversa, genealogia y versionado conceptual de requisitos.
 - `docs/15-checklist-cierre-mvp2.md`: compuerta local, integrada y online para cerrar MVP2.
+- `docs/16-matriz-vigencia-documental.md`: clasificación entre documentación
+  vigente, histórica y mixta.
 
 ## Seguridad
 

@@ -8,11 +8,11 @@ Este backlog consolida las tareas reales detectadas durante la revision inicial,
 
 La idea es usar este documento como base para crear issues en GitHub Projects o para delegar tareas puntuales a Codex.
 
-## Estado base verificado
+## Estado base histórico verificado
 
 Fecha base funcional: 2026-07-14. Evidencia automatizada actualizada: 2026-08-20.
 
-Estado actual:
+Estado registrado en ese corte histórico:
 
 - Backend Go/Fiber ejecutando localmente.
 - Frontend Vue/Vite ejecutando localmente.

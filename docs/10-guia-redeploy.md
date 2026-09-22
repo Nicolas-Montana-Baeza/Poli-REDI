@@ -1,449 +1,261 @@
-# Poli-REDI - Guia de despliegue y redeploy
+# Poli-REDI - Despliegue y operación vigente
 
-## Objetivo
+Fecha de corte: 2026-09-22
 
-Esta guia deja un flujo estable para levantar Poli-REDI en local y redeployar la demo online en Azure sin depender de pasos improvisados.
+## Propósito
 
-Arquitectura actual:
+Esta guía describe el despliegue vigente de Poli-REDI en Debian sobre WSL:
 
-- Frontend: Vue/Vite en Azure Static Web Apps.
-- Backend: Go/Fiber en Azure App Service con contenedor Docker.
-- Base de datos del runtime vigente: PostgreSQL 16. La demo Azure documentada originalmente utilizo Azure SQL y debe considerarse despliegue historico hasta revalidar un backend online con PostgreSQL.
-- Autenticacion: Microsoft Entra ID.
-- CI/CD frontend: GitHub Actions.
+- PostgreSQL 16;
+- backend Go/Fiber;
+- frontend Vue/Vite servido por Caddy;
+- tres contenedores administrados como un solo stack con Podman Compose;
+- arranque mediante un servicio systemd de usuario;
+- publicación HTTPS mediante Tailscale Funnel.
 
+La antigua demo de Azure Static Web Apps, Azure App Service y Azure SQL es un
+antecedente histórico. No debe utilizarse como receta de despliegue actual.
 
-> **Estado EV-011:** las URL de frontend/backend Azure que aparecen en esta guia corresponden a la demo existente, pero la configuracion de base de datos Azure SQL ya no representa la arquitectura vigente. Antes de redeployar el backend actual debe existir una instancia PostgreSQL accesible desde App Service (Azure Database for PostgreSQL u otro servicio compatible) y definirse `DATABASE_URL`/`PG*`. No asumir que la demo online actual esta sincronizada con PostgreSQL hasta verificarlo.
+## Arquitectura desplegada
 
-URLs actuales:
-
-```txt
-Frontend:
-https://purple-ground-0205c9f10.7.azurestaticapps.net/
-
-Backend:
-https://poli-redi.azurewebsites.net
-
-Health check:
-https://poli-redi.azurewebsites.net/api/health
+```text
+Internet
+  -> Tailscale Funnel :443
+  -> https+insecure://localhost:8443
+  -> Caddy
+       -> /api/* -> backend:3000
+       -> /*     -> frontend estático
+  -> backend
+  -> PostgreSQL 16
 ```
 
-## 1. Regla rapida
+El stack está versionado en el repositorio de infraestructura:
 
-Usar este criterio antes de redeployar:
+```text
+~/projects/poliredi-infra/
+├── compose/
+│   ├── compose.yaml
+│   ├── Caddyfile
+│   ├── README.md
+│   └── OPERACION.md
+└── systemd/
+    └── poliredi-stack.service
+```
 
-| Cambio realizado | Accion necesaria |
-| --- | --- |
-| Solo frontend | Push a `main`; GitHub Actions redeploya Static Web Apps |
-| Solo variables `VITE_*` | Reejecutar workflow o hacer commit vacio |
-| Solo backend | Construir nueva imagen Docker, publicarla, actualizar tag en App Service y reiniciar |
-| Backend y frontend | Probar local, push a `main`, esperar frontend, luego redeploy backend |
-| Base de datos PostgreSQL | Aplicar migraciones `PG16_*` de forma controlada; no ejecutar scripts T-SQL legacy contra PostgreSQL |
-| Datos demo de hoy | Ejecutar `database/seed_today_temp.sql` despues del seed normal |
+El repositorio de la aplicación permanece en `~/projects/poliredi`.
 
-## 2. Variables obligatorias
+## Componentes y persistencia
 
-### 2.1 Backend local
+| Servicio | Imagen o artefacto | Red y publicación |
+| --- | --- | --- |
+| PostgreSQL | `postgres:16-alpine` | Red interna; `127.0.0.1:55432` para administración local |
+| Backend | `localhost/poliredi-backend:mvp2` | Redes de base y frontend; sin puerto público |
+| Web | `caddy:2.11.4-alpine` + `frontend/dist` | `127.0.0.1:8443` |
 
-Archivo: `backend/.env`
+PostgreSQL utiliza el volumen externo `poliredi-postgres-mvp1-data`. El stack
+adopta ese volumen; no crea otra base ni ejecuta migraciones automáticamente.
+Nunca deben iniciarse dos servidores PostgreSQL sobre el mismo volumen.
+
+## Requisitos del host
+
+- Debian en WSL con systemd.
+- Podman rootless 5.4.2 o compatible.
+- `podman-compose` 1.3.0 o compatible.
+- Tailscale conectado y Funnel autorizado.
+- Imágenes backend y frontend compiladas y validadas.
+
+Fijar el proveedor Linux para no invocar Docker Compose de Windows:
+
+```bash
+export PODMAN_COMPOSE_PROVIDER=/usr/bin/podman-compose
+podman compose version
+```
+
+## Configuración privada
+
+Los archivos privados permanecen fuera de Git:
+
+```text
+~/.config/poli-redi/compose.env
+~/.config/poli-redi/backend.env
+~/.config/containers/systemd/poliredi-postgres.env
+```
+
+`compose.env` define las rutas absolutas y la imagen backend. `backend.env`
+contiene Entra ID, CORS y configuración de la API. Compose fuerza
+`DATABASE_URL` vacía y usa `PGHOST=postgres` con el resto de variables `PG*`.
+
+La contraseña del rol `poliredi_app` se inyecta desde el secreto externo Podman
+`poliredi-postgres-app-password` como `PGPASSWORD`. La configuración `type: env`
+fue validada con podman-compose 1.3.0 y debe revisarse si se cambia de proveedor.
+No regenerar claves de códigos de invitación: podría invalidar códigos vigentes.
+
+El frontend público se compila con:
 
 ```env
-PORT=3000
-CORS_ALLOWED_ORIGINS=http://localhost:5173
-APP_TIMEZONE=America/Santiago
-MVP_SCOPE=mvp1
-
-DATABASE_URL=postgres://poliredi_app:password@127.0.0.1:55432/poliredi?sslmode=disable
-
-ENTRA_TENANT_ID=
-ENTRA_API_CLIENT_ID=
-ENTRA_ISSUER=
-
-DEV_AUTH_ENABLED=true
-```
-
-Notas:
-
-- Las credenciales PostgreSQL nunca deben quedar versionadas.
-- `DATABASE_URL` tiene precedencia sobre variables `PG*`.
-- Para pruebas locales rapidas se puede usar `DEV_AUTH_ENABLED=true`.
-- Para probar Microsoft Entra ID real en local, usar `DEV_AUTH_ENABLED=false`.
-
-### 2.2 Frontend local
-
-Archivo: `frontend/.env`
-
-```env
-VITE_API_BASE_URL=http://localhost:3000/api
-VITE_API_TIMEOUT_MS=30000
-VITE_APP_TIMEZONE=America/Santiago
-
-VITE_ENTRA_TENANT_ID=
-VITE_ENTRA_CLIENT_ID=
-VITE_ENTRA_REDIRECT_URI=http://localhost:5173/auth/callback
-VITE_ENTRA_POST_LOGOUT_REDIRECT_URI=http://localhost:5173/login
-VITE_ENTRA_API_SCOPE=api://ENTRA_API_CLIENT_ID/access_as_user
-
-VITE_DEV_AUTH_ENABLED=true
-```
-
-### 2.3 Backend Azure App Service
-
-Ruta en Azure Portal:
-
-```txt
-App Service > poli-redi > Settings > Environment variables
-```
-
-Variables:
-
-```env
-PORT=3000
-CORS_ALLOWED_ORIGINS=https://purple-ground-0205c9f10.7.azurestaticapps.net
-APP_TIMEZONE=America/Santiago
-
-# Configurar cuando exista la instancia PostgreSQL online:
-DATABASE_URL=postgres://USER:PASSWORD@POSTGRES_HOST:5432/poliredi?sslmode=require
-MVP_SCOPE=mvp1
-
-ENTRA_TENANT_ID=
-ENTRA_API_CLIENT_ID=
-ENTRA_ISSUER=
-
-DEV_AUTH_ENABLED=false
-```
-
-Reglas:
-
-- En nube, `DEV_AUTH_ENABLED` debe ser `false`.
-- `CORS_ALLOWED_ORIGINS` debe contener solo origenes necesarios. Para demo publica basta la URL de Static Web Apps.
-- Si se necesita probar local contra backend online temporalmente, agregar `http://localhost:5173` solo durante la prueba y retirarlo despues.
-- Reiniciar App Service despues de cambiar variables.
-
-Contrato temporal:
-
-- PostgreSQL es el motor vigente y el contrato temporal debe mantenerse consistente con `APP_TIMEZONE=America/Santiago`.
-- Los instantes persistidos deben conservar semantica explicita y la API serializa fechas sin depender de `DATETIME2`.
-- Una zona invalida impide iniciar el backend con un error de configuracion claro.
-- Antes de validar `RES-009`, comprobar en el ambiente PostgreSQL integrado que una reserva creada para una hora de Chile conserve la misma hora al recargar.
-
-### 2.4 Frontend Azure Static Web Apps
-
-Ruta en GitHub:
-
-```txt
-Repository > Settings > Secrets and variables > Actions > Variables
-```
-
-Variables:
-
-```env
-VITE_API_BASE_URL=https://poli-redi.azurewebsites.net/api
-VITE_API_TIMEOUT_MS=30000
-VITE_APP_TIMEZONE=America/Santiago
-
-VITE_ENTRA_TENANT_ID=
-VITE_ENTRA_CLIENT_ID=
-VITE_ENTRA_REDIRECT_URI=https://purple-ground-0205c9f10.7.azurestaticapps.net/auth/callback
-VITE_ENTRA_POST_LOGOUT_REDIRECT_URI=https://purple-ground-0205c9f10.7.azurestaticapps.net/login
-VITE_ENTRA_API_SCOPE=api://ENTRA_API_CLIENT_ID/access_as_user
-
+VITE_API_BASE_URL=/api
+VITE_MVP_SCOPE=mvp2
 VITE_DEV_AUTH_ENABLED=false
+VITE_ENTRA_REDIRECT_URI=https://desktop-epot7cf.tail16d8fb.ts.net/auth/callback
+VITE_ENTRA_POST_LOGOUT_REDIRECT_URI=https://desktop-epot7cf.tail16d8fb.ts.net/login
 ```
 
-Secret requerido:
+Las demás variables de Entra deben coincidir con el registro de aplicación.
 
-```txt
-AZURE_STATIC_WEB_APPS_API_TOKEN_PURPLE_GROUND_0205C9F10
+## Validar la configuración
+
+```bash
+export PODMAN_COMPOSE_PROVIDER=/usr/bin/podman-compose
+cd ~/projects/poliredi-infra/compose
+podman compose --env-file ~/.config/poli-redi/compose.env config >/dev/null
+
+podman run --rm --network none \
+  -v "$PWD/Caddyfile:/etc/caddy/Caddyfile:ro" \
+  docker.io/library/caddy:2.11.4-alpine \
+  caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
 ```
 
-Workflow:
-
-```txt
-.github/workflows/azure-static-web-apps-purple-ground-0205c9f10.yml
-```
-
-## 3. Ejecucion local
+## Construir una nueva versión
 
 Backend:
 
 ```bash
-cd backend
-go run cmd/main.go
-```
-
-Validar:
-
-```txt
-http://localhost:3000/api/health
+cd ~/projects/poliredi/backend
+podman build -t localhost/poliredi-backend:mvp2 -f Containerfile .
 ```
 
 Frontend:
 
 ```bash
-cd frontend
-npm install
-npm run dev
-```
-
-Abrir:
-
-```txt
-http://localhost:5173
-```
-
-Pruebas recomendadas antes de redeploy:
-
-```bash
-cd backend
-go test ./...
-
-cd ../frontend
+cd ~/projects/poliredi/frontend
+npm ci
 npm test
 npm run build
 ```
 
-Evidencia acumulada:
+El frontend es un bind mount de `frontend/dist`; no requiere reconstruir Caddy.
+Después de reemplazar la imagen backend o el build frontend, recrear el servicio
+afectado y verificar salud. Evitar tags ambiguos para entregas reproducibles.
 
-- Backend, ultima evidencia registrada 2026-07-20: `go test ./...` finaliza correctamente y ejecuta pruebas de reloj, JSON, agenda y servicio de reservas; la cobertura sigue parcial en `QA-001`.
-- Frontend, evidencia 2026-08-20: `npm test` finaliza correctamente con 25 pruebas; faltan componentes Vue, permisos, router y flujos end-to-end en `QA-002`.
-- Frontend, evidencia 2026-08-20: `npm run build` completa el build de produccion.
-- Esta evidencia es local y no sustituye la prueba manual ni la verificacion online posterior al redeploy.
+## Operación
 
-## 4. Base de datos
-
-Scripts principales:
-
-```txt
-database/drop.sql
-database/schema.sql
-database/seed.sql
-```
-
-Flujo para base limpia de desarrollo:
-
-1. Ejecutar `drop.sql`.
-2. Ejecutar `schema.sql`.
-3. Ejecutar `seed.sql`.
-4. Opcional para pruebas de hoy: ejecutar `seed_today_temp.sql`.
-5. Levantar backend y validar `/api/health`.
-6. Abrir frontend y revisar disponibilidad/reservas.
-
-Precauciones:
-
-- No ejecutar `drop.sql` en una base con datos reales sin respaldo.
-- `seed_today_temp.sql` es solo un overlay temporal de prueba.
-- El seed base debe mantenerse estable.
-
-## 5. Redeploy frontend
-
-El frontend se publica automaticamente al hacer push a `main`.
-
-Flujo:
+Estado general:
 
 ```bash
-cd frontend
-npm run build
-
-cd ..
-git status
-git add .
-git commit -m "mensaje del cambio"
-git push origin main
+systemctl --user status poliredi-stack.service --no-pager
+podman ps --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'
+curl --fail --insecure https://localhost:8443/api/health
 ```
 
-Luego revisar:
-
-```txt
-GitHub > Actions > Azure Static Web Apps CI/CD
-```
-
-Si solo cambiaron variables `VITE_*`, hay que forzar un nuevo build:
+Inicio y parada del stack:
 
 ```bash
-git commit --allow-empty -m "chore: trigger frontend redeploy"
-git push origin main
+systemctl --user start poliredi-stack.service
+systemctl --user stop poliredi-stack.service
 ```
 
-Validar:
-
-- La accion termina sin errores.
-- La app carga en la URL de Static Web Apps.
-- El frontend llama a `https://poli-redi.azurewebsites.net/api`, no a `localhost`.
-
-## 6. Redeploy backend
-
-El backend se publica como imagen Docker en Azure App Service.
-
-### 6.1 Construir y publicar imagen
-
-Desde `backend/`:
+Registros:
 
 ```bash
-docker build -t TU_REGISTRY_O_USUARIO/poli-redi-api:TAG .
-docker push TU_REGISTRY_O_USUARIO/poli-redi-api:TAG
+export PODMAN_COMPOSE_PROVIDER=/usr/bin/podman-compose
+cd ~/projects/poliredi-infra/compose
+podman compose --env-file ~/.config/poli-redi/compose.env logs --tail=100
 ```
 
-Usar siempre un `TAG` nuevo. Evitar `latest` para no pelear con cache.
+La unidad es `oneshot` con `RemainAfterExit=yes`; `active (exited)` confirma que
+Compose terminó, no que los contenedores estén saludables. Siempre revisar
+`podman ps` y `/api/health`.
 
-Ejemplos:
+Durante el arranque Caddy puede responder `502` mientras PostgreSQL alcanza
+`healthy` y arranca la API. El estado debe recuperarse sin intervención.
 
-```txt
-2026-07-14-01
-main-042
-mvp1-final-01
+## Publicación con Funnel
+
+Estado esperado:
+
+```bash
+tailscale funnel status
 ```
 
-### 6.2 Actualizar Azure App Service
+Destino:
 
-En Azure Portal:
-
-```txt
-App Service > poli-redi > Deployment Center
+```text
+https://desktop-epot7cf.tail16d8fb.ts.net
+  -> https+insecure://localhost:8443
 ```
 
-Actualizar:
+Validación local con el host público:
 
-- Registry.
-- Image.
-- Tag.
-
-Luego reiniciar:
-
-```txt
-App Service > poli-redi > Overview > Restart
+```bash
+curl --insecure \
+  -H 'Host: desktop-epot7cf.tail16d8fb.ts.net' \
+  https://localhost:8443/api/health
 ```
 
-Validar:
+También debe probarse desde otra red. En el corte, el navegador público funcionó,
+pero `curl` desde Debian al dominio público agotó el tiempo TLS; esta diferencia
+permanece pendiente de investigación.
 
-```txt
-https://poli-redi.azurewebsites.net/api/health
+## Arranque automático
+
+La unidad instalada es:
+
+```text
+~/.config/systemd/user/poliredi-stack.service
 ```
 
-Respuesta esperada:
+Debe estar habilitada y el usuario debe conservar linger:
 
-```json
-{
-  "message": "Poli-REDI API funcionando",
-  "status": "ok"
-}
+```bash
+systemctl --user is-enabled poliredi-stack.service
+loginctl show-user "$USER" -p Linger
 ```
 
-## 7. Checklist antes de publicar
+La prueba del corte confirmó que, después de terminar y volver a abrir Debian,
+systemd inició el stack sin ejecutar Compose manualmente. Esto no inicia WSL por
+sí solo al encender Windows.
 
-Antes de considerar un redeploy como usable para demo:
+## Respaldo y recuperación
 
-- `go test ./...` pasa.
-- `npm run build` pasa.
-- Una vez implementados `QA-001` y `QA-002`, ambas suites descubren y ejecutan pruebas reales.
-- `DEV_AUTH_ENABLED=false` en App Service.
-- `VITE_DEV_AUTH_ENABLED=false` en GitHub Actions Variables.
-- `CORS_ALLOWED_ORIGINS` no queda abierto con `*`.
-- `APP_TIMEZONE=America/Santiago` esta configurada una vez implementado `RES-009`.
-- `DB_PASSWORD` vive solo en Azure App Service o `.env` local.
-- El frontend online apunta al backend online.
-- `/api/health` responde `ok`.
-- Login Microsoft funciona.
-- `/api/me` responde `200` para usuario valido.
-- Usuario normal no ve rutas admin.
-- Crear y cancelar reserva funciona en ambiente de prueba.
-- Una reserva creada con hora de Chile conserva inicio/termino y categoria temporal en frontend online.
+Antes de migraciones o cambios de persistencia, crear un dump en formato custom
+y comprobar su catálogo con `pg_restore --list`. No guardar respaldos ni secretos
+en Git.
 
-## 8. Problemas frecuentes
+Respaldo anterior al corte Compose:
 
-### 8.1 `ERR_CONNECTION_REFUSED`
-
-El frontend intenta llamar a un backend apagado o a `localhost` desde un ambiente incorrecto.
-
-Revisar:
-
-- Backend local encendido si se usa `localhost`.
-- `VITE_API_BASE_URL` en GitHub Actions si ocurre online.
-- App Service iniciado si ocurre en Azure.
-
-### 8.2 Error CORS
-
-Revisar `CORS_ALLOWED_ORIGINS` en App Service.
-
-Para demo online debe incluir:
-
-```txt
-https://purple-ground-0205c9f10.7.azurestaticapps.net
+```text
+~/projects/poliredi-backups/pre-compose-20260922-172926
 ```
 
-Reiniciar App Service despues del cambio.
+Quadlets retirados durante el corte:
 
-### 8.3 `AADSTS50011`
-
-La Redirect URI no esta registrada en Microsoft Entra ID.
-
-Registrar:
-
-```txt
-http://localhost:5173/auth/callback
-https://purple-ground-0205c9f10.7.azurestaticapps.net/auth/callback
+```text
+~/projects/poliredi-backups/corte-compose-20260922-173956/quadlet
 ```
 
-### 8.4 Login correcto pero vuelve a `/login`
+Los Quadlets anteriores no constituyen un rollback listo: la API buscaba
+`poliredi-postgres` sin que la base MVP1 estuviera disponible en su red. Restaurar
+solo los archivos reproduce el fallo. Para volver a Quadlet se debe corregir la
+red o alias, reutilizar PostgreSQL 16 y el secreto validado, detener Compose con
+`down` sin `-v` y confirmar que el volumen está libre antes de iniciar la base.
 
-Revisar en Network:
+Nunca ejecutar `down -v` sobre este stack ni borrar
+`poliredi-postgres-mvp1-data` como parte de un redeploy.
 
-```txt
-GET /api/me
-```
+## Validación mínima posterior a un cambio
 
-Interpretacion:
+1. Los tres contenedores aparecen `healthy`.
+2. `/api/health` responde por Caddy.
+3. El login Microsoft funciona.
+4. `/api/me` responde para una sesión válida.
+5. Se conservan recursos, reservas y participantes existentes.
+6. Disponibilidad, creación, cancelación y códigos grupales funcionan.
+7. Funnel abre la aplicación desde un navegador externo.
+8. El stack vuelve a iniciar después de reiniciar Debian.
 
-- `200`: revisar estado/router frontend.
-- `401`: revisar scope, audience o issuer.
-- `403`: usuario bloqueado o sin permisos.
-- Error CORS: revisar `CORS_ALLOWED_ORIGINS`.
+## Antecedentes históricos
 
-### 8.5 Cambios backend no aparecen
-
-Probables causas:
-
-- App Service sigue apuntando a un tag antiguo.
-- Se uso `latest` y Azure mantuvo cache.
-- Falta reiniciar App Service.
-
-Solucion:
-
-1. Construir imagen con tag nuevo.
-2. Publicar imagen.
-3. Actualizar tag en Deployment Center.
-4. Reiniciar App Service.
-5. Validar `/api/health`.
-
-### 8.6 Pantalla 404 al abrir rutas internas
-
-Revisar:
-
-```txt
-frontend/public/staticwebapp.config.json
-```
-
-Debe existir fallback a `index.html` para que Vue Router maneje rutas como `/login`, `/availability` o `/auth/callback`.
-
-## 9. Seguridad operativa
-
-- No subir `.env`.
-- No copiar passwords en README, docs, issues ni capturas.
-- Mantener secretos backend en Azure App Service.
-- Mantener variables frontend no secretas en GitHub Actions Variables.
-- Las credenciales Azure SQL historicas deben considerarse retiradas/rotadas si alguna vez fueron compartidas; las nuevas credenciales PostgreSQL deben gestionarse como secretos independientes.
-- Mantener modo local (`DEV_AUTH_ENABLED`) desactivado en nube.
-- Evitar CORS amplio en despliegue publico.
-
-## 10. Estado para MVP 1
-
-Con esta guia, el MVP 1 tiene un flujo documentado para:
-
-- Levantar entorno local.
-- Configurar variables seguras.
-- Probar backend/frontend.
-- Redeployar frontend.
-- Redeployar backend Docker.
-- Validar la demo online.
-
-El endurecimiento productivo institucional queda como mejora posterior si Poli-REDI pasa de demo a operacion formal.
+Azure Static Web Apps, Azure App Service, Azure SQL, SQL Server y Docker aparecen
+en documentos de evolución y evidencia de julio de 2026. Esas referencias son
+válidas solo como historia del proyecto. PostgreSQL 16, Podman Compose, Caddy,
+systemd y Tailscale Funnel forman la arquitectura desplegada vigente.

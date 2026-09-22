@@ -109,7 +109,7 @@ El modo `DEV_AUTH_ENABLED=true` es util para pruebas locales, pero debe quedar c
 
 Estado:
 
-- La guia de despliegue exige desactivarlo en Azure y el checklist fue validado (`SEC-004`).
+- La guía de despliegue exige desactivarlo en todo entorno público y el checklist fue validado (`SEC-004`).
 - Un bloqueo automatico de arranque queda como endurecimiento posterior si el sistema pasa de demo a operacion institucional.
 
 ### Contrato temporal de reservas

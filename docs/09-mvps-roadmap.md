@@ -74,11 +74,11 @@ Construir la base operativa del sistema: aplicacion web, API, base de datos real
 - Rutas protegidas con token Bearer.
 - Autenticacion Microsoft Entra ID.
 - Modo local de desarrollo controlado.
-- Despliegue online inicial en Azure.
-- Frontend en Azure Static Web Apps.
-- Backend en Azure App Service.
-- Configuracion de variables de entorno para nube.
-- Rutas SPA configuradas con `staticwebapp.config.json`.
+- Despliegue self-hosted con PostgreSQL, backend y Caddy/frontend en Podman Compose.
+- Arranque del stack mediante systemd de usuario en Debian.
+- Publicación HTTPS mediante Tailscale Funnel.
+- Configuración privada fuera de Git y secretos externos de Podman.
+- La demo Azure de julio se conserva como evidencia histórica de EV-011.
 - CORS configurable por ambiente.
 - Uso del usuario autenticado en operaciones protegidas.
 - Creacion de reservas sin confiar en `userId` enviado por frontend.
@@ -164,7 +164,7 @@ Pulido visible y estabilidad transversal:
 - Validar responsive final del carrusel manual ya implementado (`BACK-018`).
 - Hacer reproducible la instalacion limpia de `frontend/` y retirar duplicados muertos (`BACK-024`).
 - Ampliar la base de regresion frontend, actualmente con 25 pruebas verificadas localmente el 2026-08-20, hacia componentes Vue, permisos, router y navegacion (`QA-002`).
-- Automatizar despliegue del backend Docker si se mantiene App Service con contenedor.
+- Automatizar la construcción y actualización de la imagen backend del stack Podman.
 - Mantener el plan de corte desde Google Calendar antes de mover operacion real (`OPS-001`).
 
 ### Pulidos completados durante reapertura
@@ -472,7 +472,7 @@ En desarrollo.
 - Completar infracciones (`REP-002`).
 - Mantener y completar la guia de despliegue y operacion (`docs/10-guia-redeploy.md`).
 - Ejecutar o cerrar plan de corte desde Google Calendar legado (`OPS-001`).
-- Automatizar o estandarizar redeploy del backend Docker.
+- Automatizar o estandarizar la actualización del backend en Podman Compose.
 - Endurecer configuracion si se pasa de demo online a produccion institucional.
 
 ### Criterio de cierre
@@ -506,7 +506,9 @@ flowchart LR
 
 MVP 1, incluido despliegue online, y gran parte de MVP 2.
 
-La demo puede mostrar login Microsoft Entra ID, perfil/RUT, disponibilidad, creacion de reserva, mis reservas, cancelacion, historial, dashboard y panel admin base desde la URL publica de Azure Static Web Apps.
+La demo puede mostrar login Microsoft Entra ID, perfil/RUT, disponibilidad,
+creación de reserva, mis reservas, cancelación, historial, dashboard y panel
+admin base desde la URL pública de Tailscale Funnel.
 
 ### Presentable como sistema institucional completo
 

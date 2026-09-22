@@ -128,3 +128,4 @@ Esta guia debe mantenerse coherente con:
 - `docs/08-requisitos-historias-casos-uso.md`
 - `docs/09-mvps-roadmap.md`
 - `docs/10-guia-redeploy.md`
+- `docs/16-matriz-vigencia-documental.md`

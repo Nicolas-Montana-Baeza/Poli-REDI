@@ -4,13 +4,18 @@
 
 Este documento registra el estado inicial del proyecto Poli-REDI antes de continuar con nuevas funcionalidades. La idea es partir desde una revision ordenada: entender que existe, que falta, como esta organizado el codigo y que tareas deberian priorizarse.
 
-Nota de mantenimiento: este documento es historico. El estado vigente del proyecto ya usa Azure SQL Database, `github.com/microsoft/go-mssqldb`, frontend Vue/Vite, backend Go/Fiber y demo online inicial en Azure. Para instrucciones actuales usar `README.md`, `docs/01-instalacion-y-ejecucion.md`, `docs/02-arquitectura.md` y `docs/03-base-de-datos.md`.
+> **Documento histórico.** Registra una revisión anterior y contiene decisiones
+> que luego fueron reemplazadas. El estado vigente usa PostgreSQL 16 con `pgx`,
+> Podman Compose, Caddy, systemd y Tailscale Funnel. Para instrucciones actuales
+> usar `README.md`, `docs/01-instalacion-y-ejecucion.md`,
+> `docs/02-arquitectura.md`, `docs/10-guia-redeploy.md` y
+> `docs/16-matriz-vigencia-documental.md`.
 
 ## Descripcion general
 
 Poli-REDI es un sistema web para la gestion de reservas deportivas. El proyecto contempla una aplicacion frontend, una API backend y una base de datos relacional para administrar usuarios, recursos reservables, reservas, disponibilidad, infracciones, notificaciones y reportes.
 
-## Stack tecnico identificado
+## Stack técnico identificado en el corte histórico
 
 ### Frontend
 

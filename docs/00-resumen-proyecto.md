@@ -1,6 +1,6 @@
 # Poli-REDI - Resumen vigente para compartir
 
-Fecha de corte: 2026-08-25
+Fecha de corte: 2026-09-22
 
 ## Proposito
 
@@ -43,7 +43,7 @@ Un elemento puede estar implementado sin estar aprobado y puede estar implementa
 | Reportes | IMPLEMENTADO PARCIAL | Indicadores calculados en frontend; no constituyen reportes institucionales completos ni consumen las vistas SQL dedicadas. |
 | Auditoria | IMPLEMENTADO PARCIAL | El esquema registra cambios de reservas, pero no existe consulta administrativa. |
 | Calidad local | VERIFICADO PARCIAL | Suite Go, `go vet`, 27 pruebas frontend, build y `git diff --check` aprobaron el 2026-08-25. Dos pruebas PostgreSQL reales acreditan transiciones, solapes y expiracion; faltan la cadena efimera completa, navegador y ambiente online. |
-| Despliegue | IMPLEMENTADO SEGUN REPOSITORIO | Existen configuracion y documentacion de demo Azure; su disponibilidad actual no fue verificada en este corte. |
+| Despliegue | IMPLEMENTADO Y VERIFICADO | PostgreSQL 16, backend y Caddy/frontend funcionan como un stack Podman Compose. systemd inicia el stack al arrancar Debian y Tailscale Funnel publica la aplicación; el navegador y la API fueron verificados el 2026-09-22. |
 
 ## Criterio de evolucion del producto
 
@@ -69,7 +69,7 @@ La adopcion de `CONFIRMED + AT_RISK` para reservas que ya alcanzaron el minimo e
 
 ## Brechas y contradicciones que impiden declarar cierre
 
-1. El alcance academico definitivo excluye autenticacion institucional real y despliegue productivo, pero el repositorio documenta Entra ID y una demo Azure ya implementados.
+1. El alcance académico definitivo debe distinguir el prototipo desplegado mediante Entra ID y Funnel de una operación institucional productiva con soporte formal.
 2. La ventana y frecuencia versionadas requieren conservar evidencia de integracion y verificacion en la infraestructura objetivo.
 3. El flujo grupal soporta `PENDING`, participantes, codigo de invitacion, confirmacion por minimo, `AT_RISK` y cancelacion `MINIMUM_NOT_MET` al vencer bajo el minimo. El cierre pendiente se concentra en reproducibilidad desde cero, prueba manual y despliegue online; las notificaciones generales no forman parte de este cierre.
 4. Ante actividad institucional versus reserva particular, la reserva debe cancelarse automaticamente y notificarse al usuario; ante dos actividades, el administrador debe poder cancelar una o mantener ambas. El esquema actual rechaza esos conflictos.
@@ -133,4 +133,6 @@ Evidencia mas reciente, 2026-08-25:
 
 Evidencia historica del backend y de infraestructura debe mantenerse separada y no inferirse a partir de estas pruebas frontend.
 
-No verificado nuevamente en este corte documental: infraestructura Azure en ejecucion, Microsoft Entra ID real, responsive exhaustivo, accesibilidad completa y demo online.
+No verificado exhaustivamente en este corte documental: responsive completo,
+accesibilidad, restauración integral del respaldo y operación desatendida desde
+el inicio de Windows. La demo Azure queda como antecedente histórico.

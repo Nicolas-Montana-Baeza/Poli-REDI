@@ -240,7 +240,9 @@ Con esto se evita movimiento forzado y se conecta directamente el descubrimiento
 
 ### Instalacion reproducible
 
-Una dependencia visual esta declarada en la raiz y no en `frontend/package.json`, aunque Azure compila `./frontend`. `BACK-024` debe validar `npm ci` y build desde una instalacion limpia del subproyecto.
+Una dependencia visual está declarada en la raíz y no en `frontend/package.json`.
+El build desplegado se genera desde `frontend/`; `BACK-024` debe validar `npm ci`
+y el build desde una instalación limpia del subproyecto.
 
 ## Pruebas frontend recomendadas
 

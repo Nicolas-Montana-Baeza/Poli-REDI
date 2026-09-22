@@ -1,15 +1,15 @@
 # Poli-REDI - Instalacion y ejecucion local
 
-Fecha de corte: 2026-08-25
+Fecha de corte: 2026-09-22
 
 ## Objetivo
 
-Esta guia describe el entorno local vigente:
+Esta guía describe el entorno de desarrollo y verificación:
 
 - frontend Vue 3 / Vite;
 - backend Go / Fiber;
 - PostgreSQL 16;
-- Podman Quadlet;
+- Podman;
 - Microsoft Entra ID o autenticacion local controlada.
 
 ## Requisitos
@@ -17,12 +17,27 @@ Esta guia describe el entorno local vigente:
 - Linux o WSL.
 - Podman rootless.
 - cgroup v2.
-- systemd de usuario / Quadlet.
+- systemd de usuario.
 - Go.
 - Node.js y npm.
 - Git.
 
-## Preparar PostgreSQL
+## Despliegue integrado vigente
+
+El entorno desplegado completo usa Podman Compose desde el repositorio
+`~/projects/poliredi-infra`. Incluye PostgreSQL 16, backend y Caddy/frontend,
+arranque systemd y publicación mediante Tailscale Funnel.
+
+```bash
+systemctl --user status poliredi-stack.service --no-pager
+podman ps --format 'table {{.Names}}\t{{.Status}}'
+curl --fail --insecure https://localhost:8443/api/health
+```
+
+Consultar `docs/10-guia-redeploy.md` para construir, actualizar, respaldar y
+recuperar ese stack.
+
+## Preparar PostgreSQL aislado para desarrollo
 
 Desde la raiz del repositorio:
 
@@ -34,7 +49,7 @@ El instalador:
 
 1. genera credenciales locales;
 2. las guarda fuera del repositorio;
-3. instala el Quadlet;
+3. instala un Quadlet de desarrollo;
 4. crea el volumen;
 5. inicia PostgreSQL 16;
 6. aplica la baseline MVP1;
@@ -209,7 +224,7 @@ PostgreSQL MVP1:
 bash infra/local/quadlet/verify-mvp1.sh
 ```
 
-## Operacion
+## Operación de la base aislada de desarrollo
 
 ```bash
 bash infra/local/quadlet/install.sh status

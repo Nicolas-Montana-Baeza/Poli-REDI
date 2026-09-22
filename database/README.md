@@ -1,6 +1,6 @@
 # Poli-REDI - Base de datos
 
-Fecha de corte: 2026-08-20
+Fecha de corte: 2026-09-22
 
 ## Motor vigente
 
@@ -47,6 +47,8 @@ PG16_0005_mvp2_institutional_scheduling.sql
 PG16_0006_mvp2_institutional_availability.sql
 PG16_0007_mvp2_schedule_exceptions.sql
 PG16_0008_mvp2_schedule_exception_availability.sql
+PG16_0009_full_notifications.sql
+PG16_0010_mvp2_group_resource_rules.sql
 ```
 
 ## Scripts SQL Server legacy
@@ -66,21 +68,19 @@ Estos archivos contienen T-SQL y no son la fuente de verdad del runtime actual.
 
 Se conservan temporalmente por trazabilidad y porque aun existe codigo legacy pendiente de retiro.
 
-## Estado de automatizacion local
+## Estado de automatización y runtime
 
-`infra/local/quadlet/install.sh` levanta PostgreSQL 16 con Podman Quadlet.
+El runtime desplegado usa PostgreSQL 16 dentro del stack Podman Compose definido
+en `poliredi-infra`. Adopta el volumen externo
+`poliredi-postgres-mvp1-data`; no vuelve a ejecutar los scripts de inicialización
+ni aplica migraciones durante cada arranque.
 
-Actualmente automatiza:
+`infra/local/quadlet/install.sh` y sus verificadores permanecen en este
+repositorio para crear bases limpias y ejecutar comprobaciones reproducibles.
+No constituyen el mecanismo operativo del entorno desplegado actual.
 
-- bootstrap del rol local;
-- `PG16_0001`;
-- `PG16_0002`;
-- `PG16_0003`;
-- seed MVP1.
-
-Por lo tanto, el provisionamiento automatico sigue siendo una baseline MVP1.
-
-Las migraciones MVP2 `PG16_0004` a `PG16_0008` ya existen, pero aun deben incorporarse al instalador para disponer de provisionamiento MVP2 automatico.
+La cadena limpia disponible aplica bootstrap, `PG16_0001` a `PG16_0003`, seed
+MVP1 y `PG16_0004` a `PG16_0010`.
 
 ## Deuda SQL Server activa
 
