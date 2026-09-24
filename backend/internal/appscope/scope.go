@@ -8,6 +8,7 @@ import (
 const (
 	MVP1 = "mvp1"
 	MVP2 = "mvp2"
+	MVP3 = "mvp3"
 	Full = "full"
 )
 
@@ -25,6 +26,9 @@ func Current() string {
 	switch strings.ToLower(strings.TrimSpace(os.Getenv("MVP_SCOPE"))) {
 	case MVP2:
 		return MVP2
+
+	case MVP3:
+		return MVP3
 
 	case Full:
 		return Full
@@ -49,6 +53,10 @@ func IsMVP2() bool {
 //
 // No debe utilizarse como sinónimo de MVP2 porque puede incluir módulos que
 // todavía no han sido reconstruidos o validados sobre PostgreSQL.
+func IsMVP3() bool {
+	return Current() == MVP3
+}
+
 func IsFull() bool {
 	return Current() == Full
 }
@@ -59,5 +67,15 @@ func HasMVP2() bool {
 	scope := Current()
 
 	return scope == MVP2 ||
+		scope == MVP3 ||
+		scope == Full
+}
+
+// HasMVP3 habilita funcionalidades propias del MVP3 tanto en el scope
+// incremental "mvp3" como en el scope completo "full".
+func HasMVP3() bool {
+	scope := Current()
+
+	return scope == MVP3 ||
 		scope == Full
 }

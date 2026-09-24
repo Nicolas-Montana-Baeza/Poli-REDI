@@ -245,38 +245,36 @@ func RegisterRoutes(app *fiber.App) {
 
 	}
 
-	// MVP1 y MVP2 terminan aquí.
+	// ------------------------------------------------------------
+	// Superficie MVP3.
+	// ------------------------------------------------------------
 	//
-	// Los módulos que siguen pertenecen todavía a la superficie legacy
-	// completa y no deben exponerse simplemente por activar MVP2.
-	if !appscope.IsFull() {
-		return
+	// MVP3 incorpora administración operacional y notificaciones sobre
+	// la base ya validada por MVP2. FULL también incluye esta superficie
+	// porque representa un superset funcional.
+
+	if appscope.HasMVP3() {
+		protected.Patch(
+			"/resources/:id/image",
+			middleware.RequireAdmin(),
+			handlers.UpdateResourceImage,
+		)
+
+		protected.Get(
+			"/notifications",
+			handlers.GetNotifications,
+		)
+
+		protected.Get(
+			"/admin/reservation-policies",
+			middleware.RequireAdmin(),
+			handlers.GetReservationPolicyHistory,
+		)
+
+		protected.Post(
+			"/admin/reservation-policies",
+			middleware.RequireAdmin(),
+			handlers.PublishReservationPolicy,
+		)
 	}
-
-	// ------------------------------------------------------------
-	// Superficie FULL.
-	// ------------------------------------------------------------
-
-	protected.Patch(
-		"/resources/:id/image",
-		middleware.RequireAdmin(),
-		handlers.UpdateResourceImage,
-	)
-
-	protected.Get(
-		"/notifications",
-		handlers.GetNotifications,
-	)
-
-	protected.Get(
-		"/admin/reservation-policies",
-		middleware.RequireAdmin(),
-		handlers.GetReservationPolicyHistory,
-	)
-
-	protected.Post(
-		"/admin/reservation-policies",
-		middleware.RequireAdmin(),
-		handlers.PublishReservationPolicy,
-	)
 }

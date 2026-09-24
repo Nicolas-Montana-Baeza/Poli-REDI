@@ -16,6 +16,11 @@ test('reconoce MVP2 de forma explicita', () => {
   assert.equal(resolveMvpScope(' MVP2 '), 'mvp2')
 })
 
+test('reconoce MVP3 de forma explicita', () => {
+  assert.equal(resolveMvpScope('mvp3'), 'mvp3')
+  assert.equal(resolveMvpScope(' MVP3 '), 'mvp3')
+})
+
 test('reconoce FULL de forma explicita', () => {
   assert.equal(resolveMvpScope('full'), 'full')
   assert.equal(resolveMvpScope(' FULL '), 'full')
@@ -47,6 +52,21 @@ test('MVP2 habilita reservas grupales y workshops institucionales', () => {
     workshops: true,
     resourceAdministration: false,
     policyAdministration: false,
+    reports: false
+  })
+})
+
+test('MVP3 hereda MVP2 y habilita su superficie administrativa', () => {
+  assert.deepEqual(getFeaturesForScope('mvp3'), {
+    groupReservations: true,
+    schedulingConflictAdministration: true,
+    institutionalUnitAdministration: true,
+    institutionalActivityProgramming: true,
+    onlineAuth: true,
+    notifications: true,
+    workshops: true,
+    resourceAdministration: true,
+    policyAdministration: true,
     reports: false
   })
 })

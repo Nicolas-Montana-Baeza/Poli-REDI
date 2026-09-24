@@ -5,6 +5,9 @@ export const resolveMvpScope = (value) => {
     case 'mvp2':
       return 'mvp2'
 
+    case 'mvp3':
+      return 'mvp3'
+
     case 'full':
       return 'full'
 
@@ -23,6 +26,7 @@ export const MVP_SCOPE = resolveMvpScope(
 
 export const isMvp1Scope = () => MVP_SCOPE === 'mvp1'
 export const isMvp2Scope = () => MVP_SCOPE === 'mvp2'
+export const isMvp3Scope = () => MVP_SCOPE === 'mvp3'
 export const isFullScope = () => MVP_SCOPE === 'full'
 
 export const getFeaturesForScope = (scope) => {
@@ -30,6 +34,12 @@ export const getFeaturesForScope = (scope) => {
 
   const hasMvp2 = (
     resolvedScope === 'mvp2' ||
+    resolvedScope === 'mvp3' ||
+    resolvedScope === 'full'
+  )
+
+  const hasMvp3 = (
+    resolvedScope === 'mvp3' ||
     resolvedScope === 'full'
   )
 
@@ -68,9 +78,13 @@ export const getFeaturesForScope = (scope) => {
     // Estas funcionalidades todavía no forman parte del alcance
     // incremental de MVP2.
     onlineAuth: hasMvp2,
-    notifications: full,
-    resourceAdministration: full,
-    policyAdministration: full,
+
+    // MVP3
+    notifications: hasMvp3,
+    resourceAdministration: hasMvp3,
+    policyAdministration: hasMvp3,
+
+    // FULL / posterior
     reports: full
   }
 }

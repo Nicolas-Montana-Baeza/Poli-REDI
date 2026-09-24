@@ -3,8 +3,8 @@ import { mvpFeatures } from '@/config/appScope'
 // La estrategia de autenticación debe depender de la funcionalidad
 // onlineAuth y no del número de MVP.
 //
-// MVP1 y MVP2 continúan utilizando autenticación local durante el
-// desarrollo. Microsoft Entra se habilitará únicamente en FULL.
+// La autenticación online se habilita desde MVP2 y continúa disponible
+// en MVP3 y FULL. MVP1 conserva el acceso local de desarrollo.
 const usesOnlineAuth = () => mvpFeatures.onlineAuth === true
 
 const DEV_ACCOUNT_KEY = 'poli_redi_dev_account'
