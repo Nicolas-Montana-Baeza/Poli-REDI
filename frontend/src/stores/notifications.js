@@ -41,6 +41,26 @@ export const useNotificationsStore = defineStore('notifications', {
       }
     },
 
+    async markRead(notificationId) {
+      try {
+        const updated =
+          await notificationsService.markRead(notificationId)
+
+        const index = this.notifications.findIndex(
+          notification => notification.id === notificationId
+        )
+
+        if (index !== -1) {
+          this.notifications[index] = updated
+        }
+
+        return updated
+      } catch {
+        this.error = 'No se pudo actualizar la notificación'
+        throw new Error(this.error)
+      }
+    },
+
     clearNotifications() {
       this.notifications = []
       this.error = null

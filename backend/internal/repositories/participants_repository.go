@@ -354,6 +354,7 @@ func ChangeParticipation(
 
 	var (
 		reservationID               int
+		ownerUserID                 int
 		reservationStatus           string
 		startTime                   time.Time
 		endTime                     time.Time
@@ -369,6 +370,7 @@ func ChangeParticipation(
 		`
 		SELECT
 			r.id,
+			r.user_id,
 			r.status,
 			r.start_time,
 			r.end_time,
@@ -395,6 +397,7 @@ func ChangeParticipation(
 		codeHash(code),
 	).Scan(
 		&reservationID,
+		&ownerUserID,
 		&reservationStatus,
 		&startTime,
 		&endTime,
@@ -822,6 +825,44 @@ func ChangeParticipation(
 
 	if err != nil {
 		return models.ReservationProgress{}, err
+	}
+
+	// ---------------------------------------------------------------------
+	// Notificaciones MVP3.
+	// ---------------------------------------------------------------------
+	//
+	// La escritura ocurre dentro de la misma transacción que modifica
+	// participants/reservations. MVP1/MVP2 permanecen sin este side effect.
+
+	oldGroupCondition := participantGroupCondition(
+		reservationStatus,
+		confirmedCount,
+		minimum,
+	)
+
+	newGroupCondition := participantGroupCondition(
+		newReservationStatus,
+		newConfirmedCount,
+		minimum,
+	)
+
+	if notification, ok :=
+		participantNotificationForTransition(
+			reservationStatus,
+			newReservationStatus,
+			oldGroupCondition,
+			newGroupCondition,
+		); ok {
+
+		if err := createNotificationTx(
+			ctx,
+			tx,
+			ownerUserID,
+			reservationID,
+			notification,
+		); err != nil {
+			return models.ReservationProgress{}, err
+		}
 	}
 
 	if err := tx.Commit(); err != nil {

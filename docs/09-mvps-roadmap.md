@@ -257,7 +257,6 @@ Entregar una experiencia usable para el usuario normal, desde login hasta reserv
 - `UX-001`
 - `UX-002`
 - `UX-003`
-- `NOTIF-001`
 - `API-002`
 - `API-004`
 - `API-006`
@@ -273,7 +272,6 @@ Entregar una experiencia usable para el usuario normal, desde login hasta reserv
 - `RF-009`
 - `RF-010`
 - `RF-011`
-- `RF-017`
 - `RF-019`
 - `RF-020`
 - `RF-021`
@@ -325,7 +323,6 @@ Incluye tambien una primera version funcional de talleres deportivos: listado de
 - Aceptar cambios hasta exactamente una hora antes inclusive y cancelar al vencer bajo el minimo, liberando horario y oportunidad (`RES-008`, `RES-012`).
 - Profesionalizar la seleccion de horario, capacidad, etiquetas humanas y experiencia movil (`UX-001`).
 - Mostrar feedback preventivo de conflicto antes de confirmar una reserva (`UX-003`).
-- Completar notificaciones: marcar como leida y diferenciar leidas/no leidas (`NOTIF-001`).
 - Mostrar en detalle el estado de la solicitud y el avance de confirmaciones cuando corresponda (`UI-002`).
 
 ### Criterio de cierre
@@ -348,6 +345,7 @@ Convertir Poli-REDI en una herramienta administrable por la institucion, con cal
 - Reportes iniciales visibles para administradores.
 - Cancelacion administrativa de reservas.
 - Actualizacion administrativa de imagenes de recursos.
+- Notificaciones internas asociadas a eventos de reservas.
 
 ### Backlog relacionado
 
@@ -357,6 +355,7 @@ Convertir Poli-REDI en una herramienta administrable por la institucion, con cal
 - `ADMIN-004`
 - `ADMIN-005`
 - `ADMIN-006`
+- `NOTIF-001`
 - `RES-004`
 - `API-001`
 - `API-005`
@@ -372,6 +371,7 @@ Convertir Poli-REDI en una herramienta administrable por la institucion, con cal
 - `RF-014`
 - `RF-015`
 - `RF-016`
+- `RF-017`
 - `RF-018`
 - `RF-023`
 - `RF-024`
@@ -399,7 +399,7 @@ Parcial.
 - Completar la gestion del inventario oficial de ocho recursos; la actualizacion de imagen ya esta implementada (`ADMIN-003`).
 - Completar la interfaz administrativa y migrar/verificar en PostgreSQL la publicacion prospectiva de politicas (`ADMIN-006`). Lectura, historial y escritura administrativa ya utilizan PostgreSQL; permanece pendiente la interfaz y el cierre funcional completo. Las correcciones excepcionales quedan para un incremento posterior.
 - Bloquear y desbloquear usuarios con auditoria (`ADMIN-002`).
-- Completar `ADMIN-005`: el backend ya registra programacion institucional, detecta conflictos N-elementos y permite resolucion administrativa `KEEP`/`ALLOW`/`CANCEL`/`RESCHEDULE`. Falta cerrar la decision `EV-010` sobre cancelacion automatica versus resolucion administrativa, integrar notificaciones y completar la experiencia administrativa.
+- Completar `ADMIN-005`: el backend ya registra programacion institucional, detecta conflictos N-elementos y permite resolucion administrativa `KEEP`/`ALLOW`/`CANCEL`/`RESCHEDULE`. Falta cerrar la decision `EV-010` sobre cancelacion automatica versus resolucion administrativa, validar end-to-end las notificaciones generadas y completar la experiencia administrativa.
 - Agregar filtros backend de recursos por sede, tipo y estado (`API-001`).
 - Centralizar validacion de administrador con middleware (`API-005`).
 - Completar reportes desde vistas SQL e infracciones si corresponde (`REP-001`).
@@ -419,7 +419,6 @@ Completar los elementos de soporte necesarios para entregar, defender, probar y 
 
 - Reportes administrativos.
 - Infracciones.
-- Notificaciones completas.
 - Pruebas unitarias iniciales backend y frontend para reloj, agenda, contrato JSON y reglas de reserva.
 - README actualizado.
 - Arquitectura documentada.
@@ -435,7 +434,6 @@ Completar los elementos de soporte necesarios para entregar, defender, probar y 
 
 - `REP-001`
 - `REP-002`
-- `NOTIF-001`
 - `DOC-001`
 - `DOC-002`
 - `DOC-003`
@@ -450,7 +448,6 @@ Completar los elementos de soporte necesarios para entregar, defender, probar y 
 
 ### Requisitos relacionados
 
-- `RF-017`
 - `RF-018`
 - `RNF-003`
 - `RNF-004`
@@ -477,7 +474,7 @@ En desarrollo.
 
 ### Criterio de cierre
 
-El MVP 4 se considera cerrado cuando el proyecto tiene evidencia de pruebas, documentacion suficiente para instalacion/arquitectura/flujo/requisitos, reportes y notificaciones completas, y una estrategia clara de despliegue.
+El MVP 4 se considera cerrado cuando el proyecto tiene evidencia de pruebas, documentacion suficiente para instalacion/arquitectura/flujo/requisitos, reportes completos y una estrategia clara de despliegue.
 
 ## Dependencias entre MVPs
 

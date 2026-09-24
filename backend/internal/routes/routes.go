@@ -265,6 +265,11 @@ func RegisterRoutes(app *fiber.App) {
 			handlers.GetNotifications,
 		)
 
+		protected.Patch(
+			"/notifications/:id/read",
+			handlers.MarkNotificationRead,
+		)
+
 		protected.Get(
 			"/admin/reservation-policies",
 			middleware.RequireAdmin(),

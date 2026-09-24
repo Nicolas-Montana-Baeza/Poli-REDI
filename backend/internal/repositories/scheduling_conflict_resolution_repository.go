@@ -627,6 +627,15 @@ func ResolveSchedulingConflictItem(
 						"la reserva del conflicto ya no se encuentra activa",
 					)
 			}
+
+			if err := createReservationOwnerNotificationTx(
+				ctx,
+				tx,
+				int(reservationID.Int64),
+				institutionalCancellationNotification(),
+			); err != nil {
+				return models.SchedulingConflict{}, err
+			}
 		}
 
 	case models.SchedulingItemResolutionReschedule:

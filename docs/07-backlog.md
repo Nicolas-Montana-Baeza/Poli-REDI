@@ -2361,40 +2361,61 @@ Permitir registrar infracciones de usuarios, asociadas opcionalmente a una reser
 
 ## NOTIF-001 - Conectar campana de notificaciones
 
-Prioridad: P2
-Labels: `frontend`, `backend`, `notificaciones`, `codex-ready`, `mvp2`
-Estado sugerido: Ready for Codex
+Prioridad: P1
+Labels: `frontend`, `backend`, `notificaciones`, `mvp3`, `testing`
+Estado sugerido: En validacion MVP3
 
 ### Objetivo
 
-Mostrar notificaciones reales al usuario desde Azure SQL.
+Completar el ciclo de notificaciones internas sobre PostgreSQL 16:
+consulta, lectura, aislamiento por usuario y generacion desde eventos
+relevantes de reservas.
 
-### Alcance sugerido para Codex
+### Implementacion actual
 
-1. Agregar endpoint autenticado para marcar una notificacion propia como leida.
-2. Rechazar IDs inexistentes o de otro usuario sin revelar informacion ajena.
-3. Diferenciar leidas/no leidas en store y campana sin depender solo del color.
-4. Marcar como leida al activar una notificacion o mediante una accion explicita consistente.
-5. Definir un destino real para `Ver todas`; si no se implementa una vista, mantener ese control fuera de la UI.
-6. Actualizar el contador sin recargar toda la aplicacion.
+- `GET /api/notifications` lista las notificaciones del usuario autenticado.
+- `PATCH /api/notifications/:id/read` permite marcar como leida solo una
+  notificacion perteneciente al usuario autenticado.
+- IDs inexistentes y notificaciones ajenas responden como no encontradas,
+  sin revelar pertenencia.
+- La campana actualiza `isRead` y el contador sin recargar la aplicacion.
+- Las no leidas se distinguen visualmente y mediante la etiqueta textual
+  `Nueva`.
+- Al activar una notificacion asociada a una reserva se navega al detalle
+  de esa reserva.
+- El control `Ver todas` se retiro mientras no exista una vista dedicada.
+- MVP3 genera notificaciones transaccionales para:
+  - `PENDING -> CONFIRMED`;
+  - `HEALTHY -> AT_RISK`;
+  - `AT_RISK -> HEALTHY`;
+  - cancelacion por `MINIMUM_NOT_MET`;
+  - cancelacion administrativa de una reserva ajena;
+  - cancelacion causada por resolucion de conflicto institucional.
+- MVP1 y MVP2 no generan estos nuevos side effects; la generacion se activa
+  desde `MVP_SCOPE=mvp3`.
 
 ### Criterios de aceptacion
 
 - [x] Endpoint para listar notificaciones del usuario.
-- [ ] Endpoint para marcar como leida.
+- [x] Endpoint para marcar como leida.
 - [x] Campana muestra contador real.
-- [ ] UI diferencia leidas/no leidas.
+- [x] UI diferencia leidas/no leidas tambien mediante texto.
 - [x] Maneja estado vacio.
-- [ ] `Ver todas` navega a una vista funcional o no se muestra.
-- [ ] Usuario no puede marcar notificaciones ajenas.
-- [ ] `go test ./...` y `npm run build` pasan.
+- [x] `Ver todas` no se muestra mientras no exista destino funcional.
+- [x] Usuario no puede marcar notificaciones ajenas.
+- [x] Lectura/marcado fue verificado contra PostgreSQL 16 real.
+- [x] `go test ./...`, `go vet ./...`, `npm test` y build MVP3 pasan.
+- [ ] Ejecutar smoke end-to-end con backend levantado en `MVP_SCOPE=mvp3`
+  para verificar filas generadas por transiciones reales de reserva.
 
-### Resultado parcial
+### Evidencia 2026-09-24
 
-- `GET /api/notifications` lista notificaciones del usuario autenticado desde Azure SQL.
-- `NotificationBell.vue` ya no usa notificaciones locales.
-- La campana no consulta `/api/notifications` si no hay sesion activa y limpia su estado al cerrar sesion.
-- Queda pendiente marcar como leida y diferenciar visualmente leidas/no leidas.
+- `TestNotificationsPostgresIntegration` paso contra
+  `poliredi_postgres_1`.
+- La prueba verifico lectura propia, marcado propio, rechazo de acceso
+  cruzado y que la notificacion del segundo usuario permanece sin leer.
+- La generacion de eventos esta cubierta por reglas automatizadas; queda
+  pendiente el smoke integrado de las transiciones reales con runtime MVP3.
 
 ---
 

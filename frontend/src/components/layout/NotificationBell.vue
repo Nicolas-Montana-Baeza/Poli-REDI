@@ -1,5 +1,6 @@
 <script setup>
 import { computed, ref, onMounted, onBeforeUnmount, watch } from 'vue'
+import { useRouter } from 'vue-router'
 
 import {
   Bell,
@@ -14,6 +15,7 @@ import { useNotificationsStore } from '@/stores/notifications'
 
 const authStore = useAuthStore()
 const notificationsStore = useNotificationsStore()
+const router = useRouter()
 const open = ref(false)
 
 const notifications = computed(() => {
@@ -31,6 +33,25 @@ const isAuthenticated = computed(() => {
 const toggle = () => {
   open.value = !open.value
 }
+
+const openNotification = async (notification) => {
+  if (!notification.isRead) {
+    try {
+      await notificationsStore.markRead(notification.id)
+    } catch {
+      // El store conserva el error visible.
+    }
+  }
+
+  if (notification.reservationId) {
+    open.value = false
+
+    await router.push(
+      `/reservations/${notification.reservationId}`
+    )
+  }
+}
+
 
 const close = (event) => {
   if (!event.target.closest('.notification-wrapper')) {
@@ -168,6 +189,12 @@ onBeforeUnmount(() => {
             v-for="notification in notifications"
             :key="notification.id"
             class="notification-item"
+            :class="{ unread: !notification.isRead }"
+            role="button"
+            tabindex="0"
+            @click="openNotification(notification)"
+            @keydown.enter.prevent="openNotification(notification)"
+            @keydown.space.prevent="openNotification(notification)"
           >
 
             <!-- Icon -->
@@ -187,6 +214,13 @@ onBeforeUnmount(() => {
                 {{ notification.title }}
               </strong>
 
+              <span
+                v-if="!notification.isRead"
+                class="unread-label"
+              >
+                Nueva
+              </span>
+
               <p>
                 {{ notification.message }}
               </p>
@@ -200,14 +234,6 @@ onBeforeUnmount(() => {
           </div>
 
         </template>
-
-        <!-- Footer -->
-        <button
-          class="view-all"
-          type="button"
-        >
-          Ver todas
-        </button>
 
       </div>
 
@@ -338,6 +364,30 @@ onBeforeUnmount(() => {
   background: var(--color-surface-muted);
 }
 
+.notification-item.unread {
+  background: var(--color-primary-soft);
+}
+
+.notification-item.unread strong {
+  font-weight: 800;
+}
+
+.unread-label {
+  display: inline-block;
+  margin-top: 2px;
+
+  font-size: 11px;
+  font-weight: 800;
+
+  color: var(--color-primary);
+}
+
+.notification-item:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
+}
+
+
 /* Icon */
 .icon {
   width: 38px;
@@ -394,25 +444,6 @@ onBeforeUnmount(() => {
 }
 
 /* Footer */
-.view-all {
-  width: 100%;
-
-  padding: 14px;
-
-  background: var(--color-surface);
-  border: none;
-
-  font-size: 14px;
-  font-weight: 600;
-
-  color: var(--color-primary);
-
-  cursor: pointer;
-}
-
-.view-all:hover {
-  background: var(--color-surface-muted);
-}
 
 /* Animation */
 .fade-enter-active,

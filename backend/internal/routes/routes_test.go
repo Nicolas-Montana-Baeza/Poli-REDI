@@ -49,7 +49,8 @@ func TestMVP1RouteAllowlist(t *testing.T) {
 	}
 
 	for _, excluded := range []string{
-		"GET /api/notifications", "GET /api/workshops",
+		"GET /api/notifications",
+		"PATCH /api/notifications/:id/read", "GET /api/workshops",
 		"POST /api/workshops/:id/enroll", "GET /api/admin/reservation-policies",
 		"POST /api/admin/reservation-policies", "PATCH /api/resources/:id/image",
 	} {
@@ -64,6 +65,7 @@ func TestMVP2DoesNotExposeMVP3Routes(t *testing.T) {
 
 	for _, excluded := range []string{
 		"GET /api/notifications",
+		"PATCH /api/notifications/:id/read",
 		"GET /api/admin/reservation-policies",
 		"POST /api/admin/reservation-policies",
 		"PATCH /api/resources/:id/image",
@@ -87,6 +89,7 @@ func TestMVP3RouteSurface(t *testing.T) {
 
 		// Superficie MVP3.
 		"GET /api/notifications",
+		"PATCH /api/notifications/:id/read",
 		"GET /api/admin/reservation-policies",
 		"POST /api/admin/reservation-policies",
 		"PATCH /api/resources/:id/image",
@@ -102,6 +105,7 @@ func TestFullIncludesMVP3Routes(t *testing.T) {
 
 	for _, required := range []string{
 		"GET /api/notifications",
+		"PATCH /api/notifications/:id/read",
 		"GET /api/admin/reservation-policies",
 		"POST /api/admin/reservation-policies",
 		"PATCH /api/resources/:id/image",

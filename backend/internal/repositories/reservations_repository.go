@@ -185,40 +185,102 @@ func expirePendingGroupReservations(
 	execer reservationExecer,
 	now time.Time,
 ) (int64, error) {
+	if !notificationsEnabled() {
+		result, err := execer.ExecContext(
+			ctx,
+			`
+			UPDATE reservations reservation
+			SET
+				status = 'CANCELLED',
+				cancellation_reason = $2
+			FROM reservation_policies policy
+			WHERE policy.id = reservation.policy_id
+			  AND reservation.status = 'PENDING'
+			  AND reservation.group_capacity_snapshot IS NOT NULL
+			  AND reservation.start_time
+				  - make_interval(
+						mins => policy.confirmation_deadline_minutes
+					)
+				  <= $1
+			  AND (
+				SELECT COUNT(*)
+				FROM participants participant
+				WHERE participant.reservation_id = reservation.id
+				  AND participant.status = 'CONFIRMED'
+			  ) < COALESCE(
+				reservation.group_minimum_participants_snapshot,
+				policy.minimum_participants
+			  )
+			`,
+			now,
+			models.CancellationReasonMinimumNotMet,
+		)
+
+		if err != nil {
+			return 0, err
+		}
+
+		return result.RowsAffected()
+	}
+
 	result, err := execer.ExecContext(
 		ctx,
 		`
-		UPDATE reservations reservation
-		SET
-			status = 'CANCELLED',
-			cancellation_reason = $2
-		FROM reservation_policies policy
-		WHERE policy.id = reservation.policy_id
-		  AND reservation.status = 'PENDING'
-		  AND reservation.group_capacity_snapshot IS NOT NULL
-		  AND reservation.start_time
-			  - make_interval(
-					mins => policy.confirmation_deadline_minutes
-				)
-			  <= $1
-		  AND (
-			SELECT COUNT(*)
-			FROM participants participant
-			WHERE participant.reservation_id = reservation.id
-			  AND participant.status = 'CONFIRMED'
-		  ) < COALESCE(
-			reservation.group_minimum_participants_snapshot,
-			policy.minimum_participants
-		  )
+		WITH cancelled AS (
+			UPDATE reservations reservation
+			SET
+				status = 'CANCELLED',
+				cancellation_reason = $2
+			FROM reservation_policies policy
+			WHERE policy.id = reservation.policy_id
+			  AND reservation.status = 'PENDING'
+			  AND reservation.group_capacity_snapshot IS NOT NULL
+			  AND reservation.start_time
+				  - make_interval(
+						mins => policy.confirmation_deadline_minutes
+					)
+				  <= $1
+			  AND (
+				SELECT COUNT(*)
+				FROM participants participant
+				WHERE participant.reservation_id = reservation.id
+				  AND participant.status = 'CONFIRMED'
+			  ) < COALESCE(
+				reservation.group_minimum_participants_snapshot,
+				policy.minimum_participants
+			  )
+			RETURNING
+				reservation.id,
+				reservation.user_id
+		)
+		INSERT INTO notifications (
+			user_id,
+			reservation_id,
+			title,
+			message,
+			type
+		)
+		SELECT
+			user_id,
+			id,
+			$3,
+			$4,
+			$5
+		FROM cancelled
 		`,
 		now,
 		models.CancellationReasonMinimumNotMet,
+		"Reserva cancelada",
+		"Tu reserva fue cancelada porque no alcanzó el mínimo de participantes antes del plazo de confirmación.",
+		"MINIMUM_NOT_MET",
 	)
 
 	if err != nil {
 		return 0, err
 	}
 
+	// Existe exactamente una notificación por reserva cancelada,
+	// por lo que RowsAffected conserva el contrato anterior.
 	return result.RowsAffected()
 }
 
@@ -886,6 +948,25 @@ func CancelReservationAuthorized(id int, requestedBy models.LocalAuthUser, now t
 	if err != nil {
 		return models.Reservation{}, err
 	}
+
+	if notification, ok :=
+		administrativeCancellationNotification(
+			requestedBy.IsAdmin,
+			requestedBy.ID,
+			ownerID,
+		); ok {
+
+		if err := createNotificationTx(
+			ctx,
+			tx,
+			ownerID,
+			id,
+			notification,
+		); err != nil {
+			return models.Reservation{}, err
+		}
+	}
+
 	if err := tx.Commit(); err != nil {
 		return models.Reservation{}, err
 	}
