@@ -255,6 +255,12 @@ func RegisterRoutes(app *fiber.App) {
 
 	if appscope.HasMVP3() {
 		protected.Patch(
+			"/resources/:id",
+			middleware.RequireAdmin(),
+			handlers.UpdateResourceOperationalSettings,
+		)
+
+		protected.Patch(
 			"/resources/:id/image",
 			middleware.RequireAdmin(),
 			handlers.UpdateResourceImage,

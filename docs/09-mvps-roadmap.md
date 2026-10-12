@@ -344,7 +344,7 @@ Convertir Poli-REDI en una herramienta administrable por la institucion, con cal
 - Resumen administrativo de recursos y reservas.
 - Reportes iniciales visibles para administradores.
 - Cancelacion administrativa de reservas.
-- Actualizacion administrativa de imagenes de recursos.
+- Administracion de imagen, modo, capacidad y estado de recursos existentes.
 - Notificaciones internas asociadas a eventos de reservas.
 
 ### Backlog relacionado
@@ -396,7 +396,7 @@ Parcial.
 
 - Completar la integracion de bloqueos en el calendario unificado; reservas y actividades programadas ya comparten contrato (`RES-004`).
 - Crear bloqueos de disponibilidad desde administracion (`ADMIN-004`).
-- Completar la gestion del inventario oficial de ocho recursos; la actualizacion de imagen ya esta implementada (`ADMIN-003`).
+- Completar `ADMIN-003`: imagen, modo de reserva, capacidad y activacion/desactivacion de recursos existentes ya estan implementados y verificados en PostgreSQL 16. Permanecen pendientes creacion, gestion de sede, eliminacion controlada y filtros avanzados.
 - Completar la interfaz administrativa y migrar/verificar en PostgreSQL la publicacion prospectiva de politicas (`ADMIN-006`). Lectura, historial y escritura administrativa ya utilizan PostgreSQL; permanece pendiente la interfaz y el cierre funcional completo. Las correcciones excepcionales quedan para un incremento posterior.
 - Bloquear y desbloquear usuarios con auditoria (`ADMIN-002`).
 - Completar `ADMIN-005`: el backend ya registra programacion institucional, detecta conflictos N-elementos y permite resolucion administrativa `KEEP`/`ALLOW`/`CANCEL`/`RESCHEDULE`. Falta cerrar la decision `EV-010` sobre cancelacion automatica versus resolucion administrativa, validar end-to-end las notificaciones generadas y completar la experiencia administrativa.

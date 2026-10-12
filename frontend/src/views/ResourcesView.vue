@@ -11,6 +11,11 @@ const search = ref('')
 const typeFilter = ref('ALL')
 const modeFilter = ref('ALL')
 const statusFilter = ref('ALL')
+const editingResourceId = ref(null)
+const modeDraft = ref('RESERVABLE')
+const capacityDraft = ref('')
+const activeDraft = ref(true)
+
 const editingImageId = ref(null)
 const imageDraft = ref('')
 
@@ -87,6 +92,62 @@ const filteredResources = computed(() => {
     return true
   })
 })
+
+const startOperationalEdit = (resource) => {
+  editingResourceId.value = resource.id
+  modeDraft.value = resource.reservationMode
+
+  capacityDraft.value =
+    resource.capacity === null ||
+    resource.capacity === undefined
+      ? ''
+      : String(resource.capacity)
+
+  activeDraft.value = resource.isActive
+
+  resourcesStore.actionError = null
+  resourcesStore.actionSuccess = null
+}
+
+const cancelOperationalEdit = () => {
+  editingResourceId.value = null
+  modeDraft.value = 'RESERVABLE'
+  capacityDraft.value = ''
+  activeDraft.value = true
+}
+
+const saveOperationalEdit = async (resource) => {
+  const rawCapacity = String(capacityDraft.value).trim()
+
+  let capacity = null
+
+  if (rawCapacity !== '') {
+    const parsed = Number(rawCapacity)
+
+    if (!Number.isInteger(parsed) || parsed <= 0) {
+      resourcesStore.actionError =
+        'La capacidad debe ser un entero mayor que cero.'
+      return
+    }
+
+    capacity = parsed
+  }
+
+  try {
+    await resourcesStore.updateOperational(
+      resource.id,
+      {
+        reservationMode: modeDraft.value,
+        capacity,
+        isActive: activeDraft.value
+      }
+    )
+
+    cancelOperationalEdit()
+  } catch {
+    // El store mantiene visible el error entregado por backend.
+  }
+}
 
 const startImageEdit = (resource) => {
   editingImageId.value = resource.id
@@ -298,44 +359,147 @@ const saveImageEdit = async (resource) => {
 
         <div
           v-if="authStore.isAdmin"
-          class="image-editor"
+          class="resource-admin"
         >
-          <template v-if="editingImageId === resource.id">
-            <input
-              v-model="imageDraft"
-              type="url"
-              placeholder="https://... o /images/..."
-            />
+          <div class="config-editor">
+            <template
+              v-if="editingResourceId === resource.id"
+            >
+              <div class="config-grid">
+                <label>
+                  Modo de reserva
 
-            <div class="editor-actions">
-              <button
-                type="button"
-                class="save"
-                :disabled="resourcesStore.updatingImageId === resource.id"
-                @click="saveImageEdit(resource)"
-              >
-                Guardar
-              </button>
+                  <select v-model="modeDraft">
+                    <option value="RESERVABLE">
+                      Reservable
+                    </option>
 
-              <button
-                type="button"
-                class="cancel"
-                :disabled="resourcesStore.updatingImageId === resource.id"
-                @click="cancelImageEdit"
-              >
-                Cancelar
-              </button>
-            </div>
-          </template>
+                    <option value="OPEN_USE">
+                      Uso libre
+                    </option>
 
-          <button
-            v-else
-            type="button"
-            class="edit-image"
-            @click="startImageEdit(resource)"
-          >
-            Cambiar imagen
-          </button>
+                    <option value="ADMIN_ONLY">
+                      Solo admin
+                    </option>
+
+                    <option value="INFORMATIVE">
+                      Informativo
+                    </option>
+                  </select>
+                </label>
+
+                <label>
+                  Capacidad
+
+                  <input
+                    v-model="capacityDraft"
+                    type="number"
+                    min="1"
+                    step="1"
+                    placeholder="Sin capacidad"
+                  />
+                </label>
+              </div>
+
+              <label class="active-control">
+                <input
+                  v-model="activeDraft"
+                  type="checkbox"
+                />
+
+                Recurso activo
+              </label>
+
+              <p class="config-help">
+                Los recursos con confirmación grupal deben
+                mantener modo y capacidad compatibles con
+                la política vigente.
+              </p>
+
+              <div class="editor-actions">
+                <button
+                  type="button"
+                  class="save"
+                  :disabled="
+                    resourcesStore.updatingResourceId ===
+                      resource.id
+                  "
+                  @click="saveOperationalEdit(resource)"
+                >
+                  {{
+                    resourcesStore.updatingResourceId ===
+                      resource.id
+                      ? 'Guardando...'
+                      : 'Guardar configuración'
+                  }}
+                </button>
+
+                <button
+                  type="button"
+                  class="cancel"
+                  :disabled="
+                    resourcesStore.updatingResourceId ===
+                      resource.id
+                  "
+                  @click="cancelOperationalEdit"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </template>
+
+            <button
+              v-else
+              type="button"
+              class="edit-resource"
+              @click="startOperationalEdit(resource)"
+            >
+              Editar configuración
+            </button>
+          </div>
+
+          <div class="image-editor">
+            <template v-if="editingImageId === resource.id">
+              <input
+                v-model="imageDraft"
+                type="url"
+                placeholder="https://... o /images/..."
+              />
+
+              <div class="editor-actions">
+                <button
+                  type="button"
+                  class="save"
+                  :disabled="
+                    resourcesStore.updatingImageId === resource.id
+                  "
+                  @click="saveImageEdit(resource)"
+                >
+                  Guardar imagen
+                </button>
+
+                <button
+                  type="button"
+                  class="cancel"
+                  :disabled="
+                    resourcesStore.updatingImageId === resource.id
+                  "
+                  @click="cancelImageEdit"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </template>
+
+            <button
+              v-else
+              type="button"
+              class="edit-image"
+              @click="startImageEdit(resource)"
+            >
+              Cambiar imagen
+            </button>
+          </div>
         </div>
 
       </article>
@@ -512,18 +676,73 @@ const saveImageEdit = async (resource) => {
   font-weight: 800;
 }
 
+.resource-admin {
+  border-top: 1px solid var(--color-border);
+  padding-top: 14px;
+
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.config-editor,
 .image-editor {
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
 
+.config-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.config-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  color: var(--color-text);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.config-grid input,
+.config-grid select,
 .image-editor input {
+  width: 100%;
   height: 42px;
+
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
+
   padding: 0 12px;
+  box-sizing: border-box;
   font: inherit;
+}
+
+.active-control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  color: var(--color-text);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.active-control input {
+  width: 17px;
+  height: 17px;
+}
+
+.config-help {
+  margin: 0;
+
+  color: var(--color-text-muted);
+  font-size: 12px;
+  line-height: 1.45;
 }
 
 .editor-actions {
@@ -531,6 +750,7 @@ const saveImageEdit = async (resource) => {
   gap: 8px;
 }
 
+.edit-resource,
 .edit-image,
 .editor-actions button {
   min-height: 38px;
@@ -541,6 +761,7 @@ const saveImageEdit = async (resource) => {
   cursor: pointer;
 }
 
+.edit-resource,
 .edit-image,
 .editor-actions .save {
   background: var(--color-primary);
@@ -564,6 +785,10 @@ const saveImageEdit = async (resource) => {
 }
 
 @media (max-width: 600px) {
+  .config-grid {
+    grid-template-columns: 1fr;
+  }
+
   .filters {
     grid-template-columns: 1fr;
   }

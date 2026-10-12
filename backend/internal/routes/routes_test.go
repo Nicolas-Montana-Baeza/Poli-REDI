@@ -52,7 +52,8 @@ func TestMVP1RouteAllowlist(t *testing.T) {
 		"GET /api/notifications",
 		"PATCH /api/notifications/:id/read", "GET /api/workshops",
 		"POST /api/workshops/:id/enroll", "GET /api/admin/reservation-policies",
-		"POST /api/admin/reservation-policies", "PATCH /api/resources/:id/image",
+		"POST /api/admin/reservation-policies", "PATCH /api/resources/:id",
+		"PATCH /api/resources/:id/image",
 	} {
 		if routes[excluded] {
 			t.Errorf("route outside MVP1 was registered: %s", excluded)
@@ -68,6 +69,7 @@ func TestMVP2DoesNotExposeMVP3Routes(t *testing.T) {
 		"PATCH /api/notifications/:id/read",
 		"GET /api/admin/reservation-policies",
 		"POST /api/admin/reservation-policies",
+		"PATCH /api/resources/:id",
 		"PATCH /api/resources/:id/image",
 	} {
 		if routes[excluded] {
@@ -92,6 +94,7 @@ func TestMVP3RouteSurface(t *testing.T) {
 		"PATCH /api/notifications/:id/read",
 		"GET /api/admin/reservation-policies",
 		"POST /api/admin/reservation-policies",
+		"PATCH /api/resources/:id",
 		"PATCH /api/resources/:id/image",
 	} {
 		if !routes[required] {
@@ -108,6 +111,7 @@ func TestFullIncludesMVP3Routes(t *testing.T) {
 		"PATCH /api/notifications/:id/read",
 		"GET /api/admin/reservation-policies",
 		"POST /api/admin/reservation-policies",
+		"PATCH /api/resources/:id",
 		"PATCH /api/resources/:id/image",
 	} {
 		if !routes[required] {

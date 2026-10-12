@@ -7,6 +7,15 @@ export const resourcesService = {
     return response.data
   },
 
+  async updateOperational(resourceId, changes) {
+    const response = await api.patch(
+      `/resources/${resourceId}`,
+      changes
+    )
+
+    return response.data
+  },
+
   async updateImage(resourceId, imageUrl) {
     const response = await api.patch(
       `/resources/${resourceId}/image`,

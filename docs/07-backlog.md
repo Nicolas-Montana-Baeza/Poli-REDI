@@ -2161,31 +2161,68 @@ Permitir que un admin vea usuarios y pueda bloquear/desbloquear cuentas.
 ## ADMIN-003 - Implementar gestion de recursos
 
 Prioridad: P2
-Labels: `frontend`, `backend`, `admin`, `recursos`
-Estado sugerido: Partially Done
+Labels: `frontend`, `backend`, `admin`, `recursos`, `mvp3`
+Estado sugerido: Implementado parcial; VERIFICADO EN POSTGRESQL 16
 
 ### Objetivo
 
-Permitir crear, editar, activar o desactivar recursos deportivos, usando los ocho recursos actuales como inventario oficial inicial.
+Permitir mantener administrativamente el inventario oficial de recursos
+deportivos sin perder el historial asociado a reservas existentes.
 
 ### Criterios de aceptacion
 
-- [ ] CRUD basico de recursos.
-- [x] Permite actualizar la imagen del recurso desde una ruta administrativa.
-- [ ] Recurso pertenece a una sede.
-- [ ] Valida `reservation_mode`.
-- [ ] Solo un administrador puede definir o modificar la politica que determina si el recurso requiere confirmacion grupal.
-- [ ] No permite eliminar recursos con reservas historicas sin criterio definido.
-- [ ] Refresca disponibilidad luego de cambios.
+- [ ] CRUD completo de recursos.
+- [x] Permite actualizar la imagen de un recurso existente.
+- [x] Permite modificar `reservation_mode`.
+- [x] Permite modificar capacidad.
+- [x] Permite activar o desactivar un recurso.
+- [x] Las escrituras operacionales requieren administrador.
+- [x] Valida los valores permitidos de `reservation_mode`.
+- [x] Una capacidad informada debe ser mayor que cero.
+- [x] Un recurso sujeto a confirmacion grupal vigente debe permanecer
+  `RESERVABLE`.
+- [x] La capacidad de un recurso grupal no puede quedar bajo su minimo
+  vigente.
+- [x] Las reservas grupales ya creadas conservan su capacidad snapshot.
+- [ ] Permitir crear nuevos recursos desde administracion.
+- [ ] Gestionar la sede del recurso desde administracion.
+- [ ] Definir criterio de eliminacion para recursos con historial.
+- [ ] Completar filtros backend por sede, tipo y estado (`API-001`).
 
-### Resultado parcial de implementacion
+### Implementacion
 
-- Se agrego `resources.image_url` en `database/schema.sql` y datos iniciales en `database/seed.sql`.
-- `GET /api/resources` y la consulta por ID devuelven `imageUrl`.
-- Se agrego `PATCH /api/resources/:id/image`, protegido con `RequireAdmin`.
-- El backend valida ID, largo maximo de URL y acepta solo `http://`, `https://` o rutas locales iniciadas en `/`.
-- `ResourcesView.vue` permite a administradores editar o limpiar la imagen del recurso y actualiza el store sin recargar toda la pagina.
-- Pendiente: CRUD completo del inventario oficial, sede, modo de reserva, politica de confirmacion grupal, activacion/desactivacion y criterio de eliminacion.
+- `GET /api/resources` mantiene la consulta del inventario.
+- `PATCH /api/resources/:id/image` administra la imagen.
+- `PATCH /api/resources/:id` permite modificar de forma parcial:
+  - `reservationMode`;
+  - `capacity`;
+  - `isActive`.
+- Ambas rutas de escritura estan protegidas mediante `RequireAdmin`.
+- `ResourcesView.vue` permite editar configuracion operacional e imagen.
+- El store actualiza el recurso devuelto por backend sin recargar toda la
+  aplicacion.
+- El backend valida de forma transaccional la politica grupal vigente antes
+  de modificar modo o capacidad.
+- Cambiar `resources.capacity` no modifica el limite historico de reservas
+  grupales existentes, que utilizan `group_capacity_snapshot`.
+
+### Evidencia MVP3
+
+- Tests unitarios validan modos permitidos y capacidad nullable/positiva.
+- Tests de reglas validan recursos grupales y no grupales.
+- La prueba de integracion
+  `TestResourceOperationalSettingsPostgresIntegration` fue ejecutada
+  contra PostgreSQL 16 real.
+- La prueba verifico:
+  - actualizacion valida y restauracion de un recurso no grupal;
+  - rechazo de `OPEN_USE` sobre recurso grupal vigente;
+  - rechazo de capacidad inferior al minimo grupal;
+  - ausencia de mutaciones en PostgreSQL despues de operaciones rechazadas.
+
+### Pendiente
+
+La administracion actual mantiene recursos existentes. Creacion, sede,
+eliminacion controlada y filtros avanzados permanecen pendientes.
 
 ## ADMIN-004 - Implementar bloqueos de disponibilidad
 

@@ -9,6 +9,7 @@ export const useResourcesStore = defineStore('resources', {
     error: null,
     actionError: null,
     actionSuccess: null,
+    updatingResourceId: null,
     updatingImageId: null
   }),
 
@@ -32,6 +33,39 @@ export const useResourcesStore = defineStore('resources', {
         this.error = 'No se pudieron cargar los recursos'
       } finally {
         this.loading = false
+      }
+    },
+
+    async updateOperational(resourceId, changes) {
+      this.updatingResourceId = resourceId
+      this.actionError = null
+      this.actionSuccess = null
+
+      try {
+        const updatedResource =
+          await resourcesService.updateOperational(
+            resourceId,
+            changes
+          )
+
+        this.resources = this.resources.map((resource) =>
+          resource.id === updatedResource.id
+            ? updatedResource
+            : resource
+        )
+
+        this.actionSuccess =
+          'Configuración actualizada correctamente'
+
+        return updatedResource
+      } catch (error) {
+        this.actionError =
+          error.response?.data?.error ||
+          'No se pudo actualizar el recurso'
+
+        throw new Error(this.actionError)
+      } finally {
+        this.updatingResourceId = null
       }
     },
 

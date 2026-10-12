@@ -469,14 +469,21 @@ Criterios de aceptacion:
 
 ### HU-011 - Gestionar recursos
 
-Como administrador, quiero mantener el catalogo de recursos deportivos para que las reservas usen informacion vigente.
+Como administrador, quiero mantener el catalogo de recursos deportivos para
+que las reservas usen informacion vigente.
 
 Criterios de aceptacion:
 
 - Puedo actualizar la imagen de un recurso existente.
-- En el MVP administrativo podre crear, editar, activar o desactivar los ocho recursos oficiales y sus futuras modificaciones.
+- Puedo modificar modo de reserva, capacidad y estado activo/inactivo.
+- Solo un administrador puede ejecutar estas modificaciones.
+- Los modos de reserva se limitan a los valores soportados por el dominio.
+- Un recurso con confirmacion grupal vigente debe permanecer `RESERVABLE`.
+- Su capacidad no puede quedar bajo el minimo grupal vigente.
+- Las reservas ya creadas conservan sus snapshots historicos.
+- La creacion de recursos, gestion de sede y eliminacion controlada
+  permanecen pendientes.
 - No se eliminan recursos con historial sin criterio definido.
-- Los cambios se reflejan en disponibilidad.
 
 ### HU-012 - Crear bloqueos
 
