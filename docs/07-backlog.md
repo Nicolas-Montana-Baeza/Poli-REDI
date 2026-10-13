@@ -2171,7 +2171,7 @@ deportivos sin perder el historial asociado a reservas existentes.
 
 ### Criterios de aceptacion
 
-- [ ] CRUD completo de recursos.
+- [ ] Alta, consulta, edicion y desactivacion de recursos sin DELETE fisico.
 - [x] Permite actualizar la imagen de un recurso existente.
 - [x] Permite modificar `reservation_mode`.
 - [x] Permite modificar capacidad.
@@ -2186,7 +2186,7 @@ deportivos sin perder el historial asociado a reservas existentes.
 - [x] Las reservas grupales ya creadas conservan su capacidad snapshot.
 - [ ] Permitir crear nuevos recursos desde administracion.
 - [ ] Gestionar la sede del recurso desde administracion.
-- [ ] Definir criterio de eliminacion para recursos con historial.
+- [x] Se define desactivacion sin eliminacion fisica en MVP3.
 - [ ] Completar filtros backend por sede, tipo y estado (`API-001`).
 
 ### Implementacion
@@ -2221,8 +2221,52 @@ deportivos sin perder el historial asociado a reservas existentes.
 
 ### Pendiente
 
-La administracion actual mantiene recursos existentes. Creacion, sede,
-eliminacion controlada y filtros avanzados permanecen pendientes.
+La administracion actual permite modificar recursos existentes. La creacion y edicion integral de recursos, la administracion de sedes y los filtros avanzados permanecen pendientes. EV-012 excluye la eliminacion fisica en MVP3.
+
+<!-- EV-012 2026-10-13 -->
+
+### Refinamiento aprobado 2026-10-13 - EV-012
+
+**Motivo:** ADMIN-003 permitia mantener parcialmente recursos
+existentes, pero no administrar integramente el inventario y sus sedes.
+
+**Decision:** ampliar ADMIN-003 a gestion integral de sedes y recursos
+antes del cierre de MVP3. No se declara completado por esta aprobacion.
+
+#### Recursos - criterios pendientes
+
+- [ ] Crear recurso con nombre, tipo, sede, modo y capacidad.
+- [ ] Permitir imagen opcional al crear.
+- [ ] Editar nombre, tipo y sede de un recurso existente.
+- [ ] Integrar la edicion operacional ya implementada.
+- [ ] Filtrar por sede, tipo, modo y estado.
+- [ ] Impedir que un recurso nuevo entre automaticamente
+      en la politica vigente.
+- [ ] Validar traslados de recursos con reservas futuras.
+- [ ] Verificar preservacion de historial y snapshots.
+- [ ] Probar permisos administrativos por HTTP.
+
+#### Sedes - criterios pendientes
+
+- [ ] Crear sedes institucionales.
+- [ ] Editar nombre y ubicacion.
+- [ ] Editar coordenadas opcionales y estado activo.
+- [ ] Consultar sedes con conteo y listado de recursos.
+- [ ] Buscar y filtrar sedes.
+- [ ] Impedir desactivar una sede con recursos activos
+      hasta resolverlos explicitamente.
+- [ ] Impedir nuevas reservas asociadas a una sede inactiva.
+- [ ] Preservar asociaciones e historial al desactivar.
+- [ ] Verificar autorizacion exclusiva de administrador.
+
+#### Criterio de cierre
+
+Administracion completa operable desde frontend y API, con pruebas
+de persistencia PostgreSQL 16, permisos, invariantes e historial.
+No se requiere eliminacion fisica de registros.
+
+Trazabilidad: RF-014, RF-024, RF-026, HU-011, HU-017, HU-019,
+CU-SED-01..04, CU-REC-01..05, EV-007 -> EV-012.
 
 ## ADMIN-004 - Implementar bloqueos de disponibilidad
 
@@ -2271,7 +2315,7 @@ Permitir registrar clases, talleres, eventos, campeonatos o entrenamientos insti
 
 Prioridad: P1
 Labels: `admin`, `reservas`, `reglas-negocio`, `architecture-approved`, `mvp3`
-Estado sugerido: Implemented parcial; VERIFICADO LOCALMENTE
+Estado actual: Parcial; publicación prospectiva implementada, administración grupal explícita pendiente
 
 ### Objetivo
 
@@ -2282,20 +2326,59 @@ Permitir que solo usuarios con rol administrador modifiquen el periodo de reserv
 - [x] Un administrador puede publicar una nueva version del periodo cuyo valor inicial es siete dias.
 - [x] Un administrador puede publicar una nueva version del plazo previo cuyo valor inicial es una hora.
 - [x] Un administrador puede versionar recursos permitidos, jornada, intervalo y duraciones permitidas.
-- [ ] La politica clasifica que recursos requieren confirmacion grupal; participantes, minimo y transiciones asociadas siguen pendientes.
+- [x] La política versionada clasifica recursos sujetos a confirmación
+  grupal mediante `reservation_policy_group_resources`.
+- [x] El flujo MVP2 utiliza mínimos por recurso, participantes autenticados,
+  transiciones y snapshots de reserva.
+- [ ] El contrato administrativo permite configurar explícitamente
+  `groupResources` con `resourceId` y `minimumParticipants`.
+- [ ] La publicación valida que cada recurso grupal esté permitido,
+  sea `RESERVABLE` y tenga capacidad suficiente para su mínimo.
+- [ ] El historial administrativo expone la configuración grupal
+  de cada versión.
+- [ ] Existe una interfaz administrativa para consultar, comparar
+  y publicar políticas.
 - [x] Un usuario normal no puede consultar el historial ni modificar estas politicas; solo recibe el DTO operativo minimo vigente.
 - [x] El historial administrativo conserva valores, autoria y vigencias; la interfaz para mostrarlos sigue pendiente.
 - [x] El cambio normal crea una version inmutable con vigencia inmediata y se aplica a solicitudes creadas posteriormente.
 - [x] Cada solicitud conserva la version vigente al crearse.
+
+### Criterios aprobados diferidos (fuera de 3C)
+
 - [ ] Un administrador puede previsualizar una correccion excepcional sobre solicitudes futuras `PENDING` o `CONFIRMED` seleccionadas.
 - [ ] La correccion exige motivo, confirmacion explicita, auditoria e idempotencia por lote.
 - [ ] La aplicacion revalida todas las solicitudes y es atomica: si una es incompatible, no cambia ninguna.
 - [ ] La correccion no edita versiones historicas ni cancela solicitudes implicitamente.
 - [ ] Una reversion se registra como una nueva correccion hacia la version anterior.
 
+### Alcance de implementación 3C (MVP3)
+
+1. Ampliar el contrato de publicación con `groupResources`, una colección
+   de pares `resourceId` y `minimumParticipants`.
+2. Conservar temporalmente el campo global `minimumParticipants` por
+   compatibilidad; el mínimo específico por recurso es la referencia
+   para las reservas grupales.
+3. Validar IDs únicos, recursos permitidos, modo `RESERVABLE` y capacidad
+   mayor o igual al mínimo grupal.
+4. Persistir los recursos grupales como parte de cada versión publicada;
+   no heredarlos silenciosamente cuando el administrador envía una
+   configuración explícita.
+5. Exponer configuración grupal, autoría y vigencias en el historial
+   administrativo.
+6. Implementar pantalla de consulta, edición, comparación y confirmación
+   antes de publicar.
+7. Validar en PostgreSQL 16 atomicidad, versionado, idempotencia y
+   conservación de reservas históricas.
+
+No forman parte de 3C las correcciones excepcionales de reservas
+existentes. Su requisito aprobado permanece vigente para un
+incremento posterior, sujeto a planificación.
+
 ### Arquitectura aprobada
 
-- Persistir versiones en `reservation_policies` y sus recursos permitidos en `reservation_policy_resources`; la clasificacion de confirmacion grupal requiere implementacion posterior.
+- Persistir versiones en `reservation_policies`, recursos permitidos
+  en `reservation_policy_resources` y clasificación grupal con mínimo
+  por recurso en `reservation_policy_group_resources`.
 - Asociar cada reserva mediante `reservations.policy_id`.
 - Registrar excepciones en `reservation_policy_corrections` con version anterior/nueva, administrador, motivo, fecha UTC y lote.
 - Separar `preview` y `apply` en rutas administrativas protegidas.
@@ -2307,7 +2390,8 @@ Permitir que solo usuarios con rol administrador modifiquen el periodo de reserv
 - La publicacion exige `Idempotency-Key`: `201` nuevo, `200` replay identico y `409` replay divergente.
 - El esquema protege version vigente unica, idempotencia, snapshot completo e inmutabilidad; el seed completa y marca una sola vez el bootstrap tecnico de recursos permitidos despues de cargar el catalogo.
 - QA acepto/verifico localmente tras cuatro rondas. No se ejecuto el esquema actualizado en SQL Server/Azure SQL real; concurrencia fue validada estaticamente y `go vet` no se ejecuto en la ronda final por cuota.
-- La vista previa/aplicacion de correcciones excepcionales y su auditoria permanecen pendientes y fuera de este incremento. La retencion institucional definitiva tambien sigue pendiente; las politicas referenciadas por reservas no pueden eliminarse.
+- La vista previa/aplicación de correcciones excepcionales y su
+  auditoría permanecen pendientes y fuera de 3C. La retencion institucional definitiva tambien sigue pendiente; las politicas referenciadas por reservas no pueden eliminarse.
 
 ---
 

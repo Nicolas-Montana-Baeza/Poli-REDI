@@ -345,7 +345,11 @@ Convertir Poli-REDI en una herramienta administrable por la institucion, con cal
 - Reportes iniciales visibles para administradores.
 - Cancelacion administrativa de reservas.
 - Administracion de imagen, modo, capacidad y estado de recursos existentes.
+- Administracion integral de sedes y recursos (EV-012), aprobada
+  como requisito de cierre y pendiente de implementacion.
 - Notificaciones internas asociadas a eventos de reservas.
+- Administración prospectiva de políticas de reserva versionadas,
+  incluida la configuración grupal por recurso.
 
 ### Backlog relacionado
 
@@ -376,6 +380,7 @@ Convertir Poli-REDI en una herramienta administrable por la institucion, con cal
 - `RF-023`
 - `RF-024`
 - `RF-025`
+- `RF-026`
 - `HU-009`
 - `HU-010`
 - `HU-011`
@@ -384,6 +389,7 @@ Convertir Poli-REDI en una herramienta administrable por la institucion, con cal
 - `HU-016`
 - `HU-017`
 - `HU-018`
+- `HU-019`
 - `CU-006`
 - `CU-010`
 - `CU-011`
@@ -396,8 +402,19 @@ Parcial.
 
 - Completar la integracion de bloqueos en el calendario unificado; reservas y actividades programadas ya comparten contrato (`RES-004`).
 - Crear bloqueos de disponibilidad desde administracion (`ADMIN-004`).
-- Completar `ADMIN-003`: imagen, modo de reserva, capacidad y activacion/desactivacion de recursos existentes ya estan implementados y verificados en PostgreSQL 16. Permanecen pendientes creacion, gestion de sede, eliminacion controlada y filtros avanzados.
-- Completar la interfaz administrativa y migrar/verificar en PostgreSQL la publicacion prospectiva de politicas (`ADMIN-006`). Lectura, historial y escritura administrativa ya utilizan PostgreSQL; permanece pendiente la interfaz y el cierre funcional completo. Las correcciones excepcionales quedan para un incremento posterior.
+- Completar `ADMIN-003` segun EV-012 (2026-10-13):
+  la actualizacion de imagen, modo, capacidad y estado de recursos
+  existentes ya esta implementada y verificada en PostgreSQL 16.
+  Se aprobaron como pendientes obligatorios la creacion y
+  edicion integral de recursos, administracion completa de sedes,
+  reasignacion, filtros y preservacion de historial.
+  La eliminacion fisica queda fuera del alcance.
+- Completar `ADMIN-006` en 3C: la publicación prospectiva, lectura e
+  historial ya utilizan PostgreSQL. Falta ampliar el contrato para
+  administrar mínimos grupales por recurso, exponerlos por versión,
+  construir la interfaz administrativa y validar integralmente la
+  publicación. Las correcciones excepcionales se mantienen aprobadas
+  para un incremento posterior.
 - Bloquear y desbloquear usuarios con auditoria (`ADMIN-002`).
 - Completar `ADMIN-005`: el backend ya registra programacion institucional, detecta conflictos N-elementos y permite resolucion administrativa `KEEP`/`ALLOW`/`CANCEL`/`RESCHEDULE`. Falta cerrar la decision `EV-010` sobre cancelacion automatica versus resolucion administrativa, validar end-to-end las notificaciones generadas y completar la experiencia administrativa.
 - Agregar filtros backend de recursos por sede, tipo y estado (`API-001`).
@@ -407,7 +424,19 @@ Parcial.
 
 ### Criterio de cierre
 
-El MVP 3 se considera cerrado cuando un administrador puede controlar disponibilidad institucional, resolver conflictos entre actividades, mantener el inventario oficial y sus politicas de reserva, administrar usuarios y visualizar informacion operacional sin modificar datos directamente en base de datos.
+El MVP 3 se considera cerrado cuando un administrador puede controlar disponibilidad institucional, resolver conflictos entre actividades, mantener el inventario oficial y sus politicas de reserva, administrar usuarios y visualizar informacion operacional sin
+modificar datos directamente en base de datos. El cierre de ADMIN-003
+incluye crear y mantener sedes y recursos desde la interfaz,
+respetando permisos e integridad historica.
+
+<!-- EV-012 2026-10-13 -->
+
+### Decision de alcance MVP3 - EV-012
+
+La administracion integral de sedes y recursos pasa de capacidad
+pendiente a criterio funcional obligatorio para cerrar ADMIN-003.
+La decision fue aprobada el 2026-10-13; no representa evidencia
+de implementacion ni autoriza declarar el modulo completado.
 
 ## MVP 4 - Entrega, calidad y soporte
 

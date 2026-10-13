@@ -151,7 +151,14 @@ Pendiente relacionado: `ADMIN-002`.
 
 El sistema debe permitir que administradores creen, editen, activen o desactiven los recursos del inventario oficial. Los ocho recursos actuales constituyen la linea base aprobada y los cambios deben reflejarse en catalogo y disponibilidad.
 
-Estado actual: Implementado parcialmente. Administradores ya pueden actualizar la imagen del recurso; falta CRUD completo, sede, modo de reserva y activacion/desactivacion.
+Estado actual: IMPLEMENTADO PARCIALMENTE. Imagen, modo,
+capacidad y estado activo/inactivo ya cuentan con implementacion.
+Creacion, edicion completa y asignacion administrativa de sede
+permanecen pendientes.
+
+Refinamiento aprobado 2026-10-13: EV-012 amplia el alcance
+de RF-014 para incorporar alta, edicion integral, reasignacion
+de sede y desactivacion sin eliminacion fisica.
 
 Pendiente relacionado: `ADMIN-003`.
 
@@ -260,7 +267,10 @@ Pendiente relacionado: `ADMIN-005`, `RES-004`, `NOTIF-001`.
 
 El sistema debe permitir que el administrador mantenga el inventario oficial inicial de ocho recursos en el MVP administrativo correspondiente, conservando el historial aplicable.
 
-Estado actual: APROBADO el 2026-07-20; implementado parcialmente mediante lectura y cambio de imagen.
+Estado actual: APROBADO; IMPLEMENTADO PARCIALMENTE.
+Existe consulta y actualizacion de imagen, modo, capacidad y estado.
+EV-012 (2026-10-13) amplia el inventario administrable para
+permitir crear recursos y asociarlos a sedes, conservando historial.
 
 Pendiente relacionado: `ADMIN-003`.
 
@@ -271,6 +281,45 @@ El sistema debe permitir exclusivamente a usuarios con rol administrador publica
 Estado actual: APROBADO e IMPLEMENTADO para el bloque funcional MVP2. La publicacion prospectiva, permisos, idempotencia, minimo por recurso, snapshot, participantes, transiciones, solapes personales y expiracion cuentan con evidencia local. Permanecen pendientes la compuerta 14D completa, la prueba manual y el ambiente online; la interfaz administrativa y las correcciones excepcionales no pertenecen a este cierre.
 
 Pendiente relacionado: `ADMIN-006`.
+
+Definición incremental de MVP3 (3C):
+
+- La clasificación de recursos grupales y sus mínimos ya forma parte
+  del modelo versionado y del flujo de reservas implementado en MVP2.
+- En 3C el administrador podrá configurar explícitamente esos recursos
+  y sus mínimos al publicar una nueva versión.
+- El mínimo por recurso será la referencia operativa para solicitudes
+  grupales; el parámetro global se conservará temporalmente por
+  compatibilidad histórica.
+- La nueva versión se aplicará prospectivamente. Reservas anteriores
+  conservan su política y snapshots.
+- La corrección excepcional con simulación, motivo, confirmación,
+  atomicidad, auditoría y reversión sigue siendo un requisito aprobado,
+  pero se implementará en un incremento posterior a 3C.
+
+<!-- EV-012 2026-10-13 -->
+
+### RF-026 - Administracion integral de sedes
+
+El sistema debe permitir al administrador crear, consultar,
+editar, activar y desactivar las sedes institucionales.
+
+Criterios de aceptacion:
+
+- Nombre y pais obligatorios.
+- Direccion, comuna, ciudad, region y coordenadas opcionales.
+- Nombre de sede unico conforme al esquema vigente.
+- Coordenadas limitadas a rangos validos.
+- Una sede agrupa multiples recursos.
+- Se muestran recursos asociados y estado operativo.
+- No se desactiva una sede con recursos activos sin resolverlos.
+- No se eliminan fisicamente sedes en MVP3.
+- Las reservas e historiales existentes se conservan.
+- Solo administradores modifican sedes.
+
+Estado: APROBADO por EV-012 el 2026-10-13.
+Implementacion: PENDIENTE.
+Dependencias: RF-014, RF-024, ADMIN-003.
 
 ## Requisitos no funcionales
 
@@ -481,8 +530,12 @@ Criterios de aceptacion:
 - Un recurso con confirmacion grupal vigente debe permanecer `RESERVABLE`.
 - Su capacidad no puede quedar bajo el minimo grupal vigente.
 - Las reservas ya creadas conservan sus snapshots historicos.
-- La creacion de recursos, gestion de sede y eliminacion controlada
-  permanecen pendientes.
+- Puedo crear recursos y editar nombre, tipo y sede.
+- Puedo seleccionar una sede registrada.
+- Un recurso nuevo no entra automaticamente en la politica vigente.
+- Los cambios no destruyen historiales ni snapshots.
+- La eliminacion fisica queda fuera de MVP3.
+- La implementacion completa de estos criterios sigue pendiente.
 - No se eliminan recursos con historial sin criterio definido.
 
 ### HU-012 - Crear bloqueos
@@ -563,7 +616,8 @@ Como administrador, quiero modificar el inventario oficial de recursos para mant
 Criterios de aceptacion:
 
 - Los ocho recursos actuales forman la linea base.
-- El administrador puede mantener datos, modo y estado operativo en el MVP correspondiente.
+- El administrador puede crear recursos adicionales al inventario inicial.
+- Puede editar datos, modo, capacidad, imagen, sede y estado operativo.
 - Los cambios se reflejan en catalogo y disponibilidad.
 - El historial no se pierde por desactivar o modificar un recurso.
 
@@ -575,12 +629,39 @@ Criterios de aceptacion:
 
 - Solo usuarios con rol administrador pueden modificar las politicas.
 - Los valores iniciales son siete dias y una hora antes del inicio.
-- Cancha 1, Cancha 2 y Sala Multiuso comienzan sujetas a confirmacion grupal con minimo inicial 10 por recurso.
+- Cancha 1, Cancha 2 y Sala Multiuso comienzan sujetas a
+  confirmación grupal con mínimo inicial 10 por recurso.
+- Puedo seleccionar recursos permitidos para reservar.
+- Puedo definir por recurso si requiere confirmación grupal
+  y su mínimo de participantes.
+- El sistema rechaza mínimos superiores a la capacidad del recurso
+  o incompatibles con su modo de reserva.
+- Puedo configurar jornada, intervalo, frecuencia y duraciones
+  permitidas.
+- Puedo revisar el historial y comparar la política vigente
+  con los nuevos valores antes de confirmar.
 - El cambio informa desde cuando rige.
 - Los cambios normales se aplican prospectivamente y las solicitudes conservan su version.
 - Una correccion excepcional exige seleccionar solicitudes futuras activas, previsualizar el resultado, informar un motivo y confirmar la aplicacion.
 - Si una solicitud es incompatible, el lote completo se rechaza sin cancelaciones implicitas.
 - La correccion y cualquier reversion quedan auditadas.
+
+### HU-019 - Administrar sedes institucionales
+
+Como administrador, quiero crear y mantener las sedes deportivas
+para organizar los recursos por recinto y mantener actualizadas
+sus ubicaciones.
+
+Criterios de aceptacion:
+
+- Puedo crear y editar sedes con sus datos institucionales.
+- Puedo activar y desactivar sedes.
+- Puedo consultar y filtrar sedes y sus recursos asociados.
+- No puedo desactivar una sede con recursos activos sin resolverlos.
+- Ninguna operacion elimina reservas historicas.
+- Los usuarios no administradores no pueden modificar sedes.
+
+Estado: APROBADA por EV-012; implementacion pendiente.
 
 ## Casos de uso
 
@@ -863,10 +944,15 @@ Precondiciones:
 Flujo principal:
 
 1. El administrador consulta las politicas institucionales vigentes.
-2. Modifica el periodo de reserva, el plazo previo o los recursos sujetos a confirmacion grupal.
-3. El sistema valida su rol y los nuevos valores.
-4. El sistema muestra el valor anterior, el nuevo valor y desde cuando rige.
-5. El administrador confirma el cambio.
+2. Modifica ventana, frecuencia, plazo de confirmación, jornada,
+   duraciones y recursos permitidos.
+3. Configura qué recursos requieren confirmación grupal y el mínimo
+   de participantes de cada uno.
+4. El sistema valida su rol, valores, recursos y compatibilidad
+   entre mínimo grupal y capacidad.
+5. El sistema muestra los valores anteriores, los nuevos y desde
+   cuándo regirá la versión.
+6. El administrador confirma la publicación de la nueva política.
 
 Postcondiciones:
 
@@ -877,6 +963,68 @@ Flujos alternativos:
 
 - Un usuario normal no puede modificar las politicas.
 - Un valor invalido se rechaza sin alterar la politica vigente.
+
+### CU-SED-01 - Crear sede
+
+Actor: Administrador.
+Flujo: ingresar nombre, pais y ubicacion opcional; validar;
+registrar la sede; confirmar su creacion.
+Alternativas: rechazar nombre duplicado o coordenadas invalidas.
+
+### CU-SED-02 - Editar sede
+
+Actor: Administrador.
+Flujo: seleccionar sede; modificar datos; validar; guardar.
+Alternativas: rechazar datos invalidos o duplicados.
+
+### CU-SED-03 - Desactivar o activar sede
+
+Actor: Administrador.
+Flujo: seleccionar sede; solicitar cambio; comprobar
+recursos asociados; confirmar y guardar.
+Alternativas: rechazar desactivacion con recursos activos;
+no ejecutar cambios implicitos en cascada.
+
+### CU-SED-04 - Consultar sedes
+
+Actor: Administrador.
+Flujo: listar sedes, buscar o filtrar y consultar
+recursos asociados sin modificar datos.
+
+### CU-REC-01 - Crear recurso
+
+Actor: Administrador.
+Flujo: ingresar nombre, tipo, sede, modo, capacidad
+e imagen opcional; validar; crear.
+Alternativas: rechazar sede no valida, duplicados y datos
+incompatibles. No modificar la politica vigente.
+
+### CU-REC-02 - Editar recurso
+
+Actor: Administrador.
+Flujo: seleccionar recurso; editar datos y configuracion;
+validar reglas grupales y guardar.
+Alternativas: rechazar modo o capacidad incompatible.
+
+### CU-REC-03 - Activar o desactivar recurso
+
+Actor: Administrador.
+Flujo: seleccionar recurso, cambiar estado y guardar.
+Postcondicion: el historial permanece y la disponibilidad
+refleja el estado vigente.
+
+### CU-REC-04 - Cambiar sede de recurso
+
+Actor: Administrador.
+Flujo: elegir una nueva sede activa; validar las
+reservas futuras relacionadas; confirmar y guardar.
+Alternativas: rechazar traslados incompatibles.
+
+### CU-REC-05 - Consultar y filtrar recursos
+
+Actor: Administrador.
+Flujo: buscar por nombre y filtrar por sede, tipo,
+modo y estado; consultar la configuracion vigente.
 
 ## Matriz de trazabilidad inicial
 
@@ -895,7 +1043,7 @@ Flujos alternativos:
 | RF-011 | HU-003, HU-011 | UI-001, API-001 |
 | RF-012 | HU-009 | ADMIN-001 |
 | RF-013 | HU-010 | ADMIN-002 |
-| RF-014 | HU-011 | ADMIN-003 |
+| RF-014 | HU-011, HU-017 | ADMIN-003 |
 | RF-015 | HU-012 | ADMIN-004 |
 | RF-016 | HU-012 | ADMIN-005 |
 | RF-017 | HU-008 | NOTIF-001 |
@@ -907,6 +1055,7 @@ Flujos alternativos:
 | RF-023 | HU-016 | ADMIN-005, RES-004, NOTIF-001 |
 | RF-024 | HU-011, HU-017 | ADMIN-003 |
 | RF-025 | HU-018 | ADMIN-006 |
+| RF-026 | HU-019 | ADMIN-003, API-001 |
 | RNF-008 | HU-003, HU-004 | API-004 |
 | RNF-009 | HU-003, HU-004, HU-005 | UX-001, UX-002 |
 

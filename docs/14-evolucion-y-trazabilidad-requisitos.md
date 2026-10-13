@@ -1,6 +1,6 @@
 # Poli-REDI - Evolucion y trazabilidad de requisitos
 
-Fecha de corte: 2026-08-20
+Fecha de corte: 2026-10-13
 
 ## 1. Objetivo
 
@@ -89,6 +89,8 @@ Puntos de control principales:
 | EV-009 | Politica por tipo de recurso | Tratamiento relativamente uniforme de recursos | `RESERVABLE`, `OPEN_USE`, `INFORMATIVE` y `ADMIN_ONLY` tienen reglas diferentes | Especializacion | Media-alta | Vigente; origen historico exacto por completar |
 | EV-010 | Prioridad institucional | Reserva particular en conflicto se cancela automaticamente | El backend actual registra un conflicto y habilita resolucion administrativa `KEEP`/`ALLOW`/`CANCEL`/`RESCHEDULE` | Candidato de reemplazo/refinamiento | Alta evidencia tecnica; decision de producto pendiente | Candidato |
 | EV-011 | Motor de persistencia | PostgreSQL inicial -> Azure SQL Database | PostgreSQL 16 + `pgx` + migraciones `PG16_*` | Reevaluacion y reemplazo arquitectonico | Alta | Vigente |
+
+| EV-012 | Administracion de sedes y recursos | Inventario inicial administrable de forma parcial; gestion de sedes pendiente | Gestion integral de sedes y recursos en MVP3 | Ampliacion de EV-007 | Alta; decision explicita 2026-10-13 | Aprobado; implementacion pendiente |
 
 ## 6. Evoluciones confirmadas
 
@@ -684,3 +686,103 @@ Alternativas:
 2. mover alguna de estas reglas fuera de la politica si producto determina que
    pertenece estructuralmente al recurso o a otro agregado del dominio.
 
+
+
+<!-- EV-012 2026-10-13 -->
+
+## EV-012 - Refinamiento de administracion de sedes y recursos
+
+**Fecha de decision:** 2026-10-13.
+**Estado:** APROBADO funcionalmente; implementacion pendiente.
+**Tipo:** Ampliacion y descomposicion de EV-007.
+**Incremento:** MVP3.
+**Backlog:** ADMIN-003 y API-001.
+
+### A. Requisito anterior
+
+RF-014 y RF-024 establecieron que el administrador debia mantener
+el inventario oficial inicial de ocho recursos, conservando el
+historial de reservas. La gestion de sedes estaba prevista, pero no
+formaba parte de la implementacion administrativa disponible.
+
+### B. Motivo del refinamiento
+
+Durante la validacion funcional de MVP3 se identifico que la
+administracion de recursos no permitia mantener integramente el
+inventario desde la aplicacion. El sistema ya soportaba modificacion
+de imagen, modo, capacidad y estado operativo de recursos existentes,
+pero no su creacion, edicion completa ni administracion de sedes.
+
+El requisito se amplia para evitar depender de modificaciones
+manuales en la base de datos cuando cambie la infraestructura
+deportiva institucional.
+
+### C. Requisito vigente aprobado
+
+MVP3 debe permitir exclusivamente al administrador:
+
+1. Crear, consultar y editar sedes institucionales.
+2. Activar y desactivar sedes.
+3. Consultar los recursos asociados a cada sede.
+4. Crear recursos asociados a una sede.
+5. Editar nombre, tipo, imagen, capacidad, modo, sede y estado.
+6. Activar y desactivar recursos.
+7. Buscar y filtrar recursos y sedes.
+8. Preservar la integridad del historial de reservas.
+
+El inventario inicial de ocho recursos se conserva como linea base,
+no como limite maximo del sistema.
+
+### D. Reglas de negocio
+
+- Cada recurso pertenece a una sede mediante `venue_id`.
+- Una sede puede contener multiples recursos.
+- Solo administradores pueden ejecutar operaciones de escritura.
+- Un recurso grupal vigente debe conservar modo `RESERVABLE`
+  y capacidad igual o superior a su minimo versionado.
+- Las reservas existentes conservan sus snapshots.
+- Un recurso nuevo no se incorpora automaticamente a la
+  politica de reservas vigente.
+- La desactivacion no elimina historiales ni asociaciones.
+- No se implementa eliminacion fisica de sedes o recursos en MVP3.
+- La desactivacion de una sede con recursos activos debe rechazarse
+  hasta resolver explicitamente dichos recursos.
+- No se admiten cascadas silenciosas de desactivacion.
+- No se habilitan nuevas reservas en sedes inactivas.
+- La reasignacion de recursos con reservas futuras requiere
+  validacion para evitar cambios incompatibles.
+
+### E. Datos de sede
+
+Se reutiliza `venues`: nombre, direccion, comuna, ciudad, region,
+pais, latitud, longitud y estado activo.
+
+Nombre y pais son obligatorios. Las coordenadas son opcionales
+y respetan los limites establecidos por PostgreSQL.
+
+### F. Impacto sobre documentos y software
+
+- RF-014 y RF-024: alcance refinado.
+- RF-026: nuevo requisito de administracion de sedes.
+- HU-011 y HU-017: criterios ampliados.
+- HU-019: nueva historia de administracion de sedes.
+- CU-SED-01 a CU-SED-04: casos de uso de sedes.
+- CU-REC-01 a CU-REC-05: casos de uso de recursos.
+- ADMIN-003: alcance ampliado y pendiente de implementacion.
+- API-001: filtros de recursos por sede, tipo y estado.
+- MVP3: administracion integral obligatoria para cierre.
+- Persistencia: `venues` y `resources` ya existen.
+- Backend/frontend: deben ampliarse; sin afirmar implementacion.
+
+### G. Pendientes de implementacion y verificacion
+
+- API administrativa de sedes.
+- Creacion y edicion integral de recursos.
+- Interfaz administrativa de sedes.
+- Asociacion y filtros por sede.
+- Pruebas de permisos, validacion, invariantes y persistencia.
+- Pruebas de integridad historica y reservas futuras.
+- Validacion funcional desde la demo de desarrollo.
+
+Esta decision no modifica retroactivamente EV-007: registra
+explicitamente su ampliacion y conserva la genealogia del requisito.

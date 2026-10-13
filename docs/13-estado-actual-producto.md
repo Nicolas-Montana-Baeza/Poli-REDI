@@ -215,7 +215,10 @@ Fecha de corte: 2026-08-25
 **Resultado:** Catalogo y disponibilidad reflejan la configuracion institucional vigente.  
 **Prioridad:** MUST para cierre del MVP administrativo.  
 **Fuente:** Decision explicita del usuario del 2026-07-20 y RF-014.  
-**Estado:** APROBADO; lectura e imagen IMPLEMENTADAS, gestion completa PENDIENTE.  
+**Estado:** APROBADO; consulta, imagen, modo, capacidad y
+estado operativo IMPLEMENTADOS. Alta y edicion integral de recursos,
+gestion de sedes y filtros PENDIENTES segun EV-012 (2026-10-13).
+
 **Dependencias:** Politica de conservacion de recursos con historial.
 
 **ID:** RF-025<br>
@@ -578,6 +581,24 @@ Dado un usuario normal y un administrador, cuando intentan modificar periodo, pl
 | C-05 | Prioridad institucional aprobada vs esquema actual | Debe cancelarse y notificarse la reserva particular y permitirse decision entre actividades, pero el esquema rechaza el solapamiento al registrar la actividad. | El comportamiento aprobado no puede ejecutarse. |
 | C-06 | Inventario y politicas aprobadas vs administracion actual | Los ocho recursos son oficiales; la API administrativa ya publica politicas prospectivas, pero faltan interfaz y gestion completa del inventario. | La operacion institucional aun no puede mantenerse completamente desde la interfaz. |
 | C-07 | Disponibilidad visible vs regla de base | Bloqueos impiden reservar, pero no se muestran en el endpoint actual. | Un horario puede parecer libre y fallar al confirmar. |
+
+<!-- EV-012 2026-10-13 -->
+
+### Refinamiento aprobado: inventario y sedes
+
+EV-012 amplia EV-007. El alcance original priorizaba mantener
+el inventario inicial de ocho recursos. El alcance vigente de
+MVP3 exige administracion integral de sedes y recursos.
+
+La existencia de `venues` y `resources` en PostgreSQL no implica
+que la administracion completa este implementada.
+
+Estado: APROBADO funcionalmente; pendiente de desarrollo,
+pruebas y validacion desde la demo.
+
+No se reescriben como completados los requisitos anteriores.
+La evidencia tecnica existente para modo, capacidad, imagen
+y estado se conserva como implementacion parcial.
 
 ### 12. Preguntas y decisiones pendientes
 
