@@ -17,8 +17,14 @@ const policyColumns = `id, reservable_window_days, request_frequency_days,
 
 type policyScanner interface{ Scan(...any) error }
 
+var ErrPolicyVersionMismatch = errors.New(
+	"la version de la politica vigente no coincide",
+)
+
 var ErrIdempotencyPayloadConflict = errors.New("idempotency payload conflict")
 var ErrInvalidPolicyResource = errors.New("invalid policy resource")
+var ErrInvalidPolicyGroupResource = errors.New("configuracion grupal incompatible")
+var ErrPolicyGroupSchemaUnavailable = errors.New("esquema grupal PostgreSQL no disponible")
 
 func scanPolicy(row policyScanner) (models.ReservationPolicy, error) {
 	var p models.ReservationPolicy
@@ -40,6 +46,7 @@ func scanPolicy(row policyScanner) (models.ReservationPolicy, error) {
 
 func loadPolicyCollections(ctx context.Context, q interface {
 	QueryContext(context.Context, string, ...any) (*sql.Rows, error)
+	QueryRowContext(context.Context, string, ...any) *sql.Row
 }, p *models.ReservationPolicy) error {
 	rows, err := q.QueryContext(ctx, `SELECT duration_minutes FROM reservation_policy_durations WHERE policy_id = $1 ORDER BY duration_minutes`, p.ID)
 	if err != nil {
@@ -68,6 +75,64 @@ func loadPolicyCollections(ctx context.Context, q interface {
 		}
 		p.ResourceIDs = append(p.ResourceIDs, value)
 	}
+	if err := rows.Err(); err != nil {
+		return err
+	}
+	if err := rows.Close(); err != nil {
+		return err
+	}
+	return loadPolicyGroupResources(ctx, q, p)
+}
+
+func policyGroupTableAvailable(ctx context.Context, q interface {
+	QueryRowContext(context.Context, string, ...any) *sql.Row
+}) (bool, error) {
+	var exists bool
+	err := q.QueryRowContext(
+		ctx,
+		`SELECT to_regclass('public.reservation_policy_group_resources') IS NOT NULL`,
+	).Scan(&exists)
+	return exists, err
+}
+
+func loadPolicyGroupResources(ctx context.Context, q interface {
+	QueryContext(context.Context, string, ...any) (*sql.Rows, error)
+	QueryRowContext(context.Context, string, ...any) *sql.Row
+}, p *models.ReservationPolicy) error {
+	p.GroupResources = []models.PolicyGroupResource{}
+
+	exists, err := policyGroupTableAvailable(ctx, q)
+	if err != nil {
+		return err
+	}
+	if !exists {
+		return nil
+	}
+
+	rows, err := q.QueryContext(
+		ctx,
+		`SELECT resource_id, minimum_participants
+		 FROM reservation_policy_group_resources
+		 WHERE policy_id = $1
+		 ORDER BY resource_id`,
+		p.ID,
+	)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var rule models.PolicyGroupResource
+		if err := rows.Scan(
+			&rule.ResourceID,
+			&rule.MinimumParticipants,
+		); err != nil {
+			return err
+		}
+		p.GroupResources = append(p.GroupResources, rule)
+	}
+
 	return rows.Err()
 }
 
@@ -106,6 +171,161 @@ func GetReservationPolicyHistory() ([]models.ReservationPolicy, error) {
 		}
 	}
 	return policies, nil
+}
+
+type policyResourceOperational struct {
+	mode     string
+	capacity sql.NullInt64
+}
+
+// resolvePolicyGroupRules se ejecuta dentro de la misma transaccion
+// que publica la nueva version.
+//
+// nil: heredar reglas permitidas de la politica anterior.
+// []: reemplazar explícitamente por ninguna regla grupal.
+// lista: sustituir por las reglas entregadas.
+func resolvePolicyGroupRules(
+	ctx context.Context,
+	tx *sql.Tx,
+	request models.PublishReservationPolicyRequest,
+	currentPolicyID int,
+) ([]models.PolicyGroupResource, error) {
+	exists, err := policyGroupTableAvailable(ctx, tx)
+	if err != nil {
+		return nil, err
+	}
+	if !exists && request.GroupResources != nil {
+		return nil, ErrPolicyGroupSchemaUnavailable
+	}
+
+	allowed := make(map[int]bool, len(request.ResourceIDs))
+	for _, id := range request.ResourceIDs {
+		allowed[id] = true
+	}
+
+	rules := []models.PolicyGroupResource{}
+
+	if request.GroupResources != nil {
+		rules = append(rules, (*request.GroupResources)...)
+	} else if exists && currentPolicyID > 0 {
+		rows, err := tx.QueryContext(
+			ctx,
+			`SELECT resource_id, minimum_participants
+			 FROM reservation_policy_group_resources
+			 WHERE policy_id = $1
+			 ORDER BY resource_id`,
+			currentPolicyID,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		for rows.Next() {
+			var rule models.PolicyGroupResource
+			if err := rows.Scan(
+				&rule.ResourceID,
+				&rule.MinimumParticipants,
+			); err != nil {
+				rows.Close()
+				return nil, err
+			}
+
+			// Compatibilidad: solo se heredan reglas de
+			// recursos incluidos en la nueva politica.
+			if allowed[rule.ResourceID] {
+				rules = append(rules, rule)
+			}
+		}
+
+		if err := rows.Err(); err != nil {
+			rows.Close()
+			return nil, err
+		}
+		if err := rows.Close(); err != nil {
+			return nil, err
+		}
+	}
+
+	// Bloquear todos los recursos permitidos, en orden estable,
+	// para coordinarse con PATCH /resources/:id.
+	configs := make(
+		map[int]policyResourceOperational,
+		len(request.ResourceIDs),
+	)
+
+	for _, id := range request.ResourceIDs {
+		var config policyResourceOperational
+		var active bool
+
+		err := tx.QueryRowContext(
+			ctx,
+			`SELECT reservation_mode, capacity, is_active
+			 FROM resources
+			 WHERE id = $1
+			 FOR UPDATE`,
+			id,
+		).Scan(
+			&config.mode,
+			&config.capacity,
+			&active,
+		)
+
+		if errors.Is(err, sql.ErrNoRows) || !active && err == nil {
+			return nil, fmt.Errorf(
+				"%w: recurso %d no existe o no esta activo",
+				ErrInvalidPolicyResource,
+				id,
+			)
+		}
+		if err != nil {
+			return nil, err
+		}
+
+		configs[id] = config
+	}
+
+	seen := make(map[int]bool, len(rules))
+
+	for _, rule := range rules {
+		if rule.ResourceID <= 0 ||
+			rule.MinimumParticipants <= 0 ||
+			seen[rule.ResourceID] {
+			return nil, fmt.Errorf(
+				"%w: ID, minimo o duplicados invalidos",
+				ErrInvalidPolicyGroupResource,
+			)
+		}
+		seen[rule.ResourceID] = true
+
+		config, present := configs[rule.ResourceID]
+		if !present {
+			return nil, fmt.Errorf(
+				"%w: recurso %d fuera de la politica",
+				ErrInvalidPolicyGroupResource,
+				rule.ResourceID,
+			)
+		}
+
+		minimum := sql.NullInt64{
+			Int64: int64(rule.MinimumParticipants),
+			Valid: true,
+		}
+
+		if err := validateResourceGroupInvariant(
+			minimum,
+			config.mode,
+			config.capacity,
+		); err != nil {
+			return nil, fmt.Errorf(
+				"%w: recurso %d: %v",
+				ErrInvalidPolicyGroupResource,
+				rule.ResourceID,
+				err,
+			)
+		}
+	}
+
+	return rules, nil
 }
 
 func PublishReservationPolicy(
@@ -241,6 +461,23 @@ func PublishReservationPolicy(
 		return models.ReservationPolicy{},
 			false,
 			err
+	}
+
+	groupRules, err := resolvePolicyGroupRules(
+		ctx,
+		tx,
+		request,
+		currentPolicyID,
+	)
+	if err != nil {
+		return models.ReservationPolicy{}, false, err
+	}
+
+	// Verificar después del replay de idempotencia y
+	// antes de modificar la versión vigente.
+	if request.ExpectedPolicyID != currentPolicyID {
+		return models.ReservationPolicy{}, false,
+			ErrPolicyVersionMismatch
 	}
 
 	if currentPolicyID > 0 {
@@ -382,50 +619,19 @@ func PublishReservationPolicy(
 		}
 	}
 
-	var hasGroupResourceTable bool
-
-	if err := tx.QueryRowContext(
-		ctx,
-		`
-		SELECT
-			to_regclass(
-				'public.reservation_policy_group_resources'
-			) IS NOT NULL
-		`,
-	).Scan(&hasGroupResourceTable); err != nil {
-		return models.ReservationPolicy{},
-			false,
-			err
-	}
-
-	if hasGroupResourceTable &&
-		currentPolicyID > 0 {
+	for _, rule := range groupRules {
 		if _, err := tx.ExecContext(
 			ctx,
-			`
-			INSERT INTO reservation_policy_group_resources (
+			`INSERT INTO reservation_policy_group_resources (
 				policy_id,
 				resource_id,
 				minimum_participants
-			)
-			SELECT
-				$1,
-				old_group.resource_id,
-				old_group.minimum_participants
-			FROM reservation_policy_group_resources old_group
-			INNER JOIN reservation_policy_resources new_scope
-				ON new_scope.policy_id = $1
-				AND new_scope.resource_id =
-					old_group.resource_id
-			WHERE old_group.policy_id = $2
-			ON CONFLICT DO NOTHING
-			`,
+			) VALUES ($1, $2, $3)`,
 			id,
-			currentPolicyID,
+			rule.ResourceID,
+			rule.MinimumParticipants,
 		); err != nil {
-			return models.ReservationPolicy{},
-				false,
-				err
+			return models.ReservationPolicy{}, false, err
 		}
 	}
 

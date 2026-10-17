@@ -12,6 +12,10 @@ import (
 var (
 	ErrResourceNotFound = errors.New("recurso no encontrado")
 
+	ErrResourceVenueInactive = errors.New(
+		"no se puede activar un recurso en una sede inactiva",
+	)
+
 	ErrGroupResourceMustRemainReservable = errors.New(
 		"un recurso con confirmacion grupal vigente debe permanecer RESERVABLE",
 	)
@@ -21,12 +25,23 @@ var (
 	)
 )
 
+type ResourceFilters struct {
+	VenueID  *int
+	Type     *string
+	IsActive *bool
+}
+
 func GetAllResources() ([]models.Resource, error) {
+	return GetResourcesFiltered(ResourceFilters{})
+}
+
+func GetResourcesFiltered(filters ResourceFilters) ([]models.Resource, error) {
 	rows, err := database.DB.QueryContext(
 		context.Background(),
 		`
 		SELECT
 			id,
+			venue_id,
 			name,
 			type,
 			reservation_mode,
@@ -34,8 +49,14 @@ func GetAllResources() ([]models.Resource, error) {
 			capacity,
 			is_active
 		FROM resources
-		ORDER BY id;
+        WHERE ($1::integer IS NULL OR venue_id = $1::integer)
+          AND ($2::text IS NULL OR type = $2::text)
+          AND ($3::boolean IS NULL OR is_active = $3::boolean)
+        ORDER BY id;
 		`,
+		filters.VenueID,
+		filters.Type,
+		filters.IsActive,
 	)
 
 	if err != nil {
@@ -52,6 +73,7 @@ func GetAllResources() ([]models.Resource, error) {
 
 		err := rows.Scan(
 			&resource.ID,
+			&resource.VenueID,
 			&resource.Name,
 			&resource.Type,
 			&resource.ReservationMode,
@@ -91,6 +113,7 @@ func GetResourceByID(id int) (models.Resource, error) {
 		`
 		SELECT
 			id,
+			venue_id,
 			name,
 			type,
 			reservation_mode,
@@ -108,6 +131,7 @@ func GetResourceByID(id int) (models.Resource, error) {
 
 	err := row.Scan(
 		&resource.ID,
+		&resource.VenueID,
 		&resource.Name,
 		&resource.Type,
 		&resource.ReservationMode,
@@ -186,6 +210,15 @@ func validateResourceGroupInvariant(
 	return nil
 }
 
+type ResourceConfigurationPatch struct {
+	Name            *string
+	Type            *string
+	ReservationMode *string
+	CapacityPresent bool
+	Capacity        *int
+	IsActive        *bool
+}
+
 func UpdateResourceOperationalSettings(
 	id int,
 	reservationMode *string,
@@ -193,6 +226,23 @@ func UpdateResourceOperationalSettings(
 	capacity *int,
 	isActive *bool,
 ) (models.Resource, error) {
+	return UpdateResourceConfiguration(id, ResourceConfigurationPatch{
+		ReservationMode: reservationMode,
+		CapacityPresent: capacityPresent,
+		Capacity:        capacity,
+		IsActive:        isActive,
+	})
+}
+
+func UpdateResourceConfiguration(
+	id int,
+	patch ResourceConfigurationPatch,
+) (models.Resource, error) {
+	reservationMode := patch.ReservationMode
+	capacityPresent := patch.CapacityPresent
+	capacity := patch.Capacity
+	isActive := patch.IsActive
+
 	ctx := context.Background()
 
 	tx, err := database.DB.BeginTx(
@@ -207,9 +257,29 @@ func UpdateResourceOperationalSettings(
 
 	defer tx.Rollback()
 
+	// La sede se bloquea primero para coordinar esta operacion
+	// con la desactivacion administrativa de sedes.
+	var venueActive bool
+
+	err = tx.QueryRowContext(ctx, `
+		SELECT v.is_active
+		FROM venues v
+		JOIN resources r ON r.venue_id = v.id
+		WHERE r.id = $1
+		FOR UPDATE OF v
+	`, id).Scan(&venueActive)
+
+	if errors.Is(err, sql.ErrNoRows) {
+		return models.Resource{}, ErrResourceNotFound
+	}
+	if err != nil {
+		return models.Resource{}, err
+	}
+
 	var (
 		currentMode     string
 		currentCapacity sql.NullInt64
+		currentActive   bool
 	)
 
 	err = tx.QueryRowContext(
@@ -217,7 +287,8 @@ func UpdateResourceOperationalSettings(
 		`
 		SELECT
 			reservation_mode,
-			capacity
+			capacity,
+			is_active
 		FROM resources
 		WHERE id = $1
 		FOR UPDATE
@@ -226,6 +297,7 @@ func UpdateResourceOperationalSettings(
 	).Scan(
 		&currentMode,
 		&currentCapacity,
+		&currentActive,
 	)
 
 	if errors.Is(err, sql.ErrNoRows) {
@@ -253,6 +325,15 @@ func UpdateResourceOperationalSettings(
 				Valid: true,
 			}
 		}
+	}
+
+	effectiveActive := currentActive
+	if isActive != nil {
+		effectiveActive = *isActive
+	}
+
+	if effectiveActive && !venueActive {
+		return models.Resource{}, ErrResourceVenueInactive
 	}
 
 	// ------------------------------------------------------------
@@ -322,6 +403,8 @@ func UpdateResourceOperationalSettings(
 		`
 		UPDATE resources
 		SET
+			name = COALESCE($8::text, name),
+			type = COALESCE($9::text, type),
 			reservation_mode = CASE
 				WHEN $2 THEN $3
 				ELSE reservation_mode
@@ -344,10 +427,12 @@ func UpdateResourceOperationalSettings(
 		capacityValue,
 		isActive != nil,
 		activeValue,
+		patch.Name,
+		patch.Type,
 	)
 
 	if err != nil {
-		return models.Resource{}, err
+		return models.Resource{}, createResourceDBError(err)
 	}
 
 	affected, err := result.RowsAffected()
@@ -360,7 +445,7 @@ func UpdateResourceOperationalSettings(
 	}
 
 	if err := tx.Commit(); err != nil {
-		return models.Resource{}, err
+		return models.Resource{}, createResourceDBError(err)
 	}
 
 	return GetResourceByID(id)

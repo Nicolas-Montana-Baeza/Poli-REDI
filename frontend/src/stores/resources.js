@@ -9,6 +9,7 @@ export const useResourcesStore = defineStore('resources', {
     error: null,
     actionError: null,
     actionSuccess: null,
+    creatingResource: false,
     updatingResourceId: null,
     updatingImageId: null
   }),
@@ -33,6 +34,30 @@ export const useResourcesStore = defineStore('resources', {
         this.error = 'No se pudieron cargar los recursos'
       } finally {
         this.loading = false
+      }
+    },
+
+    async createResource(payload) {
+      this.creatingResource = true
+      this.actionError = null
+      this.actionSuccess = null
+
+      try {
+        const resource = await resourcesService.create(payload)
+
+        this.resources = [...this.resources, resource]
+          .sort((a, b) => a.id - b.id)
+
+        this.actionSuccess = 'Recurso creado correctamente'
+        return resource
+      } catch (error) {
+        this.actionError =
+          error.response?.data?.error ||
+          'No se pudo crear el recurso'
+
+        throw new Error(this.actionError)
+      } finally {
+        this.creatingResource = false
       }
     },
 

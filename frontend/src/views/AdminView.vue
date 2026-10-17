@@ -6,6 +6,7 @@ import {
   CalendarCheck,
   CalendarDays,
   LayoutGrid,
+  SlidersHorizontal,
   Users
 } from 'lucide-vue-next'
 
@@ -118,6 +119,12 @@ const actions = [
     detail: 'Gestion de cuentas',
     to: '/users',
     icon: Users
+  },
+  {
+    label: 'Políticas de reserva',
+    detail: 'Configuración institucional',
+    to: '/admin/reservation-policies',
+    icon: SlidersHorizontal
   },
   {
     label: 'Reportes',
@@ -337,274 +344,197 @@ const statusLabel = (status) => {
 <style scoped>
 .admin-view {
   width: 100%;
-
+  min-width: 0;
   display: flex;
   flex-direction: column;
-
-  gap: 24px;
+  gap: var(--space-6);
 }
 
 .page-header h1 {
   margin: 0;
-
-  color: #0f172a;
-
-  font-size: 30px;
+  color: var(--color-text);
+  font-size: var(--text-page-title);
   font-weight: 800;
+  line-height: 1.15;
 }
 
 .page-header p {
-  margin-top: 8px;
-
-  color: #64748b;
+  margin-top: var(--space-2);
+  color: var(--color-text-muted);
+  line-height: 1.45;
 }
 
 .content {
   display: flex;
   flex-direction: column;
-
-  gap: 18px;
-}
-
-.state-card {
-  background: white;
-
-  border: 1px solid #e2e8f0;
-  border-radius: 18px;
-
-  padding: 22px;
-
-  color: #334155;
-
-  font-weight: 700;
-}
-
-.state-card.error {
-  background: #fee2e2;
-
-  color: #b91c1c;
-
-  border-color: #fecaca;
+  gap: var(--space-4);
 }
 
 .stats-grid {
   display: grid;
-
-  grid-template-columns:
-    repeat(auto-fit, minmax(220px, 1fr));
-
-  gap: 18px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  gap: var(--space-4);
 }
 
 .stat-card,
 .panel {
-  background: white;
-
-  border: 1px solid #e2e8f0;
-  border-radius: 18px;
-
-  box-shadow:
-    0 4px 12px rgba(0,0,0,0.04);
+  min-width: 0;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
 }
 
 .stat-card {
-  padding: 20px;
-
   display: flex;
   flex-direction: column;
-
-  gap: 9px;
+  gap: var(--space-2);
+  padding: var(--space-5);
 }
 
-.stat-card svg {
-  color: #1d4ed8;
-}
-
-.stat-card.green svg {
-  color: #15803d;
-}
-
-.stat-card.amber svg {
-  color: #b45309;
-}
+.stat-card svg { color: var(--color-primary-strong); }
+.stat-card.green svg { color: var(--color-success); }
+.stat-card.amber svg { color: var(--color-warning); }
 
 .stat-card span {
-  color: #64748b;
-
-  font-size: 13px;
-  font-weight: 800;
+  color: var(--color-text-muted);
+  font-size: var(--text-help);
+  font-weight: 700;
 }
 
 .stat-card strong {
-  color: #0f172a;
-
+  color: var(--color-text);
   font-size: 34px;
-  font-weight: 900;
+  font-weight: 800;
 }
 
 .stat-card p {
   margin: 0;
-
-  color: #475569;
+  color: var(--color-text-muted);
 }
 
 .admin-grid {
   display: grid;
-
-  grid-template-columns:
-    minmax(240px, 340px)
-    minmax(0, 1fr);
-
-  gap: 18px;
+  grid-template-columns: minmax(220px, 340px) minmax(0, 1fr);
+  gap: var(--space-4);
 }
 
 .panel {
-  padding: 20px;
-
   display: flex;
   flex-direction: column;
-
-  gap: 18px;
+  gap: var(--space-4);
+  padding: var(--space-5);
 }
 
 .panel header h2 {
   margin: 0;
-
-  color: #0f172a;
-
-  font-size: 20px;
+  color: var(--color-text);
+  font-size: var(--text-section-title);
   font-weight: 800;
 }
 
 .panel header p {
-  margin: 6px 0 0;
-
-  color: #64748b;
+  margin: var(--space-2) 0 0;
+  color: var(--color-text-muted);
 }
 
 .actions,
 .reservation-list {
   display: flex;
   flex-direction: column;
-
-  gap: 10px;
+  gap: var(--space-2);
 }
 
 .action-link {
-  border: 1px solid #e2e8f0;
-  border-radius: 14px;
-
-  color: #0f172a;
-  text-decoration: none;
-
   display: flex;
   align-items: center;
-  gap: 12px;
-
-  padding: 14px;
-
-  transition: 0.2s;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text);
+  text-decoration: none;
+  transition: background-color 0.18s ease, border-color 0.18s ease;
 }
 
 .action-link:hover {
-  border-color: #bfdbfe;
+  border-color: var(--color-primary);
+  background: var(--color-primary-soft);
+}
 
-  background: #eff6ff;
+.action-link:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }
 
 .action-link svg {
-  color: #1d4ed8;
-
   flex-shrink: 0;
+  color: var(--color-primary-strong);
 }
 
 .action-link span {
   display: flex;
   flex-direction: column;
-
-  gap: 2px;
+  min-width: 0;
+  gap: var(--space-1);
 }
 
-.action-link small {
-  color: #64748b;
-}
-
+.action-link small,
 .empty-state {
-  color: #64748b;
-
-  font-weight: 700;
+  color: var(--color-text-muted);
 }
+
+.empty-state { font-weight: 700; }
 
 .reservation-row {
-  border: 1px solid #e2e8f0;
-  border-radius: 14px;
-
-  padding: 14px;
-
   display: grid;
-
-  grid-template-columns:
-    minmax(0, 1fr)
-    minmax(180px, 260px)
-    auto;
-
+  grid-template-columns: minmax(0, 1fr) minmax(180px, 260px) auto;
   align-items: center;
-  gap: 14px;
+  min-width: 0;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius-md);
 }
 
-.reservation-row div {
-  min-width: 0;
-}
+.reservation-row div { min-width: 0; }
 
 .reservation-row strong,
 .reservation-row span {
   display: block;
-
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.reservation-row strong {
-  color: #0f172a;
-}
+.reservation-row strong { color: var(--color-text); }
 
 .reservation-row span,
 .reservation-row p {
-  color: #64748b;
+  color: var(--color-text-muted);
 }
 
 .reservation-row p {
   margin: 0;
-
-  font-size: 13px;
+  font-size: var(--text-help);
 }
 
 .reservation-row small {
-  border-radius: 999px;
-
-  background: #eff6ff;
-
-  color: #1d4ed8;
-
-  padding: 7px 10px;
-
-  font-weight: 800;
+  width: fit-content;
+  padding: 6px var(--space-3);
+  border-radius: var(--radius-pill);
+  background: var(--color-primary-soft);
+  color: var(--color-primary-strong);
+  font-weight: 750;
 }
 
 @media (max-width: 900px) {
-  .admin-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .reservation-row {
-    grid-template-columns: 1fr;
-  }
+  .admin-grid { grid-template-columns: 1fr; }
+  .reservation-row { grid-template-columns: 1fr; }
 }
 
-@media (max-width: 768px) {
-  .page-header h1 {
-    font-size: 26px;
-  }
+@media (max-width: 480px) {
+  .panel,
+  .stat-card { padding: var(--space-4); }
 }
 </style>

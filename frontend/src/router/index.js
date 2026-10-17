@@ -153,6 +153,14 @@ if (mvpFeatures.resourceAdministration) {
   )
 }
 
+if (mvpFeatures.policyAdministration) {
+  routes.splice(routes.length - 1, 0, {
+    path: '/admin/reservation-policies',
+    component: () => import('../views/PolicyAdministrationView.vue'),
+    meta: { requiresAuth: true, requiresAdmin: true }
+  })
+}
+
 if (mvpFeatures.reports) {
   routes.splice(routes.length - 1, 0, {
     path: '/reports',

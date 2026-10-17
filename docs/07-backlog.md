@@ -2162,7 +2162,7 @@ Permitir que un admin vea usuarios y pueda bloquear/desbloquear cuentas.
 
 Prioridad: P2
 Labels: `frontend`, `backend`, `admin`, `recursos`, `mvp3`
-Estado sugerido: Implementado parcial; VERIFICADO EN POSTGRESQL 16
+Estado: CERRADO MVP3 - validacion tecnica, funcional y visual aprobada en entorno de pruebas
 
 ### Objetivo
 
@@ -2171,7 +2171,7 @@ deportivos sin perder el historial asociado a reservas existentes.
 
 ### Criterios de aceptacion
 
-- [ ] Alta, consulta, edicion y desactivacion de recursos sin DELETE fisico.
+- [x] Alta, consulta, edicion y desactivacion de recursos sin DELETE fisico.
 - [x] Permite actualizar la imagen de un recurso existente.
 - [x] Permite modificar `reservation_mode`.
 - [x] Permite modificar capacidad.
@@ -2184,27 +2184,30 @@ deportivos sin perder el historial asociado a reservas existentes.
 - [x] La capacidad de un recurso grupal no puede quedar bajo su minimo
   vigente.
 - [x] Las reservas grupales ya creadas conservan su capacidad snapshot.
-- [ ] Permitir crear nuevos recursos desde administracion.
-- [ ] Gestionar la sede del recurso desde administracion.
+- [x] Permitir crear nuevos recursos desde administracion.
+- [x] Gestionar la sede al crear, consultar y filtrar recursos.
 - [x] Se define desactivacion sin eliminacion fisica en MVP3.
-- [ ] Completar filtros backend por sede, tipo y estado (`API-001`).
+- [x] Completar filtros backend por sede, tipo y estado (`API-001`).
 
 ### Implementacion
 
-- `GET /api/resources` mantiene la consulta del inventario.
+- `GET /api/resources` consulta recursos y admite filtros
+  por sede, tipo y estado.
+- `GET /api/admin/venues` consulta sedes y sus contadores.
+- `POST /api/admin/venues` permite crear sedes.
+- `PATCH /api/admin/venues/:id` modifica sedes y ubicacion.
+- `POST /api/admin/resources` crea recursos asociados a una sede.
+- `PATCH /api/resources/:id` modifica nombre, tipo,
+  modo, capacidad y estado.
 - `PATCH /api/resources/:id/image` administra la imagen.
-- `PATCH /api/resources/:id` permite modificar de forma parcial:
-  - `reservationMode`;
-  - `capacity`;
-  - `isActive`.
-- Ambas rutas de escritura estan protegidas mediante `RequireAdmin`.
-- `ResourcesView.vue` permite editar configuracion operacional e imagen.
-- El store actualiza el recurso devuelto por backend sin recargar toda la
-  aplicacion.
-- El backend valida de forma transaccional la politica grupal vigente antes
-  de modificar modo o capacidad.
-- Cambiar `resources.capacity` no modifica el limite historico de reservas
-  grupales existentes, que utilizan `group_capacity_snapshot`.
+- Las rutas de escritura y consulta administrativa de sedes
+  estan protegidas mediante `RequireAdmin`.
+- `ResourcesView.vue` incorpora filtros y edicion operacional.
+- `VenuesAdminPanel.vue` administra las sedes.
+- `ResourceCreatePanel.vue` permite crear instalaciones.
+- El backend protege las invariantes de politicas grupales.
+- Las reservas grupales existentes conservan
+  `group_capacity_snapshot`.
 
 ### Evidencia MVP3
 
@@ -2219,9 +2222,11 @@ deportivos sin perder el historial asociado a reservas existentes.
   - rechazo de capacidad inferior al minimo grupal;
   - ausencia de mutaciones en PostgreSQL despues de operaciones rechazadas.
 
-### Pendiente
+### Estado actualizado
 
-La administracion actual permite modificar recursos existentes. La creacion y edicion integral de recursos, la administracion de sedes y los filtros avanzados permanecen pendientes. EV-012 excluye la eliminacion fisica en MVP3.
+La administracion de sedes y recursos cuenta con altas, consultas, edicion operacional, desactivacion y filtros. Se verificaron repositorios PostgreSQL 16, autorizacion HTTP y componentes frontend.
+
+EV-012 excluye DELETE fisico. La sede se asigna al crear un recurso; no se trasladan recursos existentes entre sedes en MVP3. La validacion manual integral y los criterios pendientes se detallan en la actualizacion 3D.8.
 
 <!-- EV-012 2026-10-13 -->
 
@@ -2235,29 +2240,30 @@ antes del cierre de MVP3. No se declara completado por esta aprobacion.
 
 #### Recursos - criterios pendientes
 
-- [ ] Crear recurso con nombre, tipo, sede, modo y capacidad.
-- [ ] Permitir imagen opcional al crear.
-- [ ] Editar nombre, tipo y sede de un recurso existente.
-- [ ] Integrar la edicion operacional ya implementada.
-- [ ] Filtrar por sede, tipo, modo y estado.
-- [ ] Impedir que un recurso nuevo entre automaticamente
+- [x] Crear recurso con nombre, tipo, sede, modo y capacidad.
+- [x] Permitir imagen opcional al crear.
+- [x] Editar nombre y tipo de un recurso existente.
+- **Fuera de MVP3:** cambiar la sede de un recurso existente.
+- [x] Integrar la edicion operacional ya implementada.
+- [x] Filtrar por sede, tipo, modo y estado.
+- [x] Impedir que un recurso nuevo entre automaticamente
       en la politica vigente.
-- [ ] Validar traslados de recursos con reservas futuras.
-- [ ] Verificar preservacion de historial y snapshots.
-- [ ] Probar permisos administrativos por HTTP.
+- **Fuera de MVP3:** traslados de recursos con reservas futuras.
+- [x] Verificar preservacion de historial y snapshots.
+- [x] Probar permisos administrativos por HTTP.
 
 #### Sedes - criterios pendientes
 
-- [ ] Crear sedes institucionales.
-- [ ] Editar nombre y ubicacion.
-- [ ] Editar coordenadas opcionales y estado activo.
-- [ ] Consultar sedes con conteo y listado de recursos.
-- [ ] Buscar y filtrar sedes.
-- [ ] Impedir desactivar una sede con recursos activos
+- [x] Crear sedes institucionales.
+- [x] Editar nombre y ubicacion.
+- [x] Editar coordenadas opcionales y estado activo.
+- [x] Consultar sedes con conteos y consultar recursos mediante filtro por sede.
+- **Fuera de MVP3:** busqueda y filtrado de sedes. Mejora candidata para V2.0.
+- [x] Impedir desactivar una sede con recursos activos
       hasta resolverlos explicitamente.
-- [ ] Impedir nuevas reservas asociadas a una sede inactiva.
-- [ ] Preservar asociaciones e historial al desactivar.
-- [ ] Verificar autorizacion exclusiva de administrador.
+- [x] Impedir nuevas reservas asociadas a una sede inactiva.
+- [x] Preservar asociaciones e historial al desactivar.
+- [x] Verificar autorizacion exclusiva de administrador.
 
 #### Criterio de cierre
 
@@ -2267,6 +2273,153 @@ No se requiere eliminacion fisica de registros.
 
 Trazabilidad: RF-014, RF-024, RF-026, HU-011, HU-017, HU-019,
 CU-SED-01..04, CU-REC-01..05, EV-007 -> EV-012.
+
+### Actualizacion de estado 2026-10-15 - 3D.8
+
+**Resultado:** cierre tecnico automatizado parcial de ADMIN-003.
+No equivale al cierre funcional integral ni a la publicacion de todos
+los cambios en Tailscale Funnel.
+
+#### Evidencia automatizada
+
+- Frontend: 37 pruebas de reglas de negocio aprobadas.
+- Vue: 8 pruebas de componentes aprobadas.
+  - 2 de creacion de recursos.
+  - 3 de administracion de sedes.
+  - 3 de filtrado de recursos.
+- HTTP: 24 casos de autenticacion y autorizacion aprobados
+  en MVP3 y FULL, para seis endpoints administrativos.
+- PostgreSQL 16 efimero: nueve pruebas de integracion aprobadas,
+  incluyendo politicas, sedes, creacion, configuracion y filtros.
+- Backend: `go test ./...` y `go vet ./...` sin errores reportados.
+- Frontend: compilacion Vite 8.3.4 exitosa en directorio temporal.
+- Dependencias: `npm audit` reporto cero vulnerabilidades
+  despues de las actualizaciones del 2026-10-15.
+
+#### Alcance operacional confirmado
+
+- Creacion de recursos asociados a una sede.
+- Edicion de nombre, tipo, modo, capacidad, imagen y estado.
+- Administracion de sedes con ubicacion y coordenadas opcionales.
+- Filtros de instalaciones por sede, tipo, modo y estado.
+- Desactivacion logica, sin eliminacion fisica.
+- Proteccion administrativa mediante `RequireAdmin`.
+- Invariantes de politicas grupales y capacidad snapshot.
+
+#### Restricciones y verificaciones pendientes
+
+- Realizar prueba manual integral del frontend contra una API
+  conectada exclusivamente a una base de datos aislada.
+- Busqueda y filtrado de sedes diferidos a V2.0; no condicionan el cierre de MVP3.
+- Registrar la decision definitiva sobre los criterios historicos
+  de EV-012 que contemplaban cambiar la sede de un recurso existente.
+  Los traslados de recursos entre sedes no forman parte del
+  comportamiento implementado en MVP3.
+- Publicar controladamente los cambios recientes del frontend;
+  las compilaciones de validacion se realizaron fuera de `dist`.
+- Confirmar visual y funcionalmente el comportamiento publicado
+  antes de declarar cierre definitivo.
+
+#### Nota sobre EV-012
+
+El checklist original de EV-012 se conserva como trazabilidad
+historica de la aprobacion del refinamiento. Esta actualizacion
+distingue los criterios demostrados de los que permanecen
+pendientes o requieren una decision explicita de alcance.
+
+### Cierre tecnico automatizado - 3D.13
+
+**Estado:** APROBADO en PostgreSQL 16 efimero.
+
+#### Evidencia final
+
+- 37 pruebas frontend de reglas de negocio aprobadas.
+- 8 pruebas Vue aprobadas.
+- 24 casos HTTP de autenticacion y autorizacion aprobados.
+- 9 pruebas de integracion PostgreSQL 16 aprobadas.
+- Compilacion frontend de validacion exitosa.
+- Ultima auditoria npm: cero vulnerabilidades reportadas.
+
+#### Garantias adicionales verificadas
+
+- PG16_0011 rechaza reservas en sedes inactivas con P1002.
+- La insercion rechazada no crea una reserva.
+- La prueba de concurrencia verifica bloqueo transaccional
+  y rechazo posterior a la desactivacion de una sede.
+- La desactivacion de recursos y sedes conserva reservas,
+  asociaciones y snapshots historicos.
+- Las restricciones de clave foranea rechazan con 23503
+  la eliminacion fisica de recursos y sedes relacionados.
+
+#### Decisiones de alcance
+
+- Buscar y filtrar sedes: fuera de MVP3; candidato V2.0.
+- Trasladar recursos entre sedes: fuera de MVP3.
+- La eliminacion fisica no pertenece a ADMIN-003.
+
+#### Pendiente para cierre funcional definitivo
+
+- Ejecutar validacion manual integral de la interfaz y la API.
+- Aplicar PG16_0011 mediante un despliegue controlado.
+- Verificar los cambios publicados en Tailscale Funnel.
+- Confirmar los flujos administrativos de principio a fin.
+
+Las validaciones automatizadas no implican que la migracion
+PG16_0011 ya este aplicada a las bases persistentes.
+
+### Cierre funcional y visual - 3D.17 (2026-10-16)
+
+**Resultado: ADMIN-003 CERRADO para el alcance MVP3.**
+
+#### Mejoras UX/UI implementadas
+
+- **3D.17A:** navegacion entre Instalaciones y Sedes,
+  formularios contextuales y reorganizacion de filtros.
+- **3D.17B:** simplificacion de formularios y edicion
+  unificada de datos operacionales e imagen.
+- Se corrigio el reintento posterior a un guardado parcial:
+  si falla la imagen, no se repiten los datos ya guardados.
+- **3D.17C:** unificacion de estilos institucionales,
+  estados visuales, controles y distribucion responsive.
+
+#### Evidencia de validacion
+
+- 17/17 pruebas Vue aprobadas.
+- 37/37 pruebas frontend de reglas de negocio aprobadas.
+- **54/54 pruebas frontend aprobadas.**
+- Compilacion Vite 8.3.4 exitosa en directorio aislado.
+- `git diff --check` sin errores.
+- Como evidencia tecnica previa se conservan las
+  24 pruebas HTTP y 9 pruebas PostgreSQL 16 de 3D.13.
+- La migracion PG16_0011 se aplico anteriormente
+  a PostgreSQL 16 persistente del entorno de pruebas.
+- Frontend publicado en Tailscale Funnel de pruebas.
+- Usuario confirma funcionamiento correcto y
+  aprobacion visual del rediseño publicado.
+
+#### Alcance y restricciones conservadas
+
+- Creacion, consulta, edicion y desactivacion logica
+  de recursos y sedes.
+- Sin eliminacion fisica de registros.
+- Sin traslado de recursos existentes entre sedes.
+- Busqueda y filtrado de sedes diferidos a V2.0.
+- Se preservan permisos administrativos,
+  invariantes de reserva e historial.
+
+#### Decision de cierre
+
+El cierre tecnico automatizado documentado en
+3D.8 y 3D.13 se complementa con el despliegue
+controlado y la aceptacion funcional y visual
+posteriores.
+
+ADMIN-003 no presenta pendientes bloqueantes
+dentro del alcance acordado para MVP3.
+
+Este cierre corresponde al entorno de pruebas
+y no acredita un despliegue en produccion.
+
 
 ## ADMIN-004 - Implementar bloqueos de disponibilidad
 
@@ -3405,7 +3558,7 @@ Estas tareas ya tienen implementacion inicial. Antes de cerrar el MVP 1 falta ev
 
 1. `RES-004` Completar integracion de bloqueos; actividades programadas ya estan incorporadas.
 2. `ADMIN-004` Crear bloqueos de disponibilidad.
-3. `ADMIN-003` Completar gestion del inventario oficial de ocho recursos.
+3. `ADMIN-003` CERRADO MVP3: gestion administrativa de sedes y recursos (EV-012).
 4. `ADMIN-002` Completar gestion de usuarios.
 5. `ADMIN-005` Programacion institucional y resolucion de conflictos aprobada.
 6. `ADMIN-006` Configurar politicas de reserva exclusivamente como administrador.

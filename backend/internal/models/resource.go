@@ -2,6 +2,7 @@ package models
 
 type Resource struct {
 	ID              int    `json:"id"`
+	VenueID         int    `json:"venueId"`
 	Name            string `json:"name"`
 	Type            string `json:"type"`
 	ReservationMode string `json:"reservationMode"`

@@ -1,7 +1,9 @@
 package handlers
 
 import (
+	"bytes"
 	"database/sql"
+	"encoding/json"
 	"errors"
 
 	"poli-redi-api/internal/middleware"
@@ -30,11 +32,33 @@ func GetReservationPolicyHistory(c *fiber.Ctx) error {
 	return c.JSON(policies)
 }
 
+func explicitNullGroupResources(body []byte) bool {
+	var fields map[string]json.RawMessage
+
+	if err := json.Unmarshal(body, &fields); err != nil {
+		return false
+	}
+
+	value, present := fields["groupResources"]
+	return present && bytes.Equal(
+		bytes.TrimSpace(value),
+		[]byte("null"),
+	)
+}
+
 func PublishReservationPolicy(c *fiber.Ctx) error {
 	user, ok := middleware.GetLocalUser(c)
 	if !ok {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "usuario no autenticado"})
 	}
+	if explicitNullGroupResources(c.Body()) {
+		return c.Status(fiber.StatusBadRequest).JSON(
+			fiber.Map{
+				"error": "groupResources no puede ser null",
+			},
+		)
+	}
+
 	var request models.PublishReservationPolicyRequest
 	if err := decodeStrictJSON(c.Body(), &request); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "datos invalidos o campos no permitidos"})
@@ -58,5 +82,13 @@ func reservationPolicyErrorResponse(err error) (int, string) {
 	if errors.Is(err, services.ErrReservationPolicyConflict) {
 		return fiber.StatusConflict, err.Error()
 	}
+	if errors.Is(err, services.ErrReservationPolicyConcurrent) {
+		return fiber.StatusConflict, err.Error()
+	}
+
+	if errors.Is(err, services.ErrReservationPolicyStale) {
+		return fiber.StatusConflict, err.Error()
+	}
+
 	return fiber.StatusInternalServerError, "no se pudo publicar la politica de reservas"
 }

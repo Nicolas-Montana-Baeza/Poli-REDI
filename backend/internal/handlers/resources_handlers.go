@@ -6,6 +6,7 @@ import (
 	"poli-redi-api/internal/repositories"
 	"strconv"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -37,7 +38,37 @@ func (field *nullableResourceCapacity) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+type resourceRequiredText struct {
+	Present bool
+	Value   *string
+}
+
+func (field *resourceRequiredText) UnmarshalJSON(data []byte) error {
+	field.Present = true
+	return json.Unmarshal(data, &field.Value)
+}
+
+func normalizeRequiredResourceText(
+	field resourceRequiredText,
+	maxLength int,
+) (*string, bool) {
+	if !field.Present {
+		return nil, true
+	}
+	if field.Value == nil {
+		return nil, false
+	}
+
+	value := strings.TrimSpace(*field.Value)
+	if value == "" || utf8.RuneCountInString(value) > maxLength {
+		return nil, false
+	}
+	return &value, true
+}
+
 type updateResourceOperationalRequest struct {
+	Name            resourceRequiredText     `json:"name"`
+	Type            resourceRequiredText     `json:"type"`
 	ReservationMode *string                  `json:"reservationMode"`
 	Capacity        nullableResourceCapacity `json:"capacity"`
 	IsActive        *bool                    `json:"isActive"`
@@ -56,7 +87,45 @@ func validResourceReservationMode(mode string) bool {
 }
 
 func GetResources(c *fiber.Ctx) error {
-	resources, err := repositories.GetAllResources()
+	query := c.Queries()
+	filters := repositories.ResourceFilters{}
+
+	if raw, exists := query["venueId"]; exists {
+		venueID, err := strconv.Atoi(strings.TrimSpace(raw))
+		if err != nil || venueID <= 0 {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"error": "venueId debe ser un entero positivo",
+			})
+		}
+		filters.VenueID = &venueID
+	}
+
+	if raw, exists := query["type"]; exists {
+		resourceType := strings.TrimSpace(raw)
+		if resourceType == "" {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"error": "type no puede estar vacio",
+			})
+		}
+		filters.Type = &resourceType
+	}
+
+	if raw, exists := query["isActive"]; exists {
+		var isActive bool
+		switch strings.TrimSpace(raw) {
+		case "true":
+			isActive = true
+		case "false":
+			isActive = false
+		default:
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"error": "isActive debe ser true o false",
+			})
+		}
+		filters.IsActive = &isActive
+	}
+
+	resources, err := repositories.GetResourcesFiltered(filters)
 
 	if err != nil {
 		return c.Status(500).JSON(fiber.Map{
@@ -85,12 +154,27 @@ func UpdateResourceOperationalSettings(c *fiber.Ctx) error {
 		})
 	}
 
-	if request.ReservationMode == nil &&
+	if !request.Name.Present &&
+		!request.Type.Present &&
+		request.ReservationMode == nil &&
 		!request.Capacity.Present &&
 		request.IsActive == nil {
 
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "debes indicar al menos un campo para actualizar",
+		})
+	}
+
+	name, validName := normalizeRequiredResourceText(
+		request.Name, 120,
+	)
+	resourceType, validType := normalizeRequiredResourceText(
+		request.Type, 80,
+	)
+
+	if !validName || !validType {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "nombre o tipo invalido",
 		})
 	}
 
@@ -118,12 +202,16 @@ func UpdateResourceOperationalSettings(c *fiber.Ctx) error {
 	}
 
 	resource, err :=
-		repositories.UpdateResourceOperationalSettings(
+		repositories.UpdateResourceConfiguration(
 			resourceID,
-			request.ReservationMode,
-			request.Capacity.Present,
-			request.Capacity.Value,
-			request.IsActive,
+			repositories.ResourceConfigurationPatch{
+				Name:            name,
+				Type:            resourceType,
+				ReservationMode: request.ReservationMode,
+				CapacityPresent: request.Capacity.Present,
+				Capacity:        request.Capacity.Value,
+				IsActive:        request.IsActive,
+			},
 		)
 
 	if err != nil {
@@ -136,14 +224,11 @@ func UpdateResourceOperationalSettings(c *fiber.Ctx) error {
 				"error": "recurso no encontrado",
 			})
 
-		case errors.Is(
-			err,
-			repositories.ErrGroupResourceMustRemainReservable,
-		),
-			errors.Is(
-				err,
-				repositories.ErrGroupResourceCapacityInvalid,
-			):
+		case errors.Is(err, repositories.ErrResourceDuplicate),
+			errors.Is(err, repositories.ErrResourceConcurrentUpdate),
+			errors.Is(err, repositories.ErrResourceVenueInactive),
+			errors.Is(err, repositories.ErrGroupResourceMustRemainReservable),
+			errors.Is(err, repositories.ErrGroupResourceCapacityInvalid):
 			return c.Status(fiber.StatusConflict).JSON(fiber.Map{
 				"error": err.Error(),
 			})

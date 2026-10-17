@@ -254,13 +254,24 @@ func TestPostgresGroupResourceRulesMigrationAndRepositories(
 		),
 	)
 
-	if !strings.Contains(
-		policyRepository,
-		"OLD_GROUP.MINIMUM_PARTICIPANTS",
-	) {
-		t.Fatal(
-			"policy publication does not preserve per-resource minimum",
-		)
+	// MVP3 3C: la publicacion puede recibir reglas grupales
+	// explicitas o heredar las vigentes para clientes antiguos.
+	// Ambas rutas deben validar y persistir el minimo por recurso.
+	for _, required := range []string{
+		"FUNC RESOLVEPOLICYGROUPRULES(",
+		"IF REQUEST.GROUPRESOURCES != NIL",
+		"FROM RESERVATION_POLICY_GROUP_RESOURCES",
+		"IF ALLOWED[RULE.RESOURCEID]",
+		"VALIDATERESOURCEGROUPINVARIANT(",
+		"FOR _, RULE := RANGE GROUPRULES",
+		"RULE.MINIMUMPARTICIPANTS",
+	} {
+		if !strings.Contains(policyRepository, required) {
+			t.Fatalf(
+				"policy publication lacks group rule contract %q",
+				required,
+			)
+		}
 	}
 
 	installer := strings.ToUpper(

@@ -7,6 +7,11 @@ export const resourcesService = {
     return response.data
   },
 
+  async create(payload) {
+    const response = await api.post('/admin/resources', payload)
+    return response.data
+  },
+
   async updateOperational(resourceId, changes) {
     const response = await api.patch(
       `/resources/${resourceId}`,

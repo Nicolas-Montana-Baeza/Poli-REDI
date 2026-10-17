@@ -7,18 +7,22 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "node --test src/utils/businessTime.test.js src/utils/reservationRules.test.js src/utils/availabilityRules.test.js src/utils/reservationFocus.test.js src/utils/reservationTime.test.js src/config/appScope.test.js"
+    "test": "node --test src/utils/businessTime.test.js src/utils/reservationRules.test.js src/utils/availabilityRules.test.js src/utils/reservationFocus.test.js src/utils/reservationTime.test.js src/config/appScope.test.js src/utils/policyAdministration.test.js",
+    "test:components": "vitest run src/components src/views --environment happy-dom"
   },
   "dependencies": {
     "@azure/msal-browser": "^5.11.0",
     "axios": "^1.16.1",
     "lucide-vue-next": "^0.468.0",
     "pinia": "^3.0.4",
-    "vue": "^3.5.32",
+    "vue": "^3.5.44",
     "vue-router": "^5.0.7"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^6.0.6",
-    "vite": "^8.0.10"
+    "@vue/test-utils": "^2.5.1",
+    "happy-dom": "^21.0.1",
+    "vite": "^8.0.10",
+    "vitest": "^5.0.5"
   }
 }

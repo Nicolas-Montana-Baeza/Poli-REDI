@@ -3,23 +3,32 @@ package models
 import "time"
 
 type ReservationPolicy struct {
-	ID                          int        `json:"id"`
-	ReservableWindowDays        int        `json:"reservableWindowDays"`
-	RequestFrequencyDays        int        `json:"requestFrequencyDays"`
-	ConfirmationDeadlineMinutes int        `json:"confirmationDeadlineMinutes"`
-	MinimumParticipants         int        `json:"minimumParticipants"`
-	OpeningMinute               int        `json:"openingMinute"`
-	ClosingMinute               int        `json:"closingMinute"`
-	SlotIntervalMinutes         int        `json:"slotIntervalMinutes"`
-	AllowedDurations            []int      `json:"allowedDurations"`
-	ResourceIDs                 []int      `json:"resourceIds"`
-	EffectiveFrom               time.Time  `json:"effectiveFrom"`
-	EffectiveTo                 *time.Time `json:"effectiveTo,omitempty"`
-	CreatedByUserID             *int       `json:"createdByUserId,omitempty"`
-	CreatedAt                   time.Time  `json:"createdAt"`
+	ID                          int                   `json:"id"`
+	ReservableWindowDays        int                   `json:"reservableWindowDays"`
+	RequestFrequencyDays        int                   `json:"requestFrequencyDays"`
+	ConfirmationDeadlineMinutes int                   `json:"confirmationDeadlineMinutes"`
+	MinimumParticipants         int                   `json:"minimumParticipants"`
+	OpeningMinute               int                   `json:"openingMinute"`
+	ClosingMinute               int                   `json:"closingMinute"`
+	SlotIntervalMinutes         int                   `json:"slotIntervalMinutes"`
+	AllowedDurations            []int                 `json:"allowedDurations"`
+	ResourceIDs                 []int                 `json:"resourceIds"`
+	GroupResources              []PolicyGroupResource `json:"groupResources"`
+	EffectiveFrom               time.Time             `json:"effectiveFrom"`
+	EffectiveTo                 *time.Time            `json:"effectiveTo,omitempty"`
+	CreatedByUserID             *int                  `json:"createdByUserId,omitempty"`
+	CreatedAt                   time.Time             `json:"createdAt"`
+}
+
+// PolicyGroupResource define la regla grupal de un recurso
+// dentro de una version de politica.
+type PolicyGroupResource struct {
+	ResourceID          int `json:"resourceId"`
+	MinimumParticipants int `json:"minimumParticipants"`
 }
 
 type PublishReservationPolicyRequest struct {
+	ExpectedPolicyID            int   `json:"expectedPolicyId"`
 	ReservableWindowDays        int   `json:"reservableWindowDays"`
 	RequestFrequencyDays        int   `json:"requestFrequencyDays"`
 	ConfirmationDeadlineMinutes int   `json:"confirmationDeadlineMinutes"`
@@ -29,6 +38,8 @@ type PublishReservationPolicyRequest struct {
 	SlotIntervalMinutes         int   `json:"slotIntervalMinutes"`
 	AllowedDurations            []int `json:"allowedDurations"`
 	ResourceIDs                 []int `json:"resourceIds"`
+	// nil: heredar configuracion; puntero a []: vaciarla.
+	GroupResources *[]PolicyGroupResource `json:"groupResources,omitempty"`
 }
 
 // CurrentReservationPolicy expone solo condiciones operativas. Identificadores,

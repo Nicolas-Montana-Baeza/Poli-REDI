@@ -11,6 +11,7 @@ import {
   Settings,
   Menu,
   ShieldCheck,
+  SlidersHorizontal,
   AlertTriangle,
   Building2,
   KeyRound,
@@ -146,6 +147,14 @@ if (mvpFeatures.groupReservations) {
         label: 'Recursos',
         icon: Calendar,
         to: '/resources'
+      })
+    }
+
+    if (mvpFeatures.policyAdministration) {
+      sections.at(-1).items.push({
+        label: 'Políticas de reserva',
+        icon: SlidersHorizontal,
+        to: '/admin/reservation-policies'
       })
     }
 

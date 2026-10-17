@@ -21,6 +21,10 @@ import (
 // Esto evita que habilitar MVP2 exponga accidentalmente funcionalidades
 // antiguas que aún no forman parte del bloque validado.
 func RegisterRoutes(app *fiber.App) {
+	registerRoutes(app, middleware.RequireAuth())
+}
+
+func registerRoutes(app *fiber.App, authMiddleware fiber.Handler) {
 	app.Get("/", handlers.GetRoot)
 
 	app.Get("/favicon.ico", func(c *fiber.Ctx) error {
@@ -34,7 +38,7 @@ func RegisterRoutes(app *fiber.App) {
 	api.Get("/health", handlers.GetHealth)
 
 	// Toda la funcionalidad de negocio requiere una identidad autenticada.
-	protected := api.Group("", middleware.RequireAuth())
+	protected := api.Group("", authMiddleware)
 
 	// ------------------------------------------------------------
 	// Superficie común MVP1+.
@@ -254,6 +258,24 @@ func RegisterRoutes(app *fiber.App) {
 	// porque representa un superset funcional.
 
 	if appscope.HasMVP3() {
+		protected.Get(
+			"/admin/venues",
+			middleware.RequireAdmin(),
+			handlers.GetAdminVenues,
+		)
+
+		protected.Post(
+			"/admin/venues",
+			middleware.RequireAdmin(),
+			handlers.CreateAdminVenue,
+		)
+
+		protected.Patch(
+			"/admin/venues/:id",
+			middleware.RequireAdmin(),
+			handlers.UpdateAdminVenue,
+		)
+
 		protected.Patch(
 			"/resources/:id",
 			middleware.RequireAdmin(),
@@ -264,6 +286,12 @@ func RegisterRoutes(app *fiber.App) {
 			"/resources/:id/image",
 			middleware.RequireAdmin(),
 			handlers.UpdateResourceImage,
+		)
+
+		protected.Post(
+			"/admin/resources",
+			middleware.RequireAdmin(),
+			handlers.CreateAdminResource,
 		)
 
 		protected.Get(

@@ -16,6 +16,8 @@ func TestReservationPolicyErrorResponse(t *testing.T) {
 	}{
 		{validation, 400},
 		{services.ErrReservationPolicyConflict, 409},
+		{services.ErrReservationPolicyStale, 409},
+		{services.ErrReservationPolicyConcurrent, 409},
 		{errors.New("database unavailable: secret"), 500},
 	}
 	for _, test := range tests {

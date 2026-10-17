@@ -4,20 +4,30 @@ import { computed, onMounted, ref } from 'vue'
 import SkeletonLoader from '@/components/ui/SkeletonLoader.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useResourcesStore } from '@/stores/resources'
+import { useVenuesStore } from '@/stores/venues'
+import VenuesAdminPanel from '@/components/resources/VenuesAdminPanel.vue'
+import ResourceCreatePanel from '@/components/resources/ResourceCreatePanel.vue'
 
 const resourcesStore = useResourcesStore()
+const venuesStore = useVenuesStore()
 const authStore = useAuthStore()
+const adminTab = ref('resources')
+const showCreateResource = ref(false)
 const search = ref('')
 const typeFilter = ref('ALL')
 const modeFilter = ref('ALL')
 const statusFilter = ref('ALL')
+const venueFilter = ref('ALL')
 const editingResourceId = ref(null)
+const nameDraft = ref('')
+const typeDraft = ref('')
 const modeDraft = ref('RESERVABLE')
 const capacityDraft = ref('')
 const activeDraft = ref(true)
 
-const editingImageId = ref(null)
 const imageDraft = ref('')
+// Ultimos datos generales confirmados durante esta edicion.
+const savedOperationalDraft = ref(null)
 
 onMounted(() => {
   resourcesStore.fetchResources()
@@ -68,6 +78,13 @@ const filteredResources = computed(() => {
     }
 
     if (
+      venueFilter.value !== 'ALL' &&
+      String(resource.venueId ?? '') !== String(venueFilter.value)
+    ) {
+      return false
+    }
+
+    if (
       typeFilter.value !== 'ALL' &&
       resource.type !== typeFilter.value
     ) {
@@ -94,7 +111,10 @@ const filteredResources = computed(() => {
 })
 
 const startOperationalEdit = (resource) => {
+  savedOperationalDraft.value = null
   editingResourceId.value = resource.id
+  nameDraft.value = resource.name
+  typeDraft.value = resource.type
   modeDraft.value = resource.reservationMode
 
   capacityDraft.value =
@@ -104,93 +124,188 @@ const startOperationalEdit = (resource) => {
       : String(resource.capacity)
 
   activeDraft.value = resource.isActive
+  imageDraft.value = resource.imageUrl || ''
 
   resourcesStore.actionError = null
   resourcesStore.actionSuccess = null
 }
 
 const cancelOperationalEdit = () => {
+  savedOperationalDraft.value = null
   editingResourceId.value = null
+  nameDraft.value = ''
+  typeDraft.value = ''
   modeDraft.value = 'RESERVABLE'
   capacityDraft.value = ''
   activeDraft.value = true
+  imageDraft.value = ''
 }
 
 const saveOperationalEdit = async (resource) => {
-  const rawCapacity = String(capacityDraft.value).trim()
+  const name = nameDraft.value.trim()
+  const resourceType = typeDraft.value.trim()
 
+  if (!name || [...name].length > 120) {
+    resourcesStore.actionError =
+      'El nombre es obligatorio y admite hasta 120 caracteres.'
+    return
+  }
+
+  if (!resourceType || [...resourceType].length > 80) {
+    resourcesStore.actionError =
+      'El tipo es obligatorio y admite hasta 80 caracteres.'
+    return
+  }
+
+  const rawCapacity = String(capacityDraft.value).trim()
   let capacity = null
 
   if (rawCapacity !== '') {
     const parsed = Number(rawCapacity)
-
-    if (!Number.isInteger(parsed) || parsed <= 0) {
+    if (!Number.isSafeInteger(parsed) || parsed <= 0) {
       resourcesStore.actionError =
         'La capacidad debe ser un entero mayor que cero.'
       return
     }
-
     capacity = parsed
   }
 
+  const imageUrl = imageDraft.value.trim()
+  const imageChanged = imageUrl !== (resource.imageUrl || '')
+
+  if (imageChanged && (imageUrl.length > 500 ||
+    (imageUrl && !imageUrl.startsWith('https://') &&
+      !imageUrl.startsWith('http://') && !imageUrl.startsWith('/')))) {
+    resourcesStore.actionError = 'La URL de imagen no es válida.'
+    return
+  }
+
+  const operational = {
+    name,
+    type: resourceType,
+    reservationMode: modeDraft.value,
+    capacity,
+    isActive: activeDraft.value
+  }
+  // Comparar con los datos ya confirmados, aunque el store
+  // todavia no haya actualizado la interfaz.
+  const baseline = savedOperationalDraft.value?.id === resource.id
+    ? savedOperationalDraft.value
+    : resource
+
+  const operationalChanged =
+    name !== baseline.name ||
+    resourceType !== baseline.type ||
+    modeDraft.value !== baseline.reservationMode ||
+    capacity !== (baseline.capacity ?? null) ||
+    activeDraft.value !== baseline.isActive
+
+  let operationalSaved = false
   try {
-    await resourcesStore.updateOperational(
-      resource.id,
-      {
-        reservationMode: modeDraft.value,
-        capacity,
-        isActive: activeDraft.value
-      }
-    )
+    // Dos endpoints existentes: no es una transacción atómica.
+    if (operationalChanged) {
+      await resourcesStore.updateOperational(resource.id, operational)
+      savedOperationalDraft.value = { id: resource.id, ...operational }
+      operationalSaved = true
+    }
+
+    if (imageChanged) {
+      await resourcesStore.updateImage(resource.id, imageUrl)
+    }
 
     cancelOperationalEdit()
+    if (operationalChanged || imageChanged) {
+      venuesStore.fetchVenues().catch(() => {})
+    }
   } catch {
-    // El store mantiene visible el error entregado por backend.
+    if (operationalSaved || savedOperationalDraft.value?.id === resource.id) {
+      resourcesStore.actionError =
+        'Los datos generales se guardaron, pero la imagen no. ' +
+        'Corrige la imagen e intenta guardar nuevamente.'
+    }
+    // Se mantiene abierto el editor. El siguiente intento guarda solo
+    // las diferencias con el recurso actualizado del store.
   }
 }
 
-const startImageEdit = (resource) => {
-  editingImageId.value = resource.id
-  imageDraft.value = resource.imageUrl || ''
-  resourcesStore.actionError = null
-  resourcesStore.actionSuccess = null
-}
-
-const cancelImageEdit = () => {
-  editingImageId.value = null
-  imageDraft.value = ''
-}
-
-const saveImageEdit = async (resource) => {
-  try {
-    await resourcesStore.updateImage(
-      resource.id,
-      imageDraft.value.trim()
-    )
-
-    cancelImageEdit()
-  } catch {
-    // El store deja el mensaje visible para el usuario.
-  }
-}
 </script>
 
 <template>
   <main class="resources-view">
 
     <header class="page-header">
+      <div>
+        <h1>Instalaciones deportivas</h1>
+        <p>Consulta y administra los espacios del polideportivo.</p>
+      </div>
 
-      <h1>
-        Instalaciones
-      </h1>
-
-      <p>
-        Recursos deportivos disponibles desde la base de datos.
-      </p>
-
+      <button
+        v-if="authStore.isAdmin && adminTab === 'resources'"
+        type="button"
+        class="app-button primary"
+        :aria-expanded="showCreateResource"
+        @click="showCreateResource = !showCreateResource"
+      >
+        {{ showCreateResource ? 'Cerrar formulario' : '+ Nueva instalación' }}
+      </button>
     </header>
 
+    <nav
+      v-if="authStore.isAdmin"
+      class="admin-tabs"
+      aria-label="Administración de instalaciones"
+    >
+      <button
+        type="button"
+        :aria-pressed="adminTab === 'resources'"
+        :class="{ active: adminTab === 'resources' }"
+        @click="adminTab = 'resources'"
+      >
+        Instalaciones
+      </button>
+      <button
+        type="button"
+        :aria-pressed="adminTab === 'venues'"
+        :class="{ active: adminTab === 'venues' }"
+        @click="adminTab = 'venues'; showCreateResource = false"
+      >
+        Sedes
+      </button>
+    </nav>
+
+    <!-- Se mantiene montado para conservar la carga del store de sedes. -->
+    <section
+      v-if="authStore.isAdmin"
+      v-show="adminTab === 'venues'"
+      class="venues-section"
+      aria-label="Administración de sedes"
+    >
+      <VenuesAdminPanel />
+    </section>
+
+    <template v-if="!authStore.isAdmin || adminTab === 'resources'">
+      <section v-if="authStore.isAdmin && showCreateResource" class="create-section">
+        <ResourceCreatePanel @created="showCreateResource = false" @cancel="showCreateResource = false" />
+      </section>
+
     <section class="filters">
+
+      <label v-if="authStore.isAdmin">
+        Sede
+        <select
+          v-model="venueFilter"
+          :disabled="venuesStore.loading || !!venuesStore.error"
+        >
+          <option value="ALL">Todas las sedes</option>
+          <option
+            v-for="venue in venuesStore.venues"
+            :key="venue.id"
+            :value="venue.id"
+          >
+            {{ venue.name }}
+          </option>
+        </select>
+      </label>
 
       <label class="search-field">
         Buscar
@@ -310,6 +425,7 @@ const saveImageEdit = async (resource) => {
         v-for="resource in filteredResources"
         :key="resource.id"
         class="resource-card"
+        :class="{ 'is-editing': editingResourceId === resource.id }"
       >
 
         <div
@@ -343,168 +459,106 @@ const saveImageEdit = async (resource) => {
 
         <div class="meta">
 
-          <span>
+          <span class="mode-badge">
             {{ modeLabel(resource.reservationMode) }}
           </span>
 
-          <span>
+          <span
+            class="status-badge"
+            :class="resource.isActive ? 'is-active' : 'is-inactive'"
+          >
             {{ statusLabel(resource) }}
           </span>
 
-          <span v-if="resource.capacity">
+          <span v-if="resource.capacity" class="capacity-badge">
             Capacidad: {{ resource.capacity }}
           </span>
 
         </div>
 
-        <div
-          v-if="authStore.isAdmin"
-          class="resource-admin"
-        >
-          <div class="config-editor">
-            <template
-              v-if="editingResourceId === resource.id"
-            >
-              <div class="config-grid">
-                <label>
-                  Modo de reserva
-
-                  <select v-model="modeDraft">
-                    <option value="RESERVABLE">
-                      Reservable
-                    </option>
-
-                    <option value="OPEN_USE">
-                      Uso libre
-                    </option>
-
-                    <option value="ADMIN_ONLY">
-                      Solo admin
-                    </option>
-
-                    <option value="INFORMATIVE">
-                      Informativo
-                    </option>
-                  </select>
-                </label>
-
-                <label>
-                  Capacidad
-
-                  <input
-                    v-model="capacityDraft"
-                    type="number"
-                    min="1"
-                    step="1"
-                    placeholder="Sin capacidad"
-                  />
-                </label>
-              </div>
-
-              <label class="active-control">
-                <input
-                  v-model="activeDraft"
-                  type="checkbox"
-                />
-
-                Recurso activo
+        <div v-if="authStore.isAdmin" class="resource-admin">
+          <form
+            v-if="editingResourceId === resource.id"
+            class="resource-editor"
+            @submit.prevent="saveOperationalEdit(resource)"
+          >
+            <h3>Editar instalación</h3>
+            <p class="config-help">
+              {{ resource.name }} · {{ venuesStore.venues.find(v => v.id === resource.venueId)?.name || 'Sede asignada' }}
+            </p>
+            <p v-if="resourcesStore.actionError" class="form-error" role="alert">
+              {{ resourcesStore.actionError }}
+            </p>
+            <div class="config-grid">
+              <label>
+                Nombre
+                <input v-model="nameDraft" type="text" maxlength="120" required />
               </label>
-
+              <label>
+                Tipo
+                <input v-model="typeDraft" type="text" maxlength="80" required />
+              </label>
+              <label>
+                Modo de reserva
+                <select v-model="modeDraft">
+                  <option value="RESERVABLE">Reservable</option>
+                  <option value="OPEN_USE">Uso libre</option>
+                  <option value="ADMIN_ONLY">Solo admin</option>
+                  <option value="INFORMATIVE">Informativo</option>
+                </select>
+              </label>
+              <label>
+                Capacidad
+                <input v-model="capacityDraft" type="number" min="1" step="1" placeholder="Sin capacidad" />
+              </label>
+            </div>
+            <label class="active-control">
+              <input v-model="activeDraft" type="checkbox" />
+              Instalación activa
+            </label>
+            <p class="config-help">
+              Los recursos con confirmación grupal deben mantener modo
+              y capacidad compatibles con la política vigente.
+            </p>
+            <details class="advanced-fields">
+              <summary>Imagen de la instalación (opcional)</summary>
+              <label class="image-field">
+                URL de imagen
+                <input v-model="imageDraft" type="text" maxlength="500" placeholder="https://... o /images/..." />
+              </label>
               <p class="config-help">
-                Los recursos con confirmación grupal deben
-                mantener modo y capacidad compatibles con
-                la política vigente.
+                Los datos y la imagen usan operaciones independientes.
+                Si una falla, se informará cuál debes revisar.
               </p>
-
-              <div class="editor-actions">
-                <button
-                  type="button"
-                  class="save"
-                  :disabled="
-                    resourcesStore.updatingResourceId ===
-                      resource.id
-                  "
-                  @click="saveOperationalEdit(resource)"
-                >
-                  {{
-                    resourcesStore.updatingResourceId ===
-                      resource.id
-                      ? 'Guardando...'
-                      : 'Guardar configuración'
-                  }}
-                </button>
-
-                <button
-                  type="button"
-                  class="cancel"
-                  :disabled="
-                    resourcesStore.updatingResourceId ===
-                      resource.id
-                  "
-                  @click="cancelOperationalEdit"
-                >
-                  Cancelar
-                </button>
-              </div>
-            </template>
-
-            <button
-              v-else
-              type="button"
-              class="edit-resource"
-              @click="startOperationalEdit(resource)"
-            >
-              Editar configuración
-            </button>
-          </div>
-
-          <div class="image-editor">
-            <template v-if="editingImageId === resource.id">
-              <input
-                v-model="imageDraft"
-                type="url"
-                placeholder="https://... o /images/..."
-              />
-
-              <div class="editor-actions">
-                <button
-                  type="button"
-                  class="save"
-                  :disabled="
-                    resourcesStore.updatingImageId === resource.id
-                  "
-                  @click="saveImageEdit(resource)"
-                >
-                  Guardar imagen
-                </button>
-
-                <button
-                  type="button"
-                  class="cancel"
-                  :disabled="
-                    resourcesStore.updatingImageId === resource.id
-                  "
-                  @click="cancelImageEdit"
-                >
-                  Cancelar
-                </button>
-              </div>
-            </template>
-
-            <button
-              v-else
-              type="button"
-              class="edit-image"
-              @click="startImageEdit(resource)"
-            >
-              Cambiar imagen
-            </button>
-          </div>
+            </details>
+            <div class="editor-actions">
+              <button
+                type="submit"
+                class="app-button primary"
+                :disabled="resourcesStore.updatingResourceId === resource.id || resourcesStore.updatingImageId === resource.id"
+              >
+                {{ resourcesStore.updatingResourceId === resource.id || resourcesStore.updatingImageId === resource.id ? 'Guardando...' : 'Guardar cambios' }}
+              </button>
+              <button
+                type="button"
+                class="app-button secondary"
+                :disabled="resourcesStore.updatingResourceId === resource.id || resourcesStore.updatingImageId === resource.id"
+                @click="cancelOperationalEdit"
+              >Cancelar</button>
+            </div>
+          </form>
+          <button
+            v-else
+            type="button"
+            class="app-button secondary edit-resource"
+            @click="startOperationalEdit(resource)"
+          >Editar instalación</button>
         </div>
 
       </article>
 
       </section>
+    </template>
     </template>
 
   </main>
@@ -513,288 +567,347 @@ const saveImageEdit = async (resource) => {
 <style scoped>
 .resources-view {
   width: 100%;
-
+  min-width: 0;
   display: flex;
   flex-direction: column;
-
-  gap: 24px;
+  gap: var(--space-6);
 }
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+}
+
+.page-header > div { min-width: 0; }
 
 .page-header h1 {
   margin: 0;
-
-  font-size: 30px;
+  font-size: var(--text-page-title);
   font-weight: 800;
-
+  line-height: 1.15;
   color: var(--color-text);
 }
 
 .page-header p {
-  margin-top: 8px;
-
+  margin-top: var(--space-2);
   color: var(--color-text-muted);
+  line-height: 1.45;
 }
 
-.state-card {
+.admin-tabs {
+  display: inline-flex;
+  align-items: stretch;
+  gap: var(--space-1);
+  max-width: 100%;
+  width: fit-content;
+  padding: var(--space-1);
+  background: var(--color-surface-soft);
+  border: 1px solid var(--color-border-soft);
   border-radius: var(--radius-lg);
 }
 
-.state-card.error {
-  background: var(--color-error-soft);
-  color: var(--color-error);
-  border-color: var(--color-error-border);
+.admin-tabs button {
+  min-height: 42px;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-text-muted);
+  padding: 0 var(--space-5);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+  transition: background-color 0.18s ease, color 0.18s ease;
 }
 
-.state-card.success {
-  background: var(--color-success-soft);
-  color: var(--color-success);
-  border-color: var(--color-success-border);
+.admin-tabs button:hover:not(.active) {
+  background: var(--color-primary-soft);
+  color: var(--color-primary-strong);
 }
+
+.admin-tabs button.active {
+  background: var(--color-surface);
+  color: var(--color-primary-strong);
+  box-shadow: var(--shadow-card);
+}
+
+.admin-tabs button:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.venues-section,
+.create-section { min-width: 0; }
 
 .filters {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-3);
+  padding: var(--space-4);
   background: var(--color-surface);
-
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
-
-  padding: 18px;
-
-  display: grid;
-  grid-template-columns:
-    minmax(220px, 1.4fr)
-    repeat(3, minmax(150px, 1fr));
-
-  gap: 14px;
+  box-shadow: var(--shadow-card);
 }
 
 .filters label {
-  color: #334155;
-
   display: flex;
   flex-direction: column;
-
-  gap: 7px;
-
-  font-size: 13px;
-  font-weight: 800;
+  min-width: 0;
+  gap: var(--space-2);
+  color: var(--color-text);
+  font-size: var(--text-help);
+  font-weight: 700;
 }
+
+.filters .search-field { grid-column: span 2; }
 
 .filters input,
 .filters select {
   width: 100%;
-  height: 42px;
-
+  min-width: 0;
+  min-height: 42px;
+  padding: 0 var(--space-3);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+}
 
-  padding: 0 12px;
-
-  box-sizing: border-box;
+.filters input:focus-visible,
+.filters select:focus-visible {
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-focus);
   outline: none;
 }
 
 .resources-grid {
   display: grid;
-
-  grid-template-columns:
-    repeat(auto-fit, minmax(260px, 1fr));
-
-  gap: 18px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 255px), 1fr));
+  align-items: stretch;
+  gap: var(--space-4);
+  min-width: 0;
 }
 
 .resource-card {
-  background: var(--color-surface);
-
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-
-  padding: 20px;
-
   display: flex;
   flex-direction: column;
-
-  gap: 18px;
-
+  min-width: 0;
+  gap: var(--space-4);
+  padding: var(--space-5);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
   box-shadow: var(--shadow-card);
 }
 
 .resource-image {
   height: 150px;
-  margin: -20px -20px 0;
+  margin: calc(-1 * var(--space-5)) calc(-1 * var(--space-5)) 0;
   overflow: hidden;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
   background: var(--color-surface-soft);
 }
 
 .resource-image img {
+  display: block;
   width: 100%;
   height: 100%;
   object-fit: cover;
-  display: block;
 }
 
 .resource-image.fallback {
   display: flex;
-  align-items: center;
   justify-content: center;
+  align-items: center;
+  background: var(--color-primary-soft);
   color: var(--color-primary);
   font-size: 30px;
-  font-weight: 900;
-  background: var(--color-primary-soft);
+  font-weight: 800;
 }
 
 .resource-card h2 {
   margin: 0;
-
-  font-size: 18px;
-  font-weight: 800;
-
   color: var(--color-text);
+  font-size: var(--text-section-title);
+  font-weight: 800;
+  overflow-wrap: anywhere;
 }
 
 .resource-card p {
-  margin: 6px 0 0;
-
+  margin: var(--space-1) 0 0;
   color: var(--color-text-muted);
+  line-height: 1.45;
 }
 
 .meta {
   display: flex;
   flex-wrap: wrap;
-
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .meta span {
-  padding: 7px 10px;
-
-  border-radius: 999px;
-
+  display: inline-flex;
+  align-items: center;
+  min-height: 27px;
+  padding: 4px var(--space-3);
+  border-radius: var(--radius-pill);
   background: var(--color-primary-soft);
   color: var(--color-primary-strong);
-
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 750;
+}
+
+.meta .status-badge.is-active {
+  background: var(--color-success-soft);
+  color: var(--color-success);
+}
+
+.meta .status-badge.is-inactive {
+  background: var(--color-surface-soft);
+  color: var(--color-text-muted);
+}
+
+.meta .capacity-badge {
+  background: var(--color-surface-muted);
+  color: var(--color-text);
+  border: 1px solid var(--color-border-soft);
 }
 
 .resource-admin {
-  border-top: 1px solid var(--color-border);
-  padding-top: 14px;
-
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--space-3);
+  margin-top: auto;
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border-soft);
 }
 
-.config-editor,
-.image-editor {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+.resource-admin > .edit-resource { align-self: flex-start; }
+
+.resource-card.is-editing {
+  grid-column: 1 / -1;
+  border-color: var(--color-primary);
+}
+
+.resource-editor {
+  display: grid;
+  min-width: 0;
+  gap: var(--space-4);
+}
+
+.resource-editor h3 {
+  margin: 0;
+  color: var(--color-text);
+  font-size: var(--text-section-title);
 }
 
 .config-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
 }
 
-.config-grid label {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-
+.config-grid label,
+.image-field {
+  display: grid;
+  min-width: 0;
+  gap: var(--space-2);
   color: var(--color-text);
-  font-size: 12px;
-  font-weight: 800;
+  font-size: var(--text-help);
+  font-weight: 700;
 }
 
 .config-grid input,
 .config-grid select,
-.image-editor input {
+.image-field input {
   width: 100%;
-  height: 42px;
-
+  min-width: 0;
+  min-height: 42px;
+  padding: 0 var(--space-3);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-
-  padding: 0 12px;
-  box-sizing: border-box;
+  background: var(--color-surface);
+  color: var(--color-text);
   font: inherit;
 }
 
 .active-control {
   display: flex;
   align-items: center;
-  gap: 8px;
-
+  gap: var(--space-2);
   color: var(--color-text);
-  font-size: 13px;
-  font-weight: 800;
+  font-size: var(--text-help);
+  font-weight: 700;
 }
 
 .active-control input {
-  width: 17px;
-  height: 17px;
+  width: 18px;
+  height: 18px;
+  accent-color: var(--color-primary);
 }
 
 .config-help {
   margin: 0;
-
   color: var(--color-text-muted);
-  font-size: 12px;
-  line-height: 1.45;
+  font-size: var(--text-help);
+  line-height: 1.5;
 }
+
+.advanced-fields {
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-muted);
+}
+
+.advanced-fields summary {
+  cursor: pointer;
+  color: var(--color-primary-strong);
+  font-weight: 700;
+}
+
+.advanced-fields summary:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 3px;
+}
+
+.advanced-fields .image-field { margin-top: var(--space-3); }
+.advanced-fields .config-help { margin-top: var(--space-2); }
 
 .editor-actions {
   display: flex;
-  gap: 8px;
+  flex-wrap: wrap;
+  gap: var(--space-2);
 }
 
-.edit-resource,
-.edit-image,
-.editor-actions button {
-  min-height: 38px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  padding: 0 12px;
-  font-weight: 800;
-  cursor: pointer;
+@media (min-width: 1101px) {
+  .filters { grid-template-columns: 1fr 1.7fr repeat(3, 1fr); }
+  .filters .search-field { grid-column: auto; }
 }
 
-.edit-resource,
-.edit-image,
-.editor-actions .save {
-  background: var(--color-primary);
-  color: var(--color-primary-contrast);
-  border-color: var(--color-primary);
-}
-
-.editor-actions .cancel {
-  background: var(--color-surface);
-  color: var(--color-text);
-}
-
-@media (max-width: 900px) {
-  .filters {
-    grid-template-columns: 1fr 1fr;
-  }
-
-  .search-field {
-    grid-column: 1 / -1;
-  }
+@media (max-width: 720px) {
+  .filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .filters .search-field { grid-column: 1 / -1; }
 }
 
 @media (max-width: 600px) {
-  .config-grid {
-    grid-template-columns: 1fr;
-  }
+  .page-header > .app-button { width: 100%; }
+  .admin-tabs { width: 100%; }
+  .admin-tabs button { flex: 1; padding: 0 var(--space-3); }
+  .config-grid { grid-template-columns: 1fr; }
+  .editor-actions .app-button { flex: 1 1 140px; }
+}
 
-  .filters {
-    grid-template-columns: 1fr;
-  }
-
-  .search-field {
-    grid-column: auto;
+@media (max-width: 480px) {
+  .filters { grid-template-columns: 1fr; }
+  .filters .search-field { grid-column: auto; }
+  .resource-card { padding: var(--space-4); }
+  .resource-image {
+    margin: calc(-1 * var(--space-4)) calc(-1 * var(--space-4)) 0;
   }
 }
 </style>
