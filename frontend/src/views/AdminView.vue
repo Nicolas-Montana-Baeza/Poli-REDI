@@ -5,6 +5,7 @@ import {
   BarChart3,
   CalendarCheck,
   CalendarDays,
+  CalendarOff,
   LayoutGrid,
   SlidersHorizontal,
   Users
@@ -113,6 +114,12 @@ const actions = [
     detail: 'Revisar instalaciones',
     to: '/resources',
     icon: LayoutGrid
+  },
+  {
+    label: 'Bloqueos de disponibilidad',
+    detail: 'Cierres y mantenciones',
+    to: '/admin/availability-blocks',
+    icon: CalendarOff
   },
   {
     label: 'Usuarios',

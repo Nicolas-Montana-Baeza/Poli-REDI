@@ -153,6 +153,15 @@ if (mvpFeatures.resourceAdministration) {
   )
 }
 
+// MVP3: administración de bloqueos. El backend valida RequireAdmin.
+if (mvpFeatures.resourceAdministration) {
+  routes.splice(routes.length - 1, 0, {
+    path: '/admin/availability-blocks',
+    component: () => import('../views/AvailabilityBlocksView.vue'),
+    meta: { requiresAuth: true, requiresAdmin: true }
+  })
+}
+
 if (mvpFeatures.policyAdministration) {
   routes.splice(routes.length - 1, 0, {
     path: '/admin/reservation-policies',

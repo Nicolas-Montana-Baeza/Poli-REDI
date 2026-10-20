@@ -13,6 +13,7 @@ import {
   ShieldCheck,
   SlidersHorizontal,
   AlertTriangle,
+  CalendarOff,
   Building2,
   KeyRound,
   X
@@ -147,6 +148,11 @@ if (mvpFeatures.groupReservations) {
         label: 'Recursos',
         icon: Calendar,
         to: '/resources'
+      })
+      sections.at(-1).items.push({
+        label: 'Bloqueos de disponibilidad',
+        icon: CalendarOff,
+        to: '/admin/availability-blocks'
       })
     }
 
