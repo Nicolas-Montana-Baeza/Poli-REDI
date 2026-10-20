@@ -15,6 +15,9 @@ func TestAdminRoutesHTTPAuthorization(t *testing.T) {
 		method string
 		path   string
 	}{
+		{http.MethodGet, "/api/admin/availability-blocks"},
+		{http.MethodPost, "/api/admin/availability-blocks"},
+		{http.MethodPatch, "/api/admin/availability-blocks/1"},
 		{http.MethodGet, "/api/admin/venues"},
 		{http.MethodPost, "/api/admin/venues"},
 		{http.MethodPatch, "/api/admin/venues/1"},

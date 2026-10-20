@@ -259,6 +259,24 @@ func registerRoutes(app *fiber.App, authMiddleware fiber.Handler) {
 
 	if appscope.HasMVP3() {
 		protected.Get(
+			"/admin/availability-blocks",
+			middleware.RequireAdmin(),
+			handlers.GetAdminAvailabilityBlocks,
+		)
+
+		protected.Post(
+			"/admin/availability-blocks",
+			middleware.RequireAdmin(),
+			handlers.CreateAdminAvailabilityBlock,
+		)
+
+		protected.Patch(
+			"/admin/availability-blocks/:id",
+			middleware.RequireAdmin(),
+			handlers.DeactivateAdminAvailabilityBlock,
+		)
+
+		protected.Get(
 			"/admin/venues",
 			middleware.RequireAdmin(),
 			handlers.GetAdminVenues,

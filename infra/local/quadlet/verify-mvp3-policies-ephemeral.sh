@@ -194,6 +194,9 @@ install_init_file \
 install_init_file \
     'database/postgres/migrations/PG16_0011_mvp3_reservation_venue_guard.sql' \
     '98_mvp3_reservation_venue_guard.sql'
+install_init_file \
+    'database/postgres/migrations/PG16_0012_mvp3_availability_block_overlap.sql' \
+    '99_mvp3_availability_block_overlap.sql'
 
 printf '=== Creando PostgreSQL 16 efimero ===\n'
 podman volume create "${volume_name}" >/dev/null
@@ -270,6 +273,17 @@ echo "=== Integracion de sedes 3D.2C ==="
             -count=1 \
             -v ./internal/repositories
 ) || exit 1
+
+printf '\n=== Integracion bloqueos administrativos 4A ===\n'
+(
+    cd "${repository_root}/backend"
+    POLIREDI_3C_ISOLATED=1 \
+    DATABASE_URL="${database_url}" \
+    MVP_SCOPE='mvp3' \
+        go test -tags=integration ./internal/repositories \
+        -run '^TestAdminAvailabilityBlocksPostgresIntegration$' \
+        -count=1 -v
+)
 
 printf '\nCIERRE AUTOMATIZADO 3C POSTGRESQL 16: PASS\n'
 printf 'El contenedor y volumen efimeros se eliminaran ahora.\n'
