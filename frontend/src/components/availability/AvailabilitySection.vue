@@ -460,7 +460,9 @@ const canCancelSelectedReservation = computed(() => {
 
   if (
     selectedReservation.value.isWorkshop ||
-    selectedReservation.value.isScheduledActivity
+    selectedReservation.value.isScheduledActivity ||
+    selectedReservation.value.type === 'blocked' ||
+    selectedReservation.value.isAvailabilityBlock === true
   ) {
     return false
   }

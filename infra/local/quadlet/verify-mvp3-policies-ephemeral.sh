@@ -285,5 +285,17 @@ printf '\n=== Integracion bloqueos administrativos 4A ===\n'
         -count=1 -v
 )
 
+printf '\n=== Integracion calendario de bloqueos 4B ===\n'
+(
+    cd "${repository_root}/backend"
+    POLIREDI_3C_ISOLATED=1 \
+    DATABASE_URL="${database_url}" \
+    APP_TIMEZONE='America/Santiago' \
+    MVP_SCOPE='mvp3' \
+        go test -tags=integration ./internal/services \
+        -run '^TestAdminBlockCalendarIntegration$' \
+        -count=1 -v
+)
+
 printf '\nCIERRE AUTOMATIZADO 3C POSTGRESQL 16: PASS\n'
 printf 'El contenedor y volumen efimeros se eliminaran ahora.\n'
