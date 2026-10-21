@@ -416,21 +416,15 @@ Parcial.
 
 ### Pendientes para cierre completo
 
-- Completar `ADMIN-006` en 3C: la publicación prospectiva, lectura e
-  historial ya utilizan PostgreSQL. Falta ampliar el contrato para
-  administrar mínimos grupales por recurso, exponerlos por versión,
-  construir la interfaz administrativa y validar integralmente la
-  publicación. Las correcciones excepcionales se mantienen aprobadas
-  para un incremento posterior.
+- `ADMIN-006` cerrado para MVP3: administracion versionada,
+  configuracion grupal, historial y UX/UI aprobados.
+  Refactorizacion arquitectonica diferida a `ARCH-V2-001`.
+- `ADMIN-005` cerrado para el alcance del prototipo:
+  programacion institucional, conflictos, resoluciones y
+  notificaciones verificadas mediante pruebas y Funnel.
+  Ratificacion institucional de EV-010 fuera del cierre tecnico.
 - Bloquear y desbloquear usuarios con auditoria (`ADMIN-002`).
-- Completar validacion funcional de `ADMIN-005`.
-  Backend, frontend y resolucion administrativa estan implementados.
-  Se aprobaron 6/6 pruebas institucionales PostgreSQL 16.
-  Validadas: 18/18 pruebas Vue ADMIN-005; cancelacion y notificacion comprobadas en Funnel.
-  Pendientes: publicacion y verificacion de la actualizacion de la campana, cierre integral restante y formalizacion institucional de `EV-010`.
-  La propuesta vigente es que los conflictos no produzcan
-  cancelaciones automaticas y sean resueltos por administracion.
-- Centralizar validacion de administrador con middleware (`API-005`).
+- `API-005` implementado: autorizacion administrativa centralizada.
 - Completar reportes desde vistas SQL e infracciones si corresponde (`REP-001`).
 - Corregir definicion de reservas activas y precision de horas en indicadores (`REP-003`).
 
@@ -441,10 +435,10 @@ Parcial.
   `docs/mvp3/cierre-4d-bloqueos.md`.
 - ADMIN-005: seis pruebas institucionales PostgreSQL 16 aprobadas.
 - El verificador aislado completo aprobo 17/17 pruebas.
-- La interfaz institucional ya existe, pero requiere pruebas
-  de componentes y validacion funcional integral.
-- EV-010 propone resolucion administrativa explicita.
-  La sustitucion de RF-023/v1 requiere formalizacion institucional.
+- Las tres vistas institucionales aprobaron 18/18 pruebas Vue.
+- La regresion manual integral sigue como seguimiento del prototipo.
+- EV-010 adopta resolucion administrativa explicita para el prototipo.
+  La ratificacion institucional definitiva permanece pendiente.
 - El MVP3 permanece abierto mientras existan modulos
   y criterios de cierre pendientes.
 

@@ -2,7 +2,7 @@
 
 Fecha: 20 de octubre de 2026
 Rama: feature/mvp3
-Estado: implementación parcial, en validación.
+Estado: cerrado funcionalmente para prototipo MVP3; validación institucional diferida.
 
 ## 1. Implementación identificada
 
@@ -222,3 +222,26 @@ La publicación de la mejora UX y la ratificación institucional
 de EV-010 permanecen pendientes.
 
 No se autoriza despliegue mediante esta auditoría.
+
+---
+
+## Actualizacion de cierre del prototipo (2026-10-20)
+
+La evidencia acumulada permite cerrar ADMIN-005 dentro del
+alcance experimental de MVP3.
+
+- Programacion y conflictos: implementados.
+- PostgreSQL 16: integracion y atomicidad verificadas.
+- Vue: 18 pruebas institucionales aprobadas.
+- Funnel: cancelacion y recepcion de notificacion verificadas.
+- Campana: cambio implementado, probado y incluido en la
+  compilacion general posterior de MVP3.
+- EV-010: RF-023/v2 adoptado para el prototipo.
+
+Las secciones anteriores conservan las observaciones realizadas
+durante la auditoria inicial, aunque algunos pendientes fueron
+resueltos posteriormente.
+
+No se declara puesta en produccion. La ratificacion institucional
+de EV-010, la regresion manual integral y una nueva comprobacion
+sin F5 quedan como seguimiento, sin bloquear el prototipo.

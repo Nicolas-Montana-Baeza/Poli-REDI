@@ -2443,7 +2443,7 @@ Permitir que admin cree bloqueos por mantencion, cierre, evento u otro motivo.
 
 Prioridad: P0
 Labels: `frontend`, `backend`, `admin`, `disponibilidad`
-Estado actual: Implementado en backend y frontend; integraciones PostgreSQL 16 aprobadas; cierre funcional pendiente.
+Estado: CERRADO para el prototipo MVP3 (2026-10-20). Ratificación institucional EV-010 diferida.
 
 ### Objetivo
 
@@ -2453,16 +2453,18 @@ Permitir registrar clases, talleres, eventos, campeonatos o entrenamientos insti
 
 - [x] Backend permite crear actividad programada sobre un recurso mediante administrador global o gestor autorizado de unidad.
 - [x] El sistema detecta ocupaciones solapadas y las agrupa como conflictos N-elementos consultables.
-- [ ] Formalizar `EV-010`: se propone sustituir la cancelacion automatica por resolucion administrativa explicita. Pendiente de aprobacion institucional.
+- [x] Adoptar `EV-010` como regla operativa del prototipo MVP3: resolucion administrativa explicita, sin cancelacion automatica por conflicto. La ratificacion institucional queda diferida.
 - [x] En conflictos entre actividades, el administrador puede cancelar, conservar o autorizar coexistencia segun el plan de resolucion.
 - [x] Mantener ocupaciones solapadas requiere una resolucion administrativa `ALLOW` con justificacion.
 - [x] Actividades institucionales se incorporan al calendario/disponibilidad del backend.
 - [x] El modelo soporta descripcion y tipos institucionales.
 - [x] Resoluciones y efectos quedan trazables en el modelo de conflictos.
 - [x] El administrador puede consultar listado y detalle de reservas/actividades afectadas.
-- [x] Validar end-to-end la notificacion al propietario de una reserva cancelada mediante resolucion administrativa. Confirmado en Funnel: notificacion visible tras actualizar con F5. La mejora para refrescar al abrir la campana fue probada localmente y aun no esta publicada.
+- [x] Validar cancelacion administrativa y notificacion al propietario en Funnel. El frontend recompilado incluye la actualizacion de notificaciones al abrir la campana.
 - [x] Programacion soporta horarios `SINGLE` y recurrencia `WEEKLY`.
-- [ ] Validar de punta a punta las interfaces institucionales existentes y agregar pruebas de componentes Vue.
+- [x] Cubrir las tres vistas institucionales con 18 pruebas Vue.
+- [x] Verificar cancelacion y notificacion desde Funnel con cuentas de prueba.
+- [ ] Completar regresion manual integral de todos los flujos institucionales; seguimiento no bloqueante para el prototipo.
 
 
 ### Auditoria y evidencia 2026-10-20
@@ -2474,15 +2476,70 @@ Permitir registrar clases, talleres, eventos, campeonatos o entrenamientos insti
 - Resultado del verificador completo: 17/17 PASS.
 - La prueba de resolucion verifica cancelaciones, reprogramaciones
   y cierre de conflictos con persistencia real.
-- Existe generacion transaccional de notificaciones por cancelacion
-  institucional en MVP3; falta verificar su efecto mediante prueba integrada.
-- No se encontraron pruebas Vue especificas de las tres vistas institucionales.
-- La decision EV-010 requiere formalizacion institucional.
+- La generacion transaccional de notificaciones por cancelacion
+  institucional fue comprobada en PostgreSQL efimero y desde Funnel.
+- Posteriormente se incorporaron 18 pruebas Vue para las tres vistas institucionales.
+- EV-010 es la decision operativa del prototipo; su ratificacion institucional es futura.
 - Ninguna funcionalidad debe considerarse desplegada o aceptada
   solo por aprobar pruebas automatizadas.
 
 Documento de evidencia:
 `docs/mvp3/admin005-auditoria-20261020.md`
+
+
+### Cierre de ADMIN-005 para el prototipo MVP3
+
+**Fecha:** 2026-10-20.
+
+**Resultado:** cerrado para el alcance funcional del prototipo,
+sin declarar preparacion para produccion institucional.
+
+#### Funcionalidad cubierta
+
+- Administracion de unidades institucionales y gestores.
+- Creacion de actividades y talleres institucionales.
+- Programacion unica (`SINGLE`) y semanal (`WEEKLY`).
+- Deteccion y consulta de conflictos con multiples ocupaciones.
+- Resolucion administrativa `KEEP`, `ALLOW`, `CANCEL` y `RESCHEDULE`.
+- Justificacion y confirmacion explicita de las decisiones.
+- Integracion con calendario y disponibilidad.
+- Cancelacion administrativa y notificacion al propietario.
+
+#### Evidencia utilizada
+
+- Seis pruebas institucionales PostgreSQL 16 aprobadas.
+- Diecisiete pruebas de integracion del verificador completo aprobadas.
+- Dieciocho pruebas Vue especificas de ADMIN-005 aprobadas.
+- Prueba de rollback transaccional ante error de notificacion aprobada.
+- Cancelacion institucional y consulta de notificacion comprobadas
+  anteriormente en Funnel.
+- Pruebas Vue de actualizacion de la campana aprobadas.
+- La compilacion general de MVP3 incluye la mejora de la campana.
+
+#### EV-010: decision para el prototipo
+
+La creacion de una actividad institucional no cancela automaticamente
+reservas particulares en conflicto.
+
+Los conflictos se registran y deben resolverse mediante una decision
+administrativa explicita. El sistema conserva la justificacion y
+los efectos de esa resolucion.
+
+RF-023/v2 se adopta como comportamiento operativo del prototipo.
+RF-023/v1 permanece documentado como antecedente historico.
+
+Esta decision no constituye aprobacion normativa de la institucion.
+La ratificacion y los procedimientos operacionales definitivos
+quedan fuera del cierre del prototipo MVP3.
+
+#### Seguimiento no bloqueante
+
+- Regresion manual completa de unidades, gestores y actividades.
+- Comprobacion adicional de la actualizacion de la campana sin F5.
+- Ratificacion institucional futura de EV-010.
+- Endurecimiento y despliegue productivo posterior.
+
+No se realizaron migraciones ni cambios del backend para este cierre.
 
 ## ADMIN-006 - Configurar politicas institucionales de reserva
 
