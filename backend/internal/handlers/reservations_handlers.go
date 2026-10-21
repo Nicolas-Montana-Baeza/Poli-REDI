@@ -59,7 +59,8 @@ func GetAvailabilityReservations(c *fiber.Ctx) error {
 				items[index].UserFullName = ""
 				items[index].UserEmail = ""
 				items[index].UserRUT = ""
-				if items[index].Type != "blocked" {
+				if items[index].Type != "blocked" &&
+					!items[index].IsScheduledActivity {
 					items[index].Title = "Ocupado"
 				}
 			}

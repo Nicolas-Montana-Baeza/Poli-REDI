@@ -14,11 +14,17 @@ export const institutionalActivitiesService = {
   // El backend conserva la autoridad sobre horarios, recursos, permisos,
   // bloqueos y generación de scheduling conflicts.
   async create(payload) {
-    const response = await api.post(
-      '/institutional-activities',
-      payload
-    )
+    const response = await api.post('/institutional-activities', payload)
+    return response.data
+  },
 
+  async update(id, payload) {
+    const response = await api.patch(`/institutional-activities/${id}`, payload)
+    return response.data
+  },
+
+  async cancel(id) {
+    const response = await api.patch(`/institutional-activities/${id}/cancel`)
     return response.data
   }
 }

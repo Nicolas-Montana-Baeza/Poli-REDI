@@ -143,6 +143,12 @@ const eligibleResources = computed(() => {
   )
 })
 
+const calendarResources = computed(() => {
+  return resourcesStore.resources.filter(
+    resource => resource.isActive !== false
+  )
+})
+
 const readRouteQueryValue = (value) => {
   if (Array.isArray(value)) {
     return String(value[0] || '')
@@ -288,7 +294,7 @@ const resourceHasAvailableBlock = (resource) => {
 
 const filteredResources = computed(() => {
   let resources =
-    eligibleResources.value.slice()
+    calendarResources.value.slice()
 
   if (selectedResourceId.value) {
     resources = resources.filter(
@@ -301,6 +307,9 @@ const filteredResources = computed(() => {
   if (onlyAvailable.value) {
     resources = resources.filter(
       resource =>
+        eligibleResources.value.some(
+          eligible => eligible.id === resource.id
+        ) &&
         resourceHasAvailableBlock(resource)
     )
   }
@@ -432,6 +441,14 @@ const reservationBlockingError = computed(() => {
     return 'No se puede crear la reserva porque no se pudo cargar la política vigente.'
   }
 
+  if (!isDateWithinPolicyWindow(
+    selectedDate.value,
+    todayKey(),
+    policy.value.reservableWindowDays
+  )) {
+    return 'Puedes consultar esta fecha, pero está fuera de la ventana de reservas particulares.'
+  }
+
   if (
     reservationsStore.availabilityLoading ||
     reservationsStore.availabilityLoadingError ||
@@ -521,6 +538,15 @@ watch(
 const handleSlotSelected = (slot) => {
   reservationsStore.clearActionError?.()
   reservationsStore.clearActionSuccess?.()
+
+  if (!eligibleResources.value.some(
+    resource => Number(resource.id) === Number(slot?.resource?.id)
+  )) {
+    reservationsStore.setActionError(
+      'Este recurso permite consultar programación, pero no crear reservas particulares.'
+    )
+    return
+  }
 
   if (reservationBlockingError.value) {
     reservationsStore.setActionError(
@@ -771,20 +797,6 @@ const handleDateSelect = (date) => {
     return
   }
 
-  if (
-    policy.value &&
-    !isDateWithinPolicyWindow(
-      nextDate,
-      todayKey(),
-      policy.value.reservableWindowDays
-    )
-  ) {
-    reservationsStore.setActionError(
-      'La fecha seleccionada está fuera de la ventana de reservas vigente.'
-    )
-    return
-  }
-
   selectedDate.value = nextDate
 
   reservationsStore.clearActionError?.()
@@ -818,20 +830,6 @@ const nextDay = () => {
   date.setDate(date.getDate() + 1)
 
   const nextDate = formatDateKey(date)
-
-  if (
-    policy.value &&
-    !isDateWithinPolicyWindow(
-      nextDate,
-      todayKey(),
-      policy.value.reservableWindowDays
-    )
-  ) {
-    reservationsStore.setActionError(
-      'Llegaste al último día disponible para reservar.'
-    )
-    return
-  }
 
   selectedDate.value = nextDate
 
@@ -1045,7 +1043,7 @@ const goToday = () => {
 
           <GeneralCalendarView
             v-else-if="policy"
-            :resources="eligibleResources"
+            :resources="calendarResources"
             :reservations="availabilityItems"
             :selected-date="selectedDate"
             @reservation-selected="handleReservationSelected"

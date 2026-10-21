@@ -55,6 +55,19 @@ test('OPEN_USE permite uso ajeno pero no bloqueos ni solape propio', () => {
   assert.equal(hasReservationConflict({ items: blocked, resource: openUse, userId: 7, ...interval }), true)
 })
 
+test('OPEN_USE respeta la ocupación institucional programada', () => {
+  const activity = [{
+    resourceId: 1,
+    userId: 0,
+    startTime: '2026-08-20T12:15:00',
+    durationMinutes: 30,
+    status: 'CONFIRMED',
+    isScheduledActivity: true,
+    type: 'scheduled'
+  }]
+  assert.equal(hasReservationConflict({ items: activity, resource: openUse, userId: 7, ...interval }), true)
+})
+
 test('RESERVABLE bloquea una reserva ajena del mismo recurso', () => {
   const items = [{
     resourceId: 2,

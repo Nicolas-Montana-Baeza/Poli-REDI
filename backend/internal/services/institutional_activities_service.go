@@ -102,6 +102,10 @@ func CreateInstitutionalActivity(
 			ErrInstitutionalResourceInactive
 	}
 
+	if err := ensureInstitutionalOperatingHours(request.Schedules); err != nil {
+		return models.InstitutionalActivity{}, err
+	}
+
 	// Evitamos que dos reglas pertenecientes a la misma actividad generen
 	// ocupaciones internas solapadas. Eso sería un request incoherente, no un
 	// scheduling conflict entre entidades diferentes.

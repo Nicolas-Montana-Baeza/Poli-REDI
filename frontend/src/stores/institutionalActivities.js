@@ -25,6 +25,8 @@ export const useInstitutionalActivitiesStore =
         activitiesByUnit: {},
         loading: false,
         creating: false,
+        saving: false,
+        cancellingId: null,
         error: null
       }),
 
@@ -57,6 +59,42 @@ export const useInstitutionalActivitiesStore =
             throw error
           } finally {
             this.loading = false
+          }
+        },
+
+        async update(id, payload) {
+          this.saving = true
+          this.error = null
+          try {
+            const updated = await institutionalActivitiesService.update(id, payload)
+            const items = this.activitiesByUnit[payload.unitId] || []
+            this.activitiesByUnit[payload.unitId] = items.map(item =>
+              item.id === id ? updated : item
+            )
+            return updated
+          } catch (error) {
+            this.error = friendlyError(error, 'No se pudo editar la actividad.')
+            throw error
+          } finally {
+            this.saving = false
+          }
+        },
+
+        async cancel(id, unitId) {
+          this.cancellingId = id
+          this.error = null
+          try {
+            const cancelled = await institutionalActivitiesService.cancel(id)
+            const items = this.activitiesByUnit[unitId] || []
+            this.activitiesByUnit[unitId] = items.map(item =>
+              item.id === id ? cancelled : item
+            )
+            return cancelled
+          } catch (error) {
+            this.error = friendlyError(error, 'No se pudo cancelar la actividad.')
+            throw error
+          } finally {
+            this.cancellingId = null
           }
         },
 

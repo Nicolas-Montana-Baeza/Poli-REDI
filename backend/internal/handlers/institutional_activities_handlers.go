@@ -6,6 +6,7 @@ import (
 
 	"poli-redi-api/internal/middleware"
 	"poli-redi-api/internal/models"
+	"poli-redi-api/internal/repositories"
 	"poli-redi-api/internal/services"
 
 	"github.com/gofiber/fiber/v2"
@@ -146,6 +147,9 @@ func institutionalActivityHTTPError(
 			fiber.Map{"error": err.Error()},
 		)
 
+	case errors.Is(err, services.ErrInstitutionalActivityNotFound):
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": err.Error()})
+
 	case errors.Is(
 		err,
 		services.ErrInstitutionalUnitNotFound,
@@ -173,6 +177,11 @@ func institutionalActivityHTTPError(
 		).JSON(
 			fiber.Map{"error": err.Error()},
 		)
+
+	case errors.Is(err, repositories.ErrInstitutionalActivityAlreadyCancelled),
+		errors.Is(err, repositories.ErrInstitutionalActivityNotEditable),
+		errors.Is(err, repositories.ErrInstitutionalActivityResourceChange):
+		return c.Status(fiber.StatusConflict).JSON(fiber.Map{"error": err.Error()})
 
 	case errors.Is(
 		err,

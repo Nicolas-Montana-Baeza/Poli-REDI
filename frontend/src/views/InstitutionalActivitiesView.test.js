@@ -6,7 +6,8 @@ import InstitutionalActivitiesView from './InstitutionalActivitiesView.vue'
 const mocks = vi.hoisted(() => ({
   store: null,
   getUnits: vi.fn(),
-  getResources: vi.fn()
+  getResources: vi.fn(),
+  getPolicy: vi.fn()
 }))
 
 vi.mock('../services/institutionalUnits.service', () => ({
@@ -21,6 +22,10 @@ vi.mock('../services/resources.service', () => ({
   }
 }))
 
+vi.mock('../services/reservationPolicy.service', () => ({
+  reservationPolicyService: { getCurrent: mocks.getPolicy }
+}))
+
 vi.mock('../stores/institutionalActivities', () => ({
   useInstitutionalActivitiesStore: () => mocks.store
 }))
@@ -30,6 +35,8 @@ let wrapper
 beforeEach(() => {
   mocks.getUnits.mockReset()
   mocks.getResources.mockReset()
+  mocks.getPolicy.mockReset()
+  mocks.getPolicy.mockResolvedValue({ openingMinute: 480, closingMinute: 1320 })
 
   mocks.getUnits.mockResolvedValue([
     { id: 4, name: 'Educación Física', code: 'EFI' }
@@ -44,6 +51,8 @@ beforeEach(() => {
     activitiesByUnit: {},
     loading: false,
     creating: false,
+    saving: false,
+    cancellingId: null,
     error: null,
 
     clearError: vi.fn(() => {
@@ -55,7 +64,9 @@ beforeEach(() => {
     create: vi.fn(async payload => ({
       id: 100,
       title: payload.title
-    }))
+    })),
+    update: vi.fn(async (_id,payload) => ({id:100,title:payload.title})),
+    cancel: vi.fn(async id => ({id,status:'CANCELLED'}))
   })
 })
 
@@ -219,6 +230,88 @@ describe('ADMIN-005: programación institucional', () => {
     ).toBe('Actividad rechazada')
 
     expect(wrapper.find('.message.success').exists()).toBe(false)
+  })
+
+  it('permite editar programación SINGLE existente', async () => {
+    mocks.store.activitiesByUnit = {
+      4: [{
+        id: 100, unitId: 4, resourceId: 8, activityType: 'ACADEMIC_CLASS',
+        title: 'Clase inicial', description: '', status: 'SCHEDULED',
+        requiresEnrollment: false, enrollmentCount: 0,
+        schedules: [{ id: 1, scheduleType: 'SINGLE',
+          specificDate: '2026-11-02', startTime: '10:00', endTime: '11:00' }]
+      }]
+    }
+    await mountView()
+    await wrapper.get('.activity-card .secondary-button').trigger('click')
+    await setTitle('Clase actualizada')
+    await wrapper.get('.activity-form').trigger('submit')
+    await flushPromises()
+    expect(mocks.store.update).toHaveBeenCalledWith(100,
+      expect.objectContaining({ title: 'Clase actualizada',
+        schedules: [{scheduleType:'SINGLE',specificDate:'2026-11-02',
+          startTime:'10:00',endTime:'11:00'}]
+      }))
+  })
+
+  it('exige confirmación antes de cancelar una actividad', async () => {
+    mocks.store.activitiesByUnit = {
+      4: [{
+        id: 101, unitId: 4, resourceId: 8, activityType: 'EVENT',
+        title: 'Evento de prueba', status: 'SCHEDULED',
+        enrollmentCount: 0, schedules: []
+      }]
+    }
+    await mountView()
+    await wrapper.get('.activity-card .danger-button').trigger('click')
+    expect(mocks.store.cancel).not.toHaveBeenCalled()
+    await wrapper.get('.cancel-confirm .danger-button').trigger('click')
+    await flushPromises()
+    expect(mocks.store.cancel).toHaveBeenCalledWith(101, 4)
+  })
+
+
+  it('filtra actividades por estado y nombre sin perder el historial', async () => {
+    mocks.store.activitiesByUnit = {
+      4: [
+        { id: 150, unitId: 4, resourceId: 8, activityType: 'TRAINING',
+          title: 'Entrenamiento de fútbol', status: 'SCHEDULED',
+          schedules: [], enrollmentCount: 0 },
+        { id: 151, unitId: 4, resourceId: 8, activityType: 'EVENT',
+          title: 'Evento cultural', status: 'CANCELLED',
+          schedules: [], enrollmentCount: 0 }
+      ]
+    }
+    await mountView()
+
+    expect(wrapper.findAll('.activity-card')).toHaveLength(1)
+    expect(wrapper.text()).toContain('Entrenamiento de fútbol')
+
+    await wrapper.get('.status-filters button:nth-child(2)').trigger('click')
+    expect(wrapper.findAll('.activity-card')).toHaveLength(1)
+    expect(wrapper.text()).toContain('Evento cultural')
+    expect(wrapper.get('.status-badge').text()).toBe('Cancelada')
+
+    await wrapper.get('.status-filters button:nth-child(3)').trigger('click')
+    await wrapper.get('.search-field input').setValue('futbol')
+    expect(wrapper.findAll('.activity-card')).toHaveLength(1)
+    expect(wrapper.text()).toContain('Entrenamiento de fútbol')
+
+    await wrapper.get('.search-field input').setValue('sin resultados')
+    expect(wrapper.findAll('.activity-card')).toHaveLength(0)
+    expect(wrapper.text()).toContain('No encontramos coincidencias')
+  })
+
+  it('rechaza un taller fuera de la jornada vigente sin llamar al backend', async () => {
+    await mountView()
+    await setTitle('Taller jornada inválida')
+    await wrapper.get('.schedule-grid input[type="date"]').setValue('2026-11-02')
+    await wrapper.findAll('.schedule-grid input[type="time"]')[0].setValue('06:00')
+    await wrapper.findAll('.schedule-grid input[type="time"]')[1].setValue('23:00')
+    await wrapper.get('.activity-form').trigger('submit')
+    await flushPromises()
+    expect(mocks.store.create).not.toHaveBeenCalled()
+    expect(mocks.store.error).toContain('08:00–22:00')
   })
 
   it('no habilita creación sin unidades institucionales', async () => {

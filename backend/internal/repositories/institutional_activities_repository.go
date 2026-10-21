@@ -483,6 +483,7 @@ func GetInstitutionalActivitySchedules(
 		FROM institutional_activity_schedules
 
 		WHERE activity_id = $1
+          AND is_active = true
 
 		ORDER BY
 			CASE schedule_type

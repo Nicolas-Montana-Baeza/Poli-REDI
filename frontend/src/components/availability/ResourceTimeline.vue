@@ -196,6 +196,29 @@ const resourceReservations = computed(() => {
   )
 })
 
+const occupancyStatus = computed(() => {
+  if (props.resource.status !== 'available') return props.resource.status
+  const opening = props.startHour * 60
+  const closing = props.endHour * 60
+  const periods = resourceReservations.value
+    .map(item => {
+      const start = getReservationStartMinutesFromTime(item.startTime)
+      if (!Number.isFinite(start)) return null
+      return [Math.max(opening, start),
+        Math.min(closing, start + Number(item.durationMinutes || 0))]
+    })
+    .filter(range => range && range[1] > range[0])
+    .sort((a,b) => a[0] - b[0])
+  if (!periods.length) return 'available'
+  let coveredUntil = opening
+  for (const [start, end] of periods) {
+    if (start > coveredUntil) return 'partially-busy'
+    coveredUntil = Math.max(coveredUntil, end)
+    if (coveredUntil >= closing) return 'busy'
+  }
+  return 'partially-busy'
+})
+
 watch(
   () => props.focusReservationId,
   async (reservationId) => {
@@ -372,7 +395,10 @@ const statusLabel = (status) => {
       return 'Disponible'
 
     case 'busy':
-      return 'Ocupado'
+      return 'Ocupado todo el día'
+
+    case 'partially-busy':
+      return 'Con ocupación'
 
     case 'maintenance':
       return 'Mantención'
@@ -419,9 +445,9 @@ const modeLabel = (mode) => {
 
       <span
         class="resource-status"
-        :class="resource.status"
+        :class="occupancyStatus"
       >
-        {{ statusLabel(resource.status) }}
+        {{ statusLabel(occupancyStatus) }}
       </span>
 
     </div>
@@ -557,6 +583,11 @@ const modeLabel = (mode) => {
 .busy {
   background: #fee2e2;
   color: #dc2626;
+}
+
+.partially-busy {
+  background: #ffedd5;
+  color: #c2410c;
 }
 
 .maintenance {

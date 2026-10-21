@@ -88,7 +88,8 @@ const statusClass = computed(() => {
     return 'blocked'
   }
 
-  if (props.reservation.isWorkshop) {
+  if (props.reservation.isWorkshop ||
+      props.reservation.activityType === 'WORKSHOP') {
     return 'workshop'
   }
 

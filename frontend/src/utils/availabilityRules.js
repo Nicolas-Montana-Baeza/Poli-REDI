@@ -113,6 +113,13 @@ export const hasReservationConflict = ({
       return true
     }
 
+    if (
+      (item.isScheduledActivity === true || item.type === 'scheduled') &&
+      Number(item.resourceId) === Number(resource?.id)
+    ) {
+      return true
+    }
+
     if (Number(item.userId) > 0 && Number(item.userId) === Number(userId)) {
       return true
     }

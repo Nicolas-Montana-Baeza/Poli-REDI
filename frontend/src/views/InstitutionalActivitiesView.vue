@@ -1,6 +1,7 @@
 <script setup>
 import {
   computed,
+  nextTick,
   onMounted,
   reactive,
   ref,
@@ -8,6 +9,7 @@ import {
 } from 'vue'
 
 import { resourcesService } from '../services/resources.service'
+import { reservationPolicyService } from '../services/reservationPolicy.service'
 import {
   institutionalUnitsService
 } from '../services/institutionalUnits.service'
@@ -25,6 +27,58 @@ const selectedUnitId = ref('')
 
 const loadingBootstrap = ref(false)
 const successMessage = ref('')
+const institutionalHours = ref(null)
+const clockMinutes = (value) => {
+  const match = /^(\d{2}):(\d{2})$/.exec(String(value || ''))
+  return match ? Number(match[1])*60 + Number(match[2]) : NaN
+}
+const scheduleHoursLabel = computed(() => {
+  const hours = institutionalHours.value
+  if (!hours) return 'Consultando jornada vigente...'
+  return `Jornada permitida: ${hours.start}–${hours.end}`
+})
+const editingId = ref(null)
+const pendingCancellation = ref(null)
+const activitySearch = ref('')
+const statusFilter = ref('SCHEDULED')
+const editorSection = ref(null)
+
+const statusFilters = [
+  { value: 'SCHEDULED', label: 'Programadas' },
+  { value: 'CANCELLED', label: 'Canceladas' },
+  { value: 'ALL', label: 'Todas' }
+]
+
+const statusLabel = (status) => ({
+  SCHEDULED: 'Programada',
+  CANCELLED: 'Cancelada',
+  COMPLETED: 'Completada',
+  DRAFT: 'Borrador'
+})[status] || status
+
+const focusEditor = () => {
+  nextTick(() => {
+    editorSection.value?.scrollIntoView?.({ behavior: 'smooth', block: 'start' })
+    editorSection.value?.querySelector('input[type="text"]')?.focus()
+  })
+}
+
+const startNew = () => {
+  resetForm()
+  activitiesStore.clearError()
+  successMessage.value = ''
+  focusEditor()
+}
+
+const askToCancel = (activity) => {
+  pendingCancellation.value = activity.id
+  activitiesStore.clearError()
+  successMessage.value = ''
+  nextTick(() => {
+    document.querySelector('.cancel-confirm .danger-button')?.focus()
+  })
+}
+
 
 const activityTypes = [
   {
@@ -102,6 +156,40 @@ const activities = computed(() => {
 })
 
 
+const scheduledCount = computed(
+  () => activities.value.filter(activity => activity.status === 'SCHEDULED').length
+)
+
+const cancelledCount = computed(
+  () => activities.value.filter(activity => activity.status === 'CANCELLED').length
+)
+
+const filteredActivities = computed(() => {
+  const search = activitySearch.value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim()
+    .toLowerCase()
+
+  return activities.value.filter(activity => {
+    if (statusFilter.value !== 'ALL' && activity.status !== statusFilter.value) {
+      return false
+    }
+    if (!search) return true
+
+    return [
+      activity.title,
+      activity.description,
+      activity.resourceName,
+      typeLabel(activity.activityType)
+    ].some(value => String(value || '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .includes(search))
+  })
+})
+
 const activeResources = computed(() => {
   return resources.value
     .filter(
@@ -154,6 +242,8 @@ const scheduleDescription = (schedule) => {
 
 
 const resetForm = () => {
+  editingId.value = null
+  pendingCancellation.value = null
   form.resourceId =
     activeResources.value[0]?.id || ''
 
@@ -173,7 +263,55 @@ const resetForm = () => {
 }
 
 
+const beginEdit = (activity) => {
+  if (activity.status !== 'SCHEDULED') return
+  if ((activity.schedules || []).length !== 1) {
+    activitiesStore.error = 'Esta actividad tiene múltiples reglas horarias; usa la edición avanzada más adelante.'
+    return
+  }
+  if (activity.enrollmentCount > 0) {
+    activitiesStore.error = 'Esta actividad tiene inscripciones activas y no puede editarse por ahora.'
+    return
+  }
+  const schedule = activity.schedules[0]
+  pendingCancellation.value = null
+  editingId.value = activity.id
+  activitiesStore.clearError()
+  successMessage.value = ''
+  form.resourceId = activity.resourceId
+  form.activityType = activity.activityType
+  form.title = activity.title
+  form.description = activity.description || ''
+  form.requiresEnrollment = activity.requiresEnrollment
+  form.capacity = activity.capacity ?? ''
+  form.scheduleType = schedule.scheduleType
+  form.specificDate = schedule.specificDate || ''
+  form.dayOfWeek = schedule.dayOfWeek || 1
+  form.startTime = schedule.startTime
+  form.endTime = schedule.endTime
+  form.validFrom = schedule.validFrom || ''
+  form.validTo = schedule.validTo || ''
+  focusEditor()
+}
+
+const cancelActivity = async (activity) => {
+  activitiesStore.clearError()
+  successMessage.value = ''
+  try {
+    await activitiesStore.cancel(activity.id, Number(selectedUnitId.value))
+    pendingCancellation.value = null
+    if (editingId.value === activity.id) resetForm()
+    successMessage.value = `Actividad "${activity.title}" cancelada.`
+  } catch {
+    // El store conserva el error.
+  }
+}
+
 const loadSelectedUnit = async () => {
+  activitySearch.value = ''
+  statusFilter.value = 'SCHEDULED'
+  pendingCancellation.value = null
+  resetForm()
   successMessage.value = ''
   activitiesStore.clearError()
 
@@ -240,6 +378,21 @@ const submit = async () => {
     return
   }
 
+  if (!institutionalHours.value) {
+    activitiesStore.error = 'No se pudo consultar la jornada permitida. Actualiza la página.'
+    return
+  }
+  const starts = clockMinutes(form.startTime)
+  const ends = clockMinutes(form.endTime)
+  const opening = clockMinutes(institutionalHours.value.start)
+  const closing = clockMinutes(institutionalHours.value.end)
+  if (!Number.isFinite(starts) || !Number.isFinite(ends) ||
+      starts < opening || ends > closing || ends <= starts) {
+    activitiesStore.error =
+      `La actividad debe comenzar y terminar dentro de ${institutionalHours.value.start}–${institutionalHours.value.end}.`
+    return
+  }
+
   const schedule =
     form.scheduleType === 'SINGLE'
       ? {
@@ -274,11 +427,13 @@ const submit = async () => {
   }
 
   try {
-    const activity =
-      await activitiesStore.create(payload)
+    const activity = editingId.value !== null
+      ? await activitiesStore.update(editingId.value, payload)
+      : await activitiesStore.create(payload)
 
-    successMessage.value =
-      `Actividad "${activity.title}" creada correctamente.`
+    successMessage.value = editingId.value !== null
+      ? `Actividad "${activity.title}" actualizada correctamente.`
+      : `Actividad "${activity.title}" creada correctamente.`
 
     resetForm()
   } catch {
@@ -293,11 +448,19 @@ onMounted(async () => {
   try {
     const [
       unitResponse,
-      resourceResponse
+      resourceResponse,
+      policyResponse
     ] = await Promise.all([
       institutionalUnitsService.getAll(),
-      resourcesService.getAll()
+      resourcesService.getAll(),
+      reservationPolicyService.getCurrent()
     ])
+    const toClock = (minutes) =>
+      `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`
+    institutionalHours.value = {
+      start: toClock(policyResponse.openingMinute),
+      end: toClock(policyResponse.closingMinute)
+    }
 
     units.value =
       Array.isArray(unitResponse)
@@ -330,18 +493,13 @@ onMounted(async () => {
   <main class="institutional-page">
     <header class="page-header">
       <div>
-        <p class="eyebrow">
-          Programación institucional
-        </p>
-
-        <h1>
-          Actividades
-        </h1>
-
+        <p class="eyebrow">GESTIÓN INSTITUCIONAL · MVP3</p>
+        <h1>Programación de actividades</h1>
         <p class="page-description">
-          Programa clases, entrenamientos, talleres,
-          eventos y otras actividades institucionales.
+          Organiza clases, talleres y eventos. Consulta la programación,
+          modifica actividades y cancélalas cuando sea necesario.
         </p>
+        <p class="page-context">Entorno de pruebas · Los cambios se reflejan en disponibilidad.</p>
       </div>
     </header>
 
@@ -402,19 +560,45 @@ onMounted(async () => {
         </label>
       </section>
 
+      <div class="activity-overview" aria-label="Resumen de actividades de la unidad">
+        <div class="overview-item">
+          <span class="overview-label">Programadas</span>
+          <strong class="overview-value">{{ scheduledCount }}</strong>
+        </div>
+        <div class="overview-item">
+          <span class="overview-label">Canceladas</span>
+          <strong class="overview-value">{{ cancelledCount }}</strong>
+        </div>
+        <div class="overview-item overview-caption">
+          <strong>{{ selectedUnit?.name || 'Unidad institucional' }}</strong>
+          <span>Selecciona una actividad para editarla o gestionar su estado.</span>
+        </div>
+      </div>
+
       <div class="workspace">
-        <section class="panel">
+        <section ref="editorSection" class="panel editor-panel" :class="{ 'editing-mode': editingId !== null }">
           <div class="section-heading">
             <div>
               <p class="eyebrow">
-                Nueva programación
+                {{ editingId === null ? 'Nueva programación' : 'Editar programación' }}
               </p>
 
               <h2>
-                Crear actividad
+                {{ editingId === null ? 'Crear actividad' : 'Actualizar actividad' }}
               </h2>
+              <p class="section-description">
+                {{ editingId === null
+                  ? 'Completa la información y define cuándo se utilizará la instalación.'
+                  : 'Modifica los datos y guarda para actualizar la programación.' }}
+              </p>
             </div>
+            <span v-if="editingId !== null" class="editing-pill">Editando #{{ editingId }}</span>
           </div>
+
+          <p v-if="editingId !== null" class="editor-notice" role="status">
+            Los cambios de horario se aplican a la actividad completa.
+            El recurso y la unidad no se modifican en esta edición.
+          </p>
 
           <form
             class="activity-form"
@@ -460,6 +644,7 @@ onMounted(async () => {
               <select
                 v-model="form.resourceId"
                 required
+                :disabled="editingId !== null"
               >
                 <option
                   value=""
@@ -613,6 +798,8 @@ onMounted(async () => {
                   <input
                     v-model="form.startTime"
                     type="time"
+                    :min="institutionalHours?.start"
+                    :max="institutionalHours?.end"
                     required
                   >
                 </label>
@@ -625,41 +812,71 @@ onMounted(async () => {
                   <input
                     v-model="form.endTime"
                     type="time"
+                    :min="institutionalHours?.start"
+                    :max="institutionalHours?.end"
                     required
                   >
                 </label>
               </div>
+              <p class="field-hint">{{ scheduleHoursLabel }}. Se aplica a actividades únicas y semanales.</p>
             </fieldset>
 
             <div class="form-actions full">
               <button
                 class="primary-button"
                 type="submit"
-                :disabled="activitiesStore.creating"
+                :disabled="activitiesStore.creating || activitiesStore.saving"
               >
-                {{
-                  activitiesStore.creating
-                    ? 'Creando...'
-                    : 'Crear actividad'
+                {{ editingId !== null
+                  ? (activitiesStore.saving ? 'Guardando...' : 'Guardar cambios')
+                  : (activitiesStore.creating ? 'Creando...' : 'Crear actividad')
                 }}
+              </button>
+              <button
+                v-if="editingId !== null"
+                type="button"
+                class="secondary-button"
+                @click="resetForm"
+              >
+                Descartar edición
               </button>
             </div>
           </form>
         </section>
 
-        <section class="panel">
+        <section class="panel catalog-panel">
           <div class="section-heading">
             <div>
-              <p class="eyebrow">
-                {{
-                  selectedUnit?.code ||
-                  'Unidad'
-                }}
-              </p>
+              <p class="eyebrow">{{ selectedUnit?.code || 'Unidad' }} · PROGRAMACIÓN</p>
+              <h2>Actividades de la unidad</h2>
+              <p class="section-description">Busca y administra actividades existentes.</p>
+            </div>
+            <button type="button" class="create-shortcut" @click="startNew">
+              + Nueva actividad
+            </button>
+          </div>
 
-              <h2>
-                Actividades programadas
-              </h2>
+          <div class="catalog-tools">
+            <label class="search-field">
+              <span class="sr-only">Buscar actividad por nombre, recurso o tipo</span>
+              <input
+                v-model="activitySearch"
+                type="search"
+                placeholder="Buscar actividad o instalación..."
+                autocomplete="off"
+              >
+            </label>
+            <div class="status-filters" role="group" aria-label="Filtrar actividades por estado">
+              <button
+                v-for="filter in statusFilters"
+                :key="filter.value"
+                type="button"
+                :aria-pressed="statusFilter === filter.value"
+                :class="['filter-button', { active: statusFilter === filter.value }]"
+                @click="statusFilter = filter.value"
+              >
+                {{ filter.label }}
+              </button>
             </div>
           </div>
 
@@ -670,22 +887,27 @@ onMounted(async () => {
             Cargando actividades...
           </p>
 
-          <p
-            v-else-if="activities.length === 0"
-            class="state-card"
-          >
-            Esta unidad todavía no tiene
-            actividades programadas.
-          </p>
+          <div v-else-if="activities.length === 0" class="empty-catalog" role="status">
+            <strong>Aún no hay actividades registradas</strong>
+            <span>Crea la primera actividad para esta unidad institucional.</span>
+            <button type="button" class="secondary-button" @click="startNew">Crear actividad</button>
+          </div>
 
-          <div
-            v-else
-            class="activities-list"
-          >
+          <div v-else-if="filteredActivities.length === 0" class="empty-catalog" role="status">
+            <strong>No encontramos coincidencias</strong>
+            <span>Prueba otro nombre o cambia el filtro de estado.</span>
+            <button type="button" class="secondary-button" @click="activitySearch = ''; statusFilter = 'ALL'">Ver todas</button>
+          </div>
+
+          <div v-else class="activities-list">
             <article
-              v-for="activity in activities"
+              v-for="activity in filteredActivities"
               :key="activity.id"
               class="activity-card"
+              :class="{
+                'is-editing': editingId === activity.id,
+                'is-cancelled': activity.status === 'CANCELLED'
+              }"
             >
               <header>
                 <div>
@@ -698,8 +920,8 @@ onMounted(async () => {
                   </h3>
                 </div>
 
-                <span class="status-badge">
-                  {{ activity.status }}
+                <span class="status-badge" :class="'status-' + activity.status.toLowerCase()">
+                  {{ statusLabel(activity.status) }}
                 </span>
               </header>
 
@@ -721,7 +943,7 @@ onMounted(async () => {
                   class="schedule-row"
                 >
                   <strong>
-                    {{ schedule.scheduleType }}
+                    {{ schedule.scheduleType === 'WEEKLY' ? 'Semanal' : 'Única' }}
                   </strong>
 
                   <span>
@@ -730,10 +952,48 @@ onMounted(async () => {
                 </div>
               </div>
 
-              <small>
-                Creada por
-                {{ activity.createdBy || 'usuario institucional' }}
+              <small class="creator-note">
+                Creada por {{ activity.createdBy || 'usuario institucional' }}
               </small>
+              <p v-if="activity.status === 'SCHEDULED' && Number(activity.enrollmentCount) > 0"
+                 class="enrollment-warning">
+                Esta actividad tiene {{ activity.enrollmentCount }} inscripción(es) activa(s):
+                no se puede editar hasta resolverlas.
+              </p>
+
+              <div v-if="activity.status === 'SCHEDULED' && pendingCancellation !== activity.id"
+                   class="manage-actions">
+                <button
+                  type="button"
+                  class="secondary-button"
+                  :disabled="Number(activity.enrollmentCount) > 0 || (activity.schedules || []).length !== 1"
+                  :title="Number(activity.enrollmentCount) > 0
+                    ? 'No se puede editar una actividad con inscripciones activas'
+                    : (activity.schedules || []).length !== 1
+                      ? 'La edición de varias reglas horarias no está disponible'
+                      : 'Editar actividad'"
+                  @click="beginEdit(activity)"
+                >Editar</button>
+                <button type="button" class="danger-button" @click="askToCancel(activity)">
+                  Cancelar actividad
+                </button>
+              </div>
+              <div v-if="pendingCancellation === activity.id"
+                   class="cancel-confirm" role="group" aria-label="Confirmar cancelación de actividad">
+                <strong>¿Cancelar «{{ activity.title }}»?</strong>
+                <p>La actividad dejará de ocupar sus horarios y quedará visible en el historial.
+                   También se cancelarán sus inscripciones si las tiene.</p>
+                <div class="cancel-actions">
+                  <button type="button" class="danger-button"
+                    :disabled="activitiesStore.cancellingId === activity.id"
+                    @click="cancelActivity(activity)">
+                    {{ activitiesStore.cancellingId === activity.id ? 'Cancelando...' : 'Sí, cancelar actividad' }}
+                  </button>
+                  <button type="button" class="secondary-button"
+                    :disabled="activitiesStore.cancellingId === activity.id"
+                    @click="pendingCancellation = null">Volver</button>
+                </div>
+              </div>
             </article>
           </div>
         </section>
@@ -744,6 +1004,7 @@ onMounted(async () => {
 
 
 <style scoped>
+/* ADMIN-005: utiliza los tokens visuales globales de Poli-REDI. */
 .institutional-page {
   display: flex;
   flex-direction: column;
@@ -781,8 +1042,8 @@ onMounted(async () => {
 .workspace {
   display: grid;
   grid-template-columns:
-    minmax(0, 0.9fr)
-    minmax(0, 1.1fr);
+    minmax(320px, 0.95fr)
+    minmax(0, 1.15fr);
   gap: 1.25rem;
   align-items: start;
 }
@@ -792,7 +1053,8 @@ onMounted(async () => {
   border: 1px solid rgba(127, 127, 127, 0.2);
   border-radius: 1rem;
   padding: 1.2rem;
-  background: var(--card-bg, transparent);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
 }
 
 .activity-form {
@@ -819,12 +1081,12 @@ onMounted(async () => {
 .field textarea {
   width: 100%;
   box-sizing: border-box;
-  border: 1px solid rgba(127, 127, 127, 0.3);
-  border-radius: 0.65rem;
-  padding: 0.7rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 0.75rem;
   font: inherit;
-  background: inherit;
-  color: inherit;
+  background: var(--color-surface);
+  color: var(--color-text);
 }
 
 .full {
@@ -870,11 +1132,15 @@ onMounted(async () => {
 .form-actions {
   display: flex;
   justify-content: flex-end;
+  gap: .6rem;
+  flex-wrap: wrap;
 }
 
 .primary-button {
-  border: 0;
-  border-radius: 0.7rem;
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-lg);
+  background: var(--color-primary);
+  color: var(--color-primary-contrast);
   padding: 0.75rem 1rem;
   cursor: pointer;
   font: inherit;
@@ -907,9 +1173,11 @@ onMounted(async () => {
 }
 
 .activity-card {
-  border: 1px solid rgba(127, 127, 127, 0.2);
-  border-radius: 0.85rem;
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius-xl);
   padding: 1rem;
+  background: var(--color-surface);
+  transition: border-color .18s ease, box-shadow .18s ease;
 }
 
 .activity-card header {
@@ -932,7 +1200,8 @@ onMounted(async () => {
   flex-shrink: 0;
   border-radius: 999px;
   padding: 0.3rem 0.55rem;
-  background: rgba(22, 163, 74, 0.13);
+  background: var(--color-success-soft);
+  color: var(--color-success);
 }
 
 .resource-name {
@@ -964,6 +1233,117 @@ onMounted(async () => {
   opacity: 0.55;
 }
 
+.manage-actions, .cancel-confirm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem;
+  margin-top: 0.85rem;
+}
+.secondary-button, .danger-button {
+  cursor: pointer;
+  border: 1px solid rgba(127,127,127,.3);
+  border-radius: .65rem;
+  background: transparent;
+  color: inherit;
+  padding: .65rem .9rem;
+  font: inherit;
+}
+.danger-button {color: #c44848; border-color: #c44848;}
+.danger-button:disabled { opacity:.5; cursor:not-allowed; }
+.cancel-confirm {background: rgba(196,72,72,.08); border-radius: .8rem; padding: .85rem;}
+.cancel-confirm p { width: 100%; margin: 0; }
+
+/* Cabecera, resumen y espacio de trabajo */
+.institutional-page { max-width: 1440px; margin: 0 auto; width: 100%; }
+.page-header h1 { font-size: clamp(1.45rem, 3vw, 2rem); letter-spacing: -.025em; }
+.page-description { color: var(--color-text-muted); line-height: 1.55; max-width: 72ch; }
+.page-context { margin-top: .6rem; font-size: .8rem; color: var(--color-text-muted); }
+.unit-panel { padding: .9rem 1.15rem; }
+.unit-panel .field { max-width: 520px; }
+.activity-overview {
+  display: grid;
+  grid-template-columns: minmax(130px, 170px) minmax(130px, 170px) minmax(0, 1fr);
+  gap: .75rem;
+}
+.overview-item {
+  display: flex; flex-direction: column; gap: .3rem;
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius-xl); padding: .95rem 1.15rem;
+  background: var(--color-surface);
+}
+.overview-label { color: var(--color-text-muted); font-size: .81rem; font-weight: 600; }
+.overview-value { font-size: 1.65rem; line-height: 1.15; font-variant-numeric: tabular-nums; }
+.overview-caption { justify-content: center; gap: .35rem; }
+.overview-caption strong { font-size: .92rem; }
+.overview-caption span { font-size: .81rem; color: var(--color-text-muted); }
+.section-description { font-size: .84rem; line-height: 1.45; margin-top: .4rem; color: var(--color-text-muted); }
+.editor-panel { scroll-margin-top: 5.5rem; }
+.editor-panel.editing-mode { border-color: var(--color-primary); box-shadow: var(--shadow-focus); }
+.editing-pill { flex-shrink: 0; font-size: .76rem; font-weight: 700;
+  border-radius: var(--radius-pill); padding: .35rem .7rem;
+  background: var(--color-primary-soft); color: var(--color-primary-strong); }
+.editor-notice { margin-top: .9rem; padding: .75rem .9rem; border-radius: var(--radius-lg);
+  background: var(--color-primary-soft); color: var(--color-text); font-size: .84rem; line-height: 1.5; }
+.field input:focus-visible, .field textarea:focus-visible, .field select:focus-visible,
+.search-field input:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 1px; }
+.catalog-tools { display: flex; flex-direction: column; gap: .8rem; margin-top: 1rem; }
+.search-field input { width: 100%; min-height: 42px; padding: .7rem .85rem;
+  border: 1px solid var(--color-border); border-radius: var(--radius-lg);
+  background: var(--color-surface); color: var(--color-text); }
+.status-filters { display: flex; flex-wrap: wrap; gap: .4rem; }
+.filter-button { border: 1px solid var(--color-border); border-radius: var(--radius-pill);
+  background: var(--color-surface); color: var(--color-text-muted);
+  padding: .45rem .85rem; font-size: .8rem; font-weight: 700; cursor: pointer; }
+.filter-button.active { border-color: var(--color-primary); background: var(--color-primary-soft);
+  color: var(--color-primary-strong); }
+.create-shortcut { border: 1px solid var(--color-primary);
+  border-radius: var(--radius-lg); color: var(--color-primary-strong);
+  background: var(--color-primary-soft); cursor: pointer;
+  padding: .6rem .8rem; font-size: .83rem; font-weight: 700; white-space: nowrap; }
+.empty-catalog { margin-top: 1rem; min-height: 180px; padding: 1.5rem; border-radius: var(--radius-xl);
+  background: var(--color-surface-muted); border: 1px dashed var(--color-border);
+  display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: .65rem; }
+.empty-catalog strong { font-size: .97rem; }
+.empty-catalog span { font-size: .86rem; color: var(--color-text-muted); }
+.sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px;
+  overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+
+/* Actividades y acciones */
+.activity-card:hover { border-color: var(--color-border); }
+.activity-card.is-editing { border-color: var(--color-primary); box-shadow: var(--shadow-focus); }
+.activity-card.is-cancelled { background: var(--color-surface-muted); }
+.activity-card h3 { font-size: 1.05rem; line-height: 1.4; }
+.status-cancelled { background: var(--color-error-soft); color: var(--color-error); }
+.status-completed { background: var(--color-surface-soft); color: var(--color-text-muted); }
+.status-draft { background: var(--color-warning-soft); color: var(--color-warning); }
+.resource-name { font-size: .89rem; }
+.activity-description { color: var(--color-text-muted); line-height: 1.5; font-size: .88rem; }
+.schedule-row { font-size: .83rem; line-height: 1.4; gap: .65rem; }
+.schedule-row strong { color: var(--color-primary-strong); }
+.creator-note { display: block; padding-top: .65rem; border-top: 1px solid var(--color-border-soft); }
+.enrollment-warning { font-size: .78rem; color: var(--color-warning);
+  background: var(--color-warning-soft); border-radius: var(--radius-md); padding: .65rem; margin-top: .8rem; }
+.secondary-button, .danger-button { font-weight: 650; font-size: .83rem; }
+.secondary-button { background: var(--color-surface); color: var(--color-text);
+  border-color: var(--color-border); }
+.secondary-button:disabled { opacity: .5; cursor: not-allowed; }
+.danger-button { color: var(--color-error); border-color: var(--color-error-border);
+  background: var(--color-surface); }
+.cancel-confirm { border: 1px solid var(--color-error-border);
+  background: var(--color-error-soft); color: var(--color-text); display: block; }
+.cancel-confirm strong { color: var(--color-error); font-size: .9rem; }
+.cancel-confirm p { padding: .55rem 0 .8rem; font-size: .83rem; line-height: 1.5; }
+.cancel-actions { display: flex; flex-wrap: wrap; gap: .55rem; }
+.cancel-actions .danger-button { background: var(--color-error); color: white; }
+
+.field-hint {
+  margin: .3rem 0 0;
+  color: var(--color-text-muted);
+  font-size: .82rem;
+  font-weight: 600;
+}
+
 @media (max-width: 900px) {
   .workspace {
     grid-template-columns: 1fr;
@@ -971,6 +1351,11 @@ onMounted(async () => {
 }
 
 @media (max-width: 650px) {
+  .institutional-page { padding: .85rem; }
+  .activity-overview { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .overview-caption { grid-column: 1 / -1; }
+  .section-heading { flex-direction: column; align-items: stretch; }
+  .create-shortcut { align-self: start; }
   .activity-form,
   .schedule-grid {
     grid-template-columns: 1fr;
