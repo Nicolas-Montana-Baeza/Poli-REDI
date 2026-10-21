@@ -87,7 +87,7 @@ Puntos de control principales:
 | EV-007 | Inventario | Recursos identificados como espacios disponibles | Ocho recursos forman linea base oficial y deben poder mantenerse sin perder historial | Formalizacion | Alta | Vigente parcial |
 | EV-008 | Tiempo institucional | Zona horaria implicita | Contrato explicito `America/Santiago` compartido entre capas | RNF emergente | Alta | Vigente |
 | EV-009 | Politica por tipo de recurso | Tratamiento relativamente uniforme de recursos | `RESERVABLE`, `OPEN_USE`, `INFORMATIVE` y `ADMIN_ONLY` tienen reglas diferentes | Especializacion | Media-alta | Vigente; origen historico exacto por completar |
-| EV-010 | Prioridad institucional | Reserva particular en conflicto se cancela automaticamente | El backend actual registra un conflicto y habilita resolucion administrativa `KEEP`/`ALLOW`/`CANCEL`/`RESCHEDULE` | Candidato de reemplazo/refinamiento | Alta evidencia tecnica; decision de producto pendiente | Candidato |
+| EV-010 | Prioridad institucional | Reserva particular en conflicto se cancela automaticamente | El backend actual registra un conflicto y habilita resolucion administrativa `KEEP`/`ALLOW`/`CANCEL`/`RESCHEDULE` | Adopcion operativa provisional de RF-023/v2 | Preferencia institucional preliminar favorable a v2; ratificacion pendiente | Provisional |
 | EV-011 | Motor de persistencia | PostgreSQL inicial -> Azure SQL Database | PostgreSQL 16 + `pgx` + migraciones `PG16_*` | Reevaluacion y reemplazo arquitectonico | Alta | Vigente |
 
 | EV-012 | Administracion de sedes y recursos | Inventario inicial administrable de forma parcial; gestion de sedes pendiente | Gestion integral de sedes y recursos en MVP3 | Ampliacion de EV-007 | Alta; decision explicita 2026-10-13 | Aprobado; implementacion pendiente |
@@ -478,19 +478,26 @@ Las pruebas de integracion demuestran:
 
 Esta implementacion puede representar una evolucion superior del requisito porque evita efectos destructivos automaticos y permite resolver casos institucionales complejos.
 
-Sin embargo, no se promueve aun a requisito vigente porque cambiaria una decision de negocio aprobada explicitamente.
+RF-023/v2 fue adoptado provisionalmente como criterio operativo del
+MVP3 por el responsable del proyecto. Esta decision no sustituye
+normativamente a RF-023/v1 hasta obtener ratificacion institucional.
 
-Decision requerida:
+Decision institucional pendiente:
 
-- mantener cancelacion automatica para reserva particular y usar resolucion administrativa solo en otros conflictos; o
-- adoptar resolucion administrativa como comportamiento general y versionar RF-023.
+- Ratificar RF-023/v2 como regla definitiva o acordar sus ajustes.
+- Formalizar el plazo de resolucion de conflictos.
+- Definir la autoridad institucional responsable de resolverlos.
+- Establecer el procedimiento ante conflictos sin resolver al
+  momento de utilizar el recurso.
 
-Estado: **candidato de evolucion de alta prioridad**.
+Estado: **adopcion operativa provisional en MVP3; ratificacion institucional pendiente**.
 
-#### Acuerdo funcional 2026-10-20
+#### Decision operativa provisional 2026-10-20
 
 Durante la revision del MVP3, el responsable del proyecto
-establecio el siguiente criterio de diseno:
+adopto provisionalmente el siguiente criterio de diseno.
+Los responsables institucionales se inclinan por RF-023/v2,
+pero el debate permanece abierto y no existe ratificacion definitiva:
 
 **Los conflictos de programacion institucional no deben
 producir cancelaciones automaticas de reservas.**
@@ -523,8 +530,44 @@ Estado:
 - Arquitectura actual compatible con el criterio.
 - Pendiente formalizacion de RF-023/v2 y aceptacion institucional
   cuando corresponda.
-- Cancelacion institucional y notificacion al propietario verificadas en Funnel. Pendientes: validacion integral restante, publicacion de la mejora UX y ratificacion institucional de RF-023/v2.
+- Cancelacion institucional y notificacion al propietario verificadas en Funnel. La actualizacion al abrir la campana tambien fue comprobada en Funnel. Permanece pendiente la ratificacion institucional de RF-023/v2.
 - RF-023/v1 se conserva como antecedente historico.
+
+#### Acuerdos pendientes de ratificacion institucional
+
+**EV-010 se considera resuelto provisionalmente para el desarrollo
+de MVP3, pero no cerrado normativamente por la institucion.**
+
+Se mantienen tres definiciones pendientes:
+
+1. **Plazo de resolucion.**
+   Determinar con cuanta anticipacion respecto al inicio de una
+   actividad debe resolverse el conflicto y si corresponde
+   establecer un mecanismo de escalamiento.
+
+2. **Autoridad responsable.**
+   Identificar el cargo o autoridad institucional que toma
+   la decision final. Actualmente el sistema limita la
+   resolucion a usuarios administradores autorizados; los
+   MANAGER no pueden resolver conflictos.
+
+3. **Conflicto sin resolver al inicio de la actividad.**
+   Definir el procedimiento operativo para evitar usos
+   fisicamente incompatibles del mismo recurso.
+   No se establece una cancelacion automatica, una
+   autorizacion tacita ni una regla de prioridad no aprobada.
+
+Hasta resolver estos puntos:
+
+- RF-023/v2 se mantiene como comportamiento operativo provisional.
+- RF-023/v1 permanece disponible como antecedente historico.
+- No se introducen automatismos adicionales.
+- No se considera aprobada la politica institucional definitiva.
+- Las decisiones pendientes no alteran el cierre tecnico de ADMIN-005.
+
+**Condicion de cierre institucional de EV-010:**
+ratificacion expresa de RF-023/v2 y definicion de los tres
+puntos anteriores por los responsables institucionales.
 
 Evidencia:
 `docs/mvp3/admin005-auditoria-20261020.md`

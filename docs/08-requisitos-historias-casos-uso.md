@@ -261,7 +261,7 @@ Pendiente relacionado: `RES-008`, `RES-010`, `NOTIF-001`.
 
 El sistema debe cancelar automaticamente una reserva particular cuando entra en conflicto con una actividad institucional y notificar al usuario afectado. Si el conflicto es entre dos actividades, debe informar al administrador y permitirle cancelar cualquiera de ellas o mantener ambas.
 
-**RF-023/v2 — Propuesta de evolucion EV-010 (2026-10-20)**
+**RF-023/v2 — Implementacion operativa provisional EV-010 (2026-10-20)**
 
 El sistema debe detectar y registrar conflictos de programacion institucional sin cancelar automaticamente las reservas particulares involucradas.
 
@@ -289,9 +289,9 @@ La deteccion, consulta, resolucion administrativa y persistencia ya estan implem
 
 La generacion transaccional de notificaciones por cancelacion institucional fue verificada en PostgreSQL 16, incluyendo rollback ante fallo inducido. El usuario confirmo la recepcion de la notificacion en Funnel tras actualizar con F5.
 
-Las tres vistas ADMIN-005 aprobaron 18/18 pruebas Vue. La cancelacion y notificacion fueron comprobadas en Funnel. Permanecen pendientes la validacion integral restante, la publicacion de la mejora de la campana y la ratificacion institucional de EV-010.
+Las tres vistas ADMIN-005 aprobaron 18/18 pruebas Vue. La cancelacion y notificacion fueron comprobadas en Funnel. La actualizacion de notificaciones al abrir la campana tambien fue verificada en el despliegue publicado. Permanecen pendientes las validaciones integrales restantes del MVP3 y la ratificacion institucional de EV-010.
 
-**Estado normativo:** RF-023/v2 es una propuesta definida por el responsable del proyecto, pendiente de ratificacion institucional. RF-023/v1 permanece documentado hasta completar esa formalizacion.
+**Estado normativo:** RF-023/v2 fue adoptado provisionalmente por el responsable del proyecto para MVP3. Los responsables institucionales manifiestan una preferencia preliminar por esta version, pero no existe ratificacion definitiva. RF-023/v1 se conserva como antecedente historico. EV-010 permanece abierto exclusivamente para su formalizacion institucional y las definiciones operativas pendientes, documentadas en `docs/14-evolucion-y-trazabilidad-requisitos.md`.
 
 Pendiente relacionado: `ADMIN-005`, `RES-004`, `NOTIF-001`.
 
