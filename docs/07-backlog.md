@@ -2488,7 +2488,7 @@ Documento de evidencia:
 
 Prioridad: P1
 Labels: `admin`, `reservas`, `reglas-negocio`, `architecture-approved`, `mvp3`
-Estado actual: Parcial; publicación prospectiva implementada, administración grupal explícita pendiente
+Estado: CERRADO MVP3 - implementación, pruebas automatizadas y diseño UX/UI aprobados (2026-10-20)
 
 ### Objetivo
 
@@ -2503,16 +2503,16 @@ Permitir que solo usuarios con rol administrador modifiquen el periodo de reserv
   grupal mediante `reservation_policy_group_resources`.
 - [x] El flujo MVP2 utiliza mínimos por recurso, participantes autenticados,
   transiciones y snapshots de reserva.
-- [ ] El contrato administrativo permite configurar explícitamente
+- [x] El contrato administrativo permite configurar explícitamente
   `groupResources` con `resourceId` y `minimumParticipants`.
-- [ ] La publicación valida que cada recurso grupal esté permitido,
+- [x] La publicación valida que cada recurso grupal esté permitido,
   sea `RESERVABLE` y tenga capacidad suficiente para su mínimo.
-- [ ] El historial administrativo expone la configuración grupal
+- [x] El historial administrativo expone la configuración grupal
   de cada versión.
-- [ ] Existe una interfaz administrativa para consultar, comparar
+- [x] Existe una interfaz administrativa para consultar, comparar
   y publicar políticas.
 - [x] Un usuario normal no puede consultar el historial ni modificar estas politicas; solo recibe el DTO operativo minimo vigente.
-- [x] El historial administrativo conserva valores, autoria y vigencias; la interfaz para mostrarlos sigue pendiente.
+- [x] El historial administrativo conserva valores, autoría y vigencias; la interfaz permite consultarlos.
 - [x] El cambio normal crea una version inmutable con vigencia inmediata y se aplica a solicitudes creadas posteriormente.
 - [x] Cada solicitud conserva la version vigente al crearse.
 
@@ -2565,6 +2565,120 @@ incremento posterior, sujeto a planificación.
 - QA acepto/verifico localmente tras cuatro rondas. No se ejecuto el esquema actualizado en SQL Server/Azure SQL real; concurrencia fue validada estaticamente y `go vet` no se ejecuto en la ronda final por cuota.
 - La vista previa/aplicación de correcciones excepcionales y su
   auditoría permanecen pendientes y fuera de 3C. La retencion institucional definitiva tambien sigue pendiente; las politicas referenciadas por reservas no pueden eliminarse.
+
+
+### Cierre funcional y UX/UI - 2026-10-20
+
+**Resultado: ADMIN-006 CERRADO para el alcance acordado de MVP3.**
+
+#### Funcionalidad implementada
+
+- Consulta de la política vigente.
+- Editor guiado de reglas generales y confirmación grupal.
+- Revisión de diferencias y confirmación antes de publicar.
+- Publicación versionada con idempotencia y control de concurrencia.
+- Historial administrativo con vigencias y reglas grupales.
+- Protección de permisos administrativos.
+- Conservación de las versiones utilizadas por reservas históricas.
+
+#### Simplificación UX aprobada
+
+- Navegación separada entre política vigente, configuración e historial.
+- Eliminación de la casilla visual `Permitido` del editor.
+- Configuración grupal solo para recursos activos, `RESERVABLE`
+  e incluidos en la política vigente.
+- Conservación de `resourceIds` como alcance interno versionado.
+- Aviso de recursos que permanecen fuera de la política.
+- Se evita duplicar visualmente la habilitación operativa del recurso.
+
+#### Evidencia
+
+- 56/56 pruebas de componentes Vue aprobadas.
+- 37/37 pruebas frontend de reglas aprobadas.
+- Compilación MVP3 mediante Vite completada correctamente.
+- `git diff --check` sin errores.
+- Frontend actualizado en el entorno de desarrollo mediante
+  Caddy y Tailscale Funnel.
+- HTTP 200 en la ruta de administración y `/healthz` correcto.
+- Diseño UX/UI revisado y aprobado por el usuario.
+
+#### Límites del cierre
+
+- La validación HTTP 200 no equivale a una prueba funcional completa
+  de publicación desde el navegador; no se publicó una política
+  adicional durante la revisión visual.
+- El selector de recursos permitidos sigue existiendo en el contrato
+  y la base de datos, pero no se expone en la interfaz simplificada.
+- Los recursos nuevos no ingresan automáticamente en una política vigente.
+- Se mantienen los modos de recurso y los horarios globales actuales.
+- No se introducen cambios arquitectónicos ni migraciones adicionales.
+- Este cierre corresponde al entorno de desarrollo, no a producción.
+- Las correcciones excepcionales sobre reservas existentes continúan
+  fuera del alcance de este incremento.
+
+---
+
+## ARCH-V2-001 - Configuracion autonoma de instalaciones
+
+Prioridad: P2
+Labels: `architecture`, `technical-debt`, `database`, `backend`, `frontend`, `v2`
+Estado: Backlog V2
+Origen: revisión del dominio durante el cierre de ADMIN-006.
+
+### Problema
+
+El modelo MVP3 utiliza modos rígidos (`reservation_mode`) y políticas
+globales versionadas. Esto dificulta representar instalaciones con
+horarios y comportamientos distintos, incluso cuando pertenecen
+a la misma sede.
+
+### Objetivo
+
+Permitir que cada instalación defina autónomamente sus características
+de uso, disponibilidad y restricciones, sin depender de una política
+institucional global para su configuración operativa.
+
+### Alcance propuesto
+
+- Reemplazar los modos rígidos por características configurables.
+- Definir horarios semanales independientes por instalación.
+- Permitir varias franjas horarias en un mismo día.
+- Incorporar excepciones, cierres y restricciones temporales.
+- Configurar individualmente duración, anticipación, frecuencia,
+  exclusividad y confirmación grupal.
+- Revisar el modelo de frecuencia para permitir restricciones
+  por instalación o conjunto de instalaciones cuando corresponda.
+- Eliminar la duplicidad entre habilitación del recurso y
+  selección de recursos permitidos en políticas.
+- Rediseñar los contratos y validaciones de reservas y disponibilidad.
+- Reestructurar el modelo PostgreSQL y las pantallas administrativas.
+- Preservar reservas históricas, snapshots y trazabilidad.
+- Diseñar migraciones y pruebas de regresión antes de retirar
+  las dependencias de `reservation_policies`.
+
+### Decisión arquitectónica
+
+La instalación será la fuente de su configuración operativa.
+Los servicios de disponibilidad y reservas interpretarán y validarán
+esa configuración mediante reglas de dominio compartidas.
+
+No se propone un motor de reglas genérico ni una nueva capa
+de políticas generales configurables.
+
+### Exclusiones
+
+- No implementar durante MVP3.
+- No modificar ahora el contrato `resourceIds`.
+- No refactorizar el backend ni PostgreSQL como parte de ADMIN-006.
+- No condicionar el cierre de MVP3 a esta deuda.
+
+### Criterios para iniciar V2
+
+- Aprobar el catálogo de características configurables.
+- Definir dependencias e incompatibilidades entre características.
+- Diseñar el calendario operativo por instalación.
+- Aprobar el nuevo modelo de datos y sus contratos API.
+- Definir la estrategia de migración y trazabilidad histórica.
 
 ---
 
@@ -3581,7 +3695,7 @@ Estas tareas ya tienen implementacion inicial. Antes de cerrar el MVP 1 falta ev
 3. `ADMIN-003` CERRADO MVP3: gestion administrativa de sedes y recursos (EV-012).
 4. `ADMIN-002` Completar gestion de usuarios.
 5. `ADMIN-005` Programacion institucional y resolucion de conflictos aprobada.
-6. `ADMIN-006` Configurar politicas de reserva exclusivamente como administrador.
+6. `ADMIN-006` CERRADO MVP3: administración de políticas; rediseño estructural diferido a `ARCH-V2-001`.
 7. `REP-003` Corregir semantica y precision de indicadores.
 8. `REP-002` Completar infracciones.
 
