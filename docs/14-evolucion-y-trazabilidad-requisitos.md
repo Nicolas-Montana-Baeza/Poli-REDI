@@ -487,6 +487,48 @@ Decision requerida:
 
 Estado: **candidato de evolucion de alta prioridad**.
 
+#### Acuerdo funcional 2026-10-20
+
+Durante la revision del MVP3, el responsable del proyecto
+establecio el siguiente criterio de diseno:
+
+**Los conflictos de programacion institucional no deben
+producir cancelaciones automaticas de reservas.**
+
+Comportamiento acordado:
+
+1. El sistema detecta solapamientos automaticamente.
+2. Registra los conflictos pendientes sin cancelar reservas.
+3. La administracion revisa las ocupaciones involucradas.
+4. Solo un administrador autorizado resuelve conflictos.
+5. Las decisiones disponibles son KEEP, ALLOW, CANCEL
+   y RESCHEDULE, sujetas a las reglas de integridad.
+6. Toda resolucion exige justificacion y confirmacion.
+7. Las decisiones y sus efectos mantienen trazabilidad.
+8. Las cancelaciones administrativas deben notificar
+   al propietario de la reserva afectada.
+
+Los MANAGER pueden programar actividades en sus unidades,
+pero no adquieren permisos de resolucion administrativa.
+
+Los bloqueos de disponibilidad representan restricciones
+duras y siguen impidiendo programaciones incompatibles.
+
+Esta decision se refiere a conflictos institucionales.
+No modifica otras reglas automaticas independientes,
+como el vencimiento de reservas grupales.
+
+Estado:
+- Criterio funcional definido por el responsable del proyecto.
+- Arquitectura actual compatible con el criterio.
+- Pendiente formalizacion de RF-023/v2 y aceptacion institucional
+  cuando corresponda.
+- Cancelacion institucional y notificacion al propietario verificadas en Funnel. Pendientes: validacion integral restante, publicacion de la mejora UX y ratificacion institucional de RF-023/v2.
+- RF-023/v1 se conserva como antecedente historico.
+
+Evidencia:
+`docs/mvp3/admin005-auditoria-20261020.md`
+
 ### CAND-001 - Eventos grupales para notificaciones
 
 `AT_RISK`, recuperacion del minimo y cancelacion por vencimiento permiten generar eventos como:

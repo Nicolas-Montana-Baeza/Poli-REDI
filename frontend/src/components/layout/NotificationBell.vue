@@ -30,8 +30,12 @@ const isAuthenticated = computed(() => {
   return !!authStore.account
 })
 
-const toggle = () => {
+const toggle = async () => {
   open.value = !open.value
+
+  if (open.value && isAuthenticated.value) {
+    await notificationsStore.fetchNotifications()
+  }
 }
 
 const openNotification = async (notification) => {

@@ -345,8 +345,9 @@ Convertir Poli-REDI en una herramienta administrable por la institucion, con cal
 - Reportes iniciales visibles para administradores.
 - Cancelacion administrativa de reservas.
 - Administracion de imagen, modo, capacidad y estado de recursos existentes.
-- Administracion integral de sedes y recursos (EV-012), aprobada
-  como requisito de cierre y pendiente de implementacion.
+- Administracion integral de sedes y recursos (EV-012),
+  cerrada funcional y visualmente el 2026-10-16
+  en el entorno de pruebas.
 - Notificaciones internas asociadas a eventos de reservas.
 - Administración prospectiva de políticas de reserva versionadas,
   incluida la configuración grupal por recurso.
@@ -398,17 +399,23 @@ Convertir Poli-REDI en una herramienta administrable por la institucion, con cal
 
 Parcial.
 
+### Avances cerrados y validados
+
+- Integracion de bloqueos administrativos con el calendario
+  validada mediante pruebas PostgreSQL 16 (2026-10-20).
+- `ADMIN-004` cerrado el 2026-10-20:
+  creacion, consulta y desactivacion de bloqueos,
+  validacion backend/frontend y pruebas funcionales.
+- `ADMIN-003` cerrado el 2026-10-16 para el alcance MVP3.
+  Incluye administracion de sedes y recursos, filtros,
+  integridad historica y validacion funcional y visual.
+  No incluye eliminacion fisica ni traslado de recursos
+  existentes entre sedes.
+- Filtros backend de recursos por sede, tipo y estado
+  implementados y validados como parte de `ADMIN-003` (`API-001`).
+
 ### Pendientes para cierre completo
 
-- Completar la integracion de bloqueos en el calendario unificado; reservas y actividades programadas ya comparten contrato (`RES-004`).
-- Crear bloqueos de disponibilidad desde administracion (`ADMIN-004`).
-- Completar `ADMIN-003` segun EV-012 (2026-10-13):
-  la actualizacion de imagen, modo, capacidad y estado de recursos
-  existentes ya esta implementada y verificada en PostgreSQL 16.
-  Se aprobaron como pendientes obligatorios la creacion y
-  edicion integral de recursos, administracion completa de sedes,
-  reasignacion, filtros y preservacion de historial.
-  La eliminacion fisica queda fuera del alcance.
 - Completar `ADMIN-006` en 3C: la publicación prospectiva, lectura e
   historial ya utilizan PostgreSQL. Falta ampliar el contrato para
   administrar mínimos grupales por recurso, exponerlos por versión,
@@ -416,11 +423,33 @@ Parcial.
   publicación. Las correcciones excepcionales se mantienen aprobadas
   para un incremento posterior.
 - Bloquear y desbloquear usuarios con auditoria (`ADMIN-002`).
-- Completar `ADMIN-005`: el backend ya registra programacion institucional, detecta conflictos N-elementos y permite resolucion administrativa `KEEP`/`ALLOW`/`CANCEL`/`RESCHEDULE`. Falta cerrar la decision `EV-010` sobre cancelacion automatica versus resolucion administrativa, validar end-to-end las notificaciones generadas y completar la experiencia administrativa.
-- Agregar filtros backend de recursos por sede, tipo y estado (`API-001`).
+- Completar validacion funcional de `ADMIN-005`.
+  Backend, frontend y resolucion administrativa estan implementados.
+  Se aprobaron 6/6 pruebas institucionales PostgreSQL 16.
+  Validadas: 18/18 pruebas Vue ADMIN-005; cancelacion y notificacion comprobadas en Funnel.
+  Pendientes: publicacion y verificacion de la actualizacion de la campana, cierre integral restante y formalizacion institucional de `EV-010`.
+  La propuesta vigente es que los conflictos no produzcan
+  cancelaciones automaticas y sean resueltos por administracion.
 - Centralizar validacion de administrador con middleware (`API-005`).
 - Completar reportes desde vistas SQL e infracciones si corresponde (`REP-001`).
 - Corregir definicion de reservas activas y precision de horas en indicadores (`REP-003`).
+
+### Evidencia de avance 2026-10-20
+
+- ADMIN-003: cierre funcional y visual documentado en backlog.
+- ADMIN-004: cierre tecnico y funcional registrado en
+  `docs/mvp3/cierre-4d-bloqueos.md`.
+- ADMIN-005: seis pruebas institucionales PostgreSQL 16 aprobadas.
+- El verificador aislado completo aprobo 17/17 pruebas.
+- La interfaz institucional ya existe, pero requiere pruebas
+  de componentes y validacion funcional integral.
+- EV-010 propone resolucion administrativa explicita.
+  La sustitucion de RF-023/v1 requiere formalizacion institucional.
+- El MVP3 permanece abierto mientras existan modulos
+  y criterios de cierre pendientes.
+
+Documento de auditoria:
+`docs/mvp3/admin005-auditoria-20261020.md`
 
 ### Criterio de cierre
 

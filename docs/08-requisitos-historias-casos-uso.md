@@ -257,9 +257,41 @@ Pendiente relacionado: `RES-008`, `RES-010`, `NOTIF-001`.
 
 ### RF-023 - Resolucion de conflictos institucionales
 
+**RF-023/v1 — Regla originalmente aprobada (antecedente historico)**
+
 El sistema debe cancelar automaticamente una reserva particular cuando entra en conflicto con una actividad institucional y notificar al usuario afectado. Si el conflicto es entre dos actividades, debe informar al administrador y permitirle cancelar cualquiera de ellas o mantener ambas.
 
-Estado actual: APROBADO e IMPLEMENTADO PARCIAL. El backend ya detecta conflictos de programacion como grupos de multiples ocupaciones, permite consulta administrativa y soporta resoluciones `KEEP`, `ALLOW`, `CANCEL` y `RESCHEDULE`, con efectos persistidos y pruebas de integracion. La implementacion actual no aplica automaticamente la cancelacion de una reserva particular al crear la actividad: genera un conflicto para resolucion administrativa. Esta diferencia se registra como candidato de evolucion `EV-010`. La notificacion al usuario afectado permanece pendiente.
+**RF-023/v2 — Propuesta de evolucion EV-010 (2026-10-20)**
+
+El sistema debe detectar y registrar conflictos de programacion institucional sin cancelar automaticamente las reservas particulares involucradas.
+
+La resolucion corresponde exclusivamente a un administrador autorizado, que podra decidir sobre cada ocupacion mediante `KEEP`, `ALLOW`, `CANCEL` o `RESCHEDULE`, conforme a las restricciones aplicables.
+
+Criterios de aceptacion propuestos:
+
+- Detectar automaticamente conflictos entre reservas y actividades.
+- Registrar conflictos de multiples ocupaciones como `PENDING`.
+- No cancelar reservas particulares al crear actividades institucionales.
+- Permitir consultar ocupaciones y conflictos pendientes.
+- Restringir resoluciones administrativas a administradores.
+- Exigir justificacion y confirmacion explicita de cada decision.
+- Registrar responsable, decision y efectos de la resolucion.
+- Rechazar planes incompatibles sin efectos parciales.
+- Generar nuevos conflictos si una reprogramacion produce solapamientos.
+- Notificar al propietario cuando una decision administrativa cancele su reserva.
+- No exponer datos personales de terceros mediante notificaciones.
+- Permitir que los MANAGER programen sus unidades sin resolver conflictos administrativos.
+- Mantener los bloqueos de disponibilidad como restricciones duras.
+
+**Estado de implementacion y validacion**
+
+La deteccion, consulta, resolucion administrativa y persistencia ya estan implementadas. Se aprobaron seis pruebas institucionales PostgreSQL 16 en entorno aislado el 2026-10-20.
+
+La generacion transaccional de notificaciones por cancelacion institucional fue verificada en PostgreSQL 16, incluyendo rollback ante fallo inducido. El usuario confirmo la recepcion de la notificacion en Funnel tras actualizar con F5.
+
+Las tres vistas ADMIN-005 aprobaron 18/18 pruebas Vue. La cancelacion y notificacion fueron comprobadas en Funnel. Permanecen pendientes la validacion integral restante, la publicacion de la mejora de la campana y la ratificacion institucional de EV-010.
+
+**Estado normativo:** RF-023/v2 es una propuesta definida por el responsable del proyecto, pendiente de ratificacion institucional. RF-023/v1 permanece documentado hasta completar esa formalizacion.
 
 Pendiente relacionado: `ADMIN-005`, `RES-004`, `NOTIF-001`.
 
@@ -603,11 +635,14 @@ Criterios de aceptacion vigentes no controvertidos:
 - La decision y sus efectos quedan trazables.
 - El usuario afectado por una cancelacion debe recibir una notificacion sin exponer informacion de terceros.
 
-Decision pendiente `EV-010`:
+Evolucion propuesta `EV-010` (pendiente de ratificacion institucional):
 
-- RF-023/v1 establece cancelacion automatica de una reserva particular ante prioridad institucional.
-- La implementacion actual incorpora la reserva al conflicto y permite que la cancelacion sea parte de una resolucion administrativa.
-- Hasta cerrar `EV-010`, ninguno de estos dos comportamientos debe presentarse como reemplazo definitivo del otro.
+- RF-023/v1 establecia cancelacion automatica ante prioridad institucional.
+- RF-023/v2 propone detectar conflictos sin cancelar reservas automaticamente.
+- El administrador decide expresamente sobre las ocupaciones afectadas.
+- La decision requiere justificacion y confirmacion.
+- La resolucion administrativa ya existe en el sistema.
+- La sustitucion normativa de v1 por v2 no se considera formalizada hasta su ratificacion institucional.
 
 ### HU-017 - Mantener inventario oficial
 
@@ -914,11 +949,15 @@ Flujo base vigente:
 5. Cada decision exige trazabilidad y actualiza los efectos correspondientes.
 6. El conflicto se cierra cuando no quedan elementos pendientes.
 
-Decision pendiente `EV-010`:
+Evolucion propuesta `EV-010` (pendiente de ratificacion institucional):
 
-- RF-023/v1 exige que una reserva particular sea cancelada automaticamente por prioridad institucional.
-- La implementacion actual permite incluir esa reserva dentro del proceso de resolucion administrativa.
-- La politica definitiva debe decidir si la cancelacion particular permanece automatica o si la resolucion administrativa se adopta como modelo general.
+- RF-023/v1 contempla cancelacion automatica por prioridad institucional.
+- RF-023/v2 propone registrar el conflicto sin modificar automaticamente las reservas.
+- El administrador revisa y resuelve expresamente las ocupaciones afectadas.
+- Cada decision requiere justificacion y confirmacion.
+- Solo una decision administrativa de cancelacion puede cancelar la reserva dentro de este flujo.
+- Las restricciones duras de disponibilidad mantienen sus validaciones.
+- La adopcion definitiva de RF-023/v2 requiere ratificacion institucional.
 
 Postcondiciones:
 

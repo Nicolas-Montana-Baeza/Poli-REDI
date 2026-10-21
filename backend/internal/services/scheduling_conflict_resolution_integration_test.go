@@ -5,9 +5,11 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
+	"poli-redi-api/internal/appscope"
 	"poli-redi-api/internal/businessclock"
 	"poli-redi-api/internal/database"
 	"poli-redi-api/internal/models"
@@ -64,9 +66,10 @@ func TestSchedulingConflictResolutionIntegration(
 	suffix := time.Now().UnixNano()
 
 	var (
-		adminID    int
-		resourceID int
-		unitID     int
+		adminID            int
+		reservationOwnerID int
+		resourceID         int
+		unitID             int
 	)
 
 	// ========================================================================
@@ -145,6 +148,14 @@ func TestSchedulingConflictResolutionIntegration(
 				WHERE id = $1
 				`,
 				resourceID,
+			)
+		}
+
+		if reservationOwnerID > 0 {
+			_, _ = database.DB.ExecContext(
+				cleanupCtx,
+				"DELETE FROM users WHERE id = $1",
+				reservationOwnerID,
 			)
 		}
 
@@ -279,6 +290,19 @@ func TestSchedulingConflictResolutionIntegration(
 		FullName:  "Resolver Integration Admin",
 		IsAdmin:   true,
 		IsBlocked: false,
+	}
+
+	// Propietario separado del administrador que resuelve.
+	err = database.DB.QueryRowContext(
+		ctx,
+		`INSERT INTO users (email, full_name, rut, is_admin, is_blocked)
+		 VALUES ($1, 'Reservation Owner Integration', '22222222-2', false, false)
+		 RETURNING id`,
+		fmt.Sprintf("resolver.owner.%d@test.local", suffix),
+	).Scan(&reservationOwnerID)
+
+	if err != nil {
+		t.Fatalf("create reservation owner: %v", err)
 	}
 
 	// ========================================================================
@@ -482,7 +506,7 @@ func TestSchedulingConflictResolutionIntegration(
 		RETURNING id
 		`,
 		policyID,
-		adminID,
+		reservationOwnerID,
 		resourceID,
 		reservationStart,
 		reservationEnd,
@@ -843,6 +867,20 @@ func TestSchedulingConflictResolutionIntegration(
 		)
 	}
 
+	var notificationsBefore int
+	err = database.DB.QueryRowContext(
+		ctx,
+		"SELECT COUNT(*) FROM notifications WHERE reservation_id = $1",
+		reservationID,
+	).Scan(&notificationsBefore)
+
+	if err != nil || notificationsBefore != 0 {
+		t.Fatalf(
+			"invalid resolution generated notifications: count=%d err=%v",
+			notificationsBefore, err,
+		)
+	}
+
 	// Cancelamos únicamente la ocurrencia B.
 	_, err =
 		ResolveSchedulingConflictItem(
@@ -894,6 +932,85 @@ func TestSchedulingConflictResolutionIntegration(
 			"expected CANCEL exception, got %s",
 			cancelExceptionType,
 		)
+	}
+
+	// Prueba aislada: inducir un fallo real al insertar la notificación.
+	// El verificador efímero instala la restricción antes de esta ejecución.
+	if os.Getenv("POLIREDI_TEST_NOTIF_INSERT_FAILURE") == "1" {
+		if !appscope.HasMVP3() {
+			t.Fatal("atomicity test requires MVP3")
+		}
+
+		_, err = ResolveSchedulingConflictItem(
+			conflict1,
+			itemReservation,
+			admin,
+			models.ResolveSchedulingConflictItemRequest{
+				Resolution:     models.SchedulingItemResolutionCancel,
+				ResolutionNote: "Prueba de rollback por error de notificación",
+			},
+		)
+
+		if err == nil || !strings.Contains(
+			err.Error(),
+			"ck_admin005_force_notification_failure",
+		) {
+			t.Fatalf(
+				"expected injected notification constraint failure, got: %v",
+				err,
+			)
+		}
+
+		var (
+			statusAfter   string
+			reasonAfter   string
+			itemAfter     string
+			conflictAfter string
+			notifCount    int
+		)
+
+		err = database.DB.QueryRowContext(
+			ctx,
+			`
+			SELECT
+				(SELECT status FROM reservations WHERE id = $1),
+				(SELECT COALESCE(cancellation_reason, '') FROM reservations WHERE id = $1),
+				(SELECT resolution FROM scheduling_conflict_items WHERE id = $2),
+				(SELECT status FROM scheduling_conflicts WHERE id = $3),
+				(SELECT COUNT(*) FROM notifications WHERE reservation_id = $1)
+			`,
+			reservationID,
+			itemReservation,
+			conflict1,
+		).Scan(
+			&statusAfter,
+			&reasonAfter,
+			&itemAfter,
+			&conflictAfter,
+			&notifCount,
+		)
+
+		if err != nil {
+			t.Fatalf("inspect rollback state: %v", err)
+		}
+
+		if statusAfter != "CONFIRMED" ||
+			reasonAfter != "" ||
+			itemAfter != "PENDING" ||
+			conflictAfter != "PENDING" ||
+			notifCount != 0 {
+			t.Fatalf(
+				"rollback incomplete: reservation=%s reason=%q item=%s conflict=%s notifications=%d",
+				statusAfter,
+				reasonAfter,
+				itemAfter,
+				conflictAfter,
+				notifCount,
+			)
+		}
+
+		t.Log("PASS: cancellation and conflict resolution rolled back after notification failure")
+		return
 	}
 
 	// Cancelamos la reserva.
@@ -968,6 +1085,76 @@ func TestSchedulingConflictResolutionIntegration(
 		t.Fatal(
 			"reservation cancellation reason must be persisted",
 		)
+	}
+
+	// ========================================================================
+	// NOTIFICACIONES SEGUN MVP_SCOPE
+	// ========================================================================
+	if appscope.HasMVP3() {
+		var notificationCount int
+		err = database.DB.QueryRowContext(
+			ctx,
+			"SELECT COUNT(*) FROM notifications WHERE reservation_id = $1",
+			reservationID,
+		).Scan(&notificationCount)
+
+		if err != nil || notificationCount != 1 {
+			t.Fatalf(
+				"expected exactly one notification: count=%d err=%v",
+				notificationCount, err,
+			)
+		}
+
+		var notificationUserID int
+		var notificationType, notificationTitle, notificationMessage string
+
+		err = database.DB.QueryRowContext(
+			ctx,
+			`SELECT user_id, type, title, message
+			 FROM notifications
+			 WHERE reservation_id = $1`,
+			reservationID,
+		).Scan(
+			&notificationUserID,
+			&notificationType,
+			&notificationTitle,
+			&notificationMessage,
+		)
+
+		if err != nil {
+			t.Fatalf("load institutional notification: %v", err)
+		}
+
+		if notificationUserID != reservationOwnerID ||
+			notificationUserID == adminID {
+			t.Fatalf("notification was delivered to wrong user")
+		}
+
+		if notificationType != "RESERVATION_CANCELLED_INSTITUTIONAL" ||
+			notificationTitle != "Reserva cancelada" ||
+			notificationMessage !=
+				"Tu reserva fue cancelada debido a una decisión de programación institucional." {
+			t.Fatalf("unexpected notification content or type")
+		}
+
+		t.Log("PASS: one notification, correct owner, no third-party details")
+	} else {
+		var count int
+
+		err = database.DB.QueryRowContext(
+			ctx,
+			"SELECT COUNT(*) FROM notifications WHERE reservation_id = $1",
+			reservationID,
+		).Scan(&count)
+
+		if err != nil || count != 0 {
+			t.Fatalf(
+				"MVP2 must not generate notifications: count=%d err=%v",
+				count, err,
+			)
+		}
+
+		t.Log("PASS: notifications disabled in MVP2")
 	}
 
 	// ========================================================================
