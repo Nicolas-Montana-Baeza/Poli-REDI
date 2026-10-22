@@ -26,5 +26,15 @@ export const institutionalActivitiesService = {
   async cancel(id) {
     const response = await api.patch(`/institutional-activities/${id}/cancel`)
     return response.data
+  },
+
+  async getExceptions(id) {
+    const response = await api.get(`/institutional-activities/${id}/exceptions`)
+    return response.data
+  },
+
+  async patchOccurrence(id, payload) {
+    const response = await api.patch(`/institutional-activities/${id}/occurrences`, payload)
+    return response.data
   }
 }

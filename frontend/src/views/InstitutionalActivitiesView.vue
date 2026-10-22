@@ -9,6 +9,7 @@ import {
 } from 'vue'
 
 import { resourcesService } from '../services/resources.service'
+import InstitutionalOccurrencesPanel from '../components/institutional/InstitutionalOccurrencesPanel.vue'
 import { reservationPolicyService } from '../services/reservationPolicy.service'
 import {
   institutionalUnitsService
@@ -951,6 +952,12 @@ onMounted(async () => {
                   </span>
                 </div>
               </div>
+
+              <InstitutionalOccurrencesPanel
+                v-if="activity.status === 'SCHEDULED' && (activity.schedules || []).some(s => s.isActive && s.scheduleType === 'WEEKLY')"
+                :activity="activity"
+                @changed="loadSelectedUnit"
+              />
 
               <small class="creator-note">
                 Creada por {{ activity.createdBy || 'usuario institucional' }}

@@ -221,6 +221,8 @@ func registerRoutes(app *fiber.App, authMiddleware fiber.Handler) {
 
 		protected.Patch("/institutional-activities/:id", handlers.UpdateInstitutionalActivity)
 		protected.Patch("/institutional-activities/:id/cancel", handlers.CancelInstitutionalActivity)
+		protected.Get("/institutional-activities/:id/exceptions", handlers.GetInstitutionalOccurrenceExceptions)
+		protected.Patch("/institutional-activities/:id/occurrences", handlers.PatchInstitutionalOccurrence)
 
 		// ------------------------------------------------------------
 		// Programación Institucional - Resolución Administrativa
