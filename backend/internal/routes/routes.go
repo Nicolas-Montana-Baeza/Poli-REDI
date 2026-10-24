@@ -263,6 +263,11 @@ func registerRoutes(app *fiber.App, authMiddleware fiber.Handler) {
 	// porque representa un superset funcional.
 
 	if appscope.HasMVP3() {
+		protected.Patch("/admin/users/:id/access", middleware.RequireAdmin(), handlers.PatchAdminUserAccess)
+		protected.Get("/admin/users/:id/access-history", middleware.RequireAdmin(), handlers.GetAdminUserAccessHistory)
+		protected.Patch("/admin/users/:id/role", middleware.RequireAdmin(), handlers.PatchAdminUserRole)
+		protected.Get("/admin/users/:id/role-history", middleware.RequireAdmin(), handlers.GetAdminUserRoleHistory)
+
 		protected.Get(
 			"/admin/availability-blocks",
 			middleware.RequireAdmin(),
