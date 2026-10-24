@@ -89,9 +89,9 @@ const submit = async () => {
   }
   saving.value = true
   try {
-    await institutionalActivitiesService.patchOccurrence(props.activity.id, payload)
+    const updated = await institutionalActivitiesService.patchOccurrence(props.activity.id, payload)
     const verb = payload.action === 'CANCEL' ? 'suspendida' : 'reprogramada'
-    success.value = `Sesión del ${payload.originalDate} ${verb}.`
+    success.value = `Sesión del ${payload.originalDate} ${verb}. ${updated?.notifiedCount ? `Avisos enviados: ${updated.notifiedCount}.` : ""}`
     selected.value = null
     await load()
     emit('changed')
@@ -111,7 +111,7 @@ const submit = async () => {
       <p v-if="error" class="error" role="alert">{{ error }}</p>
       <p v-if="success" class="success" role="status">{{ success }}</p>
       <p v-if="Number(activity.enrollmentCount) > 0" class="notice">
-        Esta actividad tiene inscripciones vigentes: no se pueden alterar sesiones sin resolver primero sus inscripciones y avisos.
+        Hay {{ activity.enrollmentCount }} participante(s) inscrito(s). Sus inscripciones continuarán vigentes y recibirán una notificación interna por cada cambio de sesión.
       </p>
       <p v-if="!loading && !sessions.length">No quedan sesiones futuras de esta programación.</p>
       <p v-if="sessions.length">Próximas {{ sessions.length }} sesiones (máximo 16):</p>
@@ -124,7 +124,7 @@ const submit = async () => {
           </span>
           <span v-else>{{ session.startTime }}–{{ session.endTime }}</span>
         </div>
-        <div v-if="Number(activity.enrollmentCount) === 0" class="session-actions">
+        <div class="session-actions">
           <button v-if="session.exception?.action !== 'CANCEL'" type="button" :disabled="saving" @click="begin(session, 'CANCEL')">Suspender</button>
           <button type="button" :disabled="saving" @click="begin(session, 'RESCHEDULE')">
             {{ session.exception?.action === 'CANCEL' ? 'Reactivar / reprogramar' : session.exception ? 'Reprogramar otra vez' : 'Reprogramar' }}

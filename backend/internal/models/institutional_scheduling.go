@@ -98,7 +98,8 @@ type InstitutionalActivity struct {
 	IsEnrolled     *bool `json:"isEnrolled,omitempty"`
 	AvailableSpots *int  `json:"availableSpots,omitempty"`
 
-	Schedules []InstitutionalActivitySchedule `json:"schedules,omitempty"`
+	Schedules       []InstitutionalActivitySchedule `json:"schedules,omitempty"`
+	ScheduleChanges []InstitutionalScheduleChange   `json:"scheduleChanges,omitempty"`
 }
 
 // ============================================================================
@@ -137,6 +138,17 @@ type InstitutionalActivitySchedule struct {
 
 	CreatedAt time.Time `json:"createdAt"`
 	UpdatedAt time.Time `json:"updatedAt"`
+}
+
+// InstitutionalScheduleChange proyecta el estado efectivo de una sesión
+// sobre el taller visible. No expone la justificación interna ni el gestor.
+type InstitutionalScheduleChange struct {
+	ScheduleID   int     `json:"scheduleId"`
+	OriginalDate string  `json:"originalDate"`
+	Action       string  `json:"action"`
+	NewDate      *string `json:"newDate,omitempty"`
+	NewStartTime *string `json:"newStartTime,omitempty"`
+	NewEndTime   *string `json:"newEndTime,omitempty"`
 }
 
 // ============================================================================

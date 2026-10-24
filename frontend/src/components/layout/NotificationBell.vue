@@ -47,6 +47,13 @@ const openNotification = async (notification) => {
     }
   }
 
+  if (notification.type === 'INSTITUTIONAL_SESSION_CANCELLED' ||
+      notification.type === 'INSTITUTIONAL_SESSION_RESCHEDULED') {
+    open.value = false
+    await router.push('/workshops')
+    return
+  }
+
   if (notification.reservationId) {
     open.value = false
 
@@ -70,6 +77,7 @@ const iconFor = (type) => {
 
     case 'RESERVATION_CONFIRMED':
     case 'RESERVATION_CREATED':
+    case 'INSTITUTIONAL_SESSION_RESCHEDULED':
       return CheckCircle2
 
     default:

@@ -274,6 +274,13 @@ func hydrateInstitutionalWorkshopForUser(
 	workshop.Schedules =
 		activeSchedules
 
+	// Los futuros inscritos también verán las excepciones ya aplicadas.
+	// La regla semanal es la base, pero no representa cambios individuales.
+	workshop.ScheduleChanges, err = getWorkshopScheduleChanges(workshop.ID)
+	if err != nil {
+		return err
+	}
+
 	isEnrolled := false
 
 	if userID > 0 {
@@ -679,4 +686,48 @@ func CancelUserInstitutionalWorkshopEnrollment(
 		workshopID,
 		userID,
 	)
+}
+
+// getWorkshopScheduleChanges devuelve el estado VIGENTE de las sesiones
+// afectadas; omite razones/identidades del historial administrativo.
+func getWorkshopScheduleChanges(activityID int) ([]models.InstitutionalScheduleChange, error) {
+	rows, err := database.DB.QueryContext(context.Background(), `
+        SELECT e.schedule_id, to_char(e.original_date,'YYYY-MM-DD'),
+               e.exception_type,
+               CASE WHEN e.new_date IS NULL THEN NULL ELSE to_char(e.new_date,'YYYY-MM-DD') END,
+               CASE WHEN e.new_start_time IS NULL THEN NULL ELSE to_char(e.new_start_time,'HH24:MI') END,
+               CASE WHEN e.new_end_time IS NULL THEN NULL ELSE to_char(e.new_end_time,'HH24:MI') END
+        FROM institutional_activity_schedule_exceptions e
+        JOIN institutional_activity_schedules s ON s.id=e.schedule_id
+             AND s.activity_id=e.activity_id AND s.is_active=true
+        WHERE e.activity_id=$1
+          AND (e.original_date >= (CURRENT_TIMESTAMP AT TIME ZONE 'America/Santiago')::date
+               OR e.new_date >= (CURRENT_TIMESTAMP AT TIME ZONE 'America/Santiago')::date)
+        ORDER BY COALESCE(e.new_date,e.original_date),e.schedule_id
+        LIMIT 50
+    `, activityID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := []models.InstitutionalScheduleChange{}
+	for rows.Next() {
+		var item models.InstitutionalScheduleChange
+		var newDate, newStart, newEnd sql.NullString
+		if err := rows.Scan(&item.ScheduleID, &item.OriginalDate, &item.Action,
+			&newDate, &newStart, &newEnd); err != nil {
+			return nil, err
+		}
+		if newDate.Valid {
+			item.NewDate = &newDate.String
+		}
+		if newStart.Valid {
+			item.NewStartTime = &newStart.String
+		}
+		if newEnd.Valid {
+			item.NewEndTime = &newEnd.String
+		}
+		out = append(out, item)
+	}
+	return out, rows.Err()
 }

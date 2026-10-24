@@ -33,17 +33,18 @@ type InstitutionalOccurrencePatch struct {
 }
 
 type InstitutionalOccurrenceException struct {
-	ID           int                               `json:"id"`
-	ActivityID   int                               `json:"activityId"`
-	ScheduleID   int                               `json:"scheduleId"`
-	OriginalDate string                            `json:"originalDate"`
-	Action       string                            `json:"action"`
-	Reason       string                            `json:"reason"`
-	NewDate      *string                           `json:"newDate,omitempty"`
-	NewStartTime *string                           `json:"newStartTime,omitempty"`
-	NewEndTime   *string                           `json:"newEndTime,omitempty"`
-	CreatedAt    time.Time                         `json:"createdAt"`
-	Revisions    []InstitutionalOccurrenceRevision `json:"revisions,omitempty"`
+	ID            int                               `json:"id"`
+	ActivityID    int                               `json:"activityId"`
+	ScheduleID    int                               `json:"scheduleId"`
+	OriginalDate  string                            `json:"originalDate"`
+	Action        string                            `json:"action"`
+	Reason        string                            `json:"reason"`
+	NewDate       *string                           `json:"newDate,omitempty"`
+	NewStartTime  *string                           `json:"newStartTime,omitempty"`
+	NewEndTime    *string                           `json:"newEndTime,omitempty"`
+	CreatedAt     time.Time                         `json:"createdAt"`
+	NotifiedCount int                               `json:"notifiedCount"`
+	Revisions     []InstitutionalOccurrenceRevision `json:"revisions,omitempty"`
 }
 
 type InstitutionalOccurrenceRevision struct {
@@ -177,7 +178,8 @@ func ApplyInstitutionalOccurrenceException(activityID, actorID int, p Institutio
 
 	var resourceID int
 	var status string
-	err = tx.QueryRowContext(ctx, `SELECT resource_id,status FROM institutional_activities WHERE id=$1 FOR UPDATE`, activityID).Scan(&resourceID, &status)
+	var activityTitle string
+	err = tx.QueryRowContext(ctx, `SELECT resource_id,status,title FROM institutional_activities WHERE id=$1 FOR UPDATE`, activityID).Scan(&resourceID, &status, &activityTitle)
 	if err != nil {
 		return empty, err
 	}
@@ -222,7 +224,9 @@ func ApplyInstitutionalOccurrenceException(activityID, actorID int, p Institutio
 	if err != nil {
 		return empty, err
 	}
-	if enrolled {
+	// No permitir cambios silenciosos si este runtime no ofrece avisos.
+	// En MVP3 los confirmados conservarán la inscripción y serán notificados.
+	if enrolled && !notificationsEnabled() {
 		return empty, ErrInstitutionalOccurrenceEnrolled
 	}
 
@@ -241,6 +245,19 @@ func ApplyInstitutionalOccurrenceException(activityID, actorID int, p Institutio
 		return empty, err
 	}
 	existing := err == nil
+
+	// Una reprogramación inicial a la misma fecha/hora tampoco cambia nada.
+	if !existing && p.Action == "RESCHEDULE" && p.NewDate != nil &&
+		p.NewStartTime != nil && p.NewEndTime != nil &&
+		*p.NewDate == p.OriginalDate && *p.NewStartTime == startHH &&
+		*p.NewEndTime == endHH {
+		return empty, ErrInstitutionalOccurrenceAlreadyHandled
+	}
+
+	// Evitar enviar avisos repetidos por una operación sin cambio horario real.
+	if occurrencePatchUnchanged(existing, oldAction, oldDate, oldStart, oldEnd, p) {
+		return empty, ErrInstitutionalOccurrenceAlreadyHandled
+	}
 
 	// La fecha que manda es la sesión VIGENTE, no necesariamente la original.
 	currentStart := originalStart
@@ -361,8 +378,32 @@ func ApplyInstitutionalOccurrenceException(activityID, actorID int, p Institutio
 			return empty, err
 		}
 	}
+	// Atomicidad: si falla la entrega de avisos internos NO se confirma
+	// la excepción. Nadie queda con un cambio de fecha sin su notificación.
+	result.NotifiedCount, err = createInstitutionalOccurrenceNotificationsTx(
+		ctx, tx, activityID, activityTitle, currentDate, p.OriginalDate,
+		p.Action, p.NewDate, p.NewStartTime, p.NewEndTime,
+	)
+	if err != nil {
+		return empty, fmt.Errorf("notificar cambio de sesión: %w", err)
+	}
 	if err = tx.Commit(); err != nil {
 		return empty, fmt.Errorf("confirmar revisión de sesión: %w", err)
 	}
 	return result, nil
+}
+
+// occurrencePatchUnchanged compara estado efectivo, sin considerar el motivo.
+// Cambiar solamente una justificación no genera nuevas citas ni avisos.
+func occurrencePatchUnchanged(existing bool, previous string, oldDate, oldStart, oldEnd sql.NullString, p InstitutionalOccurrencePatch) bool {
+	if !existing || previous != p.Action {
+		return false
+	}
+	if p.Action == "CANCEL" {
+		return true
+	}
+	return p.Action == "RESCHEDULE" && p.NewDate != nil && p.NewStartTime != nil &&
+		p.NewEndTime != nil && oldDate.Valid && oldStart.Valid && oldEnd.Valid &&
+		oldDate.String == *p.NewDate && oldStart.String == *p.NewStartTime &&
+		oldEnd.String == *p.NewEndTime
 }

@@ -384,6 +384,20 @@ const leave = async (workshop) => {
             </span>
           </div>
 
+           <div v-if="workshop.scheduleChanges?.length" class="session-change-list" role="note">
+             <strong>Cambios a la programación</strong>
+             <p v-for="change in workshop.scheduleChanges"
+                :key="`${change.scheduleId}-${change.originalDate}`">
+               <template v-if="change.action === 'CANCEL'">
+                 Sesión del {{ change.originalDate }} suspendida.
+               </template>
+               <template v-else>
+                 Sesión del {{ change.originalDate }} reprogramada al
+                 {{ change.newDate }} · {{ change.newStartTime }}–{{ change.newEndTime }}.
+               </template>
+             </p>
+           </div>
+
           <div class="detail-item">
             <Users :size="18" />
 
@@ -459,6 +473,10 @@ const leave = async (workshop) => {
 </template>
 
 <style scoped>
+.session-change-list { padding: .7rem; border-radius: .65rem; background: var(--color-warning-soft); color: var(--color-text); font-size: .85rem; }
+.session-change-list strong { display: block; margin-bottom: .4rem; }
+.session-change-list p { margin: .3rem 0; line-height: 1.45; }
+
 .workshops-view {
   width: 100%;
   display: flex;

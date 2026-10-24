@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 
 	"poli-redi-api/internal/appscope"
 	"poli-redi-api/internal/database"
@@ -308,4 +309,52 @@ func GetNotificationsByUserID(
 	}
 
 	return notifications, nil
+}
+
+// institutionalOccurrenceNotificationSpec no incluye el motivo interno de
+// administración: el participante solo recibe fecha/hora y alcance del cambio.
+func institutionalOccurrenceNotificationSpec(
+	activityTitle, currentDate, originalDate, action string,
+	newDate, newStart, newEnd *string,
+) reservationNotificationSpec {
+	if action == "CANCEL" {
+		return reservationNotificationSpec{
+			Title: "Sesión institucional suspendida",
+			Message: fmt.Sprintf("La sesión de %q, originalmente del %s y prevista para el %s, fue suspendida. Tu inscripción a la actividad sigue vigente.",
+				activityTitle, originalDate, currentDate),
+			Type: "INSTITUTIONAL_SESSION_CANCELLED",
+		}
+	}
+	return reservationNotificationSpec{
+		Title: "Sesión institucional reprogramada",
+		Message: fmt.Sprintf("La sesión de %q, originalmente del %s, se realizará el %s de %s a %s. Tu inscripción a la actividad sigue vigente.",
+			activityTitle, originalDate, *newDate, *newStart, *newEnd),
+		Type: "INSTITUTIONAL_SESSION_RESCHEDULED",
+	}
+}
+
+// Se invoca dentro de la misma transacción que modifica la excepción y
+// después de validar bloqueos y conflictos. Los destinatarios se consultan
+// en la BD, no provienen del frontend. No modifica las inscripciones.
+func createInstitutionalOccurrenceNotificationsTx(
+	ctx context.Context, execer notificationExecer, activityID int,
+	activityTitle, currentDate, originalDate, action string,
+	newDate, newStart, newEnd *string,
+) (int, error) {
+	if !notificationsEnabled() {
+		return 0, nil
+	}
+	spec := institutionalOccurrenceNotificationSpec(activityTitle, currentDate,
+		originalDate, action, newDate, newStart, newEnd)
+	result, err := execer.ExecContext(ctx, `
+        INSERT INTO notifications (user_id, reservation_id, title, message, type)
+        SELECT DISTINCT enrollment.user_id, NULL::integer, $2, $3, $4
+        FROM institutional_activity_enrollments enrollment
+        WHERE enrollment.activity_id = $1 AND enrollment.status = 'CONFIRMED'
+    `, activityID, spec.Title, spec.Message, spec.Type)
+	if err != nil {
+		return 0, err
+	}
+	count, err := result.RowsAffected()
+	return int(count), err
 }

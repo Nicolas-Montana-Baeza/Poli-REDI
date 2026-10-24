@@ -89,12 +89,13 @@ describe('ADMIN-005 sesiones semanales', () => {
     }))
   })
 
-  it('impide edición cuando hay inscritos', async () => {
+  it('permite gestionar sesiones con inscritos y conserva la matrícula del taller', async () => {
     mocks.getExceptions.mockResolvedValue([])
     wrapper = mount(InstitutionalOccurrencesPanel, { props: { activity: { ...activity, enrollmentCount: 2 } } })
     await wrapper.get('.toggle').trigger('click')
     await flushPromises()
-    expect(wrapper.text()).toContain('inscripciones vigentes')
-    expect(wrapper.find('.session-actions').exists()).toBe(false)
+    expect(wrapper.text()).toContain('notificación interna')
+    expect(wrapper.find('.session-actions').exists()).toBe(true)
+    expect(wrapper.findAll('.session-row .session-actions button').length).toBeGreaterThan(0)
   })
 })
