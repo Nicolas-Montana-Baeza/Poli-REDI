@@ -84,8 +84,8 @@ export const getFeaturesForScope = (scope) => {
     resourceAdministration: hasMvp3,
     policyAdministration: hasMvp3,
 
-    // FULL / posterior
-    reports: full
+    // MVP3: reportes administrativos
+    reports: hasMvp3
   }
 }
 

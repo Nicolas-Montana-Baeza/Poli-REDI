@@ -1,132 +1,51 @@
 <script setup>
-import { computed, onMounted } from 'vue'
-
-import {
-  BarChart3,
-  Clock,
-  LayoutGrid
-} from 'lucide-vue-next'
+import { computed, onMounted, ref } from 'vue'
+import { BarChart3, Clock, LayoutGrid } from 'lucide-vue-next'
 
 import SkeletonLoader from '@/components/ui/SkeletonLoader.vue'
 import { useResourcesStore } from '@/stores/resources'
 import { useReservationsStore } from '@/stores/reservations'
-import { parseReservationDateTime } from '@/utils/reservationTime'
+import {
+  calculateReportMetrics,
+  formatReservedMinutes
+} from '@/utils/reportMetrics'
 
 const resourcesStore = useResourcesStore()
 const reservationsStore = useReservationsStore()
+const refreshedAt = ref(Date.now())
 
 onMounted(async () => {
   await Promise.all([
     resourcesStore.fetchResources(),
     reservationsStore.fetchReservations()
   ])
+  refreshedAt.value = Date.now()
 })
 
-const activeReservations = computed(() => {
-  return reservationsStore.reservations.filter(
-    (reservation) => reservation.status !== 'CANCELLED'
-  )
-})
+const report = computed(() => calculateReportMetrics(
+  reservationsStore.reservations,
+  resourcesStore.resources,
+  refreshedAt.value
+))
 
-const resourceUsage = computed(() => {
-  const usage = new Map()
-
-  for (const resource of resourcesStore.resources) {
-    usage.set(resource.id, {
-      id: resource.id,
-      name: resource.name,
-      count: 0,
-      minutes: 0
-    })
-  }
-
-  for (const reservation of activeReservations.value) {
-    const current = usage.get(reservation.resourceId) || {
-      id: reservation.resourceId,
-      name: reservation.resourceName || 'Recurso',
-      count: 0,
-      minutes: 0
-    }
-
-    current.count += 1
-    current.minutes += reservation.durationMinutes || 0
-
-    usage.set(reservation.resourceId, current)
-  }
-
-  return Array.from(usage.values())
-    .filter((item) => item.count > 0)
-    .sort((first, second) => second.count - first.count)
-    .slice(0, 8)
-})
-
-const statusSummary = computed(() => {
-  const labels = {
-    CONFIRMED: 'Confirmadas',
-    PENDING: 'Pendientes',
-    CANCELLED: 'Canceladas'
-  }
-
-  const summary = new Map()
-
-  for (const reservation of reservationsStore.reservations) {
-    const key = reservation.status || 'OTHER'
-
-    summary.set(key, (summary.get(key) || 0) + 1)
-  }
-
-  return Array.from(summary.entries()).map(([status, count]) => ({
-    label: labels[status] || status,
-    count
-  }))
-})
-
-const peakHours = computed(() => {
-  const summary = new Map()
-
-  for (const reservation of activeReservations.value) {
-    const start =
-      parseReservationDateTime(reservation.startTime)
-
-    if (!start) {
-      continue
-    }
-
-    const hour = `${String(start.getHours()).padStart(2, '0')}:00`
-
-    summary.set(hour, (summary.get(hour) || 0) + 1)
-  }
-
-  return Array.from(summary.entries())
-    .map(([hour, count]) => ({ hour, count }))
-    .sort((first, second) => second.count - first.count)
-    .slice(0, 6)
-})
-
-const totalReservedHours = computed(() => {
-  const minutes = activeReservations.value.reduce(
-    (total, reservation) =>
-      total + (reservation.durationMinutes || 0),
-    0
-  )
-
-  return Math.round(minutes / 60)
-})
+const resourceUsage = computed(() => report.value.resourceUsage)
+const statusSummary = computed(() => report.value.statusSummary)
+const peakHours = computed(() => report.value.peakHours)
 
 const stats = computed(() => [
   {
-    label: 'Reservas activas',
-    value: activeReservations.value.length,
+    label: 'Reservas vigentes',
+    value: report.value.activeCount,
     icon: BarChart3
   },
   {
-    label: 'Horas reservadas',
-    value: totalReservedHours.value,
+    label: 'Tiempo reservado vigente',
+    value: formatReservedMinutes(report.value.totalMinutes),
     icon: Clock
   },
   {
-    label: 'Recursos con uso',
-    value: resourceUsage.value.length,
+    label: 'Recursos con reservas',
+    value: report.value.resourceCount,
     icon: LayoutGrid
   }
 ])
@@ -142,7 +61,7 @@ const stats = computed(() => [
       </h1>
 
       <p>
-        Indicadores calculados desde reservas y recursos actuales.
+        Indicadores de reservas vigentes y distribución de estados.
       </p>
 
     </header>
@@ -176,7 +95,7 @@ const stats = computed(() => [
         {{ reservationsStore.loadingError }}
       </div>
 
-      <section class="stats-grid">
+      <section v-if="!resourcesStore.error && !reservationsStore.loadingError" class="stats-grid">
 
         <article
           v-for="stat in stats"
@@ -201,18 +120,18 @@ const stats = computed(() => [
 
       </section>
 
-      <section class="reports-grid">
+      <section v-if="!resourcesStore.error && !reservationsStore.loadingError" class="reports-grid">
 
         <article class="report-panel">
 
           <header>
 
             <h2>
-              Uso por recurso
+              Reservas vigentes por recurso
             </h2>
 
             <p>
-              Recursos con reservas activas.
+              Reservas pendientes o confirmadas que aún no finalizan.
             </p>
 
           </header>
@@ -221,7 +140,7 @@ const stats = computed(() => [
             v-if="!resourceUsage.length"
             class="empty-state"
           >
-            No hay uso registrado.
+            No hay reservas vigentes.
           </div>
 
           <div
@@ -244,7 +163,7 @@ const stats = computed(() => [
               </strong>
 
               <small>
-                {{ Math.round(item.minutes / 60) }} h
+                {{ formatReservedMinutes(item.minutes) }}
               </small>
 
             </div>
@@ -262,7 +181,7 @@ const stats = computed(() => [
             </h2>
 
             <p>
-              Distribucion de reservas.
+              Distribución de estados de las reservas consultadas.
             </p>
 
           </header>
@@ -304,11 +223,11 @@ const stats = computed(() => [
           <header>
 
             <h2>
-              Horas punta
+              Horarios de inicio más frecuentes
             </h2>
 
             <p>
-              Horarios con mayor uso.
+              Horas de inicio de reservas vigentes; no mide ocupación por franja.
             </p>
 
           </header>

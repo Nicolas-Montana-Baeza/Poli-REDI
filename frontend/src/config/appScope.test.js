@@ -67,7 +67,7 @@ test('MVP3 hereda MVP2 y habilita su superficie administrativa', () => {
     workshops: true,
     resourceAdministration: true,
     policyAdministration: true,
-    reports: false
+    reports: true
   })
 })
 
