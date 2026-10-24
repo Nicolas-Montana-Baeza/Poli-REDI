@@ -2137,7 +2137,7 @@ Crear un panel administrador inicial con accesos a gestion de recursos, usuarios
 
 Prioridad: P2
 Labels: `frontend`, `backend`, `admin`, `auth`
-Estado sugerido: Backlog
+Estado: CERRADO MVP3 - validacion funcional y pruebas aprobadas (2026-10-24)
 
 ### Objetivo
 
@@ -2146,17 +2146,20 @@ Permitir que un admin vea usuarios y pueda bloquear/desbloquear cuentas.
 ### Criterios de aceptacion
 
 - [x] Existe endpoint para listar usuarios.
-- [ ] Existe endpoint para bloquear/desbloquear usuario.
+- [x] Existe endpoint para bloquear/desbloquear usuario.
 - [x] La UI muestra email, nombre, rol y estado.
-- [ ] No permite bloquearse a si mismo accidentalmente.
-- [ ] Registra auditoria.
+- [x] No permite bloquearse a si mismo accidentalmente.
+- [x] Registra auditoria.
 
-### Resultado parcial
+### Resultado de cierre
 
-- `GET /api/users` lista usuarios desde Azure SQL solo para administradores.
-- `UsersView.vue` ya no muestra `Proximamente...`.
-- La vista muestra totales, administradores, usuarios activos y bloqueados.
-- Queda pendiente bloquear/desbloquear con auditoria.
+- Bloqueo y desbloqueo con motivo obligatorio.
+- Asignacion y revocacion de roles administrativos.
+- Auditoria transaccional de cambios de acceso y roles.
+- Proteccion del propio administrador y del ultimo administrador activo.
+- Persistencia PostgreSQL mediante PG16_0014 y PG16_0015.
+- Pruebas Go, componentes Vue y validacion funcional aprobadas.
+- Commit de implementacion: 484623e.
 
 ## ADMIN-003 - Implementar gestion de recursos
 
@@ -2425,7 +2428,7 @@ y no acredita un despliegue en produccion.
 
 Prioridad: P1
 Labels: `frontend`, `backend`, `admin`, `disponibilidad`
-Estado sugerido: Backlog
+Estado: CERRADO MVP3 - validacion funcional registrada (2026-10-20)
 
 ### Objetivo
 
@@ -2773,7 +2776,7 @@ Mostrar reportes iniciales desde vistas SQL.
 
 Prioridad: P1
 Labels: `frontend`, `backend`, `reportes`, `bug`, `codex-ready`, `mvp3`
-Estado sugerido: Ready for Codex
+Estado: CERRADO MVP3 - pruebas y validacion funcional (2026-10-24)
 
 ### Contexto
 
@@ -2794,17 +2797,25 @@ Hacer que cada indicador tenga una definicion funcional explicita y represente l
 
 ### Criterios de aceptacion
 
-- [ ] Una reserva finalizada no aumenta `Reservas activas`.
-- [ ] Reservas canceladas, rechazadas y expiradas no cuentan como uso activo.
-- [ ] Noventa minutos no se muestran como dos horas completas.
-- [ ] Todos los widgets que dicen usar reservas activas comparten el mismo conjunto.
-- [ ] El periodo y criterio de cada KPI son comprensibles para administracion.
-- [ ] `npm run build` pasa.
+- [x] Una reserva finalizada no aumenta `Reservas activas`.
+- [x] Reservas canceladas, rechazadas y expiradas no cuentan como uso activo.
+- [x] Noventa minutos no se muestran como dos horas completas.
+- [x] Todos los widgets que dicen usar reservas activas comparten el mismo conjunto.
+- [x] El periodo y criterio de cada KPI son comprensibles para administracion.
+- [x] `npm run build` pasa.
 
 ### Archivos relevantes
 
 - `frontend/src/views/ReportsView.vue`
 - `frontend/src/utils/reservationTime.js`
+
+
+### Evidencia de cierre
+
+- Implementacion: frontend/src/utils/reportMetrics.js.
+- Pruebas: frontend/src/utils/reportMetrics.test.js.
+- Documento: docs/mvp3/cierre-rep003-reportes.md.
+- Commit: 9a788ce.
 
 ## REP-002 - Implementar infracciones
 

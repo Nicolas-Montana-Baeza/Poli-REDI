@@ -52,7 +52,7 @@ La condicion `AT_RISK` permite que futuros incrementos de notificaciones reaccio
 | --- | --- | --- | --- |
 | MVP 1 | Base tecnica funcional | Dejar frontend, backend, base de datos, autenticacion, seguridad minima y demo online operando con datos reales. | Reabierto para pulido final |
 | MVP 2 | Flujo usuario completo | Permitir que un usuario normal consulte disponibilidad, solicite, confirme por participantes cuando corresponda, cancele y revise su informacion. | Avanzado; UX principal unificado |
-| MVP 3 | Administracion institucional | Completar calendario institucional, bloqueos, recursos y gestion administrativa. | Parcial |
+| MVP 3 | Administracion institucional | Completar calendario institucional, bloqueos, recursos y gestion administrativa. | Cerrado tecnicamente para prototipo (2026-10-24) |
 | MVP 4 | Entrega, calidad y soporte | Completar reportes, notificaciones, pruebas, documentacion y despliegue. | En desarrollo |
 
 ## MVP 1 - Base tecnica funcional
@@ -397,7 +397,7 @@ Convertir Poli-REDI en una herramienta administrable por la institucion, con cal
 
 ### Estado actual
 
-Parcial.
+CERRADO TECNICAMENTE para el alcance del prototipo MVP3 (2026-10-24). La validacion institucional y la preparacion para produccion quedan fuera de este cierre.
 
 ### Avances cerrados y validados
 
@@ -414,7 +414,7 @@ Parcial.
 - Filtros backend de recursos por sede, tipo y estado
   implementados y validados como parte de `ADMIN-003` (`API-001`).
 
-### Pendientes para cierre completo
+### Estado de modulos y seguimiento posterior
 
 - `ADMIN-006` cerrado para MVP3: administracion versionada,
   configuracion grupal, historial y UX/UI aprobados.
@@ -423,10 +423,10 @@ Parcial.
   programacion institucional, conflictos, resoluciones y
   notificaciones verificadas mediante pruebas y Funnel.
   Ratificacion institucional de EV-010 fuera del cierre tecnico.
-- Bloquear y desbloquear usuarios con auditoria (`ADMIN-002`).
+- `ADMIN-002` cerrado: gestion de accesos, roles y auditoria.
 - `API-005` implementado: autorizacion administrativa centralizada.
 - Completar reportes desde vistas SQL e infracciones si corresponde (`REP-001`).
-- Corregir definicion de reservas activas y precision de horas en indicadores (`REP-003`).
+- `REP-003` cerrado: reservas vigentes, duraciones exactas y reportes habilitados en MVP3.
 
 ### Evidencia de avance 2026-10-20
 
@@ -444,6 +444,24 @@ Parcial.
 
 Documento de auditoria:
 `docs/mvp3/admin005-auditoria-20261020.md`
+
+### Validacion integral del prototipo - 2026-10-24
+
+- Backend MVP3, PostgreSQL 16 y Caddy operativos.
+- Autenticacion de desarrollo deshabilitada.
+- Rutas administrativas protegidas.
+- Regresion funcional de los modulos administrativos confirmada por el responsable.
+- 43 pruebas de utilidades frontend aprobadas.
+- 73 pruebas de componentes Vue aprobadas.
+- Build de produccion frontend aprobado.
+- Publicacion GitHub verificada en feature/mvp3.
+
+Seguimientos fuera del cierre tecnico:
+- REP-001: ampliacion analitica e infracciones.
+- REP-002: modulo de infracciones.
+- NOTIF-001: evidencia especifica del ciclo completo de eventos, si aun no se ha registrado.
+- EV-010: ratificacion institucional.
+- Regresion y endurecimiento para produccion institucional.
 
 ### Criterio de cierre
 
