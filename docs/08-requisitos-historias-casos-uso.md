@@ -63,95 +63,175 @@ Responsabilidades principales:
 
 El sistema debe permitir ingreso mediante Microsoft Entra ID y, en ambiente de desarrollo, mediante autenticacion local controlada por variables de entorno.
 
-Estado actual: Implementado.
+**Estado vigente (2026-10-26):** Implementado y validado para el prototipo MVP3.
+
+**Implementación verificada en código:** Middleware Entra ID con validación JWT, issuer y audience; modo de desarrollo condicionado por DEV_AUTH_ENABLED.
+
+**Trazabilidad técnica:** `backend/internal/middleware/auth_middleware.go`; `backend/internal/routes/routes.go`.
+
+**Seguimiento:** No constituye una certificación de seguridad para producción institucional.
 
 ### RF-002 - Sincronizacion de usuario autenticado
 
 El sistema debe obtener o crear el usuario local asociado a la identidad autenticada.
 
-Estado actual: Implementado. La identidad Entra se asocia al usuario local y se sincronizan `oid` y tenant; falta validacion integrada/online del corte actual.
+**Estado vigente (2026-10-26):** Implementado, con deuda de seguridad pendiente.
+
+**Implementación verificada en código:** Creación y recuperación del usuario local por correo; sincronización de entra_oid y tenant_id.
+
+**Trazabilidad técnica:** `backend/internal/repositories/users_repoository.go`; `backend/internal/middleware/auth_middleware.go`.
+
+**Seguimiento:** SEC-006: comprobar vinculación estable mediante tenant_id y entra_oid antes de producción.
 
 ### RF-003 - Registro y validacion de RUT
 
 El sistema debe permitir que usuarios normales registren o actualicen su RUT, validando formato y digito verificador.
 
-Estado actual: Implementado.
+**Estado vigente (2026-10-26):** Implementado y validado funcionalmente.
+
+**Implementación verificada en código:** Registro y actualización del RUT mediante endpoint autenticado y validador de dígito verificador.
+
+**Trazabilidad técnica:** `backend/internal/handlers/me_handler.go`; `backend/internal/validators/rut.go`.
+
+**Seguimiento:** Sin brechas funcionales identificadas para el alcance MVP3.
 
 ### RF-004 - Bloqueo de reserva sin RUT
 
 El sistema debe impedir que usuarios normales sin RUT creen reservas.
 
-Estado actual: Implementado.
+**Estado vigente (2026-10-26):** Implementado y validado funcionalmente.
+
+**Implementación verificada en código:** El backend rechaza la creación de reservas de usuarios no administradores sin RUT habilitante.
+
+**Trazabilidad técnica:** `backend/internal/handlers/reservations_handlers.go`; `backend/internal/services/reservations_service.go`.
+
+**Seguimiento:** La validación del servidor es obligatoria; la interfaz no constituye el control de seguridad.
 
 ### RF-005 - Consulta de disponibilidad
 
 El sistema debe mostrar disponibilidad de recursos por fecha, considerando reservas existentes, talleres activos, actividades institucionales y bloqueos asociados al recurso.
 
-Estado actual: Implementado parcialmente. El endpoint sanitizado combina reservas con actividades institucionales y la UI suma talleres recurrentes; falta incorporar bloqueos y filtros backend por fecha/rango.
+**Estado vigente (2026-10-26):** Implementado y validado para el alcance MVP3.
 
-Pendiente relacionado: `RES-004`.
+**Implementación verificada en código:** Disponibilidad por rango, reservas, bloques administrativos y actividades institucionales programadas; sanitización de información personal.
+
+**Trazabilidad técnica:** `backend/internal/handlers/reservations_handlers.go`; `backend/internal/services/reservations_service.go`; `backend/internal/handlers/reservations_handlers_test.go`; `backend/internal/services/availability_blocks_calendar_integration_test.go`.
+
+**Seguimiento:** Se mantienen pendientes las evaluaciones de rendimiento y accesibilidad del calendario.
+
+**Referencias históricas:** `RES-004`. Su estado debe contrastarse con el backlog vigente.
 
 ### RF-006 - Creacion de reservas
 
 El sistema debe permitir crear solicitudes de reserva sobre recursos disponibles, asociadas al usuario autenticado y, opcionalmente, a una actividad. El servidor debe asignar el estado segun la politica del recurso, aplicar la restriccion semanal y aceptar para todos los recursos solo duraciones de 30, 60, 90, 120, 150 o 180 minutos dentro de la jornada institucional.
 
-Estado actual: Implementado con evidencia local e integracion PostgreSQL para el flujo grupal. La asociacion al usuario, el estado controlado por servidor, la zona `America/Santiago`, el catalogo de duraciones, la restriccion semanal, las transiciones y la expiracion bajo el minimo cuentan con implementacion. El cierre reproducible, manual y online se controla en `docs/15-checklist-cierre-mvp2.md`.
+**Estado vigente (2026-10-26):** Implementado, con pruebas técnicas y funcionales documentadas.
 
-Pendiente relacionado: `RES-008`, `RES-009`, `RES-010`, `RES-011`.
+**Implementación verificada en código:** Creación con usuario autenticado, políticas versionadas, duraciones permitidas, restricciones de frecuencia, reglas grupales y persistencia PostgreSQL.
+
+**Trazabilidad técnica:** `backend/internal/services/reservations_service.go`; `backend/internal/repositories/reservations_repository.go`; `backend/internal/services/reservations_service_test.go`; `backend/internal/services/group_reservation_integration_test.go`.
+
+**Seguimiento:** Conservar como seguimiento las comprobaciones manuales y de ambiente online aún no cerradas explícitamente en docs/15-checklist-cierre-mvp2.md.
+
+**Referencias históricas:** `RES-008`, `RES-009`, `RES-010`, `RES-011`. Su estado debe contrastarse con el backlog vigente.
 
 ### RF-007 - Validacion de conflictos de reserva
 
 El sistema debe rechazar reservas que se solapen con otras reservas confirmadas, talleres activos o reglas de disponibilidad. Los recursos `OPEN_USE` permiten concurrencia y no bloquean por reserva existente.
 
-Estado actual: Implementado parcialmente para reservas, talleres activos, bloqueos y actividades programadas. El servidor controla el estado inicial y la base protege conflictos concurrentes; falta mostrar bloqueos en disponibilidad y ampliar pruebas integradas.
+**Estado vigente (2026-10-26):** Implementado y validado técnicamente para MVP3.
 
-Pendiente relacionado: `RES-004`, `RES-010`, `ADMIN-004`.
+**Implementación verificada en código:** Restricciones de solapamiento entre reservas, bloqueos y programación institucional, con tratamiento específico de recursos OPEN_USE.
+
+**Trazabilidad técnica:** `database/postgres/migrations/PG16_0003_mvp1_invariants.sql`; `database/postgres/migrations/PG16_0006_mvp2_institutional_availability.sql`; `backend/internal/services/open_use_integration_test.go`; `backend/internal/services/availability_blocks_calendar_integration_test.go`.
+
+**Seguimiento:** Mantener pruebas de concurrencia y regresión ante futuras modificaciones de políticas.
+
+**Referencias históricas:** `RES-004`, `RES-010`, `ADMIN-004`. Su estado debe contrastarse con el backlog vigente.
 
 ### RF-008 - Cancelacion de reservas
 
 El sistema debe permitir cancelar reservas propias y permitir que administradores cancelen reservas segun permisos, siempre que el estado admita cancelacion y la reserva no haya finalizado segun la zona horaria institucional.
 
-Estado actual: Implementado. Propiedad, rol, estados cancelables, reserva finalizada y zona horaria se validan; el frontend utiliza confirmacion destructiva inline en el flujo compartido. La validacion integrada/online permanece como evidencia separada.
+**Estado vigente (2026-10-26):** Implementado, con validación técnica y funcional.
 
-Pendiente relacionado: `RES-009`, `RES-010`.
+**Implementación verificada en código:** Cancelación autorizada por propietario o administrador; comprobación de estado y finalización; transacción y notificación administrativa cuando corresponda.
+
+**Trazabilidad técnica:** `backend/internal/handlers/reservations_handlers.go`; `backend/internal/services/reservations_service.go`; `backend/internal/repositories/reservations_repository.go`.
+
+**Seguimiento:** Conservar seguimiento operativo de pruebas en el ambiente definitivo.
+
+**Referencias históricas:** `RES-009`, `RES-010`. Su estado debe contrastarse con el backlog vigente.
 
 ### RF-009 - Reservas por rol
 
 El sistema debe mostrar reservas con fecha, recurso, actividad, duracion y estado. Usuarios normales solo ven sus reservas; administradores pueden ver todas las reservas.
 
-Estado actual: Implementado.
+**Estado vigente (2026-10-26):** Implementado y validado para el prototipo.
+
+**Implementación verificada en código:** Consulta de reservas propias y listado global restringido a administradores.
+
+**Trazabilidad técnica:** `backend/internal/routes/routes.go`; `backend/internal/handlers/reservations_handlers.go`; `backend/internal/repositories/reservations_repository.go`.
+
+**Seguimiento:** Mantener pruebas de autorización por rol.
 
 ### RF-010 - Historial por rol
 
 El sistema debe mostrar reservas pasadas, canceladas o finalizadas. Usuarios normales solo ven su historial; administradores pueden ver todo el historial.
 
-Estado actual: Implementado. Historial usa datos reales, filtros por estado/fecha y acceso al detalle segun rol.
+**Estado vigente (2026-10-26):** Implementado para el alcance MVP3.
+
+**Implementación verificada en código:** Consulta de historial y detalle según propiedad de reserva o rol administrativo, con presentación de estados y fechas.
+
+**Trazabilidad técnica:** `backend/internal/services/reservations_service.go`; `backend/internal/repositories/reservations_repository.go`; `frontend/src/views/ReservationsView.vue`.
+
+**Seguimiento:** La paginación y el rendimiento con grandes volúmenes quedan sujetos a evaluación posterior.
 
 ### RF-011 - Catalogo de recursos
 
 El sistema debe mostrar recursos deportivos con datos reales e imagen configurable cuando exista.
 
-Estado actual: Implementado.
+**Estado vigente (2026-10-26):** Implementado y validado funcionalmente.
+
+**Implementación verificada en código:** Catálogo real de recursos PostgreSQL, con imagen configurable y modos operativos.
+
+**Trazabilidad técnica:** `backend/internal/handlers/resources_handlers.go`; `backend/internal/repositories/resources_repository.go`; `frontend/src/views/ResourcesView.vue`.
+
+**Seguimiento:** La administración completa del inventario se traza separadamente en RF-014 y RF-024.
 
 ### RF-012 - Panel administrador
 
 El sistema debe mostrar un panel administrativo solo a usuarios administradores.
 
-Estado actual: Implementado.
+**Estado vigente (2026-10-26):** Implementado y validado para el prototipo MVP3.
+
+**Implementación verificada en código:** Panel de administración, rutas frontend protegidas y autorización administrativa verificada en backend.
+
+**Trazabilidad técnica:** `frontend/src/views/AdminView.vue`; `frontend/src/router/index.js`; `backend/internal/middleware/auth_middleware.go`; `backend/internal/routes/admin_authorization_http_test.go`.
+
+**Seguimiento:** Mantener las verificaciones de permisos en toda ruta administrativa nueva.
 
 ### RF-013 - Gestion de usuarios
 
 El sistema debe permitir a administradores listar usuarios y, en futuras iteraciones, bloquear o desbloquear cuentas.
 
-Estado actual: Implementado parcialmente.
+Estado documentado previamente (histórico): Implementado parcialmente.
 
-Pendiente relacionado: `ADMIN-002`.
+Referencias históricas de backlog: `ADMIN-002`.
+
+**Estado vigente (2026-10-26):** Implementado y validado para MVP3.
+
+**Implementación identificada:** Gestión de usuarios, bloqueo/desbloqueo, roles y auditoría.
+
+**Evidencia y trazabilidad:** `docs/mvp3/cierre-admin002-usuarios.md`; `backend/internal/handlers/admin_users_handlers.go`; `backend/internal/handlers/admin_user_roles_handlers.go`
+
+**Seguimiento:** ADMIN-002 cerrado. Revisar la vinculación de identidad Entra (SEC-006).
 
 ### RF-014 - Gestion de recursos
 
 El sistema debe permitir que administradores creen, editen, activen o desactiven los recursos del inventario oficial. Los ocho recursos actuales constituyen la linea base aprobada y los cambios deben reflejarse en catalogo y disponibilidad.
 
-Estado actual: IMPLEMENTADO PARCIALMENTE. Imagen, modo,
+Estado documentado previamente (histórico): IMPLEMENTADO PARCIALMENTE. Imagen, modo,
 capacidad y estado activo/inactivo ya cuentan con implementacion.
 Creacion, edicion completa y asignacion administrativa de sede
 permanecen pendientes.
@@ -160,59 +240,115 @@ Refinamiento aprobado 2026-10-13: EV-012 amplia el alcance
 de RF-014 para incorporar alta, edicion integral, reasignacion
 de sede y desactivacion sin eliminacion fisica.
 
-Pendiente relacionado: `ADMIN-003`.
+Referencias históricas de backlog: `ADMIN-003`.
+
+**Estado vigente (2026-10-26):** Implementado para MVP3; parcial respecto del alcance ampliado.
+
+**Implementación identificada:** Creación, edición, desactivación y filtros de recursos.
+
+**Evidencia y trazabilidad:** `backend/internal/handlers/resources_handlers.go`; `backend/internal/repositories/resources_repository.go`; `frontend/src/views/ResourcesView.vue`
+
+**Seguimiento:** ADMIN-003 cerrado para MVP3. Trasladar recursos existentes entre sedes sigue fuera del alcance implementado.
 
 ### RF-015 - Bloqueos de disponibilidad
 
 El sistema debe permitir que administradores creen bloqueos por mantencion, cierre, evento u otro motivo.
 
-Estado actual: Pendiente.
+Estado documentado previamente (histórico): Pendiente.
 
-Pendiente relacionado: `ADMIN-004`.
+Referencias históricas de backlog: `ADMIN-004`.
+
+**Estado vigente (2026-10-26):** Implementado y validado para MVP3.
+
+**Implementación identificada:** Creación, consulta y desactivación de bloqueos, con integración al calendario.
+
+**Evidencia y trazabilidad:** `docs/mvp3/cierre-4d-bloqueos.md`; `backend/internal/handlers/availability_blocks_admin_handlers.go`; `backend/internal/services/availability_blocks_calendar_integration_test.go`
+
+**Seguimiento:** ADMIN-004 cerrado; mantener pruebas de concurrencia y regresión.
 
 ### RF-016 - Programacion institucional
 
 El sistema debe permitir registrar clases, talleres, eventos, campeonatos o entrenamientos institucionales.
 
-Estado actual: IMPLEMENTADO PARCIAL. El backend MVP 2 permite crear programacion institucional asociada a unidades y recursos, con autorizacion para administradores o gestores de unidad, tipos estructurados y horarios `SINGLE` o `WEEKLY`. Existen pruebas de integracion sobre persistencia, recurrencia, disponibilidad y bloqueos administrativos. Permanecen pendientes el cierre de interfaz y la validacion funcional completa del flujo institucional.
+Estado documentado previamente (histórico): IMPLEMENTADO PARCIAL. El backend MVP 2 permite crear programacion institucional asociada a unidades y recursos, con autorizacion para administradores o gestores de unidad, tipos estructurados y horarios `SINGLE` o `WEEKLY`. Existen pruebas de integracion sobre persistencia, recurrencia, disponibilidad y bloqueos administrativos. Permanecen pendientes el cierre de interfaz y la validacion funcional completa del flujo institucional.
 
-Pendiente relacionado: `ADMIN-005`.
+Referencias históricas de backlog: `ADMIN-005`.
+
+**Estado vigente (2026-10-26):** Implementado para el prototipo MVP3.
+
+**Implementación identificada:** Programación institucional, recurrencia, edición y autorización de gestores.
+
+**Evidencia y trazabilidad:** `backend/internal/services/institutional_activities_service.go`; `frontend/src/views/InstitutionalActivitiesView.vue`; `backend/internal/services/institutional_activities_integration_test.go`
+
+**Seguimiento:** ADMIN-005 cerrado para el prototipo; EV-010 continúa pendiente de ratificación institucional.
 
 ### RF-017 - Notificaciones
 
 El sistema debe mostrar notificaciones reales del usuario.
 
-Estado actual: Implementado parcialmente.
+Estado documentado previamente (histórico): Implementado parcialmente.
 
-Pendiente relacionado: `NOTIF-001`.
+Referencias históricas de backlog: `NOTIF-001`.
+
+**Estado vigente (2026-10-26):** Implementado en el prototipo; evidencia integral pendiente de consolidación.
+
+**Implementación identificada:** Notificaciones persistidas, consulta, marcado como leídas y eventos institucionales.
+
+**Evidencia y trazabilidad:** `backend/internal/repositories/notifications_repository.go`; `backend/internal/handlers/notifications_handlers.go`; `frontend/src/components/layout/NotificationBell.vue`
+
+**Seguimiento:** NOTIF-001: consolidar evidencia del ciclo completo de generación y recepción.
 
 ### RF-018 - Reportes
 
 El sistema debe mostrar indicadores de uso, horas punta y datos administrativos.
 
-Estado actual: Implementado parcialmente.
+Estado documentado previamente (histórico): Implementado parcialmente.
 
-Pendiente relacionado: `REP-001`, `REP-002`, `REP-003`.
+Referencias históricas de backlog: `REP-001`, `REP-002`, `REP-003`.
+
+**Estado vigente (2026-10-26):** Parcial: REP-003 cerrado; REP-001 y REP-002 pendientes.
+
+**Implementación identificada:** Indicadores de reservas vigentes, duraciones y utilización de recursos.
+
+**Evidencia y trazabilidad:** `docs/mvp3/cierre-rep003-reportes.md`; `frontend/src/utils/reportMetrics.js`; `frontend/src/views/ReportsView.vue`
+
+**Seguimiento:** Completar analítica adicional y módulo de infracciones en MVP4.
 
 ### RF-019 - Talleres deportivos
 
 El sistema debe permitir que usuarios autenticados consulten talleres activos e inscribirse cuando tengan RUT y existan cupos.
 
-Estado actual: Implementado.
+Estado documentado previamente (histórico): Implementado.
+
+**Estado vigente (2026-10-26):** Implementado con pruebas de integración.
+
+**Implementación identificada:** Consulta de talleres institucionales e inscripción de usuarios autorizados.
+
+**Evidencia y trazabilidad:** `backend/internal/services/institutional_workshops_service.go`; `backend/internal/services/institutional_workshops_integration_test.go`
+
+**Seguimiento:** Conservar pruebas funcionales sobre cupos, inscripciones y retiros.
 
 ### RF-020 - Restriccion semanal de reservas particulares
 
 El sistema debe limitar las fechas reservables al periodo institucional configurado y evitar que un usuario cree mas de una solicitud dentro del periodo contado desde la fecha local de creacion de su solicitud anterior. `PENDING` y `CONFIRMED` consumen la oportunidad; `CANCELLED` deja de consumirla. Con siete dias, un martes permite elegir hasta el lunes siguiente y una solicitud creada ese martes permite volver a solicitar desde el martes posterior.
 
-Estado actual: APROBADO e IMPLEMENTADO. La verificacion del 2026-07-21 corresponde a la etapa Azure SQL y se conserva como evidencia historica. La arquitectura vigente PostgreSQL cuenta con pruebas locales/de integracion; permanece pendiente el cierre integral del ambiente objetivo y la concurrencia de punta a punta donde corresponda.
+Estado documentado previamente (histórico): APROBADO e IMPLEMENTADO. La verificacion del 2026-07-21 corresponde a la etapa Azure SQL y se conserva como evidencia historica. La arquitectura vigente PostgreSQL cuenta con pruebas locales/de integracion; permanece pendiente el cierre integral del ambiente objetivo y la concurrencia de punta a punta donde corresponda.
 
-Pendiente relacionado: `RES-012`.
+Referencias históricas de backlog: `RES-012`.
+
+**Estado vigente (2026-10-26):** Implementado con validaciones PostgreSQL.
+
+**Implementación identificada:** Frecuencia de solicitudes, ventanas configurables y estados que consumen oportunidad.
+
+**Evidencia y trazabilidad:** `backend/internal/repositories/reservations_repository.go`; `backend/internal/services/reservations_service.go`
+
+**Seguimiento:** Conservar seguimiento de regresión y cierre operativo del flujo grupal.
 
 ### RF-021 - Confirmacion de participantes minimos
 
 El sistema debe registrar participantes unicos, incluido el solicitante, y aplicar el minimo versionado del recurso. El valor inicial es 10 para Cancha 1, Cancha 2 y Sala Multiuso. Todos los participantes deben tener cuenta. Altas y retiros se aceptan antes del deadline configurable de 60 minutos y se cierran al alcanzarlo.
 
-Estado actual: APROBADO e IMPLEMENTADO; cierre integral 14D pendiente.
+Estado documentado previamente (histórico): APROBADO e IMPLEMENTADO; cierre integral 14D pendiente.
 
 Implementado actualmente:
 
@@ -231,7 +367,15 @@ Pendiente de cierre:
 - completar la evidencia manual de liberacion del horario tras `MINIMUM_NOT_MET`;
 - ejecutar la cadena efimera y el smoke test online definidos para el cierre MVP2.
 
-Pendiente relacionado: `RES-008`.
+Referencias históricas de backlog: `RES-008`.
+
+**Estado vigente (2026-10-26):** Implementado, con evidencia manual de cierre aún por conciliar.
+
+**Implementación identificada:** Participantes autenticados, mínimo por recurso, capacidad y confirmación.
+
+**Evidencia y trazabilidad:** `backend/internal/repositories/participants_repository.go`; `backend/internal/repositories/participants_repository_integration_test.go`
+
+**Seguimiento:** Conciliar las comprobaciones pendientes de docs/15-checklist-cierre-mvp2.md.
 
 ### RF-022 - Estado y condicion grupal segun politica del recurso
 
@@ -247,13 +391,25 @@ Para recursos sujetos a confirmacion grupal:
 - si alcanza el plazo limite bajo el minimo, debe cancelarse conforme a la politica, liberar el horario y dejar de consumir la oportunidad semanal;
 - los recursos `OPEN_USE` no requieren confirmacion grupal.
 
-Estado actual: APROBADO e IMPLEMENTADO PARCIAL.
+Estado documentado previamente (histórico): APROBADO e IMPLEMENTADO PARCIAL.
 
 La creacion `PENDING`, persistencia de participantes, transicion al minimo, condicion `AT_RISK` y vencimiento automatico `MINIMUM_NOT_MET` estan implementados. La comprobacion manual de liberacion y la evidencia online permanecen abiertas; los generadores generales de notificaciones estan fuera de este cierre.
 
 Decision refinada el 2026-08-20: reemplaza la regla anterior que hacia regresar una reserva ya confirmada a `PENDING`.
 
-Pendiente relacionado: `RES-008`, `RES-010`, `NOTIF-001`.
+Referencias históricas de backlog: `RES-008`, `RES-010`, `NOTIF-001`.
+
+**Estado vigente (2026-10-26):** Implementado parcialmente respecto del requisito completo. El vencimiento automático MINIMUM_NOT_MET solo se aplica a reservas PENDING.
+
+**Implementación identificada:** Estados PENDING y CONFIRMED, condiciones HEALTHY y AT_RISK, y vencimiento.
+
+**Evidencia y trazabilidad:** `backend/internal/services/participants_service.go`; `backend/internal/repositories/reservation_expiration_integration_test.go`
+
+**Seguimiento:** Verificar evidencia manual de liberación de horario y resultados del ambiente objetivo.
+
+**Brecha funcional y normativa identificada:** La definición de RF-022 contempla cancelar una reserva bajo el mínimo al alcanzar el deadline. Sin embargo, `ExpirePendingGroupReservations` solo cancela solicitudes `PENDING`. Una reserva previamente confirmada que pasa a `CONFIRMED + AT_RISK` no se cancela por este proceso. El comportamiento coincide con `docs/06-flujo-reservas.md`, pero requiere reconciliación con RF-022.
+
+**Decisión pendiente:** Formalizar si `CONFIRMED + AT_RISK` debe conservarse o cancelarse al deadline. No declarar cumplimiento completo hasta resolver esta diferencia.
 
 ### RF-023 - Resolucion de conflictos institucionales
 
@@ -293,26 +449,42 @@ Las tres vistas ADMIN-005 aprobaron 18/18 pruebas Vue. La cancelacion y notifica
 
 **Estado normativo:** RF-023/v2 fue adoptado provisionalmente por el responsable del proyecto para MVP3. Los responsables institucionales manifiestan una preferencia preliminar por esta version, pero no existe ratificacion definitiva. RF-023/v1 se conserva como antecedente historico. EV-010 permanece abierto exclusivamente para su formalizacion institucional y las definiciones operativas pendientes, documentadas en `docs/14-evolucion-y-trazabilidad-requisitos.md`.
 
-Pendiente relacionado: `ADMIN-005`, `RES-004`, `NOTIF-001`.
+Referencias históricas de backlog: `ADMIN-005`, `RES-004`, `NOTIF-001`.
+
+**Estado vigente (2026-10-26):** Implementado bajo RF-023/v2 provisional; pendiente ratificación EV-010.
+
+**Implementación identificada:** Detección de conflictos y resolución administrativa con persistencia y notificaciones.
+
+**Evidencia y trazabilidad:** `backend/internal/services/scheduling_conflict_resolution_service.go`; `backend/internal/services/scheduling_conflict_resolution_integration_test.go`
+
+**Seguimiento:** Conservar RF-023/v1 como antecedente; no declarar ratificación institucional definitiva.
 
 ### RF-024 - Inventario oficial administrable
 
 El sistema debe permitir que el administrador mantenga el inventario oficial inicial de ocho recursos en el MVP administrativo correspondiente, conservando el historial aplicable.
 
-Estado actual: APROBADO; IMPLEMENTADO PARCIALMENTE.
+Estado documentado previamente (histórico): APROBADO; IMPLEMENTADO PARCIALMENTE.
 Existe consulta y actualizacion de imagen, modo, capacidad y estado.
 EV-012 (2026-10-13) amplia el inventario administrable para
 permitir crear recursos y asociarlos a sedes, conservando historial.
 
-Pendiente relacionado: `ADMIN-003`.
+Referencias históricas de backlog: `ADMIN-003`.
+
+**Estado vigente (2026-10-26):** Implementado para el alcance MVP3.
+
+**Implementación identificada:** Inventario administrable con sedes, recursos, filtros y preservación de historial.
+
+**Evidencia y trazabilidad:** `frontend/src/views/ResourcesView.vue`; `backend/internal/repositories/resources_create_repository.go`
+
+**Seguimiento:** ADMIN-003 cerrado; traslado entre sedes fuera de MVP3.
 
 ### RF-025 - Configuracion administrativa de politicas de reserva
 
 El sistema debe permitir exclusivamente a usuarios con rol administrador publicar nuevas versiones del periodo de reserva, el plazo previo de confirmacion y los recursos sujetos a confirmacion grupal. Los cambios normales son prospectivos y cada solicitud conserva la version vigente al crearse. Excepcionalmente, el administrador puede migrar solicitudes futuras `PENDING` o `CONFIRMED` seleccionadas a otra version mediante simulacion, motivo obligatorio, confirmacion, aplicacion atomica y auditoria; la operacion no edita versiones historicas ni cancela solicitudes implicitamente.
 
-Estado actual: APROBADO e IMPLEMENTADO para el bloque funcional MVP2. La publicacion prospectiva, permisos, idempotencia, minimo por recurso, snapshot, participantes, transiciones, solapes personales y expiracion cuentan con evidencia local. Permanecen pendientes la compuerta 14D completa, la prueba manual y el ambiente online; la interfaz administrativa y las correcciones excepcionales no pertenecen a este cierre.
+Estado documentado previamente (histórico): APROBADO e IMPLEMENTADO para el bloque funcional MVP2. La publicacion prospectiva, permisos, idempotencia, minimo por recurso, snapshot, participantes, transiciones, solapes personales y expiracion cuentan con evidencia local. Permanecen pendientes la compuerta 14D completa, la prueba manual y el ambiente online; la interfaz administrativa y las correcciones excepcionales no pertenecen a este cierre.
 
-Pendiente relacionado: `ADMIN-006`.
+Referencias históricas de backlog: `ADMIN-006`.
 
 Definición incremental de MVP3 (3C):
 
@@ -330,6 +502,14 @@ Definición incremental de MVP3 (3C):
   pero se implementará en un incremento posterior a 3C.
 
 <!-- EV-012 2026-10-13 -->
+
+**Estado vigente (2026-10-26):** Implementado para ADMIN-006; parcial frente al requisito completo.
+
+**Implementación identificada:** Políticas prospectivas versionadas, idempotencia, edición administrativa e historial.
+
+**Evidencia y trazabilidad:** `backend/internal/repositories/reservation_policies_repository.go`; `frontend/src/views/PolicyAdministrationView.vue`
+
+**Seguimiento:** La corrección excepcional de reservas existentes continúa pendiente de planificación.
 
 ### RF-026 - Administracion integral de sedes
 
@@ -350,8 +530,16 @@ Criterios de aceptacion:
 - Solo administradores modifican sedes.
 
 Estado: APROBADO por EV-012 el 2026-10-13.
-Implementacion: PENDIENTE.
+Implementación registrada anteriormente: PENDIENTE.
 Dependencias: RF-014, RF-024, ADMIN-003.
+
+**Estado vigente (2026-10-26):** Implementado y validado para el alcance MVP3.
+
+**Implementación identificada:** Administración de sedes, ubicación, coordenadas y desactivación controlada.
+
+**Evidencia y trazabilidad:** `backend/internal/handlers/venues_handlers.go`; `backend/internal/repositories/venues_repository.go`; `frontend/src/components/resources/VenuesAdminPanel.vue`
+
+**Seguimiento:** ADMIN-003 cerrado; búsqueda avanzada de sedes diferida a V2.
 
 ## Requisitos no funcionales
 
@@ -359,17 +547,49 @@ Dependencias: RF-014, RF-024, ADMIN-003.
 
 Las rutas protegidas deben requerir token Bearer o mecanismo local de desarrollo explicitamente habilitado.
 
+**Estado vigente (2026-10-26):** Implementado para el prototipo; endurecimiento pendiente.
+
+**Implementación y evidencia:** Autenticación JWT, rutas protegidas y autorización administrativa.
+
+**Trazabilidad técnica:** `backend/internal/middleware/auth_middleware.go`; `backend/internal/routes/admin_authorization_http_test.go`
+
+**Seguimiento:** SEC-005, SEC-006 y comprobaciones de seguridad productiva.
+
 ### RNF-002 - No exposicion de secretos
 
 Las credenciales reales no deben guardarse en archivos versionados ni en documentacion.
+
+**Estado vigente (2026-10-26):** Por verificar integralmente.
+
+**Implementación y evidencia:** Configuración privada documentada fuera del repositorio.
+
+**Trazabilidad técnica:** `README.md`; `docs/10-guia-redeploy.md`
+
+**Seguimiento:** Ejecutar revisión de secretos en Git, configuración y logs.
 
 ### RNF-003 - Trazabilidad
 
 Las tareas completadas, parciales o nuevas deben reflejarse en `docs/07-backlog.md`.
 
+**Estado vigente (2026-10-26):** Cumplimiento parcial.
+
+**Implementación y evidencia:** Backlog y documentos de cierre registran avances y pruebas.
+
+**Trazabilidad técnica:** `docs/07-backlog.md`; `docs/mvp3/cierre-mvp3-prototipo.md`
+
+**Seguimiento:** Sincronizar estados históricos con el cierre MVP3.
+
 ### RNF-004 - Documentacion viva
 
 La carpeta `docs/` debe actualizarse cuando cambien arquitectura, instalacion, base de datos, frontend, backend, flujo de reservas, requisitos o backlog.
+
+**Estado vigente (2026-10-26):** Cumplimiento parcial.
+
+**Implementación y evidencia:** Existen documentos técnicos, pero algunos conservan información antigua.
+
+**Trazabilidad técnica:** `docs/02-arquitectura.md`; `docs/03-base-de-datos.md`; `docs/10-guia-redeploy.md`
+
+**Seguimiento:** Actualizar arquitectura, instalación, base de datos y despliegue.
 
 ### RNF-005 - Validacion tecnica minima
 
@@ -386,39 +606,103 @@ npm run build
 
 Las pruebas actuales cubren reglas temporales y de agenda, pero no constituyen cobertura completa de componentes, permisos ni integracion. Si no se pueden ejecutar pruebas, debe registrarse el motivo y no declararse el requisito como verificado.
 
+**Estado vigente (2026-10-26):** Implementado como proceso de validación; cobertura integral pendiente.
+
+**Implementación y evidencia:** Pruebas backend, frontend, PostgreSQL y compilación Vite documentadas.
+
+**Trazabilidad técnica:** `docs/mvp3/cierre-mvp3-prototipo.md`; `backend/internal/services/group_reservation_integration_test.go`; `frontend/src/utils/reportMetrics.test.js`
+
+**Seguimiento:** Añadir CI y ampliar pruebas de seguridad, accesibilidad e integración.
+
 ### RNF-006 - Compatibilidad local
 
 El proyecto debe poder ejecutarse localmente con backend Go/Fiber, frontend Vue/Vite y PostgreSQL 16 configurado. El provisionamiento automatico MVP2 debe aplicar las migraciones PostgreSQL requeridas antes de habilitar `MVP_SCOPE=mvp2`.
+
+**Estado vigente (2026-10-26):** Validado para el alcance de instalación local MVP2.
+
+**Implementación y evidencia:** Provisionamiento PostgreSQL y pruebas sobre entornos efímeros.
+
+**Trazabilidad técnica:** `infra/local/quadlet/install.sh`; `infra/local/quadlet/verify-mvp2-ephemeral.sh`
+
+**Seguimiento:** Actualizar instalación reproducible hasta las migraciones MVP3.
 
 ### RNF-007 - Usabilidad
 
 La interfaz debe mostrar estados de carga, error y vacio en flujos principales.
 
+**Estado vigente (2026-10-26):** Implementado parcialmente; validación transversal pendiente.
+
+**Implementación y evidencia:** Las vistas utilizan estados operativos de carga y error.
+
+**Trazabilidad técnica:** `frontend/src/views/ReportsView.vue`; `frontend/src/stores/reservations.js`
+
+**Seguimiento:** Verificar estados vacíos, errores y navegación en flujos críticos.
+
 ### RNF-008 - Minimizacion de datos visibles
 
 La disponibilidad para usuarios normales debe exponer solo la informacion necesaria para identificar horarios ocupados, evitando entregar datos internos o personales de reservas ajenas.
+
+**Estado vigente (2026-10-26):** Implementado en disponibilidad; auditoría global pendiente.
+
+**Implementación y evidencia:** El backend oculta identificadores y datos personales ajenos.
+
+**Trazabilidad técnica:** `backend/internal/handlers/reservations_handlers.go`; `backend/internal/services/reservations_service.go`
+
+**Seguimiento:** Ampliar pruebas de privacidad y minimizar respuestas no necesarias.
 
 ### RNF-009 - Accesibilidad basica
 
 Los flujos criticos deben poder operarse con controles claros, mensajes de estado comprensibles y modales con comportamiento accesible basico.
 
+**Estado vigente (2026-10-26):** Cumplimiento parcial.
+
+**Implementación y evidencia:** Existen controles y etiquetas accesibles, pero faltan pruebas de teclado y modales.
+
+**Trazabilidad técnica:** `frontend/src/components/forms/ReservationForm.vue`; `frontend/src/components/availability/CalendarToolbar.vue`
+
+**Seguimiento:** Cerrar BACK-022 y validar foco, Escape y lectores de pantalla.
+
 ### RNF-010 - Consistencia temporal
 
 Frontend, backend y base de datos deben aplicar una unica zona horaria de negocio y un contrato explicito de serializacion. Las reglas de pasado, en curso, futuro y cancelacion no deben depender de la zona local del servidor.
 
-Estado actual: Implementado y verificado localmente; pendiente validacion integrada/online.
+Estado documentado previamente (histórico): Implementado y verificado localmente; pendiente validacion integrada/online.
+
+**Estado vigente (2026-10-26):** Implementado y verificado localmente; validación final pendiente.
+
+**Implementación y evidencia:** Reloj de negocio y utilidades de serialización temporal.
+
+**Trazabilidad técnica:** `backend/internal/businessclock/clock.go`; `backend/internal/businessclock/clock_test.go`; `frontend/src/utils/reservationTime.js`
+
+**Seguimiento:** Completar regresión integrada y pruebas en entorno objetivo.
 
 ### RNF-011 - Errores publicos seguros
 
 Las respuestas HTTP deben entregar codigos y mensajes publicos estables sin incluir errores internos de SQL, JWT, JWKS o configuracion. El diagnostico tecnico debe permanecer en logs sanitizados.
 
-Pendiente relacionado: `SEC-005`.
+Referencia de seguimiento: `SEC-005`.
+
+**Estado vigente (2026-10-26):** No cumple íntegramente; brecha confirmada.
+
+**Implementación y evidencia:** Algunos handlers incluyen err.Error() en respuestas HTTP.
+
+**Trazabilidad técnica:** `backend/internal/handlers/reservations_handlers.go`; `backend/internal/handlers/activities_handlers.go`
+
+**Seguimiento:** SEC-005: eliminar detalles internos de respuestas públicas y añadir pruebas.
 
 ### RNF-012 - Responsive transversal
 
 El shell, header, sidebar, dropdowns y modales deben mantenerse operables sin superposiciones desde 320 px y no dejar controles ocultos dentro del orden de tabulacion.
 
-Pendiente relacionado: `BACK-021`, `BACK-022`.
+Referencia de seguimiento: `BACK-021`, `BACK-022`.
+
+**Estado vigente (2026-10-26):** Cumplimiento parcial.
+
+**Implementación y evidencia:** Diseño responsive existente, pero falta cerrar criterios de 320 px y teclado.
+
+**Trazabilidad técnica:** `frontend/src/components/layout/Sidebar.vue`; `frontend/src/components/layout/NotificationBell.vue`
+
+**Seguimiento:** Cerrar BACK-021 y BACK-022 con evidencia visual y funcional.
 
 ## Historias de usuario
 
