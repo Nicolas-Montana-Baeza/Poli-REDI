@@ -3,6 +3,38 @@
 
 > **Nota EV-011 (2026-08-20):** este backlog contiene tareas cerradas durante la etapa Azure SQL de julio de 2026. Esas entradas se conservan como evidencia historica y no deben reinterpretarse como arquitectura vigente. PostgreSQL 16 es ahora la fuente de verdad. Las tareas nuevas deben usar migraciones `PG16_*`; los restos T-SQL se consideran deuda de migracion.
 
+## Estado vigente consolidado - 2026-10-27
+
+Este corte se basa en la implementacion MVP3 y los documentos
+de cierre del prototipo.
+
+**Documento principal de cierre técnico:**
+`docs/mvp3/cierre-mvp3-prototipo.md`. Las secciones historicas y los
+criterios de aceptacion originales se conservan como
+antecedentes de trazabilidad.
+
+**Cerrado tecnicamente para MVP3:**
+`ADMIN-001`, `ADMIN-002`, `ADMIN-003`, `ADMIN-004`,
+`ADMIN-005`, `ADMIN-006` y `REP-003`.
+
+**Implementado, con evidencia o verificaciones adicionales
+pendientes:** `RES-008`, `RES-009`, `RES-010`, `RES-011`,
+`API-004`, `API-006`, `NOTIF-001`, `QA-001`, `QA-002`.
+
+**Pendientes prioritarios de MVP4:**
+`SEC-005`, `SEC-006`, `BACK-021`, `BACK-022`,
+`REP-001`, `REP-002`, `OPS-001` y `INFRA-007`,
+segun el alcance y las decisiones pendientes.
+
+El cierre MVP3 no certifica un despliegue de produccion
+institucional.
+
+**Advertencia de identificadores:** `BACK-024` aparece dos
+veces en este backlog: una tarea de instalacion frontend y
+otra de retiro SQL Server legacy. Se conservan ambas
+entradas por trazabilidad, pendientes de desambiguacion
+controlada. No usar solo `BACK-024` sin indicar su titulo.
+
 ## Objetivo
 Este backlog consolida las tareas reales detectadas durante la revision inicial, la migracion a Azure SQL Database y las primeras pruebas funcionales del frontend/backend.
 
@@ -968,7 +1000,13 @@ Agregar un archivo SQL temporal que pueda ejecutarse despues del seed normal par
 
 Prioridad: P1
 Labels: `frontend`, `ux`, `reservas`, `recursos`, `bug`, `codex-ready`, `mvp1`
-Estado actual: En revision
+Estado registrado previamente (historico): En revision
+
+**Estado vigente (2026-10-27):** Pendiente de verificacion funcional final.
+
+**Evidencia vigente:** Existen reglas de elegibilidad en backend y controles de recursos.
+
+**Seguimiento:** Confirmar bloqueo visual y teclado para todos los modos.
 
 ### Contexto
 
@@ -1014,7 +1052,13 @@ Reflejar en la interfaz la misma elegibilidad que aplica el backend, manteniendo
 
 Prioridad: P1
 Labels: `frontend`, `ux`, `responsive`, `accessibility`, `layout`, `codex-ready`, `mvp1`
-Estado sugerido: Ready for Codex
+Estado registrado previamente (historico): Ready for Codex
+
+**Estado vigente (2026-10-27):** Pendiente de cierre.
+
+**Evidencia vigente:** Brechas de responsive y orden de tabulacion identificadas.
+
+**Seguimiento:** Verificar 320, 360, 611, 768 y 1440 px.
 
 ### Contexto
 
@@ -1055,7 +1099,13 @@ Hacer que el layout compartido sea estable, operable y coherente en todas las pa
 
 Prioridad: P1
 Labels: `frontend`, `ux`, `accessibility`, `reservas`, `codex-ready`, `mvp1`
-Estado sugerido: Ready for Codex
+Estado registrado previamente (historico): Ready for Codex
+
+**Estado vigente (2026-10-27):** Pendiente de cierre.
+
+**Evidencia vigente:** Accesibilidad de modales y calendario requiere validacion transversal.
+
+**Seguimiento:** Validar foco, Escape, teclado, etiquetas y anuncios.
 
 ### Contexto
 
@@ -1480,7 +1530,13 @@ Asegurar que la disponibilidad muestre solo los items recibidos para el dia sele
 
 Prioridad: P1
 Labels: `frontend`, `backend`, `disponibilidad`, `database`, `codex-ready`, `mvp3`
-Estado sugerido: Partially Done
+Estado registrado previamente (historico): Partially Done
+
+**Estado vigente (2026-10-27):** Implementado para disponibilidad del prototipo.
+
+**Evidencia vigente:** La API integra reservas, bloqueos y programacion institucional.
+
+**Seguimiento:** Mantener regresion y revisar criterios historicos.
 
 ### Contexto
 
@@ -1647,7 +1703,13 @@ Permitir cancelar reservas desde la interfaz usando el usuario autenticado.
 
 Prioridad: P0
 Labels: `frontend`, `backend`, `database`, `reservas`, `ux`, `needs-architecture`, `mvp2`
-Estado sugerido: Partially Done
+Estado registrado previamente (historico): Partially Done
+
+**Estado vigente (2026-10-27):** Implementado parcialmente respecto del alcance normativo completo.
+
+**Evidencia vigente:** Participantes, PENDING, CONFIRMED, AT_RISK y vencimiento de PENDING implementados.
+
+**Seguimiento:** Evidencia manual pendiente y discrepancia RF-022.
 
 ### Contexto
 
@@ -1725,7 +1787,13 @@ Las reglas administrativas de politica siguen aplicandose prospectivamente a sol
 
 Prioridad: P0
 Labels: `backend`, `frontend`, `database`, `reservas`, `timezone`, `bug`, `codex-ready`, `mvp1`
-Estado actual: En revision
+Estado registrado previamente (historico): En revision
+
+**Estado vigente (2026-10-27):** Implementado y probado localmente.
+
+**Evidencia vigente:** Contrato temporal de negocio America/Santiago.
+
+**Seguimiento:** Completar verificacion integrada en entorno objetivo.
 
 ### Contexto
 
@@ -1777,7 +1845,13 @@ Aplicar una unica zona horaria de negocio, explicita y comprobable, en creacion,
 
 Prioridad: P0
 Labels: `backend`, `reservas`, `security`, `integrity`, `codex-ready`, `mvp1`
-Estado actual: En revision
+Estado registrado previamente (historico): En revision
+
+**Estado vigente (2026-10-27):** Implementado; verificacion integral pendiente.
+
+**Evidencia vigente:** El backend controla creacion y transiciones de estados.
+
+**Seguimiento:** Completar evidencia desplegada contra solicitudes manipuladas.
 
 ### Contexto
 
@@ -1826,7 +1900,13 @@ Tratar el estado y sus transiciones como reglas exclusivas del servidor.
 
 Prioridad: P0
 Labels: `backend`, `frontend`, `reservas`, `validation`, `codex-ready`, `mvp1`
-Estado actual: En revision
+Estado registrado previamente (historico): En revision
+
+**Estado vigente (2026-10-27):** Implementado; verificacion integral pendiente.
+
+**Evidencia vigente:** Reglas de jornada y duracion validadas en backend.
+
+**Seguimiento:** Completar pruebas en ambiente objetivo.
 
 ### Contexto
 
@@ -2748,7 +2828,13 @@ de políticas generales configurables.
 
 Prioridad: P2
 Labels: `frontend`, `backend`, `reportes`
-Estado sugerido: Backlog
+Estado registrado previamente (historico): Backlog
+
+**Estado vigente (2026-10-27):** Implementado parcialmente.
+
+**Evidencia vigente:** La vista presenta indicadores; REP-003 fue cerrado en MVP3.
+
+**Seguimiento:** Analitica ampliada e infracciones pendientes.
 
 ### Contexto
 
@@ -2839,7 +2925,13 @@ Permitir registrar infracciones de usuarios, asociadas opcionalmente a una reser
 
 Prioridad: P1
 Labels: `frontend`, `backend`, `notificaciones`, `mvp3`, `testing`
-Estado sugerido: En validacion MVP3
+Estado registrado previamente (historico): En validacion MVP3
+
+**Estado vigente (2026-10-27):** Implementado parcialmente; evidencia de eventos pendiente.
+
+**Evidencia vigente:** Existe persistencia y superficie de notificaciones.
+
+**Seguimiento:** Completar evidencia especifica del ciclo de transiciones.
 
 ### Objetivo
 
@@ -2901,7 +2993,13 @@ relevantes de reservas.
 
 Prioridad: P2
 Labels: `backend`, `recursos`, `feature`
-Estado sugerido: Backlog
+Estado registrado previamente (historico): Backlog
+
+**Estado vigente (2026-10-27):** Implementado para MVP3.
+
+**Evidencia vigente:** Filtros de recursos por sede, tipo y estado cerrados con ADMIN-003.
+
+**Seguimiento:** Mantener pruebas de regresion.
 
 ### Objetivo
 
@@ -2970,7 +3068,13 @@ Evitar confiar en IDs enviados por cliente cuando el usuario ya viene en el toke
 
 Prioridad: P1
 Labels: `backend`, `frontend`, `reservas`, `disponibilidad`, `security`, `ux`
-Estado sugerido: Partially Done
+Estado registrado previamente (historico): Partially Done
+
+**Estado vigente (2026-10-27):** Implementado en el contrato vigente.
+
+**Evidencia vigente:** Disponibilidad sanitizada con rango from/to, reservas, bloqueos y actividades.
+
+**Seguimiento:** Revisar criterios historicos y mantener cobertura de privacidad.
 
 ### Contexto
 
@@ -3033,7 +3137,13 @@ Crear middleware `RequireAdmin` y aplicarlo a rutas administrativas.
 
 Prioridad: P2
 Labels: `backend`, `frontend`, `reservas`, `performance`, `security`, `codex-ready`, `mvp2`
-Estado sugerido: Ready for Codex
+Estado registrado previamente (historico): Ready for Codex
+
+**Estado vigente (2026-10-27):** Implementado en codigo.
+
+**Evidencia vigente:** Existe GET /api/reservations/:id, autorizacion backend y consumo frontend.
+
+**Seguimiento:** Consolidar evidencia especifica de permisos y privacidad.
 
 ### Contexto
 
@@ -3080,7 +3190,13 @@ Entregar el detalle minimo autorizado de una reserva mediante un endpoint dedica
 
 Prioridad: P0
 Labels: `backend`, `testing`, `reservas`, `security`, `codex-ready`, `mvp1`
-Estado sugerido: Partially Done
+Estado registrado previamente (historico): Partially Done
+
+**Estado vigente (2026-10-27):** Cobertura ampliada; cierre transversal pendiente.
+
+**Evidencia vigente:** Existen pruebas Go de reglas, concurrencia, permisos e integracion PostgreSQL.
+
+**Seguimiento:** Consolidar CI y pruebas completas de regresion.
 
 ### Objetivo
 
@@ -3124,7 +3240,13 @@ Crear pruebas deterministas de la capa servicio para cerrar las reglas criticas 
 
 Prioridad: P1
 Labels: `frontend`, `testing`, `ux`, `accessibility`, `codex-ready`, `mvp1`
-Estado sugerido: Partially Done
+Estado registrado previamente (historico): Partially Done
+
+**Estado vigente (2026-10-27):** Cobertura ampliada; cierre transversal pendiente.
+
+**Evidencia vigente:** Cierre MVP3 registra 43 pruebas de utilidades y 73 pruebas Vue.
+
+**Seguimiento:** Ampliar cobertura de accesibilidad, router y flujos completos.
 
 ### Actualizacion 2026-08-20
 
@@ -3366,7 +3488,13 @@ Evitar que `DEV_AUTH_ENABLED=true` quede activo en un ambiente publico.
 
 Prioridad: P1
 Labels: `backend`, `security`, `errors`, `observability`, `codex-ready`, `mvp1`
-Estado sugerido: Ready for Codex
+Estado registrado previamente (historico): Ready for Codex
+
+**Estado vigente (2026-10-27):** Pendiente; riesgo de exposicion de errores internos.
+
+**Evidencia vigente:** Se identifico propagacion de mensajes tecnicos en respuestas HTTP.
+
+**Seguimiento:** Sanitizar errores publicos y ampliar pruebas.
 
 ### Contexto
 
@@ -3403,6 +3531,36 @@ Separar diagnostico interno de mensajes publicos, conservando respuestas utiles 
 - `backend/internal/handlers/workshops_handlers.go`
 - `backend/internal/handlers/users_handlers.go`
 
+## SEC-006 - Vincular identidad Entra mediante tenant y OID
+
+Prioridad: P1
+Labels: `backend`, `auth`, `security`, `entra`, `mvp4`
+Estado vigente (2026-10-27): Pendiente
+
+### Problema
+
+El middleware autentica el token de Microsoft Entra ID,
+pero resuelve inicialmente la cuenta local mediante email,
+y despues sincroniza `oid` y `tid`.
+
+La asociacion de identidad debe revisarse para evitar
+vinculaciones incorrectas ante cambios o reutilizacion de
+direcciones de correo.
+
+### Criterios de aceptacion
+
+- [ ] Definir identidad institucional estable por tenant y OID.
+- [ ] Documentar el tratamiento de usuarios historicos.
+- [ ] Evitar vinculaciones automaticas inseguras por coincidencia de email.
+- [ ] Probar cambios de email, tenant y cuenta institucional.
+- [ ] Conservar auditoria sin exponer informacion sensible.
+
+### Referencias
+
+- `backend/internal/middleware/auth_middleware.go`
+- `backend/internal/repositories/users_repoository.go`
+- `RNF-001`
+
 ---
 
 # Hito 9 - Documentacion y entrega FIP/tesis
@@ -3433,7 +3591,13 @@ Actualizar `README.md` con stack real, instalacion, ejecucion, Azure SQL y auten
 
 Prioridad: P1
 Labels: `documentacion`, `arquitectura`
-Estado sugerido: Done
+Estado registrado previamente (historico): Done
+
+**Estado vigente (2026-10-27):** Actualizado documentalmente el 2026-10-27.
+
+**Evidencia vigente:** Arquitectura sincronizada mediante commit b62b53d.
+
+**Seguimiento:** Mantener actualizacion ante futuros cambios.
 
 ### Objetivo
 
@@ -3478,7 +3642,13 @@ Completar `docs/06-flujo-reservas.md`.
 
 Prioridad: P1
 Labels: `documentacion`, `requisitos`
-Estado sugerido: Done
+Estado registrado previamente (historico): Done
+
+**Estado vigente (2026-10-27):** Actualizado documentalmente el 2026-10-26.
+
+**Evidencia vigente:** 38 requisitos revisados mediante commit 57e1970.
+
+**Seguimiento:** Completar revision posterior de historias y casos de uso.
 
 ### Objetivo
 
@@ -3502,7 +3672,13 @@ Consolidar requisitos funcionales, requisitos no funcionales, historias de usuar
 
 Prioridad: P1
 Labels: `documentacion`, `mvp`, `roadmap`
-Estado sugerido: Done
+Estado registrado previamente (historico): Done
+
+**Estado vigente (2026-10-27):** Actualizado documentalmente el 2026-10-27.
+
+**Evidencia vigente:** Roadmap sincronizado mediante commit 2c67321.
+
+**Seguimiento:** Mantener coherencia con decisiones posteriores.
 
 ### Objetivo
 
@@ -3688,7 +3864,7 @@ No modificar requisitos, reglas de reserva ni el alcance de los incrementos post
 
 ---
 
-# Inventario actual de datos duros detectados
+# Inventario historico de datos duros detectados
 
 Revision realizada durante la conexion de actividades reales.
 
@@ -3723,7 +3899,22 @@ Revision realizada durante la conexion de actividades reales.
 
 ---
 
-# Orden recomendado de ejecucion
+# Prioridades vigentes tras el cierre MVP3
+
+1. Completar seguridad HTTP e identidad institucional:
+   `SEC-005`, `SEC-006`.
+2. Resolver accesibilidad y responsive:
+   `BACK-021`, `BACK-022`.
+3. Consolidar pruebas y evidencias funcionales:
+   `QA-001`, `QA-002`, `NOTIF-001`, `RF-022`.
+4. Completar reportes e infracciones:
+   `REP-001`, `REP-002`.
+5. Completar instalacion PostgreSQL MVP3:
+   `INFRA-007`.
+6. Finalizar documentacion, operacion y decisiones
+   institucionales necesarias para MVP4.
+
+# Orden recomendado de ejecucion (historico)
 
 ## Bloque 1 - Verificacion final de reglas MVP 1
 
@@ -3767,7 +3958,7 @@ Estas tareas ya tienen implementacion inicial. Antes de cerrar el MVP 1 falta ev
 7. `REP-003` Corregir semantica y precision de indicadores.
 8. `REP-002` Completar infracciones.
 
-# Tareas Codex-ready recomendadas
+# Recomendacion historica de tareas Codex-ready
 
 La siguiente tarea para el agente de desarrollo debe ser la verificacion desplegada de `RES-009`, `RES-010` y `RES-011`. Si esa evidencia pasa, continuar con `QA-001` para ampliar cobertura de permisos/conflictos y luego `SEC-005`.
 
@@ -3837,7 +4028,13 @@ El backend compilable no contiene imports ni consultas SQL Server salvo material
 
 Prioridad: P0
 Labels: `infra`, `postgresql`, `mvp2`, `quadlet`
-Estado actual: En validacion 14D
+Estado registrado previamente (historico): En validacion 14D
+
+**Estado vigente (2026-10-27):** Implementado para la cadena MVP2; validacion restante segun checklist.
+
+**Evidencia vigente:** Quadlet prepara migraciones 0001 a 0010 y existe verificador efimero.
+
+**Seguimiento:** No extrapolar este cierre al bootstrap MVP3.
 
 ### Contexto
 
@@ -3864,3 +4061,36 @@ permanece independiente del nivel fisico del esquema.
 Se agregaron `infra/local/quadlet/verify-mvp2-ephemeral.sh` y
 `database/postgres/check/PG16_verify_mvp2.sql`. Su primera ejecucion completa
 en WSL permanece pendiente y se registra en `docs/15-checklist-cierre-mvp2.md`.
+
+## INFRA-007 - Completar bootstrap y migraciones PostgreSQL MVP3
+
+Prioridad: P1
+Labels: `infra`, `postgresql`, `mvp3`, `migrations`
+Estado vigente (2026-10-27): Pendiente
+
+### Problema
+
+Existen quince migraciones PostgreSQL versionadas,
+pero `infra/local/quadlet/install.sh` prepara
+automaticamente solo `PG16_0001` a `PG16_0010`.
+
+Esto no garantiza un esquema MVP3 completo al iniciar
+una base nueva mediante el instalador de desarrollo.
+
+### Criterios de aceptacion
+
+- [ ] Documentar el inventario y orden de las 15 migraciones.
+- [ ] Validar las dependencias entre migraciones.
+- [ ] Preparar bootstrap MVP3 reproducible en entorno efimero.
+- [ ] Verificar comportamiento ante datos existentes.
+- [ ] Comprobar permisos del rol runtime y auditorias.
+- [ ] Documentar respaldo y procedimiento de recuperacion.
+- [ ] Evitar recrear o eliminar volumenes existentes.
+- [ ] No modificar la base del prototipo durante pruebas efimeras.
+
+### Referencias
+
+- `infra/local/quadlet/install.sh`
+- `database/postgres/migrations/`
+- `docs/03-base-de-datos.md`
+- `docs/10-guia-redeploy.md`
