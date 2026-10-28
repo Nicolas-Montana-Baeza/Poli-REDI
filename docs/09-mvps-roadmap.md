@@ -42,7 +42,7 @@ Por lo tanto:
 - al alcanzar por primera vez el minimo cambia a `CONFIRMED + HEALTHY`;
 - si posteriormente baja del minimo conserva `CONFIRMED` y cambia a `AT_RISK`;
 - si recupera el minimo vuelve a `HEALTHY`;
-- si alcanza el plazo limite bajo el minimo, el flujo puede cancelar la reserva conforme a la politica vigente.
+- si llega al deadline en `PENDING` bajo el minimo, la solicitud se cancela con `MINIMUM_NOT_MET`; una reserva previamente `CONFIRMED` que queda `AT_RISK` no se cancela por ese proceso. La diferencia con la formulacion general de RF-022 queda registrada como decision pendiente.
 
 La condicion `AT_RISK` permite que futuros incrementos de notificaciones reaccionen a riesgo, recuperacion y vencimiento sin degradar artificialmente el ciclo de vida persistido de la reserva.
 
@@ -297,7 +297,7 @@ Entregar una experiencia usable para el usuario normal, desde login hasta reserv
 
 ### Estado actual
 
-Avanzado; el flujo UX principal se encuentra unificado y las brechas restantes se concentran principalmente en validacion integral, reglas grupales, infraestructura y cobertura de pruebas.
+Avanzado funcionalmente. El flujo de usuario, las reservas grupales, la disponibilidad, la participacion autenticada y el historial cuentan con implementacion y pruebas. El cierre formal de MVP2 conserva verificaciones manuales y de ambiente objetivo descritas en `docs/15-checklist-cierre-mvp2.md`.
 
 Actualizacion 2026-08-20:
 
@@ -307,23 +307,33 @@ Actualizacion 2026-08-20:
 - El carrusel de inicio es manual.
 - Disponibilidad permite filtrar recursos.
 - Las transiciones de autenticacion evitan mostrar Login mientras la sesion aun se esta resolviendo.
-- La suite frontend local registra 25 pruebas correctas.
+- Evidencia historica de 2026-08-20: 25 pruebas frontend correctas. El cierre MVP3 del 2026-10-24 registra 43 pruebas de utilidades y 73 de componentes Vue.
 
 Incluye tambien una primera version funcional de talleres deportivos: listado de talleres activos, busqueda, cupos, estado de inscripcion e inscripcion protegida por RUT. La disponibilidad ya consume un endpoint sanitizado y muestra talleres como ocupacion recurrente; los recursos `OPEN_USE` operan como uso libre con intensidad de uso. El catalogo y dashboard ya pueden mostrar imagenes configuradas para recursos.
 
 ### Pendientes para cierre completo
 
-- Completar filtros backend de reservas por fecha/rango/estado (`API-002`).
-- Completar filtros por fecha/rango y sumar bloqueos al endpoint de disponibilidad; las actividades programadas ya estan integradas (`API-004`, `ADMIN-004`).
-- Cargar el detalle por ID sin descargar colecciones completas (`API-006`).
-- Mantener la confirmacion fuerte de cancelacion ya implementada y completar su evidencia de pruebas (`RES-007`).
-- Integrar en frontend y verificar de punta a punta en PostgreSQL la ventana y frecuencia versionadas; `PENDING` consume desde su creacion y `CANCELLED` libera la oportunidad (`RES-012`).
-- Registrar al solicitante y participantes mediante cuentas unicas, exigiendo al menos 10 para las tres multicanchas (`RES-008`).
-- Mantener solicitudes grupales en `PENDING`, bloquear el horario, confirmar al alcanzar el minimo y volver a `PENDING` si una retirada reduce el conteo (`RES-008`, `RES-010`).
-- Aceptar cambios hasta exactamente una hora antes inclusive y cancelar al vencer bajo el minimo, liberando horario y oportunidad (`RES-008`, `RES-012`).
-- Profesionalizar la seleccion de horario, capacidad, etiquetas humanas y experiencia movil (`UX-001`).
-- Mostrar feedback preventivo de conflicto antes de confirmar una reserva (`UX-003`).
-- Mostrar en detalle el estado de la solicitud y el avance de confirmaciones cuando corresponda (`UI-002`).
+Las capacidades principales de MVP2 estan implementadas. Los puntos
+que permanecen abiertos corresponden principalmente a evidencia,
+regresion y decisiones de alcance:
+
+- Conciliar el checklist manual de reservas grupales, incluyendo la
+  liberacion del horario tras `MINIMUM_NOT_MET`.
+- Completar las comprobaciones integradas y en el ambiente objetivo
+  exigidas por `docs/15-checklist-cierre-mvp2.md`.
+- Revalidar los filtros administrativos de reservas (`API-002`) y
+  su comportamiento con grandes volumenes.
+- Registrar como capacidades implementadas los rangos de
+  disponibilidad, bloqueos y detalle individual por ID
+  (`API-004`, `API-006`), sin confundirlos con tareas nuevas.
+- Resolver formalmente la discrepancia de RF-022: las reservas
+  `CONFIRMED + AT_RISK` no se cancelan automaticamente al deadline,
+  mientras que las `PENDING` bajo el minimo si se cancelan.
+- Conservar para saneamiento transversal de MVP4 los ajustes
+  pendientes de accesibilidad, responsive, pruebas y seguridad.
+
+Los criterios anteriores de MVP2 permanecen como antecedente
+de evolucion, pero no como funcionalidades totalmente ausentes.
 
 ### Criterio de cierre
 
@@ -439,8 +449,9 @@ CERRADO TECNICAMENTE para el alcance del prototipo MVP3 (2026-10-24). La validac
 - La regresion manual integral sigue como seguimiento del prototipo.
 - EV-010 adopta resolucion administrativa explicita para el prototipo.
   La ratificacion institucional definitiva permanece pendiente.
-- El MVP3 permanece abierto mientras existan modulos
-  y criterios de cierre pendientes.
+- Estado historico al 2026-10-20: MVP3 permanecia abierto.
+  Posteriormente fue cerrado tecnicamente para el prototipo el
+  2026-10-24, segun `docs/mvp3/cierre-mvp3-prototipo.md`.
 
 Documento de auditoria:
 `docs/mvp3/admin005-auditoria-20261020.md`
@@ -476,8 +487,10 @@ respetando permisos e integridad historica.
 
 La administracion integral de sedes y recursos pasa de capacidad
 pendiente a criterio funcional obligatorio para cerrar ADMIN-003.
-La decision fue aprobada el 2026-10-13; no representa evidencia
-de implementacion ni autoriza declarar el modulo completado.
+La decision fue aprobada el 2026-10-13; por si sola no representaba
+ evidencia de implementacion. Posteriormente `ADMIN-003` fue cerrado
+ para el alcance MVP3, con pruebas y validacion funcional.
+ Quedaron fuera los traslados de recursos entre sedes y el DELETE fisico.
 
 ## MVP 4 - Entrega, calidad y soporte
 
@@ -489,7 +502,7 @@ Completar los elementos de soporte necesarios para entregar, defender, probar y 
 
 - Reportes administrativos.
 - Infracciones.
-- Pruebas unitarias iniciales backend y frontend para reloj, agenda, contrato JSON y reglas de reserva.
+- Ampliacion y automatizacion de las pruebas ya existentes de backend, frontend, PostgreSQL, seguridad e integracion.
 - README actualizado.
 - Arquitectura documentada.
 - Flujo de reservas documentado.
@@ -498,7 +511,7 @@ Completar los elementos de soporte necesarios para entregar, defender, probar y 
 - Guia de documentacion tecnica y legibilidad.
 - Estrategia de despliegue.
 - Preparacion backend para produccion.
-- Demo online inicial en Azure.
+- Mantenimiento y validacion de la demo vigente con PostgreSQL 16, Podman Compose, Caddy y Tailscale Funnel. La demo Azure es un antecedente historico EV-011.
 
 ### Backlog relacionado
 
@@ -531,22 +544,51 @@ En desarrollo.
 
 ### Pendientes para cierre completo
 
-- Completar README principal (`DOC-001`).
-- Completar arquitectura con diagrama (`DOC-002`).
-- Completar flujo de reservas con diagramas (`DOC-003`).
-- Ampliar cobertura automatizada hacia componentes, permisos, persistencia e integracion.
-- Limpiar logs de configuracion de autenticacion (`SEC-003`).
-- Completar infracciones (`REP-002`).
-- Mantener y completar la guia de despliegue y operacion (`docs/10-guia-redeploy.md`).
-- Ejecutar o cerrar plan de corte desde Google Calendar legado (`OPS-001`).
-- Automatizar o estandarizar la actualización del backend en Podman Compose.
-- Endurecer configuracion si se pasa de demo online a produccion institucional.
+**Documentacion y trazabilidad:**
+
+- Sincronizar requisitos, backlog, roadmap, arquitectura y flujo
+  de reservas con el cierre tecnico MVP3.
+- Actualizar README y documentacion de PostgreSQL, incluyendo
+  las migraciones MVP3.
+- Revisar los diagramas existentes en lugar de tratarlos
+  automaticamente como no implementados.
+- Actualizar la guia de despliegue para las imagenes y scopes MVP3.
+
+**Calidad y seguridad:**
+
+- Ampliar las pruebas automatizadas y definir CI reproducible.
+- Corregir exposicion de errores internos HTTP (`SEC-005`).
+- Registrar y atender la deuda de vinculacion de identidad
+  institucional por correo (`SEC-006`).
+- Revisar permisos efectivos PostgreSQL, especialmente auditorias.
+- Completar accesibilidad, responsive y navegacion por teclado
+  (`BACK-021`, `BACK-022`).
+- Revalidar el cierre de seguridad de logs (`SEC-003`), sin
+  asumir que una tarea historica sigue necesariamente abierta.
+
+**Funcionalidad y operacion:**
+
+- Completar el modulo de infracciones (`REP-002`) y la analitica
+  pendiente (`REP-001`).
+- Consolidar la evidencia de notificaciones (`NOTIF-001`).
+- Estandarizar despliegues de backend con verificaciones y rollback,
+  evitando la recreacion accidental de PostgreSQL.
+- Resolver la discrepancia normativa RF-022.
+- Formalizar institucionalmente EV-010 cuando corresponda.
+- Ejecutar el corte Google Calendar (`OPS-001`) solamente cuando
+  se planifique el paso a operacion institucional real.
+- Diferenciar el cierre del prototipo de los controles adicionales
+  exigibles para produccion institucional.
+
+La refactorizacion integral `ARCH-V2-001` permanece diferida a V2.
 
 ### Criterio de cierre
 
-El MVP 4 se considera cerrado cuando el proyecto tiene evidencia de pruebas, documentacion suficiente para instalacion/arquitectura/flujo/requisitos, reportes completos y una estrategia clara de despliegue.
+El MVP4 se considerara cerrado para la entrega del prototipo cuando exista trazabilidad consistente entre requisitos, codigo y pruebas; documentacion vigente de arquitectura, instalacion y despliegue; riesgos tecnicos priorizados y tratados segun su criticidad; evidencia reproducible de validacion; y cumplimiento del alcance de reportes e infracciones acordado para el incremento. El cierre del prototipo no acredita por si solo la puesta en produccion institucional.
 
 ## Dependencias entre MVPs
+
+MVP2 utiliza la base tecnica de MVP1. MVP3 amplia las capacidades administrativas sobre los flujos de reservas e infraestructura existentes. MVP4 consolida calidad, documentacion, seguridad, despliegue y funcionalidades complementarias sin reabrir automaticamente los modulos cerrados de MVP3.
 
 ## Cuatro incrementos tecnicos aprobados para politicas y solicitudes grupales
 
@@ -555,9 +597,9 @@ Estos incrementos no reemplazan los cuatro MVPs generales; ordenan `RES-012`, `R
 1. **Versionado y reglas de solicitud:** politica inicial e inmutable por solicitud, ventana, frecuencia y liberacion al cancelar.
 2. **Participantes y estado condicionado:** solicitante contado sin posibilidad de retiro, confirmaciones de terceros, bloqueo `PENDING` y transiciones por minimo.
 3. **Plazo y vencimiento:** limite inclusivo, cancelacion bajo el minimo y resolucion antes de consultas o escrituras relevantes.
-4. **Administracion:** lectura, historial y publicacion administrativa de politicas operan sobre PostgreSQL. Faltan interfaz y cierre integrado. Las correcciones excepcionales quedan fuera del incremento actual.
+4. **Administracion:** lectura, configuracion, publicacion e historial administrativos operan con PostgreSQL y frontend; `ADMIN-006` esta cerrado para MVP3. Las correcciones excepcionales de reservas existentes permanecen diferidas.
 
-`ADMIN-005` dejo de ser una entrega arquitectonica exclusivamente futura: existe una implementacion backend parcial en MVP 2. Su cierre funcional sigue perteneciendo a administracion institucional y no bloquea los cuatro incrementos tecnicos de reservas grupales.
+`ADMIN-005` dispone de implementacion backend, frontend y pruebas de integracion; su alcance tecnico de prototipo fue cerrado en MVP3. `EV-010` conserva la ratificacion institucional pendiente y no condiciona el cierre tecnico ya documentado.
 
 ```mermaid
 flowchart LR
@@ -571,7 +613,7 @@ flowchart LR
 
 ### Presentable como demo funcional
 
-MVP 1, incluido despliegue online, y gran parte de MVP 2.
+El prototipo integra las funcionalidades principales de MVP1 y MVP2, junto con los modulos administrativos de MVP3 cerrados tecnicamente el 2026-10-24. Esta condicion permite presentar una demo funcional, pero no equivale a un despliegue institucional productivo.
 
 La demo puede mostrar login Microsoft Entra ID, perfil/RUT, disponibilidad,
 creación de reserva, mis reservas, cancelación, historial, dashboard y panel
@@ -581,13 +623,13 @@ admin base desde la URL pública de Tailscale Funnel.
 
 MVP 1, MVP 2 y MVP 3.
 
-Para esto faltan especialmente calendario unificado, bloqueos, CRUD de recursos y gestion real de usuarios.
+El calendario institucional, los bloqueos, la administracion de recursos y sedes y la gestion de usuarios estan implementados para el prototipo MVP3. Su operacion institucional definitiva requiere controles adicionales de seguridad, despliegue, validacion y decisiones institucionales.
 
 ### Presentable como entrega final de tesis/FIP
 
 MVP 1, MVP 2, MVP 3 y MVP 4.
 
-Para esto faltan pruebas, documentacion tecnica final, estrategia de despliegue y cierre de reportes/notificaciones/infracciones.
+Para la entrega final quedan el cierre y consolidacion de documentacion, evidencia de calidad, seguridad prioritaria, despliegue reproducible y las funcionalidades pendientes segun el alcance aprobado de MVP4. Las pruebas y la documentacion existentes son una base ya implementada, no trabajo inexistente.
 
 ## Protocolo de mantenimiento
 
