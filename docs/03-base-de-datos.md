@@ -1,6 +1,7 @@
 ﻿# Poli-REDI - Base de datos y modelo de persistencia
 
-Fecha de corte: 2026-08-25
+Fecha de corte documental: 2026-10-27
+Referencia: cierre tecnico MVP3 del 2026-10-24.
 
 ## Objetivo del documento
 
@@ -58,6 +59,11 @@ PG16_0007_mvp2_schedule_exceptions.sql
 PG16_0008_mvp2_schedule_exception_availability.sql
 PG16_0009_full_notifications.sql
 PG16_0010_mvp2_group_resource_rules.sql
+PG16_0011_mvp3_reservation_venue_guard.sql
+PG16_0012_mvp3_availability_block_overlap.sql
+PG16_0013_mvp3_occurrence_revisions.sql
+PG16_0014_mvp3_user_access_audit.sql
+PG16_0015_mvp3_user_role_audit.sql
 ```
 
 La migracion `0010` agrega minimo por recurso grupal, snapshot del minimo,
@@ -65,9 +71,30 @@ Sala Multiuso como recurso grupal y una politica prospectiva con deadline de
 60 minutos. `0009` mantiene la tabla fisica de notificaciones, aunque sus
 generadores generales permanecen fuera del cierre funcional MVP2.
 
-La cadena completa puede comprobarse sobre una base descartable mediante
+La cadena MVP2 puede verificarse sobre una base descartable mediante
 `infra/local/quadlet/verify-mvp2-ephemeral.sh` y
 `database/postgres/check/PG16_verify_mvp2.sql`.
+
+### Ampliaciones MVP3
+
+- `PG16_0011`: impide reservas activas en sedes o recursos inactivos.
+- `PG16_0012`: evita solapamientos de bloqueos administrativos activos mediante una restriccion GiST. Falla si existen conflictos previos.
+- `PG16_0013`: incorpora historial de revisiones de excepciones de programacion institucional.
+- `PG16_0014`: registra bloqueos y desbloqueos de usuarios en `user_access_audit`.
+- `PG16_0015`: registra asignaciones y revocaciones de roles en `user_role_audit`.
+
+### Limitacion del instalador
+
+`infra/local/quadlet/install.sh` incorpora actualmente las migraciones
+`PG16_0001` a `PG16_0010`, pero no las cinco migraciones MVP3.
+
+Los volumenes PostgreSQL existentes no vuelven a ejecutar los scripts
+de inicializacion. Las migraciones posteriores deben aplicarse mediante
+un procedimiento controlado, con respaldo, comprobaciones previas
+y verificacion posterior.
+
+La presencia de una migracion en Git no demuestra que haya sido
+aplicada en una instancia concreta.
 
 ## Genealogia EV-011
 
@@ -87,6 +114,16 @@ El backend compilable ya no conserva consultas T-SQL. Talleres y actividades pro
 Consultar `database/README.md` para la clasificacion operativa actual.
 
 ## Nota sobre las entidades descritas abajo
+
+Las secciones siguientes contienen un modelo conceptual heredado.
+No representan necesariamente el esquema fisico PostgreSQL vigente.
+
+En PostgreSQL 16, `reservations.start_time` y `reservations.end_time`
+utilizan `timestamptz`. La zona de negocio se define mediante
+`APP_TIMEZONE=America/Santiago`.
+
+El tipo `DATETIME2` pertenece a la arquitectura historica Azure SQL.
+La fuente de verdad del esquema vigente son las migraciones `PG16_*`.
 
 Las secciones siguientes conservan el modelo conceptual de entidades construido durante el proyecto. Cuando aparezcan tipos o mecanismos especificamente SQL Server (`DATETIME2`, `dbo`, `UPDLOCK`, `HOLDLOCK`), deben interpretarse como descripcion de la version Azure SQL previa, no como contrato de la persistencia PostgreSQL vigente.
 
@@ -280,7 +317,15 @@ Representa auditoria y trazabilidad de acciones relevantes.
 
 ## Reglas de negocio en base de datos
 
-El modelo incluye restricciones y triggers para proteger reglas importantes.
+Las descripciones siguientes conservan algunas reglas de la etapa
+SQL Server/Azure SQL. Sus nombres de triggers no deben interpretarse
+automaticamente como nombres actuales de objetos PostgreSQL.
+
+En PostgreSQL las reglas se implementan mediante constraints,
+indices, triggers y servicios Go.
+
+MVP3 incorpora, entre otras protecciones, la validacion de sedes
+y recursos de `PG16_0011` y la exclusion de bloqueos de `PG16_0012`.
 
 ### Reglas de reservas
 
@@ -350,6 +395,12 @@ Resume infracciones por usuario.
 Unifica reservas, bloqueos y actividades programadas para mostrar disponibilidad/calendario.
 
 ## Diagrama ER
+
+**Estado:** diagrama conceptual heredado, pendiente de regeneracion
+a partir de las quince migraciones PostgreSQL 16.
+
+No representa exhaustivamente las tablas de politicas versionadas,
+unidades institucionales, revisiones y auditorias MVP3.
 
 ```mermaid
 erDiagram
@@ -509,22 +560,55 @@ erDiagram
 
 ## Estado verificado
 
-- La etapa Azure SQL compilo y fue validada historicamente; el backend vigente utiliza PostgreSQL 16.
-- Frontend compila correctamente.
-- El frontend ya carga datos desde el backend.
-- `/api/me` funciona despues de corregir el manejo de `OUTPUT` en tablas con triggers.
-- El router del frontend ya no entra en redireccion infinita.
+Referencia: cierre tecnico MVP3 del 2026-10-24,
+documentado en `docs/mvp3/cierre-mvp3-prototipo.md`.
+
+- Backend Go y PostgreSQL 16 operativos en el prototipo.
+- Frontend Vue servido mediante Caddy.
+- Autenticacion de desarrollo deshabilitada en el entorno validado.
+- Pruebas de integracion PostgreSQL registradas para modulos administrativos.
+- 43 pruebas frontend de utilidades aprobadas.
+- 73 pruebas de componentes Vue aprobadas.
+- Compilacion Vite aprobada.
+
+Estas evidencias no sustituyen una auditoria de las migraciones
+efectivamente aplicadas, los privilegios y los datos existentes.
+
+El cierre acredita un prototipo validado, no un sistema certificado
+para produccion institucional.
 
 ## Pendientes tecnicos
 
-- Probar `database/schema.sql` y `database/seed.sql` en una base limpia desde cero.
-- Agregar pruebas automatizadas para reglas de reservas.
-- Agregar pruebas automatizadas para inscripcion de talleres, cupos completos e inscripcion duplicada.
-- Definir si `scheduled_activities` sera editable desde el panel administrador.
-- Definir politicas de auditoria completas para mas entidades, no solo reservas.
-- Definir politicas de retencion para `notifications` y `audit_logs`.
+- Inventariar las migraciones efectivamente aplicadas en cada instancia.
+- Actualizar el bootstrap de desarrollo para incluir MVP3.
+- Validar la cadena completa en una base efimera.
+- Documentar un procedimiento seguro de migracion y rollback.
+- Revisar los privilegios efectivos del rol `poliredi_app`.
+- Verificar especialmente los permisos de las tablas de auditoria.
+- Regenerar el diagrama ER con las entidades PostgreSQL vigentes.
+- Ampliar pruebas de integracion, concurrencia y seguridad.
+- Definir politicas de retencion de notificaciones y auditorias.
+- Completar el alcance pendiente de infracciones (`REP-002`).
+- Resolver la discrepancia de RF-022 para reservas `CONFIRMED + AT_RISK`.
+
+No se deben aplicar migraciones sobre una base existente
+sin respaldo, inspeccion previa y procedimiento aprobado.
 
 ## Politicas versionadas
+
+La administracion prospectiva de politicas se encuentra implementada
+para el alcance del prototipo MVP3 (`ADMIN-006`).
+
+La configuracion grupal por recurso se representa mediante
+`reservation_policy_group_resources`. Cada reserva conserva su
+politica y los snapshots correspondientes.
+
+Las correcciones excepcionales sobre reservas existentes permanecen
+fuera del cierre MVP3.
+
+Los parrafos historicos que mencionan `schema.sql`, `seed.sql`
+y tipos SQL Server describen la etapa Azure SQL, no el esquema
+PostgreSQL actual.
 
 Estado historico: la version Azure SQL fue aprobada y probada durante julio. Estado vigente: PostgreSQL 16 reemplaza esa arquitectura; las reglas deben verificarse contra las migraciones `PG16_*` y las pruebas de integracion actuales.
 
@@ -539,7 +623,10 @@ El modelo agrega:
 
 Debe existir una sola version vigente. Publicar una politica cierra la anterior y activa inmediatamente la nueva dentro de una transaccion serializable. Indices filtrados impiden dos versiones vigentes y claves de idempotencia duplicadas. Triggers protegen de edicion o eliminacion las politicas publicadas y sus colecciones. Las reservas conservan `policy_id`; las claves foraneas impiden eliminar su politica mientras exista historial relacionado.
 
-`schema.sql` crea la estructura, la tabla de marca y los triggers que admiten exclusivamente el bootstrap tecnico controlado. Despues, `seed.sql` carga primero los recursos y, dentro de una transaccion, completa una sola vez los recursos permitidos de la politica inicial y registra la marca de migracion. Este flujo `schema.sql` -> `seed.sql` no es el mecanismo de publicacion administrativa.
+En la etapa historica SQL Server/Azure SQL, `schema.sql`
+creaba la estructura, la tabla de marca y los triggers del
+bootstrap tecnico controlado. Posteriormente, `seed.sql`
+cargaba primero los recursos y, dentro de una transaccion, completa una sola vez los recursos permitidos de la politica inicial y registra la marca de migracion. Este flujo `schema.sql` -> `seed.sql` no es el mecanismo de publicacion administrativa.
 
 La persistencia y los endpoints de correcciones excepcionales no estan implementados en este incremento. Su contrato aprobado exige solicitudes futuras activas, vista previa temporal de un solo uso vinculada al administrador, motivo, revalidacion y aplicacion atomica auditada, sin cancelaciones implicitas.
 
@@ -547,17 +634,10 @@ Los conflictos de recursos grupales deben considerar `PENDING` y `CONFIRMED`. Co
 
 ## Recomendacion siguiente
 
-Continuar con una revision funcional de pantallas:
-
-1. Dashboard
-2. Disponibilidad
-3. Recursos
-4. Mis Reservas
-5. Historial
-6. Talleres
-7. Administracion
-8. Usuarios
-9. Reportes
-10. Configuracion
-
-El objetivo de esa revision es detectar que pantallas estan completas, cuales cargan datos reales y cuales deben convertirse en tareas del backlog.
+1. Verificar la trazabilidad de las quince migraciones PostgreSQL.
+2. Actualizar `docs/01-instalacion-y-ejecucion.md`.
+3. Revisar `docs/10-guia-redeploy.md` para despliegue MVP3.
+4. Reconstruir el diagrama ER desde el esquema vigente.
+5. Documentar los privilegios y auditorias de usuarios.
+6. Mantener separadas la validacion del prototipo y la
+   habilitacion de produccion institucional.
