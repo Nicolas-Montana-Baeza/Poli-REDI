@@ -67,18 +67,37 @@ install_files() {
 
     install -m 0644 "${script_dir}/poliredi-postgres.container" "${quadlet_dir}/poliredi-postgres.container"
     install -m 0644 "${script_dir}/poliredi-postgres-data.volume" "${quadlet_dir}/poliredi-postgres-data.volume"
-    install -m 0644 "${repository_root}/database/postgres/bootstrap/PG16_0000_local_role.sql" "${runtime_dir}/00_local_role.sql"
-    install -m 0644 "${repository_root}/database/postgres/migrations/PG16_0001_mvp1_baseline.sql" "${runtime_dir}/10_mvp1_baseline.sql"
-    install -m 0644 "${repository_root}/database/postgres/migrations/PG16_0002_mvp1_indexes.sql" "${runtime_dir}/20_mvp1_indexes.sql"
-    install -m 0644 "${repository_root}/database/postgres/migrations/PG16_0003_mvp1_invariants.sql" "${runtime_dir}/30_mvp1_invariants.sql"
-    install -m 0644 "${repository_root}/database/postgres/seed/PG16_seed_mvp1.sql" "${runtime_dir}/40_mvp1_seed.sql"
-    install -m 0644 "${repository_root}/database/postgres/migrations/PG16_0004_mvp2_group_participants.sql" "${runtime_dir}/50_mvp2_group_participants.sql"
-    install -m 0644 "${repository_root}/database/postgres/migrations/PG16_0005_mvp2_institutional_scheduling.sql" "${runtime_dir}/60_mvp2_institutional_scheduling.sql"
-    install -m 0644 "${repository_root}/database/postgres/migrations/PG16_0006_mvp2_institutional_availability.sql" "${runtime_dir}/70_mvp2_institutional_availability.sql"
-    install -m 0644 "${repository_root}/database/postgres/migrations/PG16_0007_mvp2_schedule_exceptions.sql" "${runtime_dir}/80_mvp2_schedule_exceptions.sql"
-    install -m 0644 "${repository_root}/database/postgres/migrations/PG16_0008_mvp2_schedule_exception_availability.sql" "${runtime_dir}/90_mvp2_schedule_exception_availability.sql"
-    install -m 0644 "${repository_root}/database/postgres/migrations/PG16_0009_full_notifications.sql" "${runtime_dir}/95_full_notifications.sql"
-    install -m 0644 "${repository_root}/database/postgres/migrations/PG16_0010_mvp2_group_resource_rules.sql" "${runtime_dir}/97_mvp2_group_resource_rules.sql"
+    # Retirar solo scripts gestionados por el instalador anterior.
+    rm -f -- \
+        "${runtime_dir}/00_local_role.sql" \
+        "${runtime_dir}/10_mvp1_baseline.sql" \
+        "${runtime_dir}/20_mvp1_indexes.sql" \
+        "${runtime_dir}/30_mvp1_invariants.sql" \
+        "${runtime_dir}/40_mvp1_seed.sql" \
+        "${runtime_dir}/50_mvp2_group_participants.sql" \
+        "${runtime_dir}/60_mvp2_institutional_scheduling.sql" \
+        "${runtime_dir}/70_mvp2_institutional_availability.sql" \
+        "${runtime_dir}/80_mvp2_schedule_exceptions.sql" \
+        "${runtime_dir}/90_mvp2_schedule_exception_availability.sql" \
+        "${runtime_dir}/95_full_notifications.sql" \
+        "${runtime_dir}/97_mvp2_group_resource_rules.sql"
+    install -m 0644 "${repository_root}/database/postgres/bootstrap/PG16_0000_local_role.sql" "${runtime_dir}/000_local_role.sql"
+    install -m 0644 "${repository_root}/database/postgres/migrations/PG16_0001_mvp1_baseline.sql" "${runtime_dir}/010_mvp1_baseline.sql"
+    install -m 0644 "${repository_root}/database/postgres/migrations/PG16_0002_mvp1_indexes.sql" "${runtime_dir}/020_mvp1_indexes.sql"
+    install -m 0644 "${repository_root}/database/postgres/migrations/PG16_0003_mvp1_invariants.sql" "${runtime_dir}/030_mvp1_invariants.sql"
+    install -m 0644 "${repository_root}/database/postgres/seed/PG16_seed_mvp1.sql" "${runtime_dir}/040_mvp1_seed.sql"
+    install -m 0644 "${repository_root}/database/postgres/migrations/PG16_0004_mvp2_group_participants.sql" "${runtime_dir}/050_mvp2_group_participants.sql"
+    install -m 0644 "${repository_root}/database/postgres/migrations/PG16_0005_mvp2_institutional_scheduling.sql" "${runtime_dir}/060_mvp2_institutional_scheduling.sql"
+    install -m 0644 "${repository_root}/database/postgres/migrations/PG16_0006_mvp2_institutional_availability.sql" "${runtime_dir}/070_mvp2_institutional_availability.sql"
+    install -m 0644 "${repository_root}/database/postgres/migrations/PG16_0007_mvp2_schedule_exceptions.sql" "${runtime_dir}/080_mvp2_schedule_exceptions.sql"
+    install -m 0644 "${repository_root}/database/postgres/migrations/PG16_0008_mvp2_schedule_exception_availability.sql" "${runtime_dir}/090_mvp2_schedule_exception_availability.sql"
+    install -m 0644 "${repository_root}/database/postgres/migrations/PG16_0009_full_notifications.sql" "${runtime_dir}/100_full_notifications.sql"
+    install -m 0644 "${repository_root}/database/postgres/migrations/PG16_0010_mvp2_group_resource_rules.sql" "${runtime_dir}/110_mvp2_group_resource_rules.sql"
+    install -m 0644 "${repository_root}/database/postgres/migrations/PG16_0011_mvp3_reservation_venue_guard.sql" "${runtime_dir}/120_mvp3_reservation_venue_guard.sql"
+    install -m 0644 "${repository_root}/database/postgres/migrations/PG16_0012_mvp3_availability_block_overlap.sql" "${runtime_dir}/130_mvp3_availability_block_overlap.sql"
+    install -m 0644 "${repository_root}/database/postgres/migrations/PG16_0013_mvp3_occurrence_revisions.sql" "${runtime_dir}/140_mvp3_occurrence_revisions.sql"
+    install -m 0644 "${repository_root}/database/postgres/migrations/PG16_0014_mvp3_user_access_audit.sql" "${runtime_dir}/150_mvp3_user_access_audit.sql"
+    install -m 0644 "${repository_root}/database/postgres/migrations/PG16_0015_mvp3_user_role_audit.sql" "${runtime_dir}/160_mvp3_user_role_audit.sql"
 
     systemctl --user daemon-reload
     printf 'Quadlet instalado. Variables de la API: %s\n' "${backend_env}"

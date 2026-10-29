@@ -157,46 +157,55 @@ app_password="$(generate_secret)"
 
 install_init_file \
     'database/postgres/bootstrap/PG16_0000_local_role.sql' \
-    '00_local_role.sql'
+    '000_local_role.sql'
 install_init_file \
     'database/postgres/migrations/PG16_0001_mvp1_baseline.sql' \
-    '10_mvp1_baseline.sql'
+    '010_mvp1_baseline.sql'
 install_init_file \
     'database/postgres/migrations/PG16_0002_mvp1_indexes.sql' \
-    '20_mvp1_indexes.sql'
+    '020_mvp1_indexes.sql'
 install_init_file \
     'database/postgres/migrations/PG16_0003_mvp1_invariants.sql' \
-    '30_mvp1_invariants.sql'
+    '030_mvp1_invariants.sql'
 install_init_file \
     'database/postgres/seed/PG16_seed_mvp1.sql' \
-    '40_mvp1_seed.sql'
+    '040_mvp1_seed.sql'
 install_init_file \
     'database/postgres/migrations/PG16_0004_mvp2_group_participants.sql' \
-    '50_mvp2_group_participants.sql'
+    '050_mvp2_group_participants.sql'
 install_init_file \
     'database/postgres/migrations/PG16_0005_mvp2_institutional_scheduling.sql' \
-    '60_mvp2_institutional_scheduling.sql'
+    '060_mvp2_institutional_scheduling.sql'
 install_init_file \
     'database/postgres/migrations/PG16_0006_mvp2_institutional_availability.sql' \
-    '70_mvp2_institutional_availability.sql'
+    '070_mvp2_institutional_availability.sql'
 install_init_file \
     'database/postgres/migrations/PG16_0007_mvp2_schedule_exceptions.sql' \
-    '80_mvp2_schedule_exceptions.sql'
+    '080_mvp2_schedule_exceptions.sql'
 install_init_file \
     'database/postgres/migrations/PG16_0008_mvp2_schedule_exception_availability.sql' \
-    '90_mvp2_schedule_exception_availability.sql'
+    '090_mvp2_schedule_exception_availability.sql'
 install_init_file \
     'database/postgres/migrations/PG16_0009_full_notifications.sql' \
-    '95_full_notifications.sql'
+    '100_full_notifications.sql'
 install_init_file \
     'database/postgres/migrations/PG16_0010_mvp2_group_resource_rules.sql' \
-    '97_mvp2_group_resource_rules.sql'
+    '110_mvp2_group_resource_rules.sql'
 install_init_file \
     'database/postgres/migrations/PG16_0011_mvp3_reservation_venue_guard.sql' \
-    '98_mvp3_reservation_venue_guard.sql'
+    '120_mvp3_reservation_venue_guard.sql'
 install_init_file \
     'database/postgres/migrations/PG16_0012_mvp3_availability_block_overlap.sql' \
-    '99_mvp3_availability_block_overlap.sql'
+    '130_mvp3_availability_block_overlap.sql'
+install_init_file \
+    'database/postgres/migrations/PG16_0013_mvp3_occurrence_revisions.sql' \
+    '140_mvp3_occurrence_revisions.sql'
+install_init_file \
+    'database/postgres/migrations/PG16_0014_mvp3_user_access_audit.sql' \
+    '150_mvp3_user_access_audit.sql'
+install_init_file \
+    'database/postgres/migrations/PG16_0015_mvp3_user_role_audit.sql' \
+    '160_mvp3_user_role_audit.sql'
 
 printf '=== Creando PostgreSQL 16 efimero ===\n'
 podman volume create "${volume_name}" >/dev/null
@@ -297,5 +306,5 @@ printf '\n=== Integracion calendario de bloqueos 4B ===\n'
         -count=1 -v
 )
 
-printf '\nCIERRE AUTOMATIZADO 3C POSTGRESQL 16: PASS\n'
+printf '\nCIERRE AUTOMATIZADO MVP3 POSTGRESQL 16: PASS\n'
 printf 'El contenedor y volumen efimeros se eliminaran ahora.\n'
