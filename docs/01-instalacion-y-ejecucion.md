@@ -1,6 +1,7 @@
 # Poli-REDI - Instalacion y ejecucion local
 
-Fecha de corte: 2026-09-22
+Fecha de corte documental: 2026-10-27
+Referencia: cierre tecnico MVP3 del 2026-10-24.
 
 ## Objetivo
 
@@ -11,6 +12,8 @@ Esta guía describe el entorno de desarrollo y verificación:
 - PostgreSQL 16;
 - Podman;
 - Microsoft Entra ID o autenticacion local controlada.
+
+Esta guia distingue tres operaciones independientes: preparar una base nueva, migrar una base existente y actualizar el backend/frontend. Desplegar codigo no aplica automaticamente migraciones PostgreSQL.
 
 ## Requisitos
 
@@ -37,36 +40,32 @@ curl --fail --insecure https://localhost:8443/api/health
 Consultar `docs/10-guia-redeploy.md` para construir, actualizar, respaldar y
 recuperar ese stack.
 
-## Preparar PostgreSQL aislado para desarrollo
+## Quadlet de desarrollo y precaucion con el volumen compartido
 
-Desde la raiz del repositorio:
+El repositorio conserva `infra/local/quadlet/install.sh` para crear una instancia
+PostgreSQL de desarrollo. Sin embargo, la configuracion Quadlet y el stack
+Podman Compose documentado referencian el **mismo volumen**:
+`poliredi-postgres-mvp1-data` y el mismo puerto host `127.0.0.1:55432`.
 
-```bash
-bash infra/local/quadlet/install.sh install
-```
+Por tanto, **no es una instancia aislada del stack integrado**. No ejecutar
+`bash infra/local/quadlet/install.sh install` mientras el stack utilice ese
+volumen. Nunca iniciar dos servidores PostgreSQL sobre un mismo directorio de
+datos ni borrar/recrear ese volumen como procedimiento de actualizacion.
 
-El instalador:
+En un directorio de datos inicialmente vacio, el instalador Quadlet copia el
+bootstrap local, las migraciones `PG16_0001` a `PG16_0010` y el seed MVP1.
+No contempla las cinco migraciones posteriores de MVP3.
 
-1. genera credenciales locales;
-2. las guarda fuera del repositorio;
-3. instala un Quadlet de desarrollo;
-4. crea el volumen;
-5. inicia PostgreSQL 16;
-6. aplica la baseline MVP1;
-7. carga el seed MVP1.
-
-La instancia local queda en:
-
-```txt
-127.0.0.1:55432
-```
-
-Los secretos quedan en:
+Variables privadas del mecanismo Quadlet:
 
 ```txt
 ~/.config/containers/systemd/poliredi-postgres.env
 ~/.config/poli-redi/backend.env
 ```
+
+Para pruebas reproducibles sin afectar la instancia habitual existe un
+verificador **efimero de MVP2**. La provision completa de MVP3 con aislamiento,
+respaldo y comprobaciones se mantiene pendiente en `INFRA-007`.
 
 ## Estado de migraciones
 
@@ -83,22 +82,49 @@ PG16_0007_mvp2_schedule_exceptions.sql
 PG16_0008_mvp2_schedule_exception_availability.sql
 PG16_0009_full_notifications.sql
 PG16_0010_mvp2_group_resource_rules.sql
+PG16_0011_mvp3_reservation_venue_guard.sql
+PG16_0012_mvp3_availability_block_overlap.sql
+PG16_0013_mvp3_occurrence_revisions.sql
+PG16_0014_mvp3_user_access_audit.sql
+PG16_0015_mvp3_user_role_audit.sql
 ```
 
-El instalador automatiza actualmente el bootstrap, `0001` a `0003`, el seed
-MVP1 y `0004` a `0010` para todo volumen nuevo.
+El instalador Quadlet automatiza la cadena `0001` a `0010` en un volumen
+nuevo y genera `MVP_SCOPE=mvp1` como valor conservador.
 
-Por eso el instalador genera:
+Los scripts de inicializacion de PostgreSQL se ejecutan al inicializar un
+directorio de datos vacio; no se repiten al reiniciar un volumen existente.
 
-```env
-MVP_SCOPE=mvp1
-```
+El backend reconoce los alcances `mvp1`, `mvp2`, `mvp3` y `full` mediante
+`MVP_SCOPE`. El frontend selecciona la superficie funcional en compilacion con
+`VITE_MVP_SCOPE`.
 
-como valor seguro.
+**Cambiar el scope no ejecuta migraciones.** Para habilitar MVP3 debe
+comprobarse que `PG16_0011` a `PG16_0015` esten aplicadas, que sus
+precondiciones y privilegios sean correctos y que el runtime sea compatible.
 
-Un volumen existente no vuelve a ejecutar los archivos de inicializacion. En
-ese caso las migraciones nuevas deben aplicarse explicitamente antes de usar
-`MVP_SCOPE=mvp2`.
+## Diferenciar instalacion, migracion y despliegue
+
+### Preparar una base PostgreSQL nueva
+
+Requiere bootstrap, migraciones en orden, seed adecuado y validacion del
+esquema. La automatizacion actual de Quadlet llega a MVP2; la de MVP3 esta
+pendiente (`INFRA-007`).
+
+### Actualizar una base PostgreSQL existente
+
+Requiere inventariar el esquema aplicado, crear y verificar un respaldo,
+revisar incompatibilidades y ejecutar migraciones incrementales mediante un
+procedimiento controlado. No reutilizar scripts de inicializacion de volumen
+vacio ni suponer que un archivo SQL versionado ya fue aplicado.
+
+### Desplegar backend y frontend
+
+Cambiar imagenes de backend, variables de entorno o archivos compilados del
+frontend **no reinicializa PostgreSQL**. El despliegue requiere compatibilidad
+con el esquema presente y comprobaciones de salud posteriores.
+
+Consultar `docs/10-guia-redeploy.md` antes de cualquier intervencion operativa.
 
 ## Verificacion limpia MVP2
 
@@ -111,7 +137,7 @@ bash infra/local/quadlet/verify-mvp2-ephemeral.sh
 La verificacion crea otra base y otro volumen, aplica `0001` a `0010`, ejecuta
 la comprobacion SQL, la suite Go con integraciones, `go vet`, las pruebas
 frontend y el build. El entorno efimero se elimina al terminar y no modifica
-la instancia habitual.
+la instancia habitual. Valida las migraciones `0001` a `0010` de MVP2, no la cadena completa MVP3.
 
 ## Variables del backend
 
@@ -174,6 +200,7 @@ Crear `frontend/.env`:
 VITE_API_BASE_URL=http://localhost:3000/api
 VITE_API_TIMEOUT_MS=30000
 VITE_APP_TIMEZONE=America/Santiago
+VITE_MVP_SCOPE=mvp1
 
 VITE_ENTRA_TENANT_ID=
 VITE_ENTRA_CLIENT_ID=
@@ -186,7 +213,7 @@ Luego:
 
 ```bash
 cd frontend
-npm install
+npm ci
 npm run dev
 ```
 
