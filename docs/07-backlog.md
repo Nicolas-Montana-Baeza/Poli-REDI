@@ -2516,11 +2516,13 @@ Permitir que admin cree bloqueos por mantencion, cierre, evento u otro motivo.
 
 ### Criterios de aceptacion
 
-- [ ] Admin selecciona recurso, fecha, hora inicio y hora termino.
-- [ ] Backend valida solapamientos.
-- [ ] Bloqueos aparecen en calendario/disponibilidad.
-- [ ] Se puede desactivar un bloqueo.
+- [x] Admin selecciona recurso, fecha, hora inicio y hora termino.
+- [x] Backend valida solapamientos.
+- [x] Bloqueos aparecen en calendario/disponibilidad.
+- [x] Se puede desactivar un bloqueo.
 - [ ] Se muestra error si cruza reserva confirmada.
+
+Evidencia: `docs/mvp3/cierre-4d-bloqueos.md`, pruebas PostgreSQL de solapamiento/concurrencia y pruebas Vue de creacion, error y desactivacion. **Pendiente de evidencia especifica:** cruce con reserva confirmada y su mensaje de error en E2E. No equivale a certificacion institucional.
 
 ## ADMIN-005 - Implementar programacion institucional
 
@@ -3086,11 +3088,11 @@ Exponer un endpoint de disponibilidad por fecha o rango que entregue solo la inf
 
 ### Criterios de aceptacion
 
-- [ ] El endpoint acepta fecha o rango de fechas.
+- [x] El endpoint acepta fecha o rango de fechas.
 - [x] Para usuario normal no expone `userId` de reservas ajenas.
 - [x] Devuelve recurso, inicio y duracion para pintar ocupacion.
 - [x] Incluye reservas y actividades programadas activas.
-- [ ] Incluye bloqueos de disponibilidad cuando esten disponibles.
+- [x] Incluye bloqueos de disponibilidad cuando esten disponibles.
 - [x] La vista de disponibilidad consume este endpoint en lugar de depender de todas las reservas.
 - [x] Admin mantiene acceso a detalle administrativo cuando corresponda.
 
@@ -3101,7 +3103,7 @@ Exponer un endpoint de disponibilidad por fecha o rango que entregue solo la inf
 - `GET /api/reservations` quedo protegido con `RequireAdmin`.
 - El store frontend separa `availabilityReservations` de las reservas administrativas.
 - `GetAvailabilityItems` unifica reservas y `scheduled_activities` con clave estable y sanitizacion para usuario normal.
-- Pendiente: agregar filtros por fecha/rango e incorporar `availability_blocks` al contrato.
+- Actualizacion MVP3: `GetAvailabilityItems` integra `availability_blocks` y el handler acepta el rango `from`/`to` (fecha o RFC3339). Las comprobaciones E2E y de datos limites permanecen como seguimiento QA.
 
 ## API-005 - Centralizar validacion de administrador
 

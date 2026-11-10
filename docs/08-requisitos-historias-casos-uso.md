@@ -213,7 +213,7 @@ El sistema debe mostrar un panel administrativo solo a usuarios administradores.
 
 ### RF-013 - Gestion de usuarios
 
-El sistema debe permitir a administradores listar usuarios y, en futuras iteraciones, bloquear o desbloquear cuentas.
+El sistema debe permitir a administradores listar usuarios, bloquear o desbloquear cuentas con justificacion, asignar o revocar roles administrativos y consultar la trazabilidad de esas operaciones.
 
 Estado documentado previamente (histórico): Implementado parcialmente.
 
@@ -980,7 +980,7 @@ Criterios de aceptacion:
 - Ninguna operacion elimina reservas historicas.
 - Los usuarios no administradores no pueden modificar sedes.
 
-Estado: APROBADA por EV-012; implementacion pendiente.
+Estado: APROBADA por EV-012; funcionalidad principal implementada y validada para el prototipo MVP3 en `ADMIN-003`. Nota de alcance: la busqueda y filtrado de sedes se difirio a V2.0; el criterio de aceptacion correspondiente sigue pendiente fuera de MVP3.
 
 ## Casos de uso
 
