@@ -388,7 +388,9 @@ Para recursos sujetos a confirmacion grupal:
 - una reserva que ya fue confirmada no regresa a `PENDING` por una retirada posterior;
 - si el conteo baja del minimo despues de confirmar, conserva `CONFIRMED` con `groupCondition = AT_RISK`;
 - si recupera el minimo, vuelve a `HEALTHY`;
-- si alcanza el plazo limite bajo el minimo, debe cancelarse conforme a la politica, liberar el horario y dejar de consumir la oportunidad semanal;
+- si al alcanzar el plazo limite la solicitud permanece `PENDING` bajo el minimo, se cancela automaticamente con `MINIMUM_NOT_MET`, libera el horario y deja de consumir la oportunidad semanal;
+- si la reserva ya alcanzo `CONFIRMED` y esta en `AT_RISK` al plazo limite, conserva `CONFIRMED` y no se cancela automaticamente por `MINIMUM_NOT_MET`;
+- la ventana de alta y retiro de participantes cierra en el instante exacto del deadline (no inclusive);
 - los recursos `OPEN_USE` no requieren confirmacion grupal.
 
 Estado documentado previamente (histórico): APROBADO e IMPLEMENTADO PARCIAL.
