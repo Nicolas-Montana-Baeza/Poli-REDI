@@ -2957,6 +2957,20 @@ Resultado reportado por el ejecutor: PASS.
 - Pendiente: evidencia E2E de generacion de eventos iniciados mediante HTTP.
 - Esta validacion no constituye aceptacion institucional ni certificacion de produccion.
 
+### Validacion automatizada HTTP (2026-11-11)
+
+- `TestNotificationsAdminCancellationHTTPPostgres`: PASS.
+- PostgreSQL 16 efimero y `MVP_SCOPE=mvp3`.
+- `Fiber.App.Test` ejercito las rutas y el middleware HTTP reales.
+- Cancelacion administrativa por `PATCH /api/reservations/cancel`: HTTP 200.
+- Consulta autenticada: una notificacion `RESERVATION_CANCELLED` para el propietario.
+- Lectura por usuario ajeno: HTTP 404, sin modificar la notificacion.
+- Marcado propio: HTTP 200; estado `isRead=true` persistido.
+- Cancelacion repetida: rechazada, sin duplicar notificaciones.
+- Verificador MVP3: PASS, salida 0.
+- Pendiente: smoke de generacion de evento contra un servidor HTTP independiente con MVP3.
+- La aceptacion institucional y certificacion productiva no forman parte de esta validacion.
+
 ### Objetivo
 
 Completar el ciclo de notificaciones internas sobre PostgreSQL 16:
