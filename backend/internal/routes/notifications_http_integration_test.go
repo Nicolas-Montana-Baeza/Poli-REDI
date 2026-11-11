@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
-	"net/http/httptest"
 	"os"
 	"strings"
 	"testing"
@@ -157,10 +157,33 @@ func TestNotificationsAdminCancellationHTTPPostgres(t *testing.T) {
 	app := fiber.New()
 	RegisterRoutes(app)
 
+	// Servidor HTTP real, limitado al loopback y puerto efimero.
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("listen HTTP: %v", err)
+	}
+
+	go func() {
+		_ = app.Listener(listener)
+	}()
+
+	t.Cleanup(func() {
+		_ = app.Shutdown()
+		_ = listener.Close()
+	})
+
+	baseURL := "http://" + listener.Addr().String()
+	client := &http.Client{Timeout: 10 * time.Second}
+
 	request := func(method, path, email, body string) (int, []byte) {
 		t.Helper()
 
-		req := httptest.NewRequest(method, path, strings.NewReader(body))
+		req, err := http.NewRequest(
+			method, baseURL+path, strings.NewReader(body),
+		)
+		if err != nil {
+			t.Fatalf("build HTTP request: %v", err)
+		}
 		if email != "" {
 			req.Header.Set("X-Dev-Auth-Email", email)
 		}
@@ -168,7 +191,7 @@ func TestNotificationsAdminCancellationHTTPPostgres(t *testing.T) {
 			req.Header.Set("Content-Type", "application/json")
 		}
 
-		response, err := app.Test(req, 30000)
+		response, err := client.Do(req)
 		if err != nil {
 			t.Fatalf("%s %s: %v", method, path, err)
 		}

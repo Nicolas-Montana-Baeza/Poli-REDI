@@ -2929,11 +2929,11 @@ Prioridad: P1
 Labels: `frontend`, `backend`, `notificaciones`, `mvp3`, `testing`
 Estado registrado previamente (historico): En validacion MVP3
 
-**Estado vigente (2026-11-11):** Implementado para el prototipo MVP3; tres transiciones reales verificadas en PostgreSQL 16. Smoke E2E HTTP pendiente.
+**Estado vigente (2026-11-11):** CERRADO TECNICAMENTE para el prototipo MVP3. Seis clases de notificaciones validadas en PostgreSQL 16; flujo HTTP real y campana verificados. Aceptacion institucional independiente.
 
 **Evidencia vigente:** `TestParticipantsIntegrationConfirmedToAtRisk` aprobado con `POLIREDI_INTEGRATION=1`, `MVP_SCOPE=mvp3` y PostgreSQL 16 efimero. Se comprobaron `RESERVATION_CONFIRMED`, `RESERVATION_AT_RISK` y `RESERVATION_RECOVERED`, exactamente una vez cada una, y su consulta por el propietario. Verificador MVP3: PASS, salida 0 (2026-11-11).
 
-**Seguimiento:** Las seis clases de eventos tienen evidencia de integracion PostgreSQL 16 con MVP3. Queda pendiente el smoke E2E por HTTP con backend y frontend operativos. No declarar certificacion institucional.
+**Seguimiento:** Mantener regresiones automatizadas y seguimiento de despliegue. Sin pendientes tecnicos de NOTIF-001 para el alcance validado del prototipo MVP3. No declarar certificacion de produccion.
 
 ### Evidencia adicional NOTIF-001 (2026-11-11)
 
@@ -3011,8 +3011,7 @@ relevantes de reservas.
 - [x] Usuario no puede marcar notificaciones ajenas.
 - [x] Lectura/marcado fue verificado contra PostgreSQL 16 real.
 - [x] `go test ./...`, `go vet ./...`, `npm test` y build MVP3 pasan.
-- [ ] Ejecutar smoke end-to-end con backend levantado en `MVP_SCOPE=mvp3`
-  para verificar filas generadas por transiciones reales de reserva.
+- [x] Ejecutar smoke HTTP con servidor Fiber real en `MVP_SCOPE=mvp3` y PostgreSQL 16 efimero. Cancelacion administrativa, notificacion persistida, lectura autenticada, aislamiento e idempotencia: PASS. Otras cinco clases de eventos validadas en integracion.
 
 ### Evidencia 2026-09-24
 
@@ -3022,6 +3021,22 @@ relevantes de reservas.
   cruzado y que la notificacion del segundo usuario permanece sin leer.
 - La generacion de eventos esta cubierta por reglas automatizadas; queda
   pendiente el smoke integrado de las transiciones reales con runtime MVP3.
+
+### Cierre técnico NOTIF-001 (2026-11-11)
+
+- `TestNotificationsAdminCancellationHTTPPostgres`: PASS.
+- Servidor Fiber real sobre `127.0.0.1`, puerto efimero.
+- `MVP_SCOPE=mvp3` y PostgreSQL 16 efimero.
+- Cancelacion administrativa HTTP: PASS.
+- Consulta y marcado de notificaciones por HTTP: PASS.
+- Aislamiento por usuario (`404`): PASS.
+- Persistencia del estado leido e idempotencia: PASS.
+- Seis clases de eventos validadas mediante pruebas de integracion.
+- Campana y autenticacion del despliegue: validacion manual reportada PASS.
+- `CIERRE AUTOMATIZADO MVP3 POSTGRESQL 16: PASS`.
+- Codigo de salida: `0`.
+- Resultado: cierre tecnico para el prototipo MVP3.
+- Fuera del alcance: certificacion productiva y aceptacion institucional.
 
 ---
 
