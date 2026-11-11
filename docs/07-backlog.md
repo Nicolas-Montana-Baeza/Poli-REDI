@@ -2929,11 +2929,11 @@ Prioridad: P1
 Labels: `frontend`, `backend`, `notificaciones`, `mvp3`, `testing`
 Estado registrado previamente (historico): En validacion MVP3
 
-**Estado vigente (2026-10-27):** Implementado parcialmente; evidencia de eventos pendiente.
+**Estado vigente (2026-11-11):** Implementado para el prototipo MVP3; tres transiciones reales verificadas en PostgreSQL 16. Smoke E2E HTTP pendiente.
 
-**Evidencia vigente:** Existe persistencia y superficie de notificaciones.
+**Evidencia vigente:** `TestParticipantsIntegrationConfirmedToAtRisk` aprobado con `POLIREDI_INTEGRATION=1`, `MVP_SCOPE=mvp3` y PostgreSQL 16 efimero. Se comprobaron `RESERVATION_CONFIRMED`, `RESERVATION_AT_RISK` y `RESERVATION_RECOVERED`, exactamente una vez cada una, y su consulta por el propietario. Verificador MVP3: PASS, salida 0 (2026-11-11).
 
-**Seguimiento:** Completar evidencia especifica del ciclo de transiciones.
+**Seguimiento:** Completar smoke E2E HTTP y validar generacion de notificaciones por vencimiento, cancelacion administrativa y conflictos institucionales. No declarar certificacion institucional.
 
 ### Objetivo
 

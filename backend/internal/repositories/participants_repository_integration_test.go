@@ -584,6 +584,71 @@ func TestParticipantsIntegrationConfirmedToAtRisk(t *testing.T) {
 		)
 	}
 
+	// NOTIF-001: transiciones persistidas con el scope real MVP3.
+	if os.Getenv("MVP_SCOPE") == "mvp3" {
+		assertNotification := func(notificationType string) {
+			t.Helper()
+
+			var count int
+			err := database.DB.QueryRowContext(ctx, `
+				SELECT COUNT(*)
+				FROM notifications
+				WHERE reservation_id = $1
+				  AND user_id = $2
+				  AND type = $3
+			`, reservationID, userIDs[0], notificationType).Scan(&count)
+
+			if err != nil {
+				t.Fatalf("read notification %s: %v", notificationType, err)
+			}
+			if count != 1 {
+				t.Fatalf(
+					"expected exactly one %s notification, got %d",
+					notificationType, count,
+				)
+			}
+		}
+
+		assertNotification("RESERVATION_CONFIRMED")
+		assertNotification("RESERVATION_AT_RISK")
+
+		recovered, err := ChangeParticipation(joinCode, userIDs[9], true)
+		if err != nil {
+			t.Fatalf("recover group: %v", err)
+		}
+		if recovered.Status != models.ReservationStatusConfirmed ||
+			recovered.GroupCondition != GroupConditionHealthy ||
+			recovered.ParticipantCount != 10 {
+			t.Fatalf("unexpected recovery: %+v", recovered)
+		}
+
+		assertNotification("RESERVATION_RECOVERED")
+
+		var total int
+		err = database.DB.QueryRowContext(ctx, `
+			SELECT COUNT(*)
+			FROM notifications
+			WHERE reservation_id = $1
+		`, reservationID).Scan(&total)
+		if err != nil {
+			t.Fatalf("count reservation notifications: %v", err)
+		}
+		if total != 3 {
+			t.Fatalf("expected three transition notifications, got %d", total)
+		}
+
+		ownerNotifications, err := GetNotificationsByUserID(userIDs[0])
+		if err != nil {
+			t.Fatalf("read owner notifications: %v", err)
+		}
+		if len(ownerNotifications) != 3 {
+			t.Fatalf("expected three visible notifications, got %d",
+				len(ownerNotifications))
+		}
+
+		t.Log("NOTIF-001: tres transiciones reales y notificaciones persistidas PASS")
+	}
+
 	t.Logf(
 		"PASS: 9/10 PENDING -> 10/10 CONFIRMED -> 9/10 CONFIRMED + AT_RISK",
 	)
