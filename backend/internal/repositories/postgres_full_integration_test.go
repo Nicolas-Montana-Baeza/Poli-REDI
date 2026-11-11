@@ -91,6 +91,7 @@ func TestPostgresFullRepositoriesIntegration(
 	}
 
 	request := models.PublishReservationPolicyRequest{
+		ExpectedPolicyID:     current.ID,
 		ReservableWindowDays: current.ReservableWindowDays,
 
 		RequestFrequencyDays: current.RequestFrequencyDays,

@@ -308,6 +308,104 @@ func TestExpirePendingGroupReservationsIntegration(t *testing.T) {
 	if affected != 0 {
 		t.Fatalf("idempotent expiration changed %d rows", affected)
 	}
+
+	// PT-020: una reserva previamente confirmada que perdió participantes
+	// no debe cancelarse por MINIMUM_NOT_MET al alcanzar el deadline.
+	// La transición real CONFIRMED -> AT_RISK se verifica por separado
+	// en TestParticipantsIntegrationConfirmedToAtRisk.
+	var atRiskID int
+
+	err = tx.QueryRowContext(ctx, `
+		INSERT INTO reservations (
+			policy_id, user_id, resource_id, activity_id,
+			start_time, duration_minutes, status, join_code_hash,
+			group_capacity_snapshot, group_minimum_participants_snapshot
+		)
+		VALUES ($1, $2, $3, NULL, $4, $5, 'CONFIRMED', $6, $7, $8)
+		RETURNING id
+	`,
+		policyID, userID, resourceID, startTime, durationMinutes,
+		fmt.Sprintf("%064x", stamp+1), capacity, minimum,
+	).Scan(&atRiskID)
+
+	if err != nil {
+		t.Fatalf("create confirmed fixture: %v", err)
+	}
+
+	_, err = tx.ExecContext(ctx, `
+		INSERT INTO participants (
+			reservation_id, user_id, status, is_owner, confirmed_at
+		)
+		VALUES ($1, $2, 'CONFIRMED', true, CURRENT_TIMESTAMP)
+	`, atRiskID, userID)
+
+	if err != nil {
+		t.Fatalf("insert confirmed owner: %v", err)
+	}
+
+	var participantCount int
+	err = tx.QueryRowContext(ctx, `
+		SELECT COUNT(*)
+		FROM participants
+		WHERE reservation_id = $1 AND status = 'CONFIRMED'
+	`, atRiskID).Scan(&participantCount)
+
+	if err != nil {
+		t.Fatalf("count at-risk participants: %v", err)
+	}
+
+	if participantGroupCondition(
+		models.ReservationStatusConfirmed,
+		participantCount,
+		minimum,
+	) != GroupConditionAtRisk {
+		t.Fatalf("fixture must represent CONFIRMED + AT_RISK")
+	}
+
+	for _, instant := range []time.Time{
+		deadline,
+		deadline.Add(time.Second),
+	} {
+		changed, err := expirePendingGroupReservations(ctx, tx, instant)
+		if err != nil {
+			t.Fatalf("housekeeping at %s: %v", instant, err)
+		}
+		if changed != 0 {
+			t.Fatalf("unexpected cancellations: %d", changed)
+		}
+
+		var currentStatus, currentReason string
+		err = tx.QueryRowContext(ctx, `
+			SELECT status, COALESCE(cancellation_reason, '')
+			FROM reservations WHERE id = $1
+		`, atRiskID).Scan(&currentStatus, &currentReason)
+
+		if err != nil {
+			t.Fatalf("read at-risk reservation: %v", err)
+		}
+		if currentStatus != models.ReservationStatusConfirmed ||
+			currentReason != "" {
+			t.Fatalf(
+				"PT-020: expected CONFIRMED without cancellation, got %s / %s",
+				currentStatus, currentReason,
+			)
+		}
+	}
+
+	var cancellationNotifications int
+	err = tx.QueryRowContext(ctx, `
+		SELECT COUNT(*)
+		FROM notifications
+		WHERE reservation_id = $1 AND type = 'MINIMUM_NOT_MET'
+	`, atRiskID).Scan(&cancellationNotifications)
+
+	if err != nil {
+		t.Fatalf("check cancellation notifications: %v", err)
+	}
+	if cancellationNotifications != 0 {
+		t.Fatalf("PT-020: unexpected cancellation notification")
+	}
+
 }
 
 func firstFuturePolicySlot(

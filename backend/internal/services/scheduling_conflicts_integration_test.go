@@ -465,11 +465,8 @@ func TestSchedulingConflictMergeIntegration(
 	//
 	// Además dejamos al menos 60 minutos antes de R para construir A y B.
 
-	minute := openingMinute
-
-	if minute < 60 {
-		minute = 60
-	}
+	// Reservar 60 minutos anteriores a R para la actividad A.
+	minute := openingMinute + 60
 
 	reservationStartMinute :=
 		((minute + slotInterval - 1) / slotInterval) *
