@@ -2933,7 +2933,17 @@ Estado registrado previamente (historico): En validacion MVP3
 
 **Evidencia vigente:** `TestParticipantsIntegrationConfirmedToAtRisk` aprobado con `POLIREDI_INTEGRATION=1`, `MVP_SCOPE=mvp3` y PostgreSQL 16 efimero. Se comprobaron `RESERVATION_CONFIRMED`, `RESERVATION_AT_RISK` y `RESERVATION_RECOVERED`, exactamente una vez cada una, y su consulta por el propietario. Verificador MVP3: PASS, salida 0 (2026-11-11).
 
-**Seguimiento:** Completar smoke E2E HTTP y validar generacion de notificaciones por vencimiento, cancelacion administrativa y conflictos institucionales. No declarar certificacion institucional.
+**Seguimiento:** Las seis clases de eventos tienen evidencia de integracion PostgreSQL 16 con MVP3. Queda pendiente el smoke E2E por HTTP con backend y frontend operativos. No declarar certificacion institucional.
+
+### Evidencia adicional NOTIF-001 (2026-11-11)
+
+- `MINIMUM_NOT_MET`: `TestExpirePendingGroupReservationsIntegration` PASS. Una notificacion no leida para el propietario; housekeeping repetido sin duplicaciones.
+- `RESERVATION_CANCELLED`: `TestAdminCancellationNotificationPostgresIntegration` PASS. Destinatario correcto, administrador excluido y segundo intento rechazado sin duplicaciones.
+- `RESERVATION_CANCELLED_INSTITUTIONAL`: `TestSchedulingConflictResolutionIntegration` PASS. Una notificacion para el propietario, sin exponer datos de terceros.
+- Los tres escenarios fueron ejecutados con `MVP_SCOPE=mvp3` y PostgreSQL 16 efimero.
+- Verificador MVP3: `CIERRE AUTOMATIZADO MVP3 POSTGRESQL 16: PASS`; codigo de salida 0.
+- Cobertura: seis tipos de eventos validados en integracion. Smoke HTTP y aceptacion institucional pendientes.
+
 
 ### Objetivo
 

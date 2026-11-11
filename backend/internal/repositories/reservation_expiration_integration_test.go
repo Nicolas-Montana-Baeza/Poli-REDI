@@ -309,6 +309,38 @@ func TestExpirePendingGroupReservationsIntegration(t *testing.T) {
 		t.Fatalf("idempotent expiration changed %d rows", affected)
 	}
 
+	// NOTIF-001: vencimiento notificado una sola vez en MVP3.
+	if notificationsEnabled() {
+		var total, matching, unread int
+
+		err := tx.QueryRowContext(ctx, `
+			SELECT
+				COUNT(*),
+				COUNT(*) FILTER (
+					WHERE user_id = $2 AND type = 'MINIMUM_NOT_MET'
+				),
+				COUNT(*) FILTER (
+					WHERE user_id = $2
+					  AND type = 'MINIMUM_NOT_MET'
+					  AND is_read = false
+				)
+			FROM notifications
+			WHERE reservation_id = $1
+		`, reservationID, userID).Scan(&total, &matching, &unread)
+
+		if err != nil {
+			t.Fatalf("read expiration notifications: %v", err)
+		}
+		if total != 1 || matching != 1 || unread != 1 {
+			t.Fatalf(
+				"NOTIF-001: expected one unread MINIMUM_NOT_MET for owner; got total=%d matching=%d unread=%d",
+				total, matching, unread,
+			)
+		}
+
+		t.Log("NOTIF-001: vencimiento, destinatario e idempotencia PASS")
+	}
+
 	// PT-020: una reserva previamente confirmada que perdió participantes
 	// no debe cancelarse por MINIMUM_NOT_MET al alcanzar el deadline.
 	// La transición real CONFIRMED -> AT_RISK se verifica por separado
