@@ -2945,6 +2945,18 @@ Estado registrado previamente (historico): En validacion MVP3
 - Cobertura: seis tipos de eventos validados en integracion. Smoke HTTP y aceptacion institucional pendientes.
 
 
+### Validacion manual HTTP e interfaz (2026-11-11)
+
+Resultado reportado por el ejecutor: PASS.
+
+- GET autenticado de /api/notifications: HTTP 200.
+- PATCH autenticado de /api/notifications/:id/read: HTTP 200.
+- Estado de lectura persistido correctamente.
+- Campana actualizada sin recargar la pagina.
+- Health HTTPS y rechazo 401 sin autenticacion verificados previamente.
+- Pendiente: evidencia E2E de generacion de eventos iniciados mediante HTTP.
+- Esta validacion no constituye aceptacion institucional ni certificacion de produccion.
+
 ### Objetivo
 
 Completar el ciclo de notificaciones internas sobre PostgreSQL 16:
