@@ -97,3 +97,41 @@ de produccion ni aceptacion institucional.
 - No almacenar credenciales ni tokens.
 - No ejecutar npm audit fix --force automaticamente.
 - Preservar el worktree y los cambios locales de MVP3.
+
+## 8. Primera auditoria de dependencias
+
+Fecha: 2026-11-11
+
+### Resultado inicial
+
+- 7 vulnerabilidades: 2 altas y 5 moderadas.
+- Una vulnerabilidad alta afectaba dependencias de produccion.
+- Se aplico `npm audit fix` sin `--force`.
+
+### Correcciones verificadas
+
+- follow-redirects: 1.16.0 a 1.16.3.
+- happy-dom: 21.0.1 a 21.0.4.
+- npm audit --omit=dev: 0 vulnerabilidades.
+- npm audit completo: 0 altas, 5 moderadas.
+
+### Regresion
+
+- npm test: 43/43 PASS.
+- npm run test:components: 73/73 PASS.
+- npm run build: PASS.
+- git diff --check: PASS.
+
+### Riesgos residuales
+
+Las cinco alertas moderadas corresponden a la cadena
+@vue/test-utils, js-beautify, editorconfig, glob y minimatch.
+
+No ejecutar npm audit fix --force sin evaluar primero
+compatibilidad y regresiones.
+
+### Pendientes independientes
+
+- Evaluar la migracion de lucide-vue-next a @lucide/vue.
+- Corregir la advertencia __dirname de Vite.
+- Iniciar SEC-005: sanitizacion de errores HTTP.
