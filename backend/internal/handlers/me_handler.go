@@ -44,9 +44,12 @@ func UpdateMeRUT(c *fiber.Ctx) error {
 		updatedUser, err := repositories.UpdateUserRUT(user.ID, "")
 
 		if err != nil {
-			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-				"error": "no se pudo actualizar el RUT",
-			})
+			sec005LogInternalFailure("update_me_rut", err)
+			return sec005WritePublicError(
+				c,
+				fiber.StatusInternalServerError,
+				"no se pudo actualizar el RUT",
+			)
 		}
 
 		return c.JSON(updatedUser)
@@ -61,9 +64,12 @@ func UpdateMeRUT(c *fiber.Ctx) error {
 	updatedUser, err := repositories.UpdateUserRUT(user.ID, normalizedRUT)
 
 	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "no se pudo actualizar el RUT",
-		})
+		sec005LogInternalFailure("update_me_rut", err)
+		return sec005WritePublicError(
+			c,
+			fiber.StatusInternalServerError,
+			"no se pudo actualizar el RUT",
+		)
 	}
 
 	return c.JSON(updatedUser)

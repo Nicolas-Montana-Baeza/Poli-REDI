@@ -25,6 +25,7 @@ var reservationValidationMessages = map[string]bool{
 	"el recurso esta bloqueado en ese horario":                                     true,
 	"el recurso tiene programación institucional en ese horario":                   true,
 	"no existe una política de reservas vigente":                                   true,
+	"no existe una politica de reservas vigente":                                   true,
 	"el usuario ya tiene una reserva en ese horario":                               true,
 	"el recurso ya esta reservado en ese horario":                                  true,
 	"usuario, recurso o actividad no existe, o los datos no cumplen restricciones": true,

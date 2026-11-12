@@ -204,6 +204,37 @@ Microsoft Entra ID y PostgreSQL institucional reales.
 
 La identidad estable por tenant y OID corresponde a SEC-006.
 
+## Fase D5 - Errores PostgreSQL y actualizacion RUT
+
+Fecha: 2026-11-12
+Estado: VALIDADO
+
+### Correcciones
+
+- Los errores internos al actualizar RUT responden HTTP 500.
+- Los errores de validacion del RUT conservan HTTP 400.
+- Los SQLSTATE desconocidos conservan el error tipado interno,
+  sin utilizar su mensaje como respuesta publica.
+- Se conservo el mensaje historico de P1008.
+- El clasificador HTTP reconoce ambas variantes de P1008.
+
+### Evidencia
+
+- Actualizacion HTTP de RUT: 3/3 PASS.
+- Mapeo PostgreSQL: 3/3 PASS.
+- Clasificacion de reservas: 7/7 PASS.
+- Regresion historica P1008: PASS.
+- go test -count=1 ./...: PASS.
+- go vet ./...: PASS.
+- git diff --check: PASS.
+- Regresion PostgreSQL 16 efimera: PASS.
+
+### Restricciones
+
+No se modifico el esquema PostgreSQL ni la base de datos
+habitual. SEC-005 sigue abierto hasta completar la
+auditoria transversal de respuestas y errores.
+
 ## Pendientes
 
 - [x] Probar respuestas HTTP 500 ante errores simulados en ocho endpoints.

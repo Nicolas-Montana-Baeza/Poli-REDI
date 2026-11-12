@@ -42,6 +42,18 @@ func TestCreateReservationPublicError(t *testing.T) {
 			message: "ya tienes una solicitud vigente; proxima fecha permitida: 2026-11-18",
 		},
 		{
+			name:    "politica ausente P1008",
+			err:     errors.New("no existe una politica de reservas vigente"),
+			status:  fiber.StatusBadRequest,
+			message: "no existe una politica de reservas vigente",
+		},
+		{
+			name:    "politica ausente con acento",
+			err:     errors.New("no existe una política de reservas vigente"),
+			status:  fiber.StatusBadRequest,
+			message: "no existe una política de reservas vigente",
+		},
+		{
 			name:    "error SQL desconocido",
 			err:     errors.New("SQLSTATE XX999 connection password=secreto"),
 			status:  fiber.StatusInternalServerError,

@@ -301,7 +301,9 @@ func mapDatabaseReservationError(err error) error {
 		case "40001", "40P01":
 			return errors.New("la reserva compitio con otra operacion; intenta nuevamente")
 		default:
-			return errors.New(sqlErr.Message)
+			// Conservar el error tipado para diagnostico interno.
+			// La capa HTTP decide la respuesta publica segura.
+			return err
 		}
 	}
 
