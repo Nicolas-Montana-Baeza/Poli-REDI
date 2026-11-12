@@ -3,6 +3,7 @@ package database
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"net"
 	"net/url"
@@ -49,7 +50,7 @@ func connectionStringFromEnv() (string, error) {
 	if rawURL := strings.TrimSpace(os.Getenv("DATABASE_URL")); rawURL != "" {
 		parsed, err := url.Parse(rawURL)
 		if err != nil {
-			return "", fmt.Errorf("DATABASE_URL invalida: %w", err)
+			return "", errors.New("DATABASE_URL invalida")
 		}
 		if parsed.Scheme != "postgres" && parsed.Scheme != "postgresql" {
 			return "", fmt.Errorf("DATABASE_URL debe usar el esquema postgres o postgresql")

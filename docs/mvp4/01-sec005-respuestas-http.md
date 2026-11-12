@@ -402,6 +402,45 @@ No constituyen una certificacion de produccion.
 SEC-005 permanece abierto hasta verificar la
 cobertura final de criterios de aceptacion.
 
+## Fase D9 - Proteccion de credenciales en arranque
+
+Fecha: 2026-11-12
+Estado: VALIDADO
+
+### Implementacion
+
+Se protegieron los registros de errores durante el
+arranque del backend.
+
+- PostgreSQL: se registra componente y tipo de error.
+- Variables de entorno: se evita imprimir errores
+  originales durante la carga del archivo .env.
+- DATABASE_URL: errores de parseo con mensaje generico.
+- JWKS de Entra ID: panico con mensaje controlado.
+- No se modificaron credenciales ni configuraciones.
+
+### Pruebas
+
+- DATABASE_URL malformada sin filtrar contrasena: PASS.
+- Registro de arranque sin credenciales: PASS.
+- Regresion manejador global Fiber D8: 8/8 PASS.
+- go test -count=1 ./...: PASS.
+- go vet ./...: PASS.
+- git diff --check: PASS.
+- Regresion PostgreSQL 16 efimera: PASS.
+
+Resultado integrado:
+CIERRE AUTOMATIZADO MVP3 POSTGRESQL 16: PASS
+
+### Limitaciones
+
+Las pruebas comprueban errores simulados y mensajes
+generados por el codigo; no sustituyen la revision de
+logs reales de un entorno institucional.
+
+SEC-005 permanece abierto hasta la evaluacion final
+de cobertura y criterios de aceptacion.
+
 ## Pendientes
 
 - [x] Probar respuestas HTTP 500 ante errores simulados en ocho endpoints.

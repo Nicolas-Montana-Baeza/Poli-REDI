@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"log"
 	"os"
 	"path/filepath"
@@ -19,11 +20,11 @@ func main() {
 	loadEnv()
 
 	if err := businessclock.Configure(os.Getenv("APP_TIMEZONE")); err != nil {
-		log.Fatal(err)
+		log.Fatal(sec005StartupErrorMessage("businessclock", err))
 	}
 
 	if err := database.Connect(); err != nil {
-		log.Fatal(err)
+		log.Fatal(sec005StartupErrorMessage("postgres", err))
 	}
 
 	defer database.Close()
@@ -47,6 +48,15 @@ func main() {
 	log.Println("Servidor iniciado en http://localhost:" + port)
 
 	log.Fatal(app.Listen(":" + port))
+}
+
+// sec005StartupErrorMessage omite el contenido del error.
+// component debe ser un identificador constante definido en codigo.
+func sec005StartupErrorMessage(component string, err error) string {
+	return fmt.Sprintf(
+		"SEC-005 startup failure component=%s error_type=%T",
+		component, err,
+	)
 }
 
 func envOrDefault(key string, fallback string) string {
@@ -88,5 +98,5 @@ func loadEnv() {
 		lastErr = errors.New("sin detalle de error")
 	}
 
-	log.Println("No se pudo cargar archivo .env, usando variables del sistema:", lastErr)
+	log.Println("No se pudo cargar archivo .env; usando variables del sistema")
 }

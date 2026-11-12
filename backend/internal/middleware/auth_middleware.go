@@ -74,7 +74,7 @@ func RequireAuth() fiber.Handler {
 
 	jwks, err := keyfunc.NewDefault([]string{jwksURL})
 	if err != nil {
-		panic("no se pudo inicializar JWKS de Entra ID: " + err.Error())
+		panic("no se pudo inicializar JWKS de Entra ID")
 	}
 
 	expectedAudiences := []string{
