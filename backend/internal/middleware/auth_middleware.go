@@ -87,8 +87,7 @@ func RequireAuth() fiber.Handler {
 
 		if err != nil {
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-				"error":  "debes iniciar sesión para continuar",
-				"detail": err.Error(),
+				"error": "debes iniciar sesión para continuar",
 			})
 		}
 
@@ -103,15 +102,8 @@ func RequireAuth() fiber.Handler {
 		)
 
 		if err != nil || !token.Valid {
-			detail := "token no valido"
-
-			if err != nil {
-				detail = err.Error()
-			}
-
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-				"error":  "tu sesión expiró o no es válida",
-				"detail": detail,
+				"error": "tu sesión expiró o no es válida",
 			})
 		}
 
@@ -125,8 +117,7 @@ func RequireAuth() fiber.Handler {
 
 		if authUser.Email == "" {
 			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
-				"error":  "no se pudo validar tu cuenta institucional",
-				"detail": "El token no contiene email, preferred_username, upn ni unique_name.",
+				"error": "no se pudo validar tu cuenta institucional",
 			})
 		}
 
@@ -143,8 +134,7 @@ func RequireAuth() fiber.Handler {
 
 		if err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-				"error":  "no se pudo cargar tu usuario",
-				"detail": err.Error(),
+				"error": "no se pudo cargar tu usuario",
 			})
 		}
 
@@ -163,8 +153,7 @@ func RequireAuth() fiber.Handler {
 
 		if err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-				"error":  "no se pudo sincronizar tu identidad institucional",
-				"detail": err.Error(),
+				"error": "no se pudo sincronizar tu identidad institucional",
 			})
 		}
 
@@ -195,8 +184,7 @@ func requireDevAuth() fiber.Handler {
 
 		if err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-				"error":  "no se pudo cargar el usuario local de prueba",
-				"detail": err.Error(),
+				"error": "no se pudo cargar el usuario local de prueba",
 			})
 		}
 
@@ -214,8 +202,7 @@ func requireDevAuth() fiber.Handler {
 
 			if err != nil {
 				return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-					"error":  "no se pudo preparar el RUT local de prueba",
-					"detail": err.Error(),
+					"error": "no se pudo preparar el RUT local de prueba",
 				})
 			}
 		}

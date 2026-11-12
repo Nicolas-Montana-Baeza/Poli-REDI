@@ -18,8 +18,7 @@ func GetReservations(c *fiber.Ctx) error {
 
 	if err != nil {
 		return c.Status(500).JSON(fiber.Map{
-			"error":  "No se pudieron cargar las reservas",
-			"detail": err.Error(),
+			"error": "No se pudieron cargar las reservas",
 		})
 	}
 
@@ -44,8 +43,7 @@ func GetAvailabilityReservations(c *fiber.Ctx) error {
 
 	if err != nil {
 		return c.Status(500).JSON(fiber.Map{
-			"error":  "No se pudo cargar la disponibilidad",
-			"detail": err.Error(),
+			"error": "No se pudo cargar la disponibilidad",
 		})
 	}
 
@@ -144,8 +142,7 @@ func GetMyReservations(c *fiber.Ctx) error {
 
 	if err != nil {
 		return c.Status(500).JSON(fiber.Map{
-			"error":  "No se pudieron cargar tus reservas",
-			"detail": err.Error(),
+			"error": "No se pudieron cargar tus reservas",
 		})
 	}
 
@@ -196,8 +193,9 @@ func CreateReservation(c *fiber.Ctx) error {
 	createdReservation, err := services.CreateReservation(reservation)
 
 	if err != nil {
-		return c.Status(400).JSON(fiber.Map{
-			"error": err.Error(),
+		status, message := createReservationPublicError(err)
+		return c.Status(status).JSON(fiber.Map{
+			"error": message,
 		})
 	}
 
@@ -227,17 +225,9 @@ func CancelReservation(c *fiber.Ctx) error {
 	)
 
 	if err != nil {
-		status := 400
-
-		switch err.Error() {
-		case "no tienes permisos para cancelar esta reserva":
-			status = 403
-		case "reserva no encontrada":
-			status = 404
-		}
-
+		status, message := cancelReservationPublicError(err)
 		return c.Status(status).JSON(fiber.Map{
-			"error": err.Error(),
+			"error": message,
 		})
 	}
 

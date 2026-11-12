@@ -11,8 +11,7 @@ func GetActivities(c *fiber.Ctx) error {
 
 	if err != nil {
 		return c.Status(500).JSON(fiber.Map{
-			"error":  "Error obteniendo actividades",
-			"detail": err.Error(),
+			"error": "Error obteniendo actividades",
 		})
 	}
 
