@@ -2,7 +2,7 @@
 
 Fecha: 2026-11-12
 MVP: 4
-Estado: EN PROGRESO
+Estado: CERRADO TECNICAMENTE
 
 ## Objetivo
 
@@ -441,18 +441,75 @@ logs reales de un entorno institucional.
 SEC-005 permanece abierto hasta la evaluacion final
 de cobertura y criterios de aceptacion.
 
-## Pendientes
+## Cierre tecnico SEC-005
 
-- [x] Probar respuestas HTTP 500 ante errores simulados en ocho endpoints.
-- Verificar ausencia de detalles SQL/JWT en los endpoints.
-- Revisar errores de negocio aun no clasificados.
-- Definir codigos publicos estables.
-- Registrar errores internos de forma segura.
-- Ejecutar regresion final antes de cerrar SEC-005.
+Fecha: 2026-11-12
+Estado: CERRADO TECNICAMENTE
+Ultimo commit de implementacion: 7a01526
+
+### Criterios de aceptacion
+
+- [x] Respuestas HTTP 500 sin detalles tecnicos.
+- [x] Clasificacion segura de errores de negocio.
+- [x] Proteccion frente a errores envueltos.
+- [x] Codigos publicos en errores internos y autenticacion.
+- [x] Proteccion global de Fiber ante errores inesperados.
+- [x] Recuperacion segura de panicos.
+- [x] Proteccion de credenciales en registros de arranque.
+- [x] Regresion Go y analisis estatico aprobados.
+- [x] Regresion integrada PostgreSQL 16 aprobada.
+
+### Auditoria de errores residuales
+
+Se revisaron las coincidencias de err.Error().
+
+Los validadores de disponibilidad y bloqueos generan
+mensajes constantes y descartan errores tecnicos originales.
+
+El clasificador de reservas utiliza mensajes permitidos
+y expresiones regulares restringidas.
+
+Las comparaciones literales de cancelacion devuelven
+mensajes publicos controlados.
+
+RequestFrequencyError construye su mensaje mediante
+una fecha con formato YYYY-MM-DD.
+
+No se identificaron filtraciones tecnicas en estos
+casos durante la revision estatica.
+
+### Evidencia de cierre
+
+- Implementacion y pruebas D1 a D9: PASS.
+- go test -count=1 ./...: PASS.
+- go vet ./...: PASS.
+- PostgreSQL 16 efimero: PASS.
+- Revision estatica de errores residuales: completada.
+- Rama de desarrollo: feature/mvp4.
+
+### Riesgos residuales y limitaciones
+
+Algunas respuestas HTTP 4xx de negocio mantienen
+el campo error sin un codigo publico code.
+
+Su normalizacion completa corresponde a una mejora
+posterior del contrato de API.
+
+No se verificaron registros reales de produccion
+ni autenticacion contra Microsoft Entra ID institucional.
+
+La identidad estable mediante tenant y OID corresponde
+al requisito SEC-006.
+
+El cierre tecnico no representa certificacion de
+seguridad de produccion ni aprobacion institucional.
+
+Los estados abiertos descritos en fases anteriores
+se conservan como antecedentes historicos.
 
 ## Restricciones
 
 No modificar la base de datos habitual ni
 el despliegue MVP3 validado.
 
-El requisito SEC-005 permanece abierto.
+SEC-005 cerrado tecnicamente para el alcance de seguridad definido.
