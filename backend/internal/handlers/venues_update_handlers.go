@@ -186,11 +186,8 @@ func UpdateAdminVenue(c *fiber.Ctx) error {
 			)
 
 		default:
-			return c.Status(
-				fiber.StatusInternalServerError,
-			).JSON(fiber.Map{
-				"error": "no se pudo actualizar la sede",
-			})
+			sec005LogInternalFailure("UpdateAdminVenue", err)
+			return sec005WritePublicError(c, fiber.StatusInternalServerError, "no se pudo actualizar la sede")
 		}
 	}
 

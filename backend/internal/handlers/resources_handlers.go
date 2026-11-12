@@ -232,11 +232,8 @@ func UpdateResourceOperationalSettings(c *fiber.Ctx) error {
 			})
 
 		default:
-			return c.Status(
-				fiber.StatusInternalServerError,
-			).JSON(fiber.Map{
-				"error": "no se pudo actualizar el recurso",
-			})
+			sec005LogInternalFailure("UpdateResourceOperationalSettings", err)
+			return sec005WritePublicError(c, fiber.StatusInternalServerError, "no se pudo actualizar el recurso")
 		}
 	}
 
@@ -289,9 +286,8 @@ func UpdateResourceImage(c *fiber.Ctx) error {
 			})
 		}
 
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "No se pudo actualizar la imagen",
-		})
+		sec005LogInternalFailure("UpdateResourceImage", err)
+		return sec005WritePublicError(c, fiber.StatusInternalServerError, "No se pudo actualizar la imagen")
 	}
 
 	return c.JSON(resource)

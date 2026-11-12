@@ -115,9 +115,8 @@ func CreateAdminVenue(c *fiber.Ctx) error {
 	}
 
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(
-			fiber.Map{"error": "no se pudo crear la sede"},
-		)
+		sec005LogInternalFailure("CreateAdminVenue", err)
+		return sec005WritePublicError(c, fiber.StatusInternalServerError, "no se pudo crear la sede")
 	}
 
 	return c.Status(fiber.StatusCreated).JSON(venue)

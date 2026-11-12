@@ -19,7 +19,8 @@ func GetCurrentReservationPolicy(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "no existe una politica de reservas vigente"})
 	}
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "no se pudo cargar la politica de reservas"})
+		sec005LogInternalFailure("GetCurrentReservationPolicy", err)
+		return sec005WritePublicError(c, fiber.StatusInternalServerError, "no se pudo cargar la politica de reservas")
 	}
 	return c.JSON(policy.Public())
 }
@@ -27,7 +28,8 @@ func GetCurrentReservationPolicy(c *fiber.Ctx) error {
 func GetReservationPolicyHistory(c *fiber.Ctx) error {
 	policies, err := services.GetReservationPolicyHistory()
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "no se pudo cargar el historial de politicas"})
+		sec005LogInternalFailure("GetReservationPolicyHistory", err)
+		return sec005WritePublicError(c, fiber.StatusInternalServerError, "no se pudo cargar el historial de politicas")
 	}
 	return c.JSON(policies)
 }
@@ -66,7 +68,10 @@ func PublishReservationPolicy(c *fiber.Ctx) error {
 	policy, replayed, err := services.PublishReservationPolicy(request, user.ID, c.Get("Idempotency-Key"))
 	if err != nil {
 		status, message := reservationPolicyErrorResponse(err)
-		return c.Status(status).JSON(fiber.Map{"error": message})
+		if status == fiber.StatusInternalServerError {
+			sec005LogInternalFailure("PublishReservationPolicy", err)
+		}
+		return sec005WritePublicError(c, status, message)
 	}
 	if replayed {
 		return c.Status(fiber.StatusOK).JSON(policy)

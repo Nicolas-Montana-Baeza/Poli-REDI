@@ -226,8 +226,24 @@ func TestSEC005EntraLocalUserHTTP(t *testing.T) {
 				return
 			}
 
-			if len(payload) != 1 {
+			if len(payload) != 2 {
 				t.Fatalf("campos inesperados: %s", body)
+			}
+
+			var code string
+			if err := json.Unmarshal(payload["code"], &code); err != nil {
+				t.Fatalf("codigo de error invalido: %v", err)
+			}
+
+			expectedCode := "INTERNAL_ERROR"
+			if tc.status == fiber.StatusUnauthorized {
+				expectedCode = "UNAUTHORIZED"
+			} else if tc.status == fiber.StatusForbidden {
+				expectedCode = "FORBIDDEN"
+			}
+
+			if code != expectedCode {
+				t.Fatalf("codigo %q, esperado %q", code, expectedCode)
 			}
 
 			var message string

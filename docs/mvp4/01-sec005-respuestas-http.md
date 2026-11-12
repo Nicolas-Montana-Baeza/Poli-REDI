@@ -293,6 +293,60 @@ y clasificacion de politicas.
 La auditoria de seguridad completa permanece abierta.
 SEC-005 no se declara cerrado en esta fase.
 
+## Fase D7 - Contrato publico y cobertura HTTP
+
+Fecha: 2026-11-12
+Estado: VALIDADO
+
+### D7A - Autenticacion y autorizacion
+
+- Contrato publico con campos error y code.
+- Codigos UNAUTHORIZED, FORBIDDEN e INTERNAL_ERROR.
+- Eliminacion de campos detail del middleware.
+- Conservacion de mensajes y estados HTTP existentes.
+- Pruebas HTTP: 16 comprobaciones PASS.
+
+### D7B - Respuestas HTTP 500
+
+- Normalizacion de 21 respuestas HTTP 500.
+- Uso del contrato publico INTERNAL_ERROR.
+- Registro interno seguro por identificador de operacion.
+- Cinco escenarios HTTP adicionales: PASS.
+
+### D7C - Estados HTTP dinamicos
+
+- Talleres institucionales: 4 rutas.
+- Conflictos de programacion: 3 rutas.
+- Publicacion de politicas: 1 ruta.
+- Conservacion de los estados y mensajes de negocio.
+- Ocho escenarios HTTP: PASS.
+
+### Evidencia de validacion
+
+- D7A: PASS.
+- D7B: 5/5 PASS.
+- D7C: 8/8 PASS.
+- go test -count=1 ./...: PASS.
+- go vet ./...: PASS.
+- git diff --check: PASS.
+- PostgreSQL 16 efimero: PASS.
+
+Resultado integrado:
+CIERRE AUTOMATIZADO MVP3 POSTGRESQL 16: PASS
+
+### Alcance
+
+Las pruebas HTTP usan identidades simuladas y
+conexiones PostgreSQL cerradas para comprobar
+las respuestas ante errores.
+
+Las pruebas integradas se ejecutan sobre PostgreSQL
+efimero y no sustituyen una auditoria de produccion.
+
+SEC-005 permanece EN PROGRESO hasta completar
+la verificacion final de cobertura y criterios
+de aceptacion.
+
 ## Pendientes
 
 - [x] Probar respuestas HTTP 500 ante errores simulados en ocho endpoints.

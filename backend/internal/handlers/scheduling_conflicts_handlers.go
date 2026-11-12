@@ -61,13 +61,10 @@ func GetSchedulingConflicts(
 				err,
 			)
 
-		return c.
-			Status(status).
-			JSON(
-				fiber.Map{
-					"error": message,
-				},
-			)
+		if status == fiber.StatusInternalServerError {
+			sec005LogInternalFailure("GetSchedulingConflicts", err)
+		}
+		return sec005WritePublicError(c, status, message)
 	}
 
 	return c.JSON(conflicts)
@@ -129,13 +126,10 @@ func GetSchedulingConflict(
 				err,
 			)
 
-		return c.
-			Status(status).
-			JSON(
-				fiber.Map{
-					"error": message,
-				},
-			)
+		if status == fiber.StatusInternalServerError {
+			sec005LogInternalFailure("GetSchedulingConflict", err)
+		}
+		return sec005WritePublicError(c, status, message)
 	}
 
 	return c.JSON(conflict)
@@ -248,13 +242,10 @@ func PatchSchedulingConflictItem(
 				err,
 			)
 
-		return c.
-			Status(status).
-			JSON(
-				fiber.Map{
-					"error": message,
-				},
-			)
+		if status == fiber.StatusInternalServerError {
+			sec005LogInternalFailure("PatchSchedulingConflictItem", err)
+		}
+		return sec005WritePublicError(c, status, message)
 	}
 
 	return c.JSON(conflict)

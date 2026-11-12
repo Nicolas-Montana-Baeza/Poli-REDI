@@ -360,21 +360,11 @@ func participantErrorResponse(
 	):
 		// Una configuración grupal inválida representa un problema interno
 		// de política o datos y no un error corregible por el usuario.
-		return c.Status(
-			fiber.StatusInternalServerError,
-		).JSON(
-			fiber.Map{
-				"error": "configuración grupal inválida",
-			},
-		)
+		sec005LogInternalFailure("participantErrorResponse", err)
+		return sec005WritePublicError(c, fiber.StatusInternalServerError, "configuración grupal inválida")
 
 	default:
-		return c.Status(
-			fiber.StatusInternalServerError,
-		).JSON(
-			fiber.Map{
-				"error": "no se pudo procesar la participación",
-			},
-		)
+		sec005LogInternalFailure("participantErrorResponse", err)
+		return sec005WritePublicError(c, fiber.StatusInternalServerError, "no se pudo procesar la participación")
 	}
 }

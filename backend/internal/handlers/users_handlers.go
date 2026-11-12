@@ -10,9 +10,8 @@ func GetUsers(c *fiber.Ctx) error {
 	users, err := repositories.GetAllUsers()
 
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Error obteniendo usuarios",
-		})
+		sec005LogInternalFailure("GetUsers", err)
+		return sec005WritePublicError(c, fiber.StatusInternalServerError, "Error obteniendo usuarios")
 	}
 
 	return c.JSON(users)

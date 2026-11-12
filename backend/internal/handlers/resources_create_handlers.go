@@ -101,9 +101,8 @@ func CreateAdminResource(c *fiber.Ctx) error {
 			)
 
 		default:
-			return c.Status(fiber.StatusInternalServerError).JSON(
-				fiber.Map{"error": "no se pudo crear el recurso"},
-			)
+			sec005LogInternalFailure("CreateAdminResource", err)
+			return sec005WritePublicError(c, fiber.StatusInternalServerError, "no se pudo crear el recurso")
 		}
 	}
 

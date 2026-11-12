@@ -277,12 +277,7 @@ func institutionalUnitHTTPError(
 		)
 
 	default:
-		return c.Status(
-			fiber.StatusInternalServerError,
-		).JSON(
-			fiber.Map{
-				"error": "no se pudo completar la operación institucional",
-			},
-		)
+		sec005LogInternalFailure("institutionalUnitHTTPError", err)
+		return sec005WritePublicError(c, fiber.StatusInternalServerError, "no se pudo completar la operación institucional")
 	}
 }

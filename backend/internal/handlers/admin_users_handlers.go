@@ -33,7 +33,8 @@ func adminUserAccessError(c *fiber.Ctx, err error) error {
 	case errors.Is(err, repositories.ErrUserAccessUnchanged), errors.Is(err, repositories.ErrUserAccessLastAdmin), errors.Is(err, repositories.ErrUserAccessConflict):
 		return c.Status(fiber.StatusConflict).JSON(fiber.Map{"error": publicMessage})
 	default:
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "no se pudo gestionar el acceso del usuario"})
+		sec005LogInternalFailure("adminUserAccessError", err)
+		return sec005WritePublicError(c, fiber.StatusInternalServerError, "no se pudo gestionar el acceso del usuario")
 	}
 }
 

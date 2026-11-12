@@ -63,11 +63,8 @@ func MarkNotificationRead(c *fiber.Ctx) error {
 	}
 
 	if err != nil {
-		return c.Status(
-			fiber.StatusInternalServerError,
-		).JSON(fiber.Map{
-			"error": "no se pudo actualizar la notificacion",
-		})
+		sec005LogInternalFailure("MarkNotificationRead", err)
+		return sec005WritePublicError(c, fiber.StatusInternalServerError, "no se pudo actualizar la notificacion")
 	}
 
 	return c.JSON(notification)

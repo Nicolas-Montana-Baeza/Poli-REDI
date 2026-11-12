@@ -52,11 +52,10 @@ func GetInstitutionalWorkshops(
 				err,
 			)
 
-		return c.
-			Status(status).
-			JSON(fiber.Map{
-				"error": message,
-			})
+		if status == fiber.StatusInternalServerError {
+			sec005LogInternalFailure("GetInstitutionalWorkshops", err)
+		}
+		return sec005WritePublicError(c, status, message)
 	}
 
 	return c.JSON(workshops)
@@ -104,11 +103,10 @@ func GetInstitutionalWorkshop(
 				err,
 			)
 
-		return c.
-			Status(status).
-			JSON(fiber.Map{
-				"error": message,
-			})
+		if status == fiber.StatusInternalServerError {
+			sec005LogInternalFailure("GetInstitutionalWorkshop", err)
+		}
+		return sec005WritePublicError(c, status, message)
 	}
 
 	return c.JSON(workshop)
@@ -156,11 +154,10 @@ func EnrollInInstitutionalWorkshop(
 				err,
 			)
 
-		return c.
-			Status(status).
-			JSON(fiber.Map{
-				"error": message,
-			})
+		if status == fiber.StatusInternalServerError {
+			sec005LogInternalFailure("EnrollInInstitutionalWorkshop", err)
+		}
+		return sec005WritePublicError(c, status, message)
 	}
 
 	return c.
@@ -210,11 +207,10 @@ func LeaveInstitutionalWorkshop(
 				err,
 			)
 
-		return c.
-			Status(status).
-			JSON(fiber.Map{
-				"error": message,
-			})
+		if status == fiber.StatusInternalServerError {
+			sec005LogInternalFailure("LeaveInstitutionalWorkshop", err)
+		}
+		return sec005WritePublicError(c, status, message)
 	}
 
 	return c.JSON(workshop)

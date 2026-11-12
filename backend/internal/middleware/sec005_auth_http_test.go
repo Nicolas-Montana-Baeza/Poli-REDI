@@ -220,11 +220,27 @@ func TestSEC005EntraAuthHTTPResponses(t *testing.T) {
 				t.Fatalf("JSON invalido: %v", err)
 			}
 
-			if len(payload) != 1 {
+			if len(payload) != 2 {
 				t.Fatalf(
 					"Respuesta con campos inesperados: %s",
 					body,
 				)
+			}
+
+			var code string
+			if err := json.Unmarshal(payload["code"], &code); err != nil {
+				t.Fatalf("codigo de error invalido: %v", err)
+			}
+
+			expectedCode := "INTERNAL_ERROR"
+			if tc.wantStatus == fiber.StatusUnauthorized {
+				expectedCode = "UNAUTHORIZED"
+			} else if tc.wantStatus == fiber.StatusForbidden {
+				expectedCode = "FORBIDDEN"
+			}
+
+			if code != expectedCode {
+				t.Fatalf("codigo %q, esperado %q", code, expectedCode)
 			}
 
 			var publicError string

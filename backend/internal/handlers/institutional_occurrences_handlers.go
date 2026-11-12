@@ -48,7 +48,8 @@ func institutionalOccurrenceHTTPError(c *fiber.Ctx, err error) error {
 		errors.Is(err, repositories.ErrInstitutionalActivityAlreadyCancelled):
 		return c.Status(409).JSON(fiber.Map{"error": publicMessage})
 	default:
-		return c.Status(500).JSON(fiber.Map{"error": "no se pudo gestionar esta sesión"})
+		sec005LogInternalFailure("institutionalOccurrenceHTTPError", err)
+		return sec005WritePublicError(c, fiber.StatusInternalServerError, "no se pudo gestionar esta sesión")
 	}
 }
 

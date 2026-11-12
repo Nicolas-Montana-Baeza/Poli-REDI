@@ -34,7 +34,8 @@ func adminUserRoleError(c *fiber.Ctx, err error) error {
 		errors.Is(err, repositories.ErrUserRoleBlockedTarget), errors.Is(err, repositories.ErrUserRoleConflict):
 		return c.Status(fiber.StatusConflict).JSON(fiber.Map{"error": publicMessage})
 	default:
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "no se pudo actualizar el rol"})
+		sec005LogInternalFailure("adminUserRoleError", err)
+		return sec005WritePublicError(c, fiber.StatusInternalServerError, "no se pudo actualizar el rol")
 	}
 }
 

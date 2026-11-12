@@ -52,7 +52,8 @@ func GetAdminAvailabilityBlocks(c *fiber.Ctx) error {
 	}
 	blocks, err := repositories.ListAdminAvailabilityBlocks(from, to)
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "no se pudieron consultar los bloqueos"})
+		sec005LogInternalFailure("GetAdminAvailabilityBlocks", err)
+		return sec005WritePublicError(c, fiber.StatusInternalServerError, "no se pudieron consultar los bloqueos")
 	}
 	return c.JSON(blocks)
 }
@@ -84,7 +85,8 @@ func CreateAdminAvailabilityBlock(c *fiber.Ctx) error {
 		case errors.Is(err, repositories.ErrBlockOverlap), errors.Is(err, repositories.ErrBlockResourceUnavailable):
 			return c.Status(fiber.StatusConflict).JSON(fiber.Map{"error": sec005KnownSentinelMessage(err, repositories.ErrBlockOverlap, repositories.ErrBlockResourceUnavailable)})
 		default:
-			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "no se pudo crear el bloqueo"})
+			sec005LogInternalFailure("CreateAdminAvailabilityBlock", err)
+			return sec005WritePublicError(c, fiber.StatusInternalServerError, "no se pudo crear el bloqueo")
 		}
 	}
 	return c.Status(fiber.StatusCreated).JSON(block)
@@ -104,7 +106,8 @@ func DeactivateAdminAvailabilityBlock(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": repositories.ErrBlockNotFound.Error()})
 	}
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "no se pudo desactivar el bloqueo"})
+		sec005LogInternalFailure("DeactivateAdminAvailabilityBlock", err)
+		return sec005WritePublicError(c, fiber.StatusInternalServerError, "no se pudo desactivar el bloqueo")
 	}
 	return c.JSON(block)
 }

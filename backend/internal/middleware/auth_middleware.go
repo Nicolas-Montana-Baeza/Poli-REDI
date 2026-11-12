@@ -118,9 +118,7 @@ func requireEntraAuthWithUsers(
 		tokenString, err := extractBearerToken(c)
 
 		if err != nil {
-			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-				"error": "debes iniciar sesión para continuar",
-			})
+			return sec005AuthPublicError(c, fiber.StatusUnauthorized, "debes iniciar sesión para continuar")
 		}
 
 		claims := &EntraClaims{}
@@ -134,9 +132,7 @@ func requireEntraAuthWithUsers(
 		)
 
 		if err != nil || !token.Valid {
-			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-				"error": "tu sesión expiró o no es válida",
-			})
+			return sec005AuthPublicError(c, fiber.StatusUnauthorized, "tu sesión expiró o no es válida")
 		}
 
 		email := resolveEmail(claims)
@@ -148,9 +144,7 @@ func requireEntraAuthWithUsers(
 		}
 
 		if authUser.Email == "" {
-			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
-				"error": "no se pudo validar tu cuenta institucional",
-			})
+			return sec005AuthPublicError(c, fiber.StatusForbidden, "no se pudo validar tu cuenta institucional")
 		}
 
 		fullName := authUser.Name
@@ -165,15 +159,11 @@ func requireEntraAuthWithUsers(
 		localUser, err := users.getOrCreate(authUser.Email, fullName)
 
 		if err != nil {
-			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-				"error": "no se pudo cargar tu usuario",
-			})
+			return sec005AuthPublicError(c, fiber.StatusInternalServerError, "no se pudo cargar tu usuario")
 		}
 
 		if localUser.IsBlocked {
-			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
-				"error": "usuario bloqueado",
-			})
+			return sec005AuthPublicError(c, fiber.StatusForbidden, "usuario bloqueado")
 		}
 
 		localUser, err = users.updateIdentity(
@@ -183,9 +173,7 @@ func requireEntraAuthWithUsers(
 		)
 
 		if err != nil {
-			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-				"error": "no se pudo sincronizar tu identidad institucional",
-			})
+			return sec005AuthPublicError(c, fiber.StatusInternalServerError, "no se pudo sincronizar tu identidad institucional")
 		}
 
 		c.Locals("authUser", authUser)
@@ -195,16 +183,31 @@ func requireEntraAuthWithUsers(
 	}
 }
 
+// sec005AuthPublicError conserva el campo error y agrega
+// un codigo estable sin exponer diagnosticos internos.
+func sec005AuthPublicError(c *fiber.Ctx, status int, message string) error {
+	code := "INTERNAL_ERROR"
+
+	switch status {
+	case fiber.StatusUnauthorized:
+		code = "UNAUTHORIZED"
+	case fiber.StatusForbidden:
+		code = "FORBIDDEN"
+	}
+
+	return c.Status(status).JSON(fiber.Map{
+		"error": message,
+		"code":  code,
+	})
+}
+
 func requireDevAuth() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		email := strings.TrimSpace(c.Get("X-Dev-Auth-Email"))
 		fullName := strings.TrimSpace(c.Get("X-Dev-Auth-Name"))
 
 		if email == "" {
-			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-				"error":  "falta iniciar sesión local de prueba",
-				"detail": "Modo dev auth activo, pero falta X-Dev-Auth-Email.",
-			})
+			return sec005AuthPublicError(c, fiber.StatusUnauthorized, "falta iniciar sesión local de prueba")
 		}
 
 		if fullName == "" {
@@ -214,16 +217,11 @@ func requireDevAuth() fiber.Handler {
 		localUser, err := repositories.GetOrCreateUserByEmail(email, fullName)
 
 		if err != nil {
-			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-				"error": "no se pudo cargar el usuario local de prueba",
-			})
+			return sec005AuthPublicError(c, fiber.StatusInternalServerError, "no se pudo cargar el usuario local de prueba")
 		}
 
 		if localUser.IsBlocked {
-			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
-				"error":  "usuario bloqueado",
-				"detail": "El usuario existe, pero está bloqueado en Poli-REDI.",
-			})
+			return sec005AuthPublicError(c, fiber.StatusForbidden, "usuario bloqueado")
 		}
 
 		// X-Dev-Reset-Rut existe solo para probar localmente el flujo de RUT
@@ -232,9 +230,7 @@ func requireDevAuth() fiber.Handler {
 			localUser, err = repositories.UpdateUserRUT(localUser.ID, "")
 
 			if err != nil {
-				return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-					"error": "no se pudo preparar el RUT local de prueba",
-				})
+				return sec005AuthPublicError(c, fiber.StatusInternalServerError, "no se pudo preparar el RUT local de prueba")
 			}
 		}
 
@@ -257,15 +253,11 @@ func RequireAdmin() fiber.Handler {
 		user, ok := GetLocalUser(c)
 
 		if !ok {
-			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-				"error": "usuario no autenticado",
-			})
+			return sec005AuthPublicError(c, fiber.StatusUnauthorized, "usuario no autenticado")
 		}
 
 		if !user.IsAdmin {
-			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
-				"error": "no tienes permisos para acceder a esta sección",
-			})
+			return sec005AuthPublicError(c, fiber.StatusForbidden, "no tienes permisos para acceder a esta sección")
 		}
 
 		return c.Next()

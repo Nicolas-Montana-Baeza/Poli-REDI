@@ -121,7 +121,8 @@ func GetReservationDetail(c *fiber.Ctx) error {
 		case errors.Is(err, services.ErrReservationForbidden):
 			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"error": services.ErrReservationForbidden.Error()})
 		default:
-			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "no se pudo cargar la reserva"})
+			sec005LogInternalFailure("GetReservationDetail", err)
+			return sec005WritePublicError(c, fiber.StatusInternalServerError, "no se pudo cargar la reserva")
 		}
 	}
 	return c.JSON(reservation)
