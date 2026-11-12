@@ -267,6 +267,22 @@ func PatchSchedulingConflictItem(
 func schedulingConflictErrorResponse(
 	err error,
 ) (int, string) {
+	publicMessage := sec005KnownSentinelMessage(err,
+		services.ErrSchedulingConflictUnauthorized,
+		services.ErrSchedulingConflictInvalidFilter,
+		services.ErrSchedulingConflictInvalidResolution,
+		services.ErrSchedulingConflictResolutionNoteRequired,
+		services.ErrSchedulingConflictInvalidReschedule,
+		repositories.ErrSchedulingRescheduleReservation,
+		repositories.ErrSchedulingConflictNotFound,
+		repositories.ErrSchedulingConflictItemNotFound,
+		repositories.ErrSchedulingConflictResolved,
+		repositories.ErrSchedulingConflictItemResolved,
+		repositories.ErrSchedulingResolutionInvalidPlan,
+		repositories.ErrSchedulingOccurrenceAlreadyAdjusted,
+		repositories.ErrSchedulingRescheduleBlocked,
+	)
+
 	switch {
 
 	case errors.Is(
@@ -276,7 +292,7 @@ func schedulingConflictErrorResponse(
 	):
 
 		return fiber.StatusForbidden,
-			err.Error()
+			publicMessage
 
 	case errors.Is(
 		err,
@@ -305,7 +321,7 @@ func schedulingConflictErrorResponse(
 		):
 
 		return fiber.StatusBadRequest,
-			err.Error()
+			publicMessage
 
 	case errors.Is(
 		err,
@@ -319,7 +335,7 @@ func schedulingConflictErrorResponse(
 		):
 
 		return fiber.StatusNotFound,
-			err.Error()
+			publicMessage
 
 	case errors.Is(
 		err,
@@ -348,7 +364,7 @@ func schedulingConflictErrorResponse(
 		):
 
 		return fiber.StatusConflict,
-			err.Error()
+			publicMessage
 
 	default:
 

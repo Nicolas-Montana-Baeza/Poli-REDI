@@ -250,6 +250,18 @@ func participantErrorResponse(
 	c *fiber.Ctx,
 	err error,
 ) error {
+	publicMessage := sec005KnownSentinelMessage(err,
+		services.ErrInvalidJoinCode,
+		services.ErrParticipantIneligible,
+		services.ErrParticipationWindowClosed,
+		services.ErrParticipantScheduleOverlap,
+		services.ErrOwnerCannotWithdraw,
+		services.ErrGroupCapacity,
+		services.ErrReservationNotJoinable,
+		services.ErrReservationNotFound,
+		services.ErrReservationForbidden,
+		services.ErrInvalidGroupConfig,
+	)
 
 	switch {
 	case errors.Is(
@@ -258,7 +270,7 @@ func participantErrorResponse(
 	):
 		return c.Status(fiber.StatusNotFound).JSON(
 			fiber.Map{
-				"error": err.Error(),
+				"error": publicMessage,
 			},
 		)
 
@@ -268,7 +280,7 @@ func participantErrorResponse(
 	):
 		return c.Status(fiber.StatusForbidden).JSON(
 			fiber.Map{
-				"error": err.Error(),
+				"error": publicMessage,
 			},
 		)
 
@@ -278,7 +290,7 @@ func participantErrorResponse(
 	):
 		return c.Status(fiber.StatusConflict).JSON(
 			fiber.Map{
-				"error": err.Error(),
+				"error": publicMessage,
 			},
 		)
 
@@ -288,7 +300,7 @@ func participantErrorResponse(
 	):
 		return c.Status(fiber.StatusConflict).JSON(
 			fiber.Map{
-				"error": err.Error(),
+				"error": publicMessage,
 			},
 		)
 
@@ -298,7 +310,7 @@ func participantErrorResponse(
 	):
 		return c.Status(fiber.StatusConflict).JSON(
 			fiber.Map{
-				"error": err.Error(),
+				"error": publicMessage,
 			},
 		)
 
@@ -308,7 +320,7 @@ func participantErrorResponse(
 	):
 		return c.Status(fiber.StatusConflict).JSON(
 			fiber.Map{
-				"error": err.Error(),
+				"error": publicMessage,
 			},
 		)
 
@@ -318,7 +330,7 @@ func participantErrorResponse(
 	):
 		return c.Status(fiber.StatusConflict).JSON(
 			fiber.Map{
-				"error": err.Error(),
+				"error": publicMessage,
 			},
 		)
 
@@ -328,7 +340,7 @@ func participantErrorResponse(
 	):
 		return c.Status(fiber.StatusNotFound).JSON(
 			fiber.Map{
-				"error": err.Error(),
+				"error": publicMessage,
 			},
 		)
 
@@ -338,7 +350,7 @@ func participantErrorResponse(
 	):
 		return c.Status(fiber.StatusForbidden).JSON(
 			fiber.Map{
-				"error": err.Error(),
+				"error": publicMessage,
 			},
 		)
 

@@ -19,21 +19,34 @@ func occurrenceActivityID(c *fiber.Ctx) (int, error) {
 }
 
 func institutionalOccurrenceHTTPError(c *fiber.Ctx, err error) error {
+	publicMessage := sec005KnownSentinelMessage(err,
+		services.ErrInstitutionalUnauthorized,
+		services.ErrInstitutionalUnitInactive,
+		services.ErrInstitutionalActivityNotFound,
+		repositories.ErrInstitutionalOccurrenceInvalid,
+		services.ErrInstitutionalScheduleInvalid,
+		repositories.ErrInstitutionalOccurrenceAlreadyHandled,
+		repositories.ErrInstitutionalOccurrenceEnrolled,
+		repositories.ErrInstitutionalOccurrenceBlocked,
+		repositories.ErrInstitutionalOccurrenceSelfOverlap,
+		repositories.ErrInstitutionalActivityAlreadyCancelled,
+	)
+
 	switch {
 	case errors.Is(err, services.ErrInstitutionalUnauthorized):
-		return c.Status(403).JSON(fiber.Map{"error": err.Error()})
+		return c.Status(403).JSON(fiber.Map{"error": publicMessage})
 	case errors.Is(err, services.ErrInstitutionalUnitInactive):
-		return c.Status(409).JSON(fiber.Map{"error": err.Error()})
+		return c.Status(409).JSON(fiber.Map{"error": publicMessage})
 	case errors.Is(err, services.ErrInstitutionalActivityNotFound):
-		return c.Status(404).JSON(fiber.Map{"error": err.Error()})
+		return c.Status(404).JSON(fiber.Map{"error": publicMessage})
 	case errors.Is(err, repositories.ErrInstitutionalOccurrenceInvalid), errors.Is(err, services.ErrInstitutionalScheduleInvalid):
-		return c.Status(400).JSON(fiber.Map{"error": err.Error()})
+		return c.Status(400).JSON(fiber.Map{"error": publicMessage})
 	case errors.Is(err, repositories.ErrInstitutionalOccurrenceAlreadyHandled),
 		errors.Is(err, repositories.ErrInstitutionalOccurrenceEnrolled),
 		errors.Is(err, repositories.ErrInstitutionalOccurrenceBlocked),
 		errors.Is(err, repositories.ErrInstitutionalOccurrenceSelfOverlap),
 		errors.Is(err, repositories.ErrInstitutionalActivityAlreadyCancelled):
-		return c.Status(409).JSON(fiber.Map{"error": err.Error()})
+		return c.Status(409).JSON(fiber.Map{"error": publicMessage})
 	default:
 		return c.Status(500).JSON(fiber.Map{"error": "no se pudo gestionar esta sesión"})
 	}

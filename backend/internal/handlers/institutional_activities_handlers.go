@@ -135,6 +135,21 @@ func institutionalActivityHTTPError(
 	c *fiber.Ctx,
 	err error,
 ) error {
+	publicMessage := sec005KnownSentinelMessage(err,
+		services.ErrInstitutionalUnauthorized,
+		services.ErrInstitutionalActivityNotFound,
+		services.ErrInstitutionalUnitNotFound,
+		services.ErrInstitutionalResourceNotFound,
+		services.ErrInstitutionalActivityInvalid,
+		services.ErrInstitutionalScheduleInvalid,
+		repositories.ErrInstitutionalActivityAlreadyCancelled,
+		repositories.ErrInstitutionalActivityNotEditable,
+		repositories.ErrInstitutionalActivityResourceChange,
+		services.ErrInstitutionalUnitInactive,
+		services.ErrInstitutionalResourceInactive,
+		services.ErrInstitutionalActivityBlocked,
+	)
+
 	switch {
 
 	case errors.Is(
@@ -144,11 +159,11 @@ func institutionalActivityHTTPError(
 		return c.Status(
 			fiber.StatusForbidden,
 		).JSON(
-			fiber.Map{"error": err.Error()},
+			fiber.Map{"error": publicMessage},
 		)
 
 	case errors.Is(err, services.ErrInstitutionalActivityNotFound):
-		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": err.Error()})
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": publicMessage})
 
 	case errors.Is(
 		err,
@@ -161,7 +176,7 @@ func institutionalActivityHTTPError(
 		return c.Status(
 			fiber.StatusNotFound,
 		).JSON(
-			fiber.Map{"error": err.Error()},
+			fiber.Map{"error": publicMessage},
 		)
 
 	case errors.Is(
@@ -175,13 +190,13 @@ func institutionalActivityHTTPError(
 		return c.Status(
 			fiber.StatusBadRequest,
 		).JSON(
-			fiber.Map{"error": err.Error()},
+			fiber.Map{"error": publicMessage},
 		)
 
 	case errors.Is(err, repositories.ErrInstitutionalActivityAlreadyCancelled),
 		errors.Is(err, repositories.ErrInstitutionalActivityNotEditable),
 		errors.Is(err, repositories.ErrInstitutionalActivityResourceChange):
-		return c.Status(fiber.StatusConflict).JSON(fiber.Map{"error": err.Error()})
+		return c.Status(fiber.StatusConflict).JSON(fiber.Map{"error": publicMessage})
 
 	case errors.Is(
 		err,
@@ -198,7 +213,7 @@ func institutionalActivityHTTPError(
 		return c.Status(
 			fiber.StatusConflict,
 		).JSON(
-			fiber.Map{"error": err.Error()},
+			fiber.Map{"error": publicMessage},
 		)
 
 	default:

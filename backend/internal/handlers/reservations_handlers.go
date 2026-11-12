@@ -117,9 +117,9 @@ func GetReservationDetail(c *fiber.Ctx) error {
 	if err != nil {
 		switch {
 		case errors.Is(err, services.ErrReservationNotFound):
-			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": err.Error()})
+			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": services.ErrReservationNotFound.Error()})
 		case errors.Is(err, services.ErrReservationForbidden):
-			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"error": err.Error()})
+			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"error": services.ErrReservationForbidden.Error()})
 		default:
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "no se pudo cargar la reserva"})
 		}

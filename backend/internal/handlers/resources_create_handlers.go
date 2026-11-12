@@ -90,14 +90,14 @@ func CreateAdminResource(c *fiber.Ctx) error {
 		switch {
 		case errors.Is(err, repositories.ErrVenueNotFound):
 			return c.Status(fiber.StatusNotFound).JSON(
-				fiber.Map{"error": err.Error()},
+				fiber.Map{"error": repositories.ErrVenueNotFound.Error()},
 			)
 
 		case errors.Is(err, repositories.ErrResourceDuplicate),
 			errors.Is(err, repositories.ErrResourceVenueInactive),
 			errors.Is(err, repositories.ErrResourceConcurrentUpdate):
 			return c.Status(fiber.StatusConflict).JSON(
-				fiber.Map{"error": err.Error()},
+				fiber.Map{"error": sec005KnownSentinelMessage(err, repositories.ErrResourceDuplicate, repositories.ErrResourceVenueInactive, repositories.ErrResourceConcurrentUpdate)},
 			)
 
 		default:

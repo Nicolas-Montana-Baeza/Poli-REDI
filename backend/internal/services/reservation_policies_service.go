@@ -104,7 +104,7 @@ func PublishReservationPolicy(request models.PublishReservationPolicyRequest, cr
 		return models.ReservationPolicy{}, false, policyValidation("uno o mas recursos no existen o no estan activos")
 	}
 	if errors.Is(err, repositories.ErrInvalidPolicyGroupResource) {
-		return models.ReservationPolicy{}, false, policyValidation(err.Error())
+		return models.ReservationPolicy{}, false, policyValidation(repositories.ErrInvalidPolicyGroupResource.Error())
 	}
 	return policy, replayed, err
 }

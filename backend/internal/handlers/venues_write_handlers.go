@@ -110,7 +110,7 @@ func CreateAdminVenue(c *fiber.Ctx) error {
 
 	if errors.Is(err, repositories.ErrVenueDuplicate) {
 		return c.Status(fiber.StatusConflict).JSON(
-			fiber.Map{"error": err.Error()},
+			fiber.Map{"error": repositories.ErrVenueDuplicate.Error()},
 		)
 	}
 

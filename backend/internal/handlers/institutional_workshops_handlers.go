@@ -227,6 +227,16 @@ func LeaveInstitutionalWorkshop(
 func institutionalWorkshopErrorResponse(
 	err error,
 ) (int, string) {
+	publicMessage := sec005KnownSentinelMessage(err,
+		services.ErrInstitutionalWorkshopUnauthorized,
+		services.ErrInstitutionalWorkshopInvalidID,
+		repositories.ErrInstitutionalWorkshopNotFound,
+		repositories.ErrInstitutionalWorkshopUnavailable,
+		repositories.ErrInstitutionalWorkshopAlreadyEnrolled,
+		repositories.ErrInstitutionalWorkshopNotEnrolled,
+		repositories.ErrInstitutionalWorkshopFull,
+	)
+
 	switch {
 
 	case errors.Is(
@@ -236,7 +246,7 @@ func institutionalWorkshopErrorResponse(
 	):
 
 		return fiber.StatusUnauthorized,
-			err.Error()
+			publicMessage
 
 	case errors.Is(
 		err,
@@ -245,7 +255,7 @@ func institutionalWorkshopErrorResponse(
 	):
 
 		return fiber.StatusBadRequest,
-			err.Error()
+			publicMessage
 
 	case errors.Is(
 		err,
@@ -254,7 +264,7 @@ func institutionalWorkshopErrorResponse(
 	):
 
 		return fiber.StatusNotFound,
-			err.Error()
+			publicMessage
 
 	case errors.Is(
 		err,
@@ -278,7 +288,7 @@ func institutionalWorkshopErrorResponse(
 		):
 
 		return fiber.StatusConflict,
-			err.Error()
+			publicMessage
 
 	default:
 

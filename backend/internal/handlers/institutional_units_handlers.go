@@ -212,6 +212,16 @@ func institutionalUnitHTTPError(
 	c *fiber.Ctx,
 	err error,
 ) error {
+	publicMessage := sec005KnownSentinelMessage(err,
+		services.ErrInstitutionalUnauthorized,
+		services.ErrInstitutionalUnitNotFound,
+		services.ErrInstitutionalMembershipTargetNotFound,
+		services.ErrInstitutionalInvalidUnit,
+		services.ErrInstitutionalInvalidMembership,
+		services.ErrInstitutionalUnitDuplicate,
+		services.ErrInstitutionalUnitInactive,
+	)
+
 	switch {
 
 	case errors.Is(
@@ -221,7 +231,7 @@ func institutionalUnitHTTPError(
 		return c.Status(
 			fiber.StatusForbidden,
 		).JSON(
-			fiber.Map{"error": err.Error()},
+			fiber.Map{"error": publicMessage},
 		)
 
 	case errors.Is(
@@ -235,7 +245,7 @@ func institutionalUnitHTTPError(
 		return c.Status(
 			fiber.StatusNotFound,
 		).JSON(
-			fiber.Map{"error": err.Error()},
+			fiber.Map{"error": publicMessage},
 		)
 
 	case errors.Is(
@@ -249,7 +259,7 @@ func institutionalUnitHTTPError(
 		return c.Status(
 			fiber.StatusBadRequest,
 		).JSON(
-			fiber.Map{"error": err.Error()},
+			fiber.Map{"error": publicMessage},
 		)
 
 	case errors.Is(
@@ -263,7 +273,7 @@ func institutionalUnitHTTPError(
 		return c.Status(
 			fiber.StatusConflict,
 		).JSON(
-			fiber.Map{"error": err.Error()},
+			fiber.Map{"error": publicMessage},
 		)
 
 	default:

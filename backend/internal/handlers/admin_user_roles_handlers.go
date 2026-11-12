@@ -11,16 +11,28 @@ import (
 )
 
 func adminUserRoleError(c *fiber.Ctx, err error) error {
+	publicMessage := sec005KnownSentinelMessage(err,
+		repositories.ErrUserRoleUnauthorized,
+		repositories.ErrUserRoleSelf,
+		repositories.ErrUserRoleNotFound,
+		services.ErrUserRoleInvalidReason,
+		services.ErrUserRoleInvalidRequest,
+		repositories.ErrUserRoleUnchanged,
+		repositories.ErrUserRoleLastAdmin,
+		repositories.ErrUserRoleBlockedTarget,
+		repositories.ErrUserRoleConflict,
+	)
+
 	switch {
 	case errors.Is(err, repositories.ErrUserRoleUnauthorized), errors.Is(err, repositories.ErrUserRoleSelf):
-		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"error": err.Error()})
+		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"error": publicMessage})
 	case errors.Is(err, repositories.ErrUserRoleNotFound):
-		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": err.Error()})
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": publicMessage})
 	case errors.Is(err, services.ErrUserRoleInvalidReason), errors.Is(err, services.ErrUserRoleInvalidRequest):
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": publicMessage})
 	case errors.Is(err, repositories.ErrUserRoleUnchanged), errors.Is(err, repositories.ErrUserRoleLastAdmin),
 		errors.Is(err, repositories.ErrUserRoleBlockedTarget), errors.Is(err, repositories.ErrUserRoleConflict):
-		return c.Status(fiber.StatusConflict).JSON(fiber.Map{"error": err.Error()})
+		return c.Status(fiber.StatusConflict).JSON(fiber.Map{"error": publicMessage})
 	default:
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "no se pudo actualizar el rol"})
 	}

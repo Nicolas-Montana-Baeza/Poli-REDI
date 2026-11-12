@@ -77,17 +77,17 @@ func PublishReservationPolicy(c *fiber.Ctx) error {
 func reservationPolicyErrorResponse(err error) (int, string) {
 	var validation services.ReservationPolicyValidationError
 	if errors.As(err, &validation) {
-		return fiber.StatusBadRequest, err.Error()
+		return fiber.StatusBadRequest, validation.Error()
 	}
 	if errors.Is(err, services.ErrReservationPolicyConflict) {
-		return fiber.StatusConflict, err.Error()
+		return fiber.StatusConflict, services.ErrReservationPolicyConflict.Error()
 	}
 	if errors.Is(err, services.ErrReservationPolicyConcurrent) {
-		return fiber.StatusConflict, err.Error()
+		return fiber.StatusConflict, services.ErrReservationPolicyConcurrent.Error()
 	}
 
 	if errors.Is(err, services.ErrReservationPolicyStale) {
-		return fiber.StatusConflict, err.Error()
+		return fiber.StatusConflict, services.ErrReservationPolicyStale.Error()
 	}
 
 	return fiber.StatusInternalServerError, "no se pudo publicar la politica de reservas"

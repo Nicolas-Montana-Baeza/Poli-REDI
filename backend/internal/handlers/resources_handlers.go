@@ -228,7 +228,7 @@ func UpdateResourceOperationalSettings(c *fiber.Ctx) error {
 			errors.Is(err, repositories.ErrGroupResourceMustRemainReservable),
 			errors.Is(err, repositories.ErrGroupResourceCapacityInvalid):
 			return c.Status(fiber.StatusConflict).JSON(fiber.Map{
-				"error": err.Error(),
+				"error": sec005KnownSentinelMessage(err, repositories.ErrResourceDuplicate, repositories.ErrResourceConcurrentUpdate, repositories.ErrResourceVenueInactive, repositories.ErrGroupResourceMustRemainReservable, repositories.ErrGroupResourceCapacityInvalid),
 			})
 
 		default:

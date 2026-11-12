@@ -235,6 +235,64 @@ No se modifico el esquema PostgreSQL ni la base de datos
 habitual. SEC-005 sigue abierto hasta completar la
 auditoria transversal de respuestas y errores.
 
+## Fase D6 - Proteccion transversal de errores de dominio
+
+Fecha: 2026-11-12
+Estado: VALIDADO
+
+### D6A - Clasificadores de dominio
+
+Se introdujo sec005KnownSentinelMessage para devolver
+exclusivamente el mensaje de errores conocidos.
+
+Se protegieron ocho clasificadores HTTP:
+- Administracion de accesos y roles.
+- Actividades y unidades institucionales.
+- Ocurrencias y talleres.
+- Conflictos de programacion.
+- Participacion grupal.
+
+Se conservaron los estados HTTP existentes.
+
+### D6B - Recursos, sedes y politicas
+
+Se extendio la proteccion a:
+- Recursos y creacion de recursos.
+- Creacion y actualizacion de sedes.
+- Bloqueos administrativos.
+- Detalle de reservas.
+- Politicas de reservas.
+
+Los errores de validacion locales mantienen sus
+respuestas funcionales.
+
+Se evito transformar errores tecnicos envueltos
+en mensajes publicos de validacion de politicas.
+
+### Pruebas
+
+- D6A: 8/8 PASS.
+- D6B: mensajes de dominio 6/6 PASS.
+- D6B: politicas 5/5 PASS.
+- go test -count=1 ./...: PASS.
+- go vet ./...: PASS.
+- git diff --check: PASS.
+- Regresion PostgreSQL 16 efimera: PASS.
+
+Resultado integrado:
+CIERRE AUTOMATIZADO MVP3 POSTGRESQL 16: PASS
+
+### Limitaciones
+
+Las pruebas D6A verifican respuestas HTTP de
+clasificadores con errores simulados.
+
+Las pruebas D6B verifican seleccion de mensajes
+y clasificacion de politicas.
+
+La auditoria de seguridad completa permanece abierta.
+SEC-005 no se declara cerrado en esta fase.
+
 ## Pendientes
 
 - [x] Probar respuestas HTTP 500 ante errores simulados en ocho endpoints.

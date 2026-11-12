@@ -12,15 +12,26 @@ import (
 )
 
 func adminUserAccessError(c *fiber.Ctx, err error) error {
+	publicMessage := sec005KnownSentinelMessage(err,
+		repositories.ErrUserAccessUnauthorized,
+		repositories.ErrUserAccessSelf,
+		repositories.ErrUserAccessNotFound,
+		services.ErrUserAccessInvalidReason,
+		services.ErrUserAccessInvalidRequest,
+		repositories.ErrUserAccessUnchanged,
+		repositories.ErrUserAccessLastAdmin,
+		repositories.ErrUserAccessConflict,
+	)
+
 	switch {
 	case errors.Is(err, repositories.ErrUserAccessUnauthorized), errors.Is(err, repositories.ErrUserAccessSelf):
-		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"error": err.Error()})
+		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"error": publicMessage})
 	case errors.Is(err, repositories.ErrUserAccessNotFound):
-		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": err.Error()})
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": publicMessage})
 	case errors.Is(err, services.ErrUserAccessInvalidReason), errors.Is(err, services.ErrUserAccessInvalidRequest):
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": publicMessage})
 	case errors.Is(err, repositories.ErrUserAccessUnchanged), errors.Is(err, repositories.ErrUserAccessLastAdmin), errors.Is(err, repositories.ErrUserAccessConflict):
-		return c.Status(fiber.StatusConflict).JSON(fiber.Map{"error": err.Error()})
+		return c.Status(fiber.StatusConflict).JSON(fiber.Map{"error": publicMessage})
 	default:
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "no se pudo gestionar el acceso del usuario"})
 	}

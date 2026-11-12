@@ -175,14 +175,14 @@ func UpdateAdminVenue(c *fiber.Ctx) error {
 		switch {
 		case errors.Is(err, repositories.ErrVenueNotFound):
 			return c.Status(fiber.StatusNotFound).JSON(
-				fiber.Map{"error": err.Error()},
+				fiber.Map{"error": repositories.ErrVenueNotFound.Error()},
 			)
 
 		case errors.Is(err, repositories.ErrVenueDuplicate),
 			errors.Is(err, repositories.ErrVenueHasActiveResources),
 			errors.Is(err, repositories.ErrVenueConcurrentUpdate):
 			return c.Status(fiber.StatusConflict).JSON(
-				fiber.Map{"error": err.Error()},
+				fiber.Map{"error": sec005KnownSentinelMessage(err, repositories.ErrVenueDuplicate, repositories.ErrVenueHasActiveResources, repositories.ErrVenueConcurrentUpdate)},
 			)
 
 		default:

@@ -52,3 +52,19 @@ func sec005LogInternalFailure(operation string, err error) {
 		err,
 	)
 }
+
+// sec005KnownSentinelMessage devuelve exclusivamente mensajes
+// de errores de dominio conocidos, aunque el error recibido
+// contenga contexto tecnico adicional mediante wrapping.
+func sec005KnownSentinelMessage(
+	err error,
+	known ...error,
+) string {
+	for _, candidate := range known {
+		if errors.Is(err, candidate) {
+			return candidate.Error()
+		}
+	}
+
+	return "no se pudo procesar la solicitud"
+}
