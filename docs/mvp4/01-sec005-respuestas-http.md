@@ -152,6 +152,58 @@ Pendiente: probar usuarios bloqueados, errores durante
 la sincronizacion de identidad y autorizaciones
 institucionales adicionales.
 
+## Fase D4 - Identidad y usuarios bloqueados
+
+Fecha: 2026-11-12
+Estado: VALIDADO
+
+Se incorporo inyeccion de dependencias al constructor
+interno del middleware de autenticacion Entra ID.
+
+La ruta de produccion conserva los repositorios originales.
+
+Se retiro el campo detail de la respuesta Entra ID
+para usuarios bloqueados.
+
+### Pruebas HTTP aisladas
+
+- Error al consultar usuario: HTTP 500, PASS.
+- Usuario bloqueado: HTTP 403, PASS.
+- Error al sincronizar identidad: HTTP 500, PASS.
+- Autenticacion exitosa: HTTP 200, PASS.
+- Total D4: 4/4 PASS.
+- Regresion JWT D3: 9/9 PASS.
+
+No se utilizaron tokens institucionales reales.
+
+### Regresion PostgreSQL 16
+
+Se ejecuto:
+infra/local/quadlet/verify-mvp3-policies-ephemeral.sh
+
+Resultados:
+- Politicas grupales: PASS.
+- Historial y reglas de reservas: PASS.
+- Sedes y recursos: PASS.
+- Bloqueos administrativos: PASS.
+- Calendario de bloqueos: PASS.
+
+Resultado final:
+CIERRE AUTOMATIZADO MVP3 POSTGRESQL 16: PASS
+
+El verificador incluye limpieza automatica del
+contenedor y volumen efimeros.
+
+### Alcance y limitaciones
+
+La validacion del middleware utiliza repositorios simulados.
+La regresion PostgreSQL utiliza integraciones independientes.
+
+No se ha validado una autenticacion completa contra
+Microsoft Entra ID y PostgreSQL institucional reales.
+
+La identidad estable por tenant y OID corresponde a SEC-006.
+
 ## Pendientes
 
 - [x] Probar respuestas HTTP 500 ante errores simulados en ocho endpoints.

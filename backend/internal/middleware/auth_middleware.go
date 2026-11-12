@@ -87,10 +87,32 @@ func RequireAuth() fiber.Handler {
 
 // requireEntraAuth permite probar la validacion JWT con claves
 // efimeras. RequireAuth sigue utilizando JWKS real en produccion.
+type entraUserOperations struct {
+	getOrCreate    func(string, string) (*models.LocalAuthUser, error)
+	updateIdentity func(int, string, string) (*models.LocalAuthUser, error)
+}
+
 func requireEntraAuth(
 	verifyKey jwt.Keyfunc,
 	issuer string,
 	expectedAudiences []string,
+) fiber.Handler {
+	return requireEntraAuthWithUsers(
+		verifyKey,
+		issuer,
+		expectedAudiences,
+		entraUserOperations{
+			getOrCreate:    repositories.GetOrCreateUserByEmail,
+			updateIdentity: repositories.UpdateUserEntraIdentity,
+		},
+	)
+}
+
+func requireEntraAuthWithUsers(
+	verifyKey jwt.Keyfunc,
+	issuer string,
+	expectedAudiences []string,
+	users entraUserOperations,
 ) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		tokenString, err := extractBearerToken(c)
@@ -140,7 +162,7 @@ func requireEntraAuth(
 		// Entra ID prueba la identidad externa, pero la autorizacion de Poli-REDI
 		// se basa en el usuario local para mantener admins, bloqueos y reglas de
 		// RUT bajo control institucional.
-		localUser, err := repositories.GetOrCreateUserByEmail(authUser.Email, fullName)
+		localUser, err := users.getOrCreate(authUser.Email, fullName)
 
 		if err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
@@ -150,12 +172,11 @@ func requireEntraAuth(
 
 		if localUser.IsBlocked {
 			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
-				"error":  "usuario bloqueado",
-				"detail": "El usuario existe, pero está bloqueado en Poli-REDI.",
+				"error": "usuario bloqueado",
 			})
 		}
 
-		localUser, err = repositories.UpdateUserEntraIdentity(
+		localUser, err = users.updateIdentity(
 			localUser.ID,
 			authUser.OID,
 			authUser.Tenant,
