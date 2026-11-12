@@ -117,6 +117,41 @@ El contrato aun no cubre todos los endpoints de Poli-REDI.
 La autenticacion Entra ID y los demas codigos publicos
 requieren pruebas adicionales.
 
+## Fase D3 - Autenticacion JWT HTTP
+
+Fecha: 2026-11-12
+Estado: VALIDADO PARCIALMENTE
+
+Se separo la inicializacion de JWKS de la validacion
+JWT para permitir pruebas aisladas con claves RSA
+efimeras generadas localmente.
+
+La configuracion de produccion mantiene JWKS real.
+
+Escenarios HTTP aprobados:
+- Token ausente: 401.
+- Cabecera incorrecta: 401.
+- JWT malformado: 401.
+- Firma invalida: 401.
+- Emisor invalido: 401.
+- Audiencia invalida: 401.
+- JWT expirado: 401.
+- Identidad sin email: 403.
+- Repositorio no disponible: 500.
+
+Resultados:
+- Pruebas HTTP: 9/9 PASS.
+- go test ./...: PASS.
+- go vet ./...: PASS.
+- git diff --check: PASS.
+
+Las pruebas no utilizan tokens institucionales reales.
+No verifican la descarga de JWKS en produccion.
+
+Pendiente: probar usuarios bloqueados, errores durante
+la sincronizacion de identidad y autorizaciones
+institucionales adicionales.
+
 ## Pendientes
 
 - [x] Probar respuestas HTTP 500 ante errores simulados en ocho endpoints.

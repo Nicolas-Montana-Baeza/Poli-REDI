@@ -82,6 +82,16 @@ func RequireAuth() fiber.Handler {
 		"api://" + apiClientID,
 	}
 
+	return requireEntraAuth(jwks.Keyfunc, issuer, expectedAudiences)
+}
+
+// requireEntraAuth permite probar la validacion JWT con claves
+// efimeras. RequireAuth sigue utilizando JWKS real en produccion.
+func requireEntraAuth(
+	verifyKey jwt.Keyfunc,
+	issuer string,
+	expectedAudiences []string,
+) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		tokenString, err := extractBearerToken(c)
 
@@ -96,7 +106,7 @@ func RequireAuth() fiber.Handler {
 		token, err := jwt.ParseWithClaims(
 			tokenString,
 			claims,
-			jwks.Keyfunc,
+			verifyKey,
 			jwt.WithIssuer(issuer),
 			jwt.WithAudience(expectedAudiences...),
 		)
