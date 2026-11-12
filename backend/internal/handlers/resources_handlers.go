@@ -128,9 +128,8 @@ func GetResources(c *fiber.Ctx) error {
 	resources, err := repositories.GetResourcesFiltered(filters)
 
 	if err != nil {
-		return c.Status(500).JSON(fiber.Map{
-			"error": "Error obteniendo recursos",
-		})
+		sec005LogInternalFailure("list_resources", err)
+		return sec005WritePublicError(c, fiber.StatusInternalServerError, "Error obteniendo recursos")
 	}
 
 	return c.JSON(resources)

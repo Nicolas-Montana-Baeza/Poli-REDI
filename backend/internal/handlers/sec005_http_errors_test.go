@@ -148,7 +148,18 @@ func TestSEC005HTTPInternalErrorsAreSanitized(t *testing.T) {
 				t.Fatalf("JSON invalido: %v", err)
 			}
 
-			if len(result) != 1 {
+			expectedFields := 2
+
+			var code string
+			if err := json.Unmarshal(result["code"], &code); err != nil {
+				t.Fatalf("codigo publico invalido: %v", err)
+			}
+
+			if code != "INTERNAL_ERROR" {
+				t.Fatalf("codigo publico inesperado: %q", code)
+			}
+
+			if len(result) != expectedFields {
 				t.Fatalf("campos inesperados en respuesta: %s", body)
 			}
 

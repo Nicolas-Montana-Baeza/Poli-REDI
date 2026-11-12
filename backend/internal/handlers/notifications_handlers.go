@@ -22,9 +22,8 @@ func GetNotifications(c *fiber.Ctx) error {
 	notifications, err := repositories.GetNotificationsByUserID(user.ID)
 
 	if err != nil {
-		return c.Status(500).JSON(fiber.Map{
-			"error": "Error obteniendo notificaciones",
-		})
+		sec005LogInternalFailure("list_notifications", err)
+		return sec005WritePublicError(c, fiber.StatusInternalServerError, "Error obteniendo notificaciones")
 	}
 
 	return c.JSON(notifications)

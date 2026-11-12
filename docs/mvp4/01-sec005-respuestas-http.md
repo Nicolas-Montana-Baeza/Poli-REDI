@@ -89,6 +89,34 @@ Resultados:
 La prueba no utiliza una base de datos real
 ni valida el flujo real de Microsoft Entra ID.
 
+## Fase D1 y D2 - Contrato HTTP y diagnostico seguro
+
+Fecha: 2026-11-12
+Estado: VALIDADO PARCIALMENTE
+
+Se incorporo un contrato de errores publicos que conserva
+el campo error utilizado por el frontend y agrega code.
+
+En los ocho endpoints HTTP evaluados, los errores internos
+devuelven:
+- Estado HTTP 500.
+- Mensaje publico controlado.
+- Codigo INTERNAL_ERROR.
+
+Se incorporo diagnostico por identificador de operacion
+y tipo de error, sin registrar el mensaje original.
+
+Resultados:
+- Pruebas HTTP: 8/8 PASS.
+- Clasificacion de errores: 9/9 PASS.
+- go test ./...: PASS.
+- go vet ./...: PASS.
+- git diff --check: PASS.
+
+El contrato aun no cubre todos los endpoints de Poli-REDI.
+La autenticacion Entra ID y los demas codigos publicos
+requieren pruebas adicionales.
+
 ## Pendientes
 
 - [x] Probar respuestas HTTP 500 ante errores simulados en ocho endpoints.

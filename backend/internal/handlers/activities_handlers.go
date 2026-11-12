@@ -10,9 +10,8 @@ func GetActivities(c *fiber.Ctx) error {
 	activities, err := repositories.GetActiveActivities()
 
 	if err != nil {
-		return c.Status(500).JSON(fiber.Map{
-			"error": "Error obteniendo actividades",
-		})
+		sec005LogInternalFailure("list_activities", err)
+		return sec005WritePublicError(c, fiber.StatusInternalServerError, "Error obteniendo actividades")
 	}
 
 	return c.JSON(activities)

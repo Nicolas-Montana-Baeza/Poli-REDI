@@ -17,9 +17,8 @@ func GetReservations(c *fiber.Ctx) error {
 	reservations, err := services.GetReservations()
 
 	if err != nil {
-		return c.Status(500).JSON(fiber.Map{
-			"error": "No se pudieron cargar las reservas",
-		})
+		sec005LogInternalFailure("list_reservations", err)
+		return sec005WritePublicError(c, fiber.StatusInternalServerError, "No se pudieron cargar las reservas")
 	}
 
 	return c.JSON(reservations)
@@ -42,9 +41,8 @@ func GetAvailabilityReservations(c *fiber.Ctx) error {
 	items, err := services.GetAvailabilityItems(from, to, user.ID, user.IsAdmin)
 
 	if err != nil {
-		return c.Status(500).JSON(fiber.Map{
-			"error": "No se pudo cargar la disponibilidad",
-		})
+		sec005LogInternalFailure("list_availability", err)
+		return sec005WritePublicError(c, fiber.StatusInternalServerError, "No se pudo cargar la disponibilidad")
 	}
 
 	if !user.IsAdmin {
@@ -141,9 +139,8 @@ func GetMyReservations(c *fiber.Ctx) error {
 	reservations, err := services.GetMyReservations(user.ID)
 
 	if err != nil {
-		return c.Status(500).JSON(fiber.Map{
-			"error": "No se pudieron cargar tus reservas",
-		})
+		sec005LogInternalFailure("list_my_reservations", err)
+		return sec005WritePublicError(c, fiber.StatusInternalServerError, "No se pudieron cargar tus reservas")
 	}
 
 	return c.JSON(reservations)
@@ -194,9 +191,10 @@ func CreateReservation(c *fiber.Ctx) error {
 
 	if err != nil {
 		status, message := createReservationPublicError(err)
-		return c.Status(status).JSON(fiber.Map{
-			"error": message,
-		})
+		if status == fiber.StatusInternalServerError {
+			sec005LogInternalFailure("create_reservation", err)
+		}
+		return sec005WritePublicError(c, status, message)
 	}
 
 	return c.Status(201).JSON(createdReservation)
@@ -226,9 +224,10 @@ func CancelReservation(c *fiber.Ctx) error {
 
 	if err != nil {
 		status, message := cancelReservationPublicError(err)
-		return c.Status(status).JSON(fiber.Map{
-			"error": message,
-		})
+		if status == fiber.StatusInternalServerError {
+			sec005LogInternalFailure("cancel_reservation", err)
+		}
+		return sec005WritePublicError(c, status, message)
 	}
 
 	return c.JSON(cancelledReservation)
