@@ -61,9 +61,37 @@ Resultados:
 
 El contenedor y volumen efimeros fueron eliminados.
 
+## Fase C - Pruebas HTTP de errores internos
+
+Fecha: 2026-11-12
+
+Se validaron ocho endpoints mediante Fiber.App.Test
+con una conexion PostgreSQL deliberadamente cerrada.
+
+Escenarios:
+- Listar reservas.
+- Consultar reservas propias.
+- Consultar disponibilidad.
+- Consultar recursos.
+- Consultar actividades.
+- Consultar notificaciones.
+- Crear reserva.
+- Cancelar reserva.
+
+Resultados:
+- 8/8 pruebas HTTP: PASS.
+- Respuestas HTTP 500 con mensajes controlados.
+- Sin campos tecnicos adicionales en las respuestas.
+- go test ./...: PASS.
+- go vet ./...: PASS.
+- git diff --check: PASS.
+
+La prueba no utiliza una base de datos real
+ni valida el flujo real de Microsoft Entra ID.
+
 ## Pendientes
 
-- Probar respuestas HTTP 500 ante errores simulados.
+- [x] Probar respuestas HTTP 500 ante errores simulados en ocho endpoints.
 - Verificar ausencia de detalles SQL/JWT en los endpoints.
 - Revisar errores de negocio aun no clasificados.
 - Definir codigos publicos estables.
