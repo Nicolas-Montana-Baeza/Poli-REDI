@@ -11,7 +11,6 @@ import (
 	"poli-redi-api/internal/database"
 	"poli-redi-api/internal/routes"
 
-	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/joho/godotenv"
 )
@@ -29,7 +28,7 @@ func main() {
 
 	defer database.Close()
 
-	app := fiber.New()
+	app := sec005NewApp()
 
 	app.Use(cors.New(cors.Config{
 		AllowOrigins: envOrDefault("CORS_ALLOWED_ORIGINS", "http://localhost:5173"),

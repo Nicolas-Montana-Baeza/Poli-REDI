@@ -347,6 +347,61 @@ SEC-005 permanece EN PROGRESO hasta completar
 la verificacion final de cobertura y criterios
 de aceptacion.
 
+## Fase D8 - Proteccion global de Fiber
+
+Fecha: 2026-11-12
+Estado: VALIDADO
+
+### Implementacion
+
+Se incorporo un ErrorHandler global a Fiber.
+
+Se agrego middleware Recover para convertir panicos
+en errores HTTP controlados.
+
+Las respuestas globales utilizan el contrato:
+- error: mensaje publico.
+- code: identificador estable.
+
+Se conservan estados HTTP conocidos.
+
+Los errores inesperados y panicos devuelven
+mensajes genericos sin contenido tecnico.
+
+El diagnostico interno registra solamente el
+tipo de error, sin exponer err.Error().
+
+### Pruebas automatizadas
+
+- Error SQL inesperado: PASS.
+- Fiber 500 y 503: PASS.
+- Error de validacion envuelto: PASS.
+- Acceso denegado: PASS.
+- Metodo no permitido: PASS.
+- Panico recuperado: PASS.
+- Ruta inexistente: PASS.
+- Total: 8/8 PASS.
+
+### Regresion
+
+- go test -count=1 ./...: PASS.
+- go vet ./...: PASS.
+- git diff --check: PASS.
+- PostgreSQL 16 efimero: PASS.
+
+Resultado integrado:
+CIERRE AUTOMATIZADO MVP3 POSTGRESQL 16: PASS
+
+### Limitaciones
+
+Las pruebas simulan errores y panicos, sin utilizar
+credenciales ni tokens institucionales reales.
+
+No constituyen una certificacion de produccion.
+
+SEC-005 permanece abierto hasta verificar la
+cobertura final de criterios de aceptacion.
+
 ## Pendientes
 
 - [x] Probar respuestas HTTP 500 ante errores simulados en ocho endpoints.
