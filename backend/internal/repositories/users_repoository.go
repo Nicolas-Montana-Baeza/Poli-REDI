@@ -84,31 +84,6 @@ func getUserByEmail(ctx context.Context, email string) (*models.LocalAuthUser, e
 	return &user, nil
 }
 
-func UpdateUserEntraIdentity(userID int, oid string, tenantID string) (*models.LocalAuthUser, error) {
-	ctx := context.Background()
-
-	_, err := database.DB.ExecContext(
-		ctx,
-		`
-		UPDATE users
-		SET
-			entra_oid = NULLIF($1, ''),
-			tenant_id = NULLIF($2, ''),
-			updated_at = CURRENT_TIMESTAMP
-		WHERE id = $3;
-		`,
-		oid,
-		tenantID,
-		userID,
-	)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return getUserByID(ctx, userID)
-}
-
 func GetAllUsers() ([]models.LocalAuthUser, error) {
 	rows, err := database.DB.QueryContext(
 		context.Background(),

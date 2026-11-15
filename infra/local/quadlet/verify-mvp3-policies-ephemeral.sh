@@ -306,5 +306,20 @@ printf '\n=== Integracion calendario de bloqueos 4B ===\n'
         -count=1 -v
 )
 
+
+printf '\n=== SEC-006 S3: identidad estable PostgreSQL 16 ===\n'
+(
+    cd "${repository_root}/backend"
+
+    POLIREDI_3C_ISOLATED=1 \
+    POLIREDI_SEC006_EPHEMERAL=1 \
+    DATABASE_URL="${database_url}" \
+        go test \
+            -tags=integration \
+            ./internal/repositories \
+            -run '^TestSEC006EntraIdentityPostgresIntegration$' \
+            -count=1 -v
+)
+
 printf '\nCIERRE AUTOMATIZADO MVP3 POSTGRESQL 16: PASS\n'
 printf 'El contenedor y volumen efimeros se eliminaran ahora.\n'

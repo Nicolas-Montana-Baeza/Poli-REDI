@@ -68,9 +68,15 @@ func RequireAuth() fiber.Handler {
 		panic("configuracion de Microsoft Entra ID incompleta")
 	}
 
+	expectedTenantID, tenantErr :=
+		repositories.NormalizeEntraTenantID(tenantID)
+	if tenantErr != nil {
+		panic("configuracion de Microsoft Entra ID invalida")
+	}
+
 	log.Println("Autenticacion Microsoft Entra ID habilitada")
 
-	jwksURL := "https://login.microsoftonline.com/" + tenantID + "/discovery/v2.0/keys"
+	jwksURL := "https://login.microsoftonline.com/" + expectedTenantID + "/discovery/v2.0/keys"
 
 	jwks, err := keyfunc.NewDefault([]string{jwksURL})
 	if err != nil {
@@ -82,28 +88,30 @@ func RequireAuth() fiber.Handler {
 		"api://" + apiClientID,
 	}
 
-	return requireEntraAuth(jwks.Keyfunc, issuer, expectedAudiences)
+	return requireEntraAuth(jwks.Keyfunc, issuer, expectedAudiences, expectedTenantID)
 }
 
 // requireEntraAuth permite probar la validacion JWT con claves
 // efimeras. RequireAuth sigue utilizando JWKS real en produccion.
 type entraUserOperations struct {
-	getOrCreate    func(string, string) (*models.LocalAuthUser, error)
-	updateIdentity func(int, string, string) (*models.LocalAuthUser, error)
+	resolve func(
+		string, string, string, string,
+	) (*models.LocalAuthUser, error)
 }
 
 func requireEntraAuth(
 	verifyKey jwt.Keyfunc,
 	issuer string,
 	expectedAudiences []string,
+	expectedTenantID string,
 ) fiber.Handler {
 	return requireEntraAuthWithUsers(
 		verifyKey,
 		issuer,
 		expectedAudiences,
+		expectedTenantID,
 		entraUserOperations{
-			getOrCreate:    repositories.GetOrCreateUserByEmail,
-			updateIdentity: repositories.UpdateUserEntraIdentity,
+			resolve: repositories.ResolveEntraUser,
 		},
 	)
 }
@@ -112,6 +120,8 @@ func requireEntraAuthWithUsers(
 	verifyKey jwt.Keyfunc,
 	issuer string,
 	expectedAudiences []string,
+	expectedTenantID string,
+
 	users entraUserOperations,
 ) fiber.Handler {
 	return func(c *fiber.Ctx) error {
@@ -135,45 +145,99 @@ func requireEntraAuthWithUsers(
 			return sec005AuthPublicError(c, fiber.StatusUnauthorized, "tu sesión expiró o no es válida")
 		}
 
+		tenantID, oid, identityErr :=
+			repositories.NormalizeEntraIdentity(
+				claims.TID, claims.OID,
+			)
+
+		if identityErr != nil || tenantID != expectedTenantID {
+			return sec005AuthPublicError(
+				c,
+				fiber.StatusForbidden,
+				"no se pudo validar tu cuenta institucional",
+			)
+		}
+
 		email := resolveEmail(claims)
+
 		authUser := AuthUser{
-			OID:    claims.OID,
+			OID:    oid,
 			Name:   claims.Name,
 			Email:  email,
-			Tenant: claims.TID,
+			Tenant: tenantID,
 		}
 
 		if authUser.Email == "" {
-			return sec005AuthPublicError(c, fiber.StatusForbidden, "no se pudo validar tu cuenta institucional")
+			return sec005AuthPublicError(
+				c,
+				fiber.StatusForbidden,
+				"no se pudo validar tu cuenta institucional",
+			)
 		}
 
 		fullName := authUser.Name
-
 		if fullName == "" {
 			fullName = authUser.Email
 		}
 
-		// Entra ID prueba la identidad externa, pero la autorizacion de Poli-REDI
-		// se basa en el usuario local para mantener admins, bloqueos y reglas de
-		// RUT bajo control institucional.
-		localUser, err := users.getOrCreate(authUser.Email, fullName)
-
-		if err != nil {
-			return sec005AuthPublicError(c, fiber.StatusInternalServerError, "no se pudo cargar tu usuario")
-		}
-
-		if localUser.IsBlocked {
-			return sec005AuthPublicError(c, fiber.StatusForbidden, "usuario bloqueado")
-		}
-
-		localUser, err = users.updateIdentity(
-			localUser.ID,
-			authUser.OID,
+		// La identidad externa se resuelve solo por tenant y OID.
+		// Nunca se vincula una cuenta existente por correo.
+		localUser, err := users.resolve(
 			authUser.Tenant,
+			authUser.OID,
+			authUser.Email,
+			fullName,
 		)
 
 		if err != nil {
-			return sec005AuthPublicError(c, fiber.StatusInternalServerError, "no se pudo sincronizar tu identidad institucional")
+			switch {
+			case errors.Is(err, repositories.ErrEntraIdentityInvalid):
+				return sec005AuthPublicError(
+					c,
+					fiber.StatusForbidden,
+					"no se pudo validar tu cuenta institucional",
+				)
+			case errors.Is(err, repositories.ErrEntraIdentityLinkRequired):
+				return sec005AuthPublicError(
+					c,
+					fiber.StatusForbidden,
+					"tu cuenta requiere vinculación institucional supervisada",
+				)
+			default:
+				return sec005AuthPublicError(
+					c,
+					fiber.StatusInternalServerError,
+					"no se pudo cargar tu usuario",
+				)
+			}
+		}
+
+		if localUser == nil {
+			return sec005AuthPublicError(
+				c,
+				fiber.StatusInternalServerError,
+				"no se pudo cargar tu usuario",
+			)
+		}
+
+		// Defensa adicional: no autorizar un registro local
+		// cuya identidad no coincida con el JWT validado.
+		if localUser.ID <= 0 ||
+			localUser.TenantID != authUser.Tenant ||
+			localUser.OID != authUser.OID {
+			return sec005AuthPublicError(
+				c,
+				fiber.StatusForbidden,
+				"no se pudo validar tu cuenta institucional",
+			)
+		}
+
+		if localUser.IsBlocked {
+			return sec005AuthPublicError(
+				c,
+				fiber.StatusForbidden,
+				"usuario bloqueado",
+			)
 		}
 
 		c.Locals("authUser", authUser)

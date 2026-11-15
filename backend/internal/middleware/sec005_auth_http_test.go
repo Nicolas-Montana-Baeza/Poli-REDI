@@ -35,13 +35,19 @@ func TestSEC005EntraAuthHTTPResponses(t *testing.T) {
 		key *rsa.PrivateKey,
 		tokenIssuer, tokenAudience, email string,
 		expiresAt time.Time,
+		tokenTenants ...string,
 	) string {
 		t.Helper()
 
+		tenantID := "a1234567-1234-1234-1234-123456789abc"
+		if len(tokenTenants) > 0 {
+			tenantID = tokenTenants[0]
+		}
+
 		claims := EntraClaims{
 			PreferredUsername: email,
-			OID:               "test-oid",
-			TID:               "test-tenant",
+			OID:               "b1234567-1234-1234-1234-123456789abc",
+			TID:               tenantID,
 			RegisteredClaims: jwt.RegisteredClaims{
 				Issuer: issuer,
 				Audience: jwt.ClaimStrings{
@@ -91,6 +97,12 @@ func TestSEC005EntraAuthHTTPResponses(t *testing.T) {
 		"user@example.invalid", validUntil,
 	)
 
+	wrongTenant := signToken(
+		privateKey, issuer, audience,
+		"user@example.invalid", validUntil,
+		"c1234567-1234-1234-1234-123456789abc",
+	)
+
 	expiredToken := signToken(
 		privateKey, issuer, audience,
 		"user@example.invalid",
@@ -130,6 +142,7 @@ func TestSEC005EntraAuthHTTPResponses(t *testing.T) {
 			verifyKey,
 			issuer,
 			[]string{audience},
+			"a1234567-1234-1234-1234-123456789abc",
 		),
 		func(c *fiber.Ctx) error {
 			return c.SendStatus(fiber.StatusOK)
@@ -165,6 +178,10 @@ func TestSEC005EntraAuthHTTPResponses(t *testing.T) {
 		{
 			"audiencia_invalida", "Bearer " + wrongAudience,
 			401, "tu sesión expiró o no es válida",
+		},
+		{
+			"tenant_no_autorizado", "Bearer " + wrongTenant,
+			403, "no se pudo validar tu cuenta institucional",
 		},
 		{
 			"jwt_expirado", "Bearer " + expiredToken,
